@@ -4,7 +4,7 @@ The course is built one Part at a time. Chapters appear here as each sub-project
 lands. See the [roadmap](../superpowers/roadmap.md) for status.
 
 - **Part I — Pi extension basics.** A hello-world extension and the event
-  lifecycle. *(scaffolding in progress)*
+  lifecycle. :white_check_mark:
 - **Part II — Measurement (the smoking gun).** Telemetry, a minimal eval
   harness, and the out-of-the-box baseline. *(queued)*
 - **Part III — Spec-driven development on Pi.** Roadmap-and-packet, an
@@ -14,4 +14,6 @@ lands. See the [roadmap](../superpowers/roadmap.md) for status.
 ```{toctree}
 :maxdepth: 1
 :hidden:
+
+part1-hello-agent
 ```

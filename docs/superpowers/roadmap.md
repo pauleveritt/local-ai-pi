@@ -6,15 +6,15 @@ Per-phase specs in `specs/` and plans in `plans/` are the source of truth for
 links. It is built the way the course teaches — each phase is evidence-gated, and
 a later phase is not queued just because an earlier one landed.
 
-**Next phase:** Sub-project 1 — Part II (Measurement). Brainstorm → spec → plan →
-build. It is next because Parts III and IV cannot be evaluated without the harness
-and baseline it produces.
+**Current phase:** Sub-project 1 — Part II (Measurement). This is next because
+Parts III and IV cannot be evaluated without the harness and baseline it
+produces. SP0 is complete.
 
 ## Phases
 
 | ID | Phase | Status | Spec | Plan | Evidence |
 |----|-------|--------|------|------|----------|
-| SP0 | Scaffold + Part I (repo skeleton, docs toolchain, roadmap, LESSONS, example spec triple, hello-world extension) | **In progress** (handed off from brainstorming) | [course-design](specs/2026-07-23-course-design.md) | — | — |
+| SP0 | Scaffold + Part I (repo skeleton, docs toolchain, roadmap, LESSONS, example spec triple, hello-world extension) | **Done** | [course-design](specs/2026-07-23-course-design.md), [sp0-hello-agent](specs/2026-07-23-sp0-hello-agent-design.md) | [sp0-plan](plans/2026-07-23-sp0-hello-agent.md) | — |
 | SP1 | Part II — Measurement (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | Queued (next) | — | — | — |
 | SP2 | Part III — SDD on Pi (roadmap/packet method, orchestrator subagent; planner + fleet are evidence-gated, see backlog). Guardrail inheritance is taught as a forward promise, demonstrated in SP3. | Blocked on SP1 | — | — | — |
 | SP3 | Part IV — Improvements catalog (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | Blocked on SP1 | — | — | — |
