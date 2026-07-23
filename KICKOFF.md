@@ -175,8 +175,10 @@ were settled:
 - **The app is fixed; the phase framing evolves.** Most chapters use the existing
   overly-detailed roadmap. Later chapters bring in a higher-level roadmap consumed
   by the planner tool-agent. Both target the same AgentClinic app.
-- **The planner is evidence-gated, not a promised deliverable.** Only the
-  orchestrator subagent is a plain Part III deliverable.
+- **The planner is evidence-gated, not a promised deliverable.** The plain
+  Part III deliverables are the `implementer` specialist and the
+  parent-as-orchestrator system prompt (there is no separate orchestrator
+  subagent — that framing predates the reframe around the shipped example).
 - **Squash-merge feature branches.** When a sub-project is complete, squash-merge
   the feature branch to `main` with a single commit (`SP<N>: <title>`) that
   summarizes the sub-project. This keeps `main` clean — one commit per
