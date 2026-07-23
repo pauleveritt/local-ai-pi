@@ -44,15 +44,22 @@ neighbor shipped:
   — establish whether an edit worked). An LSP gives structural orientation
   (symbols, imports, references) up front and a verification signal after, both
   named as high-value in the lessons but out of scope in the prior course.
-  First step is confirmation, not implementation: `pi-lsp` is **not** a package
-  in the Pi checkout at `~/PycharmProjects/pi` — establish what it actually is
-  (a real component? external? planned?) and whether it can be wired through a
-  built-in Pi extension seam (e.g. a tool that shells to a language server, or
-  `before_agent_start` orientation fed from LSP symbols) without violating the
-  course's "built-in Pi only, no forks" constraint. If wiring it needs a runtime
-  patch, it stays out of scope and the item records that finding. Evidence-gated
-  like every other improvement: taught only if a measured run shows it helps the
-  SLM on the example workload.
+  The candidate is the published package **`@spences10/pi-lsp`**
+  (`pi install npm:@spences10/pi-lsp`, https://pi.dev/packages/@spences10/pi-lsp):
+  a Pi **extension** that registers LSP-backed tools (diagnostics, hover,
+  definitions, references, document symbols) and injects a small system-prompt
+  reminder, covering `python-lsp-server` among others. Per its page it installs
+  as a standard Pi package and **requires no fork** — so it sits inside the
+  course's "built-in Pi only" constraint and is a real starting point rather than
+  a research unknown. Open questions the investigation answers: does a Gemma-class
+  SLM actually *use* the LSP tools when offered, or ignore them; is the
+  orientation better delivered as tools the model must choose or as
+  `before_agent_start` context injected deterministically (the "structure beats
+  strings" tension from `LESSONS.md #1`); and does its Python path help the
+  AgentClinic workload. Evidence-gated like every other improvement: taught only
+  if a measured run shows it helps the SLM on the example workload. (Installing
+  it is a normal package install for the reader; it does not touch the pinned
+  global `pi` runtime.)
 
 ## Conventions
 
