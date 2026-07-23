@@ -86,6 +86,50 @@ for the parent to verify before dispatching.
      - 1.5
 ```
 
+### What the telemetry revealed
+
+**Overreach dropped from 4/8 to 1/8.** The "build only this phase" rule worked
+for most runs. The one remaining overreach run (run 5) still created `models.py`
+and built all three phases — the rule needs mechanism-level enforcement.
+
+**Repair spirals cut in half.** Mean subagent calls dropped from 2.2 to 1.5.
+Mean wall time dropped from 329s to 213s. The parent's repair policy ("at most
+once") and the pre-dispatch packet checklist reduced runaway repairs.
+
+**Two runs failed with correct files.** Runs 7 and 8 wrote the right Phase 1
+files (app.py, templates, tests) and the implementer reported "1 passed." The
+parent verified no unauthorized files were created. But the harness's pytest
+showed failures.
+
+**The deep-dive ([research/2026-07-24-sp2-deep-dive.md](../superpowers/research/2026-07-24-sp2-deep-dive.md))
+revealed the cause: validation command drift.** The implementer ran
+`uv run pytest -q tests/test_app.py` (a specific file) while the harness runs
+`uv run pytest -q` (all tests). The implementer's narrower command passes; the
+harness's broader command fails. The implementer isn't dishonest — it ran a
+different command than the packet specified. The fix is prompt-level (insist on
+the exact command) or mechanism-level (the harness reports the child's actual
+command).
+
+**One run hung on a routing edge case** (run 3). The implementer got stuck on a
+`TemplateResponse` routing issue and the subprocess hung at 947s. Model-level
+problem, not prompt-tunable.
+
+### Recommendations
+
+- **Verifier specialist** (SP2c, evidence-gated): a separate specialist that
+  runs the acceptance tests and mechanically checks for acceptance strings,
+  removing trust from the implementer's self-report.
+- **Path guard** (Part IV): reject writes to files not in the Allowed Files
+  list. Would have prevented the one remaining overreach run.
+- **Turn cap or repeat breaker** (Part IV): a hard limit on subagent calls
+  per parent turn, regardless of the prompt's repair policy.
+- **Harness captures pytest output for failed runs.** Currently we only see the
+  child's self-reported test output. The harness should capture its own pytest
+  stderr/stdout to diagnose why correct-looking files fail tests.
+- **Packet fidelity instrumentation**: mechanically compare the packet's
+  acceptance strings against the roadmap to distinguish packet-quality failures
+  from implementer failures.
+
 4/8 (50%), up from 3/8 (38%). Key improvements:
 
 - **Mean wall time dropped** from 329s to 213s — the repair-spiral fix cut the

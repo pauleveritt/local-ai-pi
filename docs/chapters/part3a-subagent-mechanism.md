@@ -139,3 +139,26 @@ A working subagent delegation. You loaded Pi's shipped extension, authored a
 specialist file, and watched the parent dispatch a task to a child process. In
 the next chapter you'll author a real implementer specialist and an orchestrator
 parent prompt — then measure whether it beats the SP1 baseline.
+
+## Results
+
+The mechanism loads and registers the `subagent` tool. Without an agent file,
+discovery comes back empty (`"Available agents: none"`) — confirming the
+two-part structure (mechanism = extension, specialists = data you own). With a
+specialist file and `agentScope: "both"`, delegations dispatch successfully.
+
+### Key metrics for a trivial delegation
+
+| Metric | Value |
+|--------|-------|
+| Extension load time | < 1s |
+| Specialist discovery | < 100ms |
+| Child process spawn + completion | 2-10s (model-dependent) |
+
+### Recommendations
+
+- Always verify `agentScope: "both"` on project-local specialists. The default
+  `"user"` scope silently ignores `.pi/agents/`.
+- The `prompts/orchestrator.md` file deliberately lives outside `.pi/agents/` to
+  prevent self-delegation loops. Keep specialist files and prompt files
+  separated by directory.

@@ -191,3 +191,51 @@ fail on the first attempt or spiraled into 3-4 repair attempts and timed out.
 The dated evidence report lives at
 :ref:`sp2-baseline-phase-1`.
 ```
+
+## Results
+
+### Metrics
+
+| Metric | SP2 Ch2 | SP1 (for comparison) |
+|--------|---------|----------------------|
+| Success rate | 3/8 (38%) | 0/8 (0%) |
+| Mean wall time | 329s | 45s |
+| Mean parent turns | 7.8 | 6.4 |
+| Mean subagent calls | 2.2 | N/A (no delegation) |
+| Runs with delegation | 8/8 | 0/8 |
+| Mean packet size | 2,837 bytes | N/A |
+
+### What the telemetry revealed
+
+**Delegation happened in every run.** No `no-delegation` outcomes — the parent
+always called the subagent tool. The mechanism works.
+
+**Successful runs (3/8) used exactly 1 delegation with a clean packet.** Each
+successful run dispatched a single 1,315-byte packet. The implementer wrote
+the correct files, tests passed, and the run completed in 145-243s.
+
+**Two failure modes emerged:**
+
+1. **Overreach (4/8 runs).** The implementer created `models.py` and
+   `complaints.html` during Phase 1 — files not in the Allowed Files list. The
+   specialist prompt said "do not redesign" but the implementer saw the full
+   roadmap and built ahead.
+
+2. **Repair spirals (2/8 runs).** Four subagent calls each — one initial
+   delegation plus three repair attempts. Both runs hit the 900s timeout. The
+   parent's repair policy ("at most twice") wasn't enforced strongly enough,
+   and the implementer's overreach meant repairs never converged.
+
+### Recommendations
+
+- **Add a "build only this phase" rule to the implementer** (Chapter 3).
+- **Tighten the parent's repair policy** from "at most twice" to "at most once"
+  and add a pre-dispatch packet checklist (Chapter 3).
+- **Mechanism-level overreach protection** (Part IV): a path guard on
+  `tool_call` that rejects writes to files not in the Allowed Files list.
+- **Mechanism-level repair cap** (Part IV): a turn cap or repeat breaker that
+  stops runaway repair loops regardless of the prompt.
+- **Instrument packet fidelity** in the harness: mechanically check whether the
+  packet's acceptance strings and allowed-files list match the roadmap verbatim.
+  This would distinguish "good packet, implementer failed" from "bad packet,
+  implementer never had a chance."
