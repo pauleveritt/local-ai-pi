@@ -49,6 +49,12 @@ def prepare_workspace(app_dir: str | Path) -> tuple[Path, str]:
     # Copy the hello-world extension so the workspace is self-contained.
     _copy_hello_world_extension(workspace)
 
+    # Copy .pi/agents/ so the subagent extension can discover specialists.
+    _copy_agents(workspace)
+
+    # Copy prompts/ so --append-system-prompt paths resolve.
+    _copy_prompts(workspace)
+
     # Install dependencies. No --frozen here — each workspace gets its own
     # resolution. The dep set is small (fastapi, uvicorn, pytest) and stable.
     subprocess.run(
@@ -159,6 +165,34 @@ def _copy_hello_world_extension(workspace: Path) -> None:
     dest = workspace / ".pi" / "extensions"
     dest.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, dest / "hello-world.ts")
+
+
+def _copy_agents(workspace: Path) -> None:
+    """Copy .pi/agents/ specialist files into the workspace so the subagent
+    extension's discoverAgents can find them (it walks up from CWD)."""
+    repo_root = Path(__file__).resolve().parent.parent
+    src = repo_root / ".pi" / "agents"
+    if not src.exists() or not any(src.iterdir()):
+        return
+    dest = workspace / ".pi" / "agents"
+    dest.mkdir(parents=True, exist_ok=True)
+    for f in src.iterdir():
+        if f.is_file():
+            shutil.copy2(f, dest / f.name)
+
+
+def _copy_prompts(workspace: Path) -> None:
+    """Copy prompts/ directory into the workspace so --append-system-prompt
+    paths resolve relative to CWD."""
+    repo_root = Path(__file__).resolve().parent.parent
+    src = repo_root / "prompts"
+    if not src.exists() or not any(src.iterdir()):
+        return
+    dest = workspace / "prompts"
+    dest.mkdir(parents=True, exist_ok=True)
+    for f in src.iterdir():
+        if f.is_file():
+            shutil.copy2(f, dest / f.name)
 
 
 def _is_harness_file(path: str) -> bool:
