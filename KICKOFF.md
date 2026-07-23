@@ -116,8 +116,35 @@ machinery.
 
 ## How to start
 
+Do these in order — SP0 is not finished, so close it before starting SP1.
+
 1. `git log --oneline` to confirm you are at the scaffold commit.
-2. Invoke the brainstorming skill for **sub-project 1 (Part II — Measurement)**,
-   or, if you want to finish sub-project 0 first, build the Part I hello-world
-   extension and its chapter, then update the roadmap row SP0 to Done.
-3. Follow the master spec's sub-project order. Keep the roadmap current.
+2. **Finish SP0 first.** Build the Part I hello-world extension (a `.pi/extensions/`
+   module: `session_start` → `ctx.ui.notify`, plus one `appendEntry` showing how
+   evidence is written) and its short chapter under `docs/chapters/`. Then flip
+   the roadmap SP0 row to Done.
+3. **Then SP1.** Invoke the brainstorming skill for sub-project 1 (Part II —
+   Measurement). If the Superpowers skills are unavailable in your session, follow
+   the same shape by hand: brainstorm a spec into `docs/superpowers/specs/`, write
+   a plan into `plans/`, build it, and record evidence in `research/`.
+4. Follow the master spec's sub-project order. Keep the roadmap current, and move
+   shipped specs/plans to `archive/`.
+
+## Design decisions already resolved (do not re-litigate)
+
+A deep review (Fable, 2026-07-23) checked the design against Pi source and these
+were settled:
+
+- **Guardrail inheritance is a forward promise in Part III.** Part III teaches the
+  subagent mechanism and parent-side governance; the "child inherits the
+  guardrails" demonstration happens in a Part IV chapter where the guardrails
+  actually exist. Inheritance is also project-*global*, not per-specialist — do
+  not claim OpenCode's per-role permission parity.
+- **`models.json` does not carry sampling params.** `temperature`/`top_p`/`top_k`
+  are server-side (LM Studio/oMLX) or a `before_provider_request` payload
+  mutation. `models.json` is for model selection, context window, and `compat`.
+- **The app is fixed; the phase framing evolves.** Most chapters use the existing
+  overly-detailed roadmap. Later chapters bring in a higher-level roadmap consumed
+  by the planner tool-agent. Both target the same AgentClinic app.
+- **The planner is evidence-gated, not a promised deliverable.** Only the
+  orchestrator subagent is a plain Part III deliverable.

@@ -16,7 +16,7 @@ and baseline it produces.
 |----|-------|--------|------|------|----------|
 | SP0 | Scaffold + Part I (repo skeleton, docs toolchain, roadmap, LESSONS, example spec triple, hello-world extension) | **In progress** (handed off from brainstorming) | [course-design](specs/2026-07-23-course-design.md) | — | — |
 | SP1 | Part II — Measurement (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | Queued (next) | — | — | — |
-| SP2 | Part III — SDD on Pi (roadmap/packet method, orchestrator subagent, planning subagent, evidence-gated fleet) | Blocked on SP1 | — | — | — |
+| SP2 | Part III — SDD on Pi (roadmap/packet method, orchestrator subagent; planner + fleet are evidence-gated, see backlog). Guardrail inheritance is taught as a forward promise, demonstrated in SP3. | Blocked on SP1 | — | — | — |
 | SP3 | Part IV — Improvements catalog (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | Blocked on SP1 | — | — | — |
 
 ## Backlog (evidence-gated, not queued)

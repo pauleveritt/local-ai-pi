@@ -29,11 +29,35 @@ addresses it → a measured before/after. No technique is adopted on faith.
 - **Evidence-gated.** A technique is kept only if a measured run shows it helps.
   Techniques are introduced *after* their motivating failure is shown, never
   before.
-- **The example is fixed.** The SLM builds the AgentClinic FastAPI complaints
-  board as spec-driven phases (reused from the prior OpenCode course). The app is
-  a constant so that steering is the only variable.
+- **The example app is fixed; the phase framing evolves.** The SLM builds the
+  same AgentClinic FastAPI complaints board throughout, and its final acceptance
+  behavior is constant — the app is held fixed so that steering is the only
+  variable. What varies deliberately is how the work is *framed as phases*. Most
+  of the course uses the existing overly-detailed, implementation-heavy roadmap
+  (reused from the prior OpenCode course) as the baseline workload. Later
+  chapters introduce a **higher-level, business/user-story roadmap** consumed by
+  the planner tool-agent (Part III); the planner's job is to turn that looser
+  roadmap into the same right-sized phase contracts. Both roadmaps target the
+  identical app — the shift from detailed to higher-level framing is itself a
+  late-course subject, not a change of workload.
 - **The target model is a real SLM.** Gemma-class local models served via LM
   Studio or oMLX, the same family the lessons were recorded against.
+
+## Why "built-in Pi only" is achievable, not aspirational
+
+The constraint has a concrete precedent. A prior Pi spike (Tainie) concluded it
+had to **fork the Pi runtime** in exactly one place: a repeated-identical-failing
+-tool-call circuit breaker patched into `packages/agent/src/agent-loop.ts`
+(`~/PycharmProjects/pi-circuitbreaker`, commit `30f2c382`). That is the single
+loudest SLM failure — the 170-identical-malformed-call loop. This course reaches
+the same behavior with **no fork**: the Part IV repeat-breaker is a pure
+extension hooking `tool_execution_start`/`tool_execution_end`, and it was
+live-proven against `gemma-4-12b-it-mlx` in the reference repo (a schema-rejected
+call does fire `tool_execution_end`, which the extension counts and aborts on).
+The one place a prior effort felt forced to fork, this course achieves built-in —
+and with stronger evidence than the fork carried (the fork was verified against
+stubs, not a live model). The other Tainie fork was of *pyrefly*, an external
+type checker, whose entire verify-loop this course excludes by design.
 
 ## The four Parts
 
@@ -52,9 +76,13 @@ Goal: the reader can measure a run and has *seen the ditch*. This Part is
 load-bearing; every later claim depends on it.
 
 Deliverables:
-- A telemetry reader over `pi --mode json` output and on-disk session JSONL:
-  turns, tool calls, timing, tokens/cache where available, and custom
-  `appendEntry` events.
+- A telemetry reader. The primary source is the `pi --mode json` event stream
+  (`message_end` events carry per-turn usage — input/output/cache/turns — as the
+  subagent example already demonstrates). Note the tension the chapter must
+  resolve: a headless `pi -p --no-session` run writes **no** on-disk session
+  JSONL, so the harness either captures the stdout stream or keeps sessions on to
+  read the file. The reader surfaces turns, tool calls, timing, tokens/cache
+  where available, and custom `appendEntry` events.
 - A minimal eval "session": provision a disposable workspace from the example
   app, run pi headless against one phase, capture the diff, run the acceptance
   tests, and reduce to a structured result.
@@ -95,11 +123,21 @@ Two consequences drive the whole Part, and both improve on the OpenCode
 limitations recorded in `LESSONS.md`:
 
 - **The child is a full `pi` process, so it loads the project's extensions.**
-  The permission enforcement OpenCode gave declaratively (a `permission` block
-  constraining the child from outside) is obtained here *from inside*: the child
-  inherits every Part IV guardrail — its own repeat-breaker, path-guard,
-  output-cap, turn-cap — enforced in its own lifecycle. Constrain the child by
-  the code it runs, not a config the parent asserts over it.
+  This is the seam where the permission enforcement OpenCode gave declaratively
+  (a `permission` block constraining the child from outside) is instead obtained
+  *from inside*: a child running in the project inherits whatever guardrail
+  extensions the project ships, enforced in its own lifecycle. Two honest
+  qualifications the chapter must state: (a) those guardrails do not exist yet at
+  Part III — they are built in Part IV — so Part III makes this an explicit
+  **forward promise** and the actual demonstration (a subagent composed with the
+  guardrails) lives in a Part IV chapter where both exist; and (b) inheritance is
+  **project-global, not per-specialist**: the `tools:` frontmatter restricts a
+  specialist's tool surface per-role, but per-role path or behavior guards (e.g.
+  "the implementer, specifically, may not touch `specs/`") would require
+  per-spawn plumbing — env vars or per-role config the guardrail reads — which
+  this course does not design. The child guardrail does not know it is "the
+  implementer." Constrain the child by the code it runs, but do not overclaim
+  OpenCode's per-agent permission parity.
 - **From the parent, a delegation is a tool call.** So it is observable and
   governable through the same event hooks as any tool: `tool_call` can block it,
   `tool_execution_end` sees it fail, the repeat-breaker counts a runaway
@@ -117,8 +155,10 @@ your own code, not a runtime flag.
 
 - The roadmap-and-packet method: a phase contract, the handoff packet, and the
   acceptance command, applied to the example app.
-- An orchestrator subagent, built as the registered-tool mechanism above.
-- A **planner specialist — the reserved role for the "galaxy brain."** The
+- An orchestrator subagent, built as the registered-tool mechanism above. This
+  is the one plain deliverable of the Part; everything below is evidence-gated.
+- *(evidence-gated, not a promised deliverable)* A **planner specialist — the
+  reserved role for the "galaxy brain."** The
   course does not banish open-ended reasoning; it assigns it to one up-front
   role. The planner runs on a **bigger model** and its job is to turn
   business/user-story phases (deliberately *not* implementation-heavy) into a
@@ -131,9 +171,10 @@ your own code, not a runtime flag.
   split, with the planner realized as a Pi specialist rather than a chat window,
   and it is the mechanical expression of `LESSONS.md #1` ("structure beats
   strings"): assembly and sizing are code, not SLM improvisation.
-- An evidence-gated fleet: orchestrator, planner, implementer, verifier. Each
-  specialist is admitted only if a measured run shows it beats the simpler shape
-  it replaces. This re-opens the question the prior course closed negatively —
+- *(evidence-gated)* A fleet beyond the orchestrator: planner, implementer,
+  verifier. Each specialist is admitted only if a measured run shows it beats the
+  simpler shape it replaces. This re-opens the question the prior course closed
+  negatively —
   `LESSONS.md #4` recorded the orchestrator hop *drifting* via paraphrase — and
   answers it with this harness's own measurements rather than assuming either
   outcome.
@@ -165,9 +206,21 @@ spec), each with its motivating lesson:
 - Context-scaled tool-output truncation — L8.
 - Protected-path guard on `tool_call` — L8, L12.
 - Repeated-failing-call circuit breaker on `tool_execution_*` — L1, L11.
-- Turn cap — L11.
-- Model selection and sampling tuning via `models.json` — L10.
-- Context budgeting and compaction settings — L9.
+- Turn cap on `turn_end` — L11. (Note the two soft edges the reference
+  implementation documents: the effective bound is `maxTurns + 1`, and steer
+  delivery cannot be confirmed through the public API — `clearSteeringQueue` is
+  not on `ExtensionAPI`, so an undelivered correction is recorded as
+  `delivered: "unknown"`. The chapter must state both rather than imply a hard
+  cap and guaranteed delivery.)
+- Model *selection* via `models.json`; **sampling tuning is not a `models.json`
+  capability** — L10. The `models.json` schema exposes `contextWindow`,
+  `maxTokens`, and `compat`, but not `temperature`/`top_p`/`top_k`. The lesson's
+  low-entropy sampling (`temperature: 0.2`, etc.) is set **server-side in LM
+  Studio / oMLX**, or injected per-request via a `before_provider_request`
+  payload mutation. The chapter teaches whichever the target backend supports;
+  it does not claim `models.json` carries sampling.
+- Context budgeting and compaction settings (`compaction.reserveTokens`,
+  `keepRecentTokens`, `enabled`) — L9.
 
 The guardrails among these (output cap, path guard, repeat breaker, turn cap)
 were already designed and implemented once against Pi in the prior repo. That

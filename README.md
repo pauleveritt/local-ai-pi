@@ -42,13 +42,17 @@ trivial; the point is the *steering*, not the app.
 
 This repository is itself spec-driven, roadmap-tracked, and evidence-gated.
 [`docs/superpowers/roadmap.md`](docs/superpowers/roadmap.md) is the live index of
-the course's own construction, and [`docs/superpowers/research/`](docs/superpowers/research/)
-holds the dated evidence reports — including the baseline that motivates the
-whole course. If you want to see the method the course teaches, read how the
-course was built.
+the course's own construction, and as each Part lands, its dated evidence reports
+— including the baseline that motivates the whole course — will be written to
+[`docs/superpowers/research/`](docs/superpowers/research/). (That directory is
+empty today: the course is at its scaffold stage, and this README will not claim
+a result before its artifact exists — the same evidence discipline the course
+teaches.) If you want to see the method the course teaches, read how the course
+is being built.
 
 ## Reading the course
 
 The chapters live under [`docs/chapters/`](docs/chapters/) and are built with
-Sphinx + MyST. See [CONTRIBUTING](docs/superpowers/policies/evidence.md) for the
-evidence policy every measured claim in the course must satisfy.
+Sphinx + MyST. The [evidence policy](docs/superpowers/policies/evidence.md) — the
+GREEN/YELLOW/RED tiers every measured claim in the course must satisfy — governs
+what the course is allowed to assert.
