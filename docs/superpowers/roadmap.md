@@ -6,17 +6,17 @@ Per-phase specs in `specs/` and plans in `plans/` are the source of truth for
 links. It is built the way the course teaches — each phase is evidence-gated, and
 a later phase is not queued just because an earlier one landed.
 
-**Current phase:** Sub-project 1 — Part II (Measurement). This is next because
-Parts III and IV cannot be evaluated without the harness and baseline it
-produces. SP0 is complete.
+**Current phase:** Sub-project 2 — Part III (SDD on Pi). This is unblocked
+now that SP1's measurement harness and baseline exist. SP0 and SP1 are
+complete.
 
 ## Phases
 
 | ID | Phase | Status | Spec | Plan | Evidence |
 |----|-------|--------|------|------|----------|
 | SP0 | Scaffold + Part I (repo skeleton, docs toolchain, roadmap, LESSONS, example spec triple, hello-world extension) | **Done** | [course-design](specs/2026-07-23-course-design.md), [sp0-hello-agent](specs/2026-07-23-sp0-hello-agent-design.md) | [sp0-plan](plans/2026-07-23-sp0-hello-agent.md) | — |
-| SP1 | Part II — Measurement (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | Queued (next) | — | — | — |
-| SP2 | Part III — SDD on Pi (roadmap/packet method, orchestrator subagent; planner + fleet are evidence-gated, see backlog). Guardrail inheritance is taught as a forward promise, demonstrated in SP3. | Blocked on SP1 | — | — | — |
+| SP1 | Part II — Measurement (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | **Done** | [sp1-measurement-design](specs/2026-07-24-sp1-measurement-design.md) | [sp1-plan](plans/2026-07-24-sp1-measurement.md) | [baseline-phase-1](research/2026-07-23-baseline-phase-1.md) — 0/8 |
+| SP2 | Part III — SDD on Pi (roadmap/packet method, subagent specialist; planner + fleet are evidence-gated, see backlog). Reframed around the *shipped* Pi subagent example — the course specializes it rather than rebuilding it. Guardrail inheritance is taught as a forward promise, demonstrated in SP3. | Queued (next) | — | — | — |
 | SP3 | Part IV — Improvements catalog (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | Blocked on SP1 | — | — | — |
 
 ## Backlog (evidence-gated, not queued)

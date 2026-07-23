@@ -40,44 +40,64 @@ Read, in order:
 - `examples/agentclinic/` — the example workload.
 - `.superpowers/sdd/` — SDD execution scratch (gitignored).
 
-## What is already done (sub-project 0, this hand-off)
+## What is done
 
-- Repo skeleton, `.gitignore`, docs toolchain (`docs/conf.py`, `pyproject.toml`
-  docs group), `docs/index.md`, `docs/chapters/index.md`.
-- Master course design spec, roadmap, evidence policy.
-- The example spec triple, copied into `examples/agentclinic/specs/`.
-- `LESSONS.md`, copied from the prior course. **Caveat:** it still carries
-  OpenCode-specific framing (`.opencode/`, `/phase`, `implementer1a`,
-  provider names). Adapting it to Pi is course work, not done yet — treat it as
-  raw source material for the lesson catalog Part IV cites, and give it a Pi pass
-  when Part IV is built (or as a small dedicated task if you prefer).
+- **SP0 — Scaffold + Part I.** Repo skeleton, docs toolchain (Sphinx 9 +
+  myst-parser + furo), roadmap, evidence policy, the example spec triple,
+  LESSONS.md, and Part I's hello-world extension + chapter.
+- **SP1 — Part II (Measurement).** Telemetry reader (`harness/telemetry.py`),
+  disposable workspace provisioning (`harness/workspace.py`), eval session
+  runner (`harness/session.py`), n=8 baseline loop (`harness/runner.py`).
+  Three Part II chapters. The smoking-gun baseline report lives at
+  `docs/superpowers/research/2026-07-23-baseline-phase-1.md` — **0/8 success**
+  on Phase 1 alone, the ditch the rest of the course answers. Built against
+  `omlx/gemma-4-12B-it-MLX-8bit` on oMLX (not LM Studio — see Environment).
 
 ## What is NOT done
 
-- **Part I's hello-world extension is not written yet.** The scaffold sub-project
-  includes it; it is the first thing to build. A minimal `.pi/extensions/`
-  hello-world (e.g. `session_start` → `ctx.ui.notify`, plus an `appendEntry`
-  showing how evidence gets written) with a chapter under `docs/chapters/`.
-- Parts II, III, IV are unbuilt. Part II (Measurement) is **next** and is
-  load-bearing — build it before III/IV, because they cannot be evaluated without
-  its harness and baseline.
+- Parts III, IV are unbuilt. Part III (SDD on Pi) is **next** and unblocked
+  now that SP1's harness and baseline exist.
 
 ## Key design decision already made: how Pi subagents work
 
 Part III depends on this; the master spec's "Part III" section has the full
-version. In short: Pi has **no native subagent**. A subagent is a composition you
-own — a registered tool whose `execute` spawns a child `pi --mode json` process
-(the mechanism, TypeScript) plus an `agents/<name>.md` file (the specialist,
-data). Think of a subagent as *a tool you wrote that happens to spawn another
-agent*, not a config the runtime interprets. Two consequences: the child is a
-full pi process so it **inherits the project's guardrail extensions** (this is
-how you get the permission enforcement OpenCode gave declaratively — from inside
-the child, not asserted over it); and from the parent a delegation is just a
-**tool call**, so every Part IV guardrail governs it. The reserved "galaxy-brain"
-role is a **planner** specialist on a bigger model — a hybrid deterministic+model
+version. **Important correction from the SP2 review (2026-07-23):** the master
+spec frames a Pi subagent as something you build from scratch ("Pi has no
+native subagent; a subagent is a composition you own"). That is *technically*
+true — there is no runtime subagent primitive — but *pedagogically misleading*:
+**Pi ships a complete subagent extension** in its examples directory at
+`examples/extensions/subagent/` (in the installed package under
+`@earendil-works/pi-coding-agent/examples/extensions/subagent/`).
+
+The shipped `subagent` extension already provides everything SP2's brainstormed
+design proposed to build from scratch and more: a registered `subagent` tool,
+`agents/<name>.md` specialist discovery (frontmatter: `name`, `description`,
+`tools`, `model` + system-prompt body), single/parallel/chain delegation modes,
+streaming output, usage/cost tracking, and a security model for project-local
+agents. A reader who `pi install`s it has the full mechanism.
+
+So the course's Part III contribution is **not** "rebuild the extension in
+TypeScript" — that would violate the "built-in Pi only" spirit and waste the
+reader's time. The real deliverables are:
+
+1. **Study and install** the shipped subagent example (Chapter 1 dissects
+   `index.ts`/`agents.ts` to teach the mechanism).
+2. **Author an `implementer` specialist** (`.pi/agents/implementer.md`) for the
+   AgentClinic workload — the packet format, restricted tools, system prompt.
+3. **Author the parent/orchestrator system prompt** that teaches the SLM to
+   extract phases from the roadmap and construct tight packets.
+4. **Measure** whether this shape beats the SP1 0/8 baseline.
+
+Two consequences of the mechanism still hold (and the course teaches both):
+the child is a full pi process so it **inherits the project's guardrail
+extensions** (the permission enforcement OpenCode gave declaratively — from
+inside the child, not asserted over it; demonstrated in a Part IV chapter where
+the guardrails exist); and from the parent a delegation is just a **tool call**,
+so every Part IV guardrail governs it. The reserved "galaxy-brain" role is a
+**planner** specialist on a bigger model — a hybrid deterministic+model
 tool-agent that turns business/user-story phases into right-sized packets and
-derives their acceptance oracles. Oracle derivation is the central evidence-gated
-research thread of Part III.
+derives their acceptance oracles. Oracle derivation is the central
+evidence-gated research thread of Part III.
 
 ## Reference material (read-only, in a sibling repo)
 
@@ -102,7 +122,7 @@ Also useful, as inspiration only (not a dependency): the Tainie eval driver at
 reimplements a minimal version and shares none of Tainie's type-checker
 machinery.
 
-## Environment notes (verified 2026-07-23)
+## Environment notes (verified 2026-07-23, updated for oMLX)
 
 - **Use the globally-installed `pi`, never the source checkout.** The runtime is
   the `pi` on PATH (`/Users/pauleveritt/.volta/bin/pi`, an installed release,
@@ -113,21 +133,26 @@ machinery.
   and do not rely on behavior only present there. If a mechanism is not in the
   installed release, record it as a finding — do not build a local pi to make it
   work.
-- LM Studio serves `gemma-4-12b-it-mlx` on
-  `localhost:1234`; a provider entry for it exists at `~/.pi/agent/models.json`
-  (provider `lmstudio`, contextWindow 40960). Always run headless pi with
-  `< /dev/null` to avoid the never-EOF stdin startup hang, and pass
-  `--model lmstudio/gemma-4-12b-it-mlx` explicitly (pi's default provider is a
-  different one).
+- **oMLX serves the model, not LM Studio.** The course moved from LM Studio to
+  oMLX during SP1. The server runs on `http://127.0.0.1:8001/v1` with the shared
+  secret API key `not-needed` (passed as `Authorization: Bearer not-needed`).
+  The model is `gemma-4-12B-it-MLX-8bit` (contextWindow 262144), registered in
+  `~/.pi/agent/models.json` under provider `omlx`. Invoke as
+  `--model omlx/gemma-4-12B-it-MLX-8bit`. The LM Studio entry in `models.json`
+  still exists but is unused. Always run headless pi with `< /dev/null` to avoid
+  the never-EOF stdin startup hang.
 - Node 25.8.1 strips TypeScript types natively; the prior guardrails suite runs
   under `node --test` with no packages installed. Relative imports must use
   explicit `.ts` extensions.
 
 ## How to start
 
-1. `git log --oneline` to confirm current state. SP0 is done; SP1 is next.
-2. **SP1 — Part II (Measurement).** Invoke the brainstorming skill for
-   sub-project 1. If the Superpowers skills are unavailable in your session,
+1. `git log --oneline` to confirm current state. SP0 and SP1 are done; SP2 is
+   next.
+2. **SP2 — Part III (SDD on Pi).** Invoke the brainstorming skill for
+   sub-project 2. The design is reframed around the *shipped* Pi subagent
+   example (see "Key design decision" above) — the course specializes it rather
+   than rebuilding it. If the Superpowers skills are unavailable in your session,
    follow the same shape by hand: brainstorm a spec into
    `docs/superpowers/specs/`, write a plan into `plans/`, build it, and record
    evidence in `research/`.
