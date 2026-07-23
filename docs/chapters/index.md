@@ -6,7 +6,7 @@ lands. See the [roadmap](../superpowers/roadmap.md) for status.
 - **Part I — Pi extension basics.** A hello-world extension and the event
   lifecycle. :white_check_mark:
 - **Part II — Measurement (the smoking gun).** Telemetry, a minimal eval
-  harness, and the out-of-the-box baseline. *(queued)*
+  harness, and the out-of-the-box baseline. :white_check_mark:
 - **Part III — Spec-driven development on Pi.** Roadmap-and-packet, an
   orchestrator subagent, and an evidence-gated fleet. *(queued)*
 - **Part IV — Keeping the SLM on track.** The improvements catalog. *(queued)*
@@ -16,4 +16,7 @@ lands. See the [roadmap](../superpowers/roadmap.md) for status.
 :hidden:
 
 part1-hello-agent
+part2a-telemetry-reader
+part2b-eval-session
+part2c-smoking-gun
 ```
