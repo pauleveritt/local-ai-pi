@@ -7,8 +7,9 @@ lands. See the [roadmap](../superpowers/roadmap.md) for status.
   lifecycle. :white_check_mark:
 - **Part II — Measurement (the smoking gun).** Telemetry, a minimal eval
   harness, and the out-of-the-box baseline. :white_check_mark:
-- **Part III — Spec-driven development on Pi.** Roadmap-and-packet, an
-  orchestrator subagent, and an evidence-gated fleet. *(queued)*
+- **Part III — Spec-driven development on Pi.** Roadmap-and-packet, a
+  parent-as-orchestrator system prompt, an implementer specialist, and an
+  evidence-gated fleet of additional specialists. *(queued)*
 - **Part IV — Keeping the SLM on track.** The improvements catalog. *(queued)*
 
 ```{toctree}

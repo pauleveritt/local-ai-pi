@@ -23,8 +23,8 @@ whether it actually helped. Techniques that do not move a metric are not kept.
    ditch. This part is load-bearing: nothing later can claim an improvement
    without it.
 3. **Part III — Spec-driven development on Pi.** The roadmap-and-packet method,
-   an orchestrator subagent, and — only where the evidence supports it — a fleet
-   of specialized subagents (planner, implementer, verifier).
+   a parent-as-orchestrator system prompt, an implementer specialist, and — only
+   where the evidence supports it — a fleet of additional specialists.
 4. **Part IV — Keeping the SLM on track.** The improvements, each a built-in Pi
    feature answering a documented lesson and measured with Part II's harness:
    structural orientation, tool restriction, output caps, path guards, a

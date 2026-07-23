@@ -116,18 +116,41 @@ Pi has no native subagent primitive by design (the coding-agent README lists
 "no sub-agents" alongside "no MCP, no permission popups"). Unlike OpenCode —
 where a subagent is a declarative frontmatter config (model, tools, a
 `permission` block) the runtime enforces — a Pi subagent is a **composition of
-two things you own**:
+a shipped extension and specialized data files**.
 
-1. **The mechanism is a registered tool.** The `examples/extensions/subagent`
-   extension calls `pi.registerTool({ name: "subagent", execute })`. The
-   `execute` function is arbitrary TypeScript that spawns a separate
-   `pi --mode json -p --no-session` subprocess for the specialist, streams its
-   JSONL events over stdout, and returns the final result to the parent. You own
-   the delegation semantics — schema-checking the packet before spawning, sizing
-   it, chaining, parallelism, retry-with-a-narrower-packet.
+**Important (SP2 review correction, 2026-07-23):** The original framing described
+this as something the reader builds from scratch. In reality, **Pi ships a
+complete subagent extension** in its examples directory at
+`examples/extensions/subagent/` (in the installed package). The shipped
+`subagent` extension provides: a registered `subagent` tool, `agents/<name>.md`
+specialist discovery (frontmatter: `name`, `description`, `tools`, `model` + system-prompt
+body), single/parallel/chain delegation modes, streaming output, usage/cost
+tracking, and a security model for project-local agents. A reader who
+`pi install`s it has the full mechanism.
+
+The course's Part III contribution is therefore **not** "rebuild the extension
+in TypeScript" — that would violate the "built-in Pi only" spirit. The real
+work is specialization:
+
+1. **Author an `implementer` specialist** (`.pi/agents/implementer.md`) for
+   the AgentClinic workload — the packet format, restricted tools, focused
+   system prompt.
+2. **Author the parent/orchestrator system prompt** that teaches the parent
+   SLM to extract phases from the roadmap, construct tight packets, and dispatch
+   them via the `subagent` tool.
+3. **Measure** whether this shape beats the SP1 baseline.
+
+Under the hood, the shipped extension works on two layers:
+
+1. **The mechanism is a registered tool.** `pi.registerTool({ name: "subagent",
+   execute })`. The `execute` function spawns a separate `pi --mode json -p
+   --no-session` subprocess for the specialist, streams its JSONL events, and
+   returns the final result. You own the delegation semantics — packet sizing,
+   chaining, parallelism — but the code is already written.
 2. **The specialist is data.** An `agents/<name>.md` file: frontmatter
    (`name`, `description`, `tools`, `model`) plus a system-prompt body,
    discovered from `~/.pi/agent/agents/` and project-local `.pi/agents/`.
+   Specialists are the sole code the reader writes.
 
 Two consequences drive the whole Part, and both improve on the OpenCode
 limitations recorded in `LESSONS.md`:
@@ -164,9 +187,15 @@ your own code, not a runtime flag.
 #### Deliverables
 
 - The roadmap-and-packet method: a phase contract, the handoff packet, and the
-  acceptance command, applied to the example app.
-- An orchestrator subagent, built as the registered-tool mechanism above. This
-  is the one plain deliverable of the Part; everything below is evidence-gated.
+  acceptance command, applied to the AgentClinic app.
+- An **implementer specialist** (`agents/implementer.md`) — a project-local
+  agent definition consumed by the shipped `subagent` extension. This is the one
+  plain deliverable the reader authors; it bakes in the packet format, restricted
+  tools (read/write/bash), and a focused system prompt.
+- An **orchestrator system prompt** (`agents/orchestrator.md`) that the parent
+  pi session loads. The prompt teaches the parent SLM to extract phases from the
+  roadmap, construct tight packets, and dispatch via the `subagent` tool. The
+  parent *is* the orchestrator — no separate subagent needed.
 - *(evidence-gated, not a promised deliverable)* A **planner specialist — the
   reserved role for the "galaxy brain."** The
   course does not banish open-ended reasoning; it assigns it to one up-front
@@ -181,10 +210,10 @@ your own code, not a runtime flag.
   split, with the planner realized as a Pi specialist rather than a chat window,
   and it is the mechanical expression of `LESSONS.md #1` ("structure beats
   strings"): assembly and sizing are code, not SLM improvisation.
-- *(evidence-gated)* A fleet beyond the orchestrator: planner, implementer,
-  verifier. Each specialist is admitted only if a measured run shows it beats the
-  simpler shape it replaces. This re-opens the question the prior course closed
-  negatively —
+- *(evidence-gated)* A fleet of additional specialists: planner, verifier.
+  Each is admitted only if a measured run shows it beats the simpler shape
+  (parent-as-orchestrator + implementer) it replaces. This re-opens the
+  question the prior course closed negatively —
   `LESSONS.md #4` recorded the orchestrator hop *drifting* via paraphrase — and
   answers it with this harness's own measurements rather than assuming either
   outcome.
