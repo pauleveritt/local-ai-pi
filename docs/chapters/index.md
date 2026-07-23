@@ -9,7 +9,7 @@ lands. See the [roadmap](../superpowers/roadmap.md) for status.
   harness, and the out-of-the-box baseline. :white_check_mark:
 - **Part III — Spec-driven development on Pi.** Roadmap-and-packet, a
   parent-as-orchestrator system prompt, an implementer specialist, and an
-  evidence-gated fleet of additional specialists. *(queued)*
+  evidence-gated fleet of additional specialists. :white_check_mark:
 - **Part IV — Keeping the SLM on track.** The improvements catalog. *(queued)*
 
 ```{toctree}

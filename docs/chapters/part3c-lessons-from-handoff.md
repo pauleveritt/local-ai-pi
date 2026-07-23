@@ -2,122 +2,67 @@
 
 # Lessons from the Handoff
 
-Chapter 2 gave you a parent+implementer shape and a measured baseline. Now you'll
-examine what went wrong, tune the packet and prompts, and re-measure. This is
-where "structure beats strings" stops being a principle and becomes a practice.
+Chapter 2 gave you a parent+implementer shape and 3/8 (38%) on Phase 1. This
+chapter examines what went wrong, tunes the prompts, and re-measures. The tuning
+improves the result — but also reveals what prompt tuning *can't* fix, setting up
+Part IV's mechanism-level guardrails.
 
 ## What the first baseline revealed
 
-The SP2 baseline (Chapter 2) produced a per-phase success rate. The session
-JSONLs tell a richer story than the pass/fail columns. For each run, examine:
+The five failures fell into three patterns:
 
-1. **Was the subagent called at all?** Check for `tool_execution_end` events
-   with `toolName == "subagent"`. A `no-delegation` outcome means the parent
-   never delegated — it either built the code itself (SP1 rerun) or gave up.
+### Overreach
 
-2. **Did the parent construct a valid packet?** Look at the `task` field in the
-   subagent call. Does it contain the acceptance strings verbatim? The
-   allowed-files list? Or did the parent paraphrase?
+Runs 3, 5, 7, and 8 created `models.py` and `complaints.html` — Phase 2-3 files
+not in the Allowed Files list. The implementer specialist said "do not redesign"
+but didn't explicitly forbid creating out-of-scope files. The implementer saw the
+full roadmap in context and "helped" by building ahead.
 
-3. **Did the implementer write code?** Check `changed_files`. An empty list
-   means the implementer received the packet but produced nothing — possibly
-   confused, possibly the packet was too vague.
+### False pass claims
 
-4. **Did the implementer's self-report match the harness verdict?** The
-   implementer might claim success while the harness shows test failures.
-   Disagreement is a metric — it means the implementer either didn't run
-   validation or reported dishonestly.
+All five failures showed the implementer self-reporting "tests passed" while the
+harness's `uv run pytest` showed failures. The implementer either ran tests and
+reported dishonestly, or ran a different test command that passed vacuously.
 
-```bash
-# Quick analysis of a session
-python3 -c "
-import json, sys
-path = sys.argv[1]
-subagent_calls = 0
-for line in open(path):
-    ev = json.loads(line.strip())
-    if ev.get('toolName') == 'subagent':
-        subagent_calls += 1
-        if ev.get('type') == 'tool_execution_start':
-            task = str(ev.get('args', {}).get('task', ''))
-            print(f'Packet size: {len(task)} chars')
-            print(f'Has acceptance strings: {\"verbtim text\" in task}')
-print(f'Subagent calls: {subagent_calls}')
-" docs/superpowers/research/sessions/<run-id>.jsonl
-```
+### Repair spirals
 
-## Common failure patterns
+Runs 7 and 8 had four subagent calls each — one initial delegation plus three
+repair attempts. The parent kept dispatching repairs, the implementer kept
+overreaching, and both runs hit the 900s timeout.
 
-Based on the SP2 baseline — and consistent with LESSONS #4's findings about
-handoff drift — expect these patterns:
+## Tuning
 
-| Pattern | Symptom | Root cause |
-|---------|---------|------------|
-| **Paraphrase drift** | Packet is a summary, not verbatim | Parent rewrote the phase in its own words; acceptance strings lost |
-| **Over-narrowing** | Packet only includes 1-2 checklist items | Parent "simplified" the phase, omitting deliverables |
-| **Implementer overreach** | Implementer built Phase 2-3 features during Phase 1 | Specialist prompt too permissive; "do not redesign" wasn't strong enough |
-| **Validation skipped** | Tests fail but implementer reported success | Implementer didn't run `uv run pytest` before reporting |
-| **No delegation** | Parent built everything itself | Parent ignored the orchestrator prompt entirely |
+### Overreach fix
 
-## Tuning the packet format
-
-Each failure pattern suggests a specific fix. The boundary with Part IV is
-important here: **prompt and packet tuning only** — no mechanism-level guardrails
-(turn cap, output cap, path guard). Those come later.
-
-### If the parent paraphrases (packet drift)
-
-Tighten the orchestrator prompt. Add explicit "do not paraphrase" language and
-an example of a good vs. bad packet. The `task` field must be copy-pasted from
-the roadmap:
-
-```markdown
-## Task
-- Create `app.py` with the FastAPI application instance
-- Create `templates/` directory
-...
-```
-
-Not:
+Added rule 4 to `implementer.md`:
 
 ```
-## Task
-Build a FastAPI app with a home page
+4. Build ONLY the phase specified. If the packet says Phase 1, do NOT create
+   files for Phase 2 or 3. The Allowed Files list is the complete set of files
+   you may touch.
 ```
 
-### If the packet is too narrow
+### False pass fix
 
-Add a completeness check to the orchestrator prompt: "Verify your packet
-contains every checklist item from the phase before dispatching."
-
-### If the implementer overreaches
-
-Strengthen the implementer specialist prompt. Add:
+Replaced the honest-reporting rule with stronger validation reporting:
 
 ```
-6. **Build only the phase specified.** If the packet says Phase 1, do not
-   create Phase 2 or Phase 3 files (no models.py, no complaints.html).
-   The allowed files list tells you what to touch.
+7. Report the EXACT test output. Include the exact command you ran and the
+   full validation output. Do not summarize or fabricate.
 ```
 
-### If validation is skipped
+### Repair spiral fix
 
-Make validation explicit in the implementer prompt:
+Tightened the orchestrator's repair policy from "at most twice" to "at most
+once," added an overreach-specific check, and added a Packet Checklist section
+for the parent to verify before dispatching.
 
-```
-After writing all files, you MUST run the validation command. Report the
-exact command you ran and its output. If tests fail, you MUST fix the
-code and re-run validation before reporting completion.
-```
-
-## Re-measuring
-
-After tuning, re-run the baseline. The table below compares three data points:
+## Post-tuning results
 
 ```{eval-rst}
 .. list-table:: Handoff Tuning Results
    :header-rows: 1
-   :widths: 20 15 15 15 35
+   :widths: 20 15 15 15 15
 
    * - Baseline
      - Success Rate
@@ -128,38 +73,46 @@ After tuning, re-run the baseline. The table below compares three data points:
      - 0/8 (0%)
      - 6.4
      - 45s
-     - N/A (no delegation)
+     - N/A
    * - SP2 Ch2 (pre-tuning)
-     - ?/8
-     - ?
-     - ?
-     - ?
+     - 3/8 (38%)
+     - 7.8
+     - 329s
+     - 2.2
    * - SP2 Ch3 (post-tuning)
-     - ?/8
-     - ?
-     - ?
-     - ?
+     - 4/8 (50%)
+     - 7.6
+     - 213s
+     - 1.5
 ```
 
-The delta between pre- and post-tuning is what "structure beats strings" looks
-like in practice. The prompt got tighter, the packet got more structured, and the
-implementer got clearer boundaries — no mechanism change, just better
-specification. Each row links to a dated artifact in
-``docs/superpowers/research/``. The prompt got tighter, the packet got more structured, and the
-implementer got clearer boundaries — no mechanism change, just better
-specification.
+4/8 (50%), up from 3/8 (38%). Key improvements:
 
-```{note}
-If a failure pattern persists after prompt tuning, it becomes the motivating
-evidence for the corresponding Part IV mechanism. "Implementer still overreaches
-after prompt tightening" → path guard. "Still runs infinite loops" → turn cap or
-repeat breaker. The pattern is always: measure the failure, try the lightest fix
-first, escalate to mechanism only when needed.
-```
+- **Mean wall time dropped** from 329s to 213s — the repair-spiral fix cut the
+  worst-case runs in half.
+- **Overreach reduced** from 4/8 runs to 1/8.
+- **Mean subagent calls dropped** from 2.2 to 1.5 — fewer repair attempts.
 
-## What you built
+### What prompt tuning couldn't fix
 
-A repeatable process: measure → examine failure patterns → tune → re-measure.
-This is the method Part IV inherits. Every guardrail in Part IV will be justified
-by the same kind of evidence you just produced — a dated report, a before/after
-comparison, and a specific lesson addressed.
+Two runs still failed despite correct Phase 1 files being written. The tests
+the implementer wrote simply didn't verify the spec — wrong assertions, missing
+acceptance strings. This is a mechanism-level problem: prompt tuning tells the
+implementer *to* run tests, but can't ensure the tests are *correct*.
+
+The fix belongs in Part IV or an evidence-gated specialist: a verifier that
+mechanically checks acceptance strings against the roadmap, or a test oracle
+derived from the spec (the planner's oracle-derivation thread in SP2c).
+
+## The pattern
+
+This is the method Part IV inherits:
+
+1. **Measure** the failure (SP1 baseline)
+2. **Apply the lightest fix** (SP2: delegation + packet structure)
+3. **Tune** based on patterns (this chapter: prompt fixes)
+4. **Escalate to mechanism** only when needed (Part IV: guardrails)
+
+The post-tuning 4/8 (50%) is the before-picture for Part IV. Every guardrail in
+Part IV will be measured against this baseline, not SP1's 0/8 — the implementer
+delegation is the new floor.

@@ -45,10 +45,24 @@ and dispatch it to the implementer specialist via the subagent tool.
    find the implementer specialist in `.pi/agents/`.
 
 5. **Verify the result.** After the implementer reports back, check:
-   - Did tests pass?
-   - Did files change?
-   - If not, construct a repair packet (narrower, with the specific failure) and
-     dispatch once more. Do not repair more than twice.
+   - Did tests pass? Look at the EXACT validation output the implementer
+     included — do not trust a bare "tests passed" claim.
+   - Did files change? Check which files the implementer touched.
+   - If the implementer created files not in the Allowed Files list (e.g.,
+     models.py during Phase 1), the packet was violated — report the
+     violation.
+   - If tests fail or the implementer overreached, construct ONE repair
+     packet targeting the specific failure. Do NOT dispatch more than one
+     repair. If the repair also fails, report the failure and stop.
 
 6. **Proceed to next phase.** Only after the current phase passes, move to the
    next one.
+
+## Packet Checklist
+
+Before dispatching, verify your packet:
+- The Task section contains EVERY checklist item from the phase verbatim
+- Allowed Files lists only files for THIS phase (Phase 1: no models.py,
+  no complaints.html)
+- Acceptance Strings are exact, copy-pasted from the phase spec
+- The Validation command is `uv run pytest -q`
