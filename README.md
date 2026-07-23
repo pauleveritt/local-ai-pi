@@ -2,13 +2,12 @@
 
 A course teaching how to keep a small local model (SLM) on track while it does
 real Python development, using the [Pi agent harness](https://pi.dev) and
-**only built-in Pi features** — no forks, no external type-checkers, no bolt-on
-toolchains.
+**only built-in Pi features** — no forks and no bolt-on toolchains.
 
 The spine of the course is: **teach evals, then progressively adopt built-in Pi
 features, each one motivated by a specific lesson and validated by a measured
 run.** Every improvement is a built-in Pi capability introduced to solve a
-documented failure, and proven by a before/after measurement.
+documented failure and proven by a before/after measurement.
 
 **The reader never adopts a technique on faith.** Each part first shows the
 failure with recorded telemetry, then applies one Pi mechanism, then measures
@@ -42,13 +41,12 @@ trivial; the point is the *steering*, not the app.
 
 This repository is itself spec-driven, roadmap-tracked, and evidence-gated.
 [`docs/superpowers/roadmap.md`](docs/superpowers/roadmap.md) is the live index of
-the course's own construction, and as each Part lands, its dated evidence reports
-— including the baseline that motivates the whole course — will be written to
-[`docs/superpowers/research/`](docs/superpowers/research/). (That directory is
-empty today: the course is at its scaffold stage, and this README will not claim
-a result before its artifact exists — the same evidence discipline the course
-teaches.) If you want to see the method the course teaches, read how the course
-is being built.
+the course's own construction, and each Part's dated evidence reports — including
+the baseline that motivates the whole course — are written to
+[`docs/superpowers/research/`](docs/superpowers/research/), with the raw session
+transcripts they were derived from. No claim in the chapters is allowed to
+outrun its artifact. If you want to see the method the course teaches, read
+[how the course was built](docs/how-this-was-built.md).
 
 ## Reading the course
 
