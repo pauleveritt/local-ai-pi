@@ -20,4 +20,7 @@ part1-hello-agent
 part2a-telemetry-reader
 part2b-eval-session
 part2c-smoking-gun
+part3a-subagent-mechanism
+part3b-implementer-orchestrator
+part3c-lessons-from-handoff
 ```
