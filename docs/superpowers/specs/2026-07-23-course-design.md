@@ -42,6 +42,16 @@ addresses it → a measured before/after. No technique is adopted on faith.
   late-course subject, not a change of workload.
 - **The target model is a real SLM.** Gemma-class local models served via LM
   Studio or oMLX, the same family the lessons were recorded against.
+- **The runtime is the globally-installed `pi`, not a checkout.** The course
+  runs the `pi` binary on `PATH` (an installed release — 0.81.1 at time of
+  writing), exactly as a reader following along would have it. The Pi source
+  checkout at `~/PycharmProjects/pi` is a **read-only reference** for explaining
+  and verifying mechanics (this spec cites `file:line` into it); it is never the
+  runtime. Do not run `pi` from sources, do not `npm link` or `pi-test.sh` the
+  checkout, and do not depend on any unreleased behavior only present there — if
+  a mechanism the course teaches is not in the installed release, that is a
+  finding, not a thing to paper over with a local build. A reader without the
+  checkout at all must be able to complete every chapter.
 
 ## Why "built-in Pi only" is achievable, not aspirational
 

@@ -104,7 +104,16 @@ machinery.
 
 ## Environment notes (verified 2026-07-23)
 
-- `pi` on PATH is version 0.81.1. LM Studio serves `gemma-4-12b-it-mlx` on
+- **Use the globally-installed `pi`, never the source checkout.** The runtime is
+  the `pi` on PATH (`/Users/pauleveritt/.volta/bin/pi`, an installed release,
+  0.81.1) — the same thing a reader following the course would run. The checkout
+  at `~/PycharmProjects/pi` is **read-only source** for verifying mechanics
+  (cite `file:line` from it when explaining how something works); it is not the
+  runtime. Do not run pi from sources, `npm link`, or `pi-test.sh` the checkout,
+  and do not rely on behavior only present there. If a mechanism is not in the
+  installed release, record it as a finding — do not build a local pi to make it
+  work.
+- LM Studio serves `gemma-4-12b-it-mlx` on
   `localhost:1234`; a provider entry for it exists at `~/.pi/agent/models.json`
   (provider `lmstudio`, contextWindow 40960). Always run headless pi with
   `< /dev/null` to avoid the never-EOF stdin startup hang, and pass
