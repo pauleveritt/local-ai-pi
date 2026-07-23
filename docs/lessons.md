@@ -1,5 +1,16 @@
 # Lessons for Helping Small Local Coding Models
 
+```{note}
+This catalog is carried over verbatim from the prior course
+([local-ai-gemma](https://github.com/pauleveritt/local-ai-gemma)), which ran on
+the OpenCode harness. It still speaks OpenCode's vocabulary — `/phase`,
+`implementer1a`, `.opencode/` — rather than Pi's. It is source material for
+this course's Part IV, not yet rewritten for Pi. The evidence and reasoning
+behind each lesson hold regardless of harness; the "Evidence sources" links
+below point back to that repository, where the underlying sessions were
+recorded.
+```
+
 These lessons came from repeated OpenCode runs, session telemetry, generated
 code, and validation results. They are ranked by demonstrated impact. Treat
 them as controls for a system, not as claims about a model's character: the
@@ -32,9 +43,11 @@ explanation for slowness that the trace disproves. Hunches about local AI are
 usually wrong until session records, tool outputs, and validation results agree.
 
 After every meaningful run, inspect parent and child telemetry, tool outputs,
-and the actual diff. Use the host-local repository skill in
-[Codex](.codex/skills/opencode-telemetry/SKILL.md) or
-[OpenCode](.opencode/skills/opencode-telemetry/SKILL.md). Both skills use the
+and the actual diff. The prior course used a host-local repository skill in
+[Codex](https://github.com/pauleveritt/local-ai-gemma/blob/main/.codex/skills/opencode-telemetry/SKILL.md)
+and
+[OpenCode](https://github.com/pauleveritt/local-ai-gemma/blob/main/.opencode/skills/opencode-telemetry/SKILL.md).
+Both skills use the
 same read-only collector, follow nested sessions, identify context risks, and
 report evidence-based metrics.
 
@@ -467,9 +480,12 @@ repository implements.
 
 ## Evidence sources
 
-- [Lesson 11 OpenCode debug notes](docs/lesson-11-opencode-debug.md) preserve
-  the original session evidence and the first set of workflow changes.
-- [Model configuration](README.md#model-config) records the native LM Studio
-  baseline and the selected coding profile.
-- [Telemetry workflow](README.md#telemetry-workflow) explains how to collect,
-  inspect, and report each OpenCode run.
+These are historical records from the prior OpenCode course, preserved in
+[`local-ai-gemma`](https://github.com/pauleveritt/local-ai-gemma):
+
+- [Lesson 11 OpenCode debug notes](https://github.com/pauleveritt/local-ai-gemma/blob/main/docs/lesson-11-opencode-debug.md)
+  preserve the original session evidence and the first set of workflow changes.
+- [Model configuration](https://github.com/pauleveritt/local-ai-gemma#model-config)
+  records the native LM Studio baseline and the selected coding profile.
+- [Telemetry workflow](https://github.com/pauleveritt/local-ai-gemma#telemetry-workflow)
+  explains how to collect, inspect, and report each OpenCode run.

@@ -42,7 +42,7 @@ specified:
 - **Run validation before reporting.** `uv run pytest -q`. If tests fail, fix and re-run.
 - **Report honestly.** Don't claim success if tests failed.
 
-Each rule maps to a lesson from `LESSONS.md`. "Do not explore" is LESSONS #1
+Each rule maps to a lesson from [`lessons.md`](../lessons.md). "Do not explore" is LESSONS #1
 (structure beats strings — the packet IS the structure). "Acceptance strings" is
 LESSONS #2 (treat validation as the source of truth). "Report honestly" is the
 same — an agent's self-report is not evidence.

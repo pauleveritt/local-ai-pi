@@ -44,7 +44,7 @@ Read, in order:
 
 - **SP0 — Scaffold + Part I.** Repo skeleton, docs toolchain (Sphinx 9 +
   myst-parser + furo), roadmap, evidence policy, the example spec triple,
-  LESSONS.md, and Part I's hello-world extension + chapter.
+  `docs/lessons.md`, and Part I's hello-world extension + chapter.
 - **SP1 — Part II (Measurement).** Telemetry reader (`harness/telemetry.py`),
   disposable workspace provisioning (`harness/workspace.py`), eval session
   runner (`harness/session.py`), n=8 baseline loop (`harness/runner.py`).

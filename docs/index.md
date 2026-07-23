@@ -11,6 +11,11 @@ recorded telemetry, applies one Pi mechanism, then measures whether it helped.
 spec-driven method behind it, and which models did which work — the same
 accounting the course asks you to demand of any technique.
 
+[Lessons](lessons.md) is the source catalog: seventeen lessons on keeping a
+small local model on track, ranked by demonstrated impact and traceable to
+session telemetry rather than intuition. Every improvement chapter cites one
+of these by number.
+
 ```{toctree}
 :maxdepth: 2
 :caption: Chapters
@@ -23,4 +28,5 @@ chapters/index
 :caption: About
 
 how-this-was-built
+lessons
 ```

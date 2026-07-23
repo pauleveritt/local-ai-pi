@@ -278,8 +278,8 @@ corresponding chapters.
 ```
 local-ai-pi/
   README.md                      # course framing
-  LESSONS.md                     # the lesson catalog Part IV cites, adapted to Pi
   docs/
+    lessons.md                   # the lesson catalog Part IV cites, adapted to Pi
     superpowers/                 # how the COURSE is built (the method, applied to itself)
       roadmap.md                 # cross-phase index: sequence, status, backlog
       specs/  plans/  briefs/    # per-phase design, implementation, task briefs
@@ -313,7 +313,7 @@ backed by a dated report in `research/` under the evidence policy in
 Sub-project order (each is built before the next begins):
 
 0. **Scaffold** (this hand-off): repo skeleton, docs toolchain, roadmap, this
-   spec, LESSONS.md, the example spec triple, and Part I's hello-world.
+   spec, `docs/lessons.md`, the example spec triple, and Part I's hello-world.
 1. **Part II — measurement**, including the baseline smoking-gun report. Built
    before Part III/IV because they cannot be evaluated without it.
 2. **Part III — SDD and the subagent fleet.**

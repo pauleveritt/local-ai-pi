@@ -18,7 +18,7 @@ runs that went wrong.
 **[`local-ai-gemma`](https://github.com/pauleveritt/local-ai-gemma) — the
 previous project.** Those experiments were consolidated into a teaching repo
 built on the OpenCode harness, driving Gemma 4 12B through a spec-driven
-roadmap. It produced `LESSONS.md`: seventeen lessons ranked by demonstrated
+roadmap. It produced [`lessons.md`](lessons.md): seventeen lessons ranked by demonstrated
 impact, each traceable to session telemetry rather than intuition. It also
 produced the failures this course exists to answer — the 27 stale edit anchors,
 the recursive listing that poisoned a context window, the child that burned its
