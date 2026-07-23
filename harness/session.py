@@ -21,20 +21,26 @@ class InvocationProfile:
     extensions: list[str]     # --extension paths (empty = none beyond built-in)
     append_system_prompt: str | None = None  # --append-system-prompt path
     no_extensions: bool = True  # --no-extensions (strip global config)
+    timeout: int | None = None  # override the default timeout (None = use caller's default)
 
     @staticmethod
     def sp1() -> "InvocationProfile":
         """The SP1 profile: hello-world extension only."""
         return InvocationProfile(
             extensions=[".pi/extensions/hello-world.ts"],
+            timeout=300,
         )
 
     @staticmethod
     def sp2(subagent_path: str) -> "InvocationProfile":
-        """The SP2 profile: subagent extension + orchestrator prompt."""
+        """The SP2 profile: subagent extension + orchestrator prompt.
+
+        The append_system_prompt path is relative — prepare_workspace copies
+        prompts/ into the workspace so it resolves from the child's CWD."""
         return InvocationProfile(
             extensions=[subagent_path],
             append_system_prompt="prompts/orchestrator.md",
+            timeout=900,
         )
 
 
@@ -86,9 +92,8 @@ def run_session(
     sessions_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = sessions_dir / f"{run_id}.jsonl"
 
-    stdout_text = ""
-    stderr_text = ""
-    pi_exe = _find_pi()
+    # Use profile timeout if set, otherwise caller's default.
+    effective_timeout = profile.timeout if profile.timeout is not None else timeout
 
     # Prompt is written to a temp file and passed via @file syntax.
     prompt_file = workspace / f".pi-eval-prompt-{run_id}.txt"
@@ -134,7 +139,7 @@ def run_session(
                 text=True,
                 env=env,
             )
-            stdout_text, stderr_text = proc.communicate(timeout=timeout)
+            stdout_text, stderr_text = proc.communicate(timeout=effective_timeout)
             if stdout_text.strip():
                 break  # got output, not a startup hang
             # Non-timeout empty exit — don't retry.
@@ -177,7 +182,7 @@ def run_session(
             cwd=workspace,
             capture_output=True,
             text=True,
-            timeout=timeout,
+            timeout=effective_timeout,
         )
         tests_pass = test_proc.returncode == 0
     except subprocess.TimeoutExpired:

@@ -128,7 +128,12 @@ def read_run(stream_path: str | Path) -> RunTelemetry:
 
 
 def has_subagent_calls(stream_path: str | Path) -> bool:
-    """True if the session includes at least one subagent tool call."""
+    """True if the session includes at least one subagent tool call.
+
+    Only checks tool_execution_end events — sufficient because the caller
+    only invokes this when outcome is "exited" (not "timeout"), so all
+    tool calls that started completed normally.
+    """
     path = Path(stream_path)
     if not path.exists():
         return False
@@ -140,3 +145,41 @@ def has_subagent_calls(stream_path: str | Path) -> bool:
         except json.JSONDecodeError:
             continue
     return False
+
+
+@dataclass
+class SubagentStats:
+    """Metrics extracted from parent JSONL about subagent delegations.
+
+    Packet fidelity (verbatim literal matching) and implementer self-report
+    vs harness verdict agreement are deferred to a future iteration.
+    """
+    invocations: int = 0
+    packet_size_total: int = 0       # sum of task field sizes (bytes)
+
+
+def subagent_stats_from(stream_path: str | Path) -> SubagentStats:
+    """Extract subagent delegation metrics from a parent session JSONL."""
+    path = Path(stream_path)
+    stats = SubagentStats()
+    if not path.exists():
+        return stats
+    for line in path.read_text().splitlines():
+        try:
+            event = json.loads(line.strip())
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        if event.get("type") == "tool_execution_start" and event.get("toolName") == "subagent":
+            stats.invocations += 1
+            args = event.get("args", {})
+            if isinstance(args, dict):
+                task = args.get("task", "")
+                if isinstance(task, str):
+                    stats.packet_size_total += len(task)
+        elif event.get("type") == "tool_execution_end" and event.get("toolName") == "subagent":
+            # tool_execution_end for subagent also counts as an invocation
+            # (start+end both fire for each call; we count starts only above)
+            pass
+    return stats

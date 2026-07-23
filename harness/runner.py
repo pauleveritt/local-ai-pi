@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from harness.session import InvocationProfile, SessionResult, run_session
+from harness.telemetry import subagent_stats_from
 from harness.workspace import prepare_workspace
 
 PI_EVAL_KEEP_WORKSPACES = "PI_EVAL_KEEP_WORKSPACES"
@@ -129,6 +130,44 @@ def write_report(report: BaselineReport, output_path: str | Path) -> None:
             f"| {i} | {r.outcome} | {success_icon} | {turns} | {wt} | {files} | "
             f"[{r.run_id}.jsonl](sessions/{r.run_id}.jsonl) |"
         )
+
+    lines.append("")
+    lines.append("## Subagent delegation metrics")
+    lines.append("")
+
+    # Collect subagent stats from each run's artifact.
+    total_invocations = 0
+    total_packet_size = 0
+    runs_with_delegation = 0
+    per_run_lines: list[str] = []
+    for i, r in enumerate(report.results, 1):
+        stats = subagent_stats_from(r.artifact_path)
+        if stats.invocations > 0:
+            runs_with_delegation += 1
+            total_invocations += stats.invocations
+            total_packet_size += stats.packet_size_total
+            per_run_lines.append(
+                f"| {i} | {stats.invocations} | {stats.packet_size_total:,} |"
+            )
+        else:
+            per_run_lines.append(f"| {i} | — | — |")
+
+    if runs_with_delegation > 0:
+        lines.append("| # | Subagent calls | Packet size (bytes) |")
+        lines.append("|---|---------------|---------------------|")
+        lines.extend(per_run_lines)
+        mean_invocations = total_invocations / runs_with_delegation
+        mean_packet = total_packet_size / runs_with_delegation
+        lines.append(
+            f"| **Agg** | μ={mean_invocations:.1f} "
+            f"(in {runs_with_delegation}/{report.n} runs) | "
+            f"μ={mean_packet:,.0f} |"
+        )
+        lines.append("")
+        lines.append("*Packet fidelity (verbatim literal matching) and implementer self-report")
+        lines.append("vs harness verdict agreement are deferred to a future harness iteration.*")
+    else:
+        lines.append("No subagent delegations detected in any run.")
 
     lines.append("")
     lines.append("## Evidence tier")

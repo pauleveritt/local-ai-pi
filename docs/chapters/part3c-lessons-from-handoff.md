@@ -112,22 +112,40 @@ code and re-run validation before reporting completion.
 
 ## Re-measuring
 
-After tuning, re-run the baseline:
+After tuning, re-run the baseline. The table below compares three data points:
 
-```bash
-# Same harness invocation as Chapter 2, with updated prompt files
+```{eval-rst}
+.. list-table:: Handoff Tuning Results
+   :header-rows: 1
+   :widths: 20 15 15 15 35
+
+   * - Baseline
+     - Success Rate
+     - Mean Turns
+     - Mean Wall Time
+     - Subagent Calls (mean)
+   * - SP1 (unsteered)
+     - 0/8 (0%)
+     - 6.4
+     - 45s
+     - N/A (no delegation)
+   * - SP2 Ch2 (pre-tuning)
+     - ?/8
+     - ?
+     - ?
+     - ?
+   * - SP2 Ch3 (post-tuning)
+     - ?/8
+     - ?
+     - ?
+     - ?
 ```
-
-Compare three data points:
-
-| Baseline | Success rate | Notes |
-|----------|-------------|-------|
-| SP1 (unsteered) | 0/8 | No delegation, raw SLM |
-| SP2 (pre-tuning) | ?/8 | Parent+implementer, initial prompts |
-| SP2 (post-tuning) | ?/8 | Tuned packet format, strengthened prompts |
 
 The delta between pre- and post-tuning is what "structure beats strings" looks
 like in practice. The prompt got tighter, the packet got more structured, and the
+implementer got clearer boundaries — no mechanism change, just better
+specification. Each row links to a dated artifact in
+``docs/superpowers/research/``. The prompt got tighter, the packet got more structured, and the
 implementer got clearer boundaries — no mechanism change, just better
 specification.
 

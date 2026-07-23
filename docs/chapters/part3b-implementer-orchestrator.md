@@ -161,7 +161,32 @@ changed, 247s wall time. The implementer was discovered, the packet was
 dispatched, and the child built a working Phase 1. n=8 will show whether this
 holds consistently.
 
+```{eval-rst}
+.. list-table:: SP2 Baseline vs SP1 Baseline
+   :header-rows: 1
+   :widths: 20 15 15 25 25
+
+   * - Baseline
+     - Success Rate
+     - Mean Turns
+     - Mean Wall Time
+     - Notes
+   * - SP1 (unsteered, per-phase)
+     - 0/8 (0%)
+     - 6.4
+     - 45s
+     - No delegation; raw SLM
+   * - SP2 Ch2 (parent+implementer)
+     - ?/8
+     - ?
+     - ?
+     - See dated report in ``docs/superpowers/research/``
+```
+
 ```{note}
 The SP1 unsteered baseline went 0/8 on Phase 1. Even a single success from
 the parent+implementer shape is a signal. The n=8 run tells you how loud.
+The dated evidence report lives in
+``docs/superpowers/research/YYYY-MM-DD-sp2-baseline-phase-1.md`` — the same
+convention as Part II's smoking gun.
 ```

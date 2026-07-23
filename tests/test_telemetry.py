@@ -64,3 +64,30 @@ def test_read_run_is_error_is_bool(sample_session_path: Path):
     result = read_run(sample_session_path)
     for tc in result.tool_calls:
         assert isinstance(tc.is_error, bool)
+
+
+def test_has_subagent_calls_detects_subagent(tmp_path: Path):
+    """has_subagent_calls True when JSONL contains tool_execution_end with toolName=subagent."""
+    from harness.telemetry import has_subagent_calls
+    f = tmp_path / "session.jsonl"
+    f.write_text('{"type": "tool_execution_start", "toolCallId": "a", "toolName": "bash", "args": {}}\n{"type": "tool_execution_end", "toolCallId": "a", "toolName": "bash", "isError": "False"}\n{"type": "tool_execution_start", "toolCallId": "b", "toolName": "subagent", "args": {"task": "test"}}\n{"type": "tool_execution_end", "toolCallId": "b", "toolName": "subagent", "isError": "False"}\n')
+    assert has_subagent_calls(f) is True
+
+
+def test_has_subagent_calls_no_subagent(tmp_path: Path):
+    from harness.telemetry import has_subagent_calls
+    f = tmp_path / "session.jsonl"
+    f.write_text('{"type": "tool_execution_end", "toolName": "bash", "isError": "False"}\n')
+    assert has_subagent_calls(f) is False
+
+
+def test_has_subagent_calls_empty_file(tmp_path: Path):
+    from harness.telemetry import has_subagent_calls
+    f = tmp_path / "empty.jsonl"
+    f.write_text("")
+    assert has_subagent_calls(f) is False
+
+
+def test_has_subagent_calls_nonexistent_file():
+    from harness.telemetry import has_subagent_calls
+    assert has_subagent_calls("/nonexistent/subagent.jsonl") is False
