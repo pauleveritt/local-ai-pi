@@ -63,7 +63,11 @@ def run_session(
     pi_exe = _find_pi()
 
     # The pi invocation with isolation flags.
-    # Prompt is passed directly as positional argument (no -- separator).
+    # Prompt is written to a temp file and passed via @file syntax
+    # to avoid flag-parsing issues when the prompt starts with "-".
+    prompt_file = workspace / f".pi-eval-prompt-{run_id}.txt"
+    prompt_file.write_text(phase_prompt)
+
     pi_cmd = [
         pi_exe,
         "--mode", "json",
@@ -77,7 +81,7 @@ def run_session(
         "--no-themes",
         "--no-context-files",
         "--approve",
-        phase_prompt,
+        f"@{prompt_file}",
     ]
 
     env = dict(os.environ)
