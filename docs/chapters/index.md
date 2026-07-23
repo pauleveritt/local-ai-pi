@@ -1,0 +1,17 @@
+# Chapters
+
+The course is built one Part at a time. Chapters appear here as each sub-project
+lands. See the [roadmap](../superpowers/roadmap.md) for status.
+
+- **Part I — Pi extension basics.** A hello-world extension and the event
+  lifecycle. *(scaffolding in progress)*
+- **Part II — Measurement (the smoking gun).** Telemetry, a minimal eval
+  harness, and the out-of-the-box baseline. *(queued)*
+- **Part III — Spec-driven development on Pi.** Roadmap-and-packet, an
+  orchestrator subagent, and an evidence-gated fleet. *(queued)*
+- **Part IV — Keeping the SLM on track.** The improvements catalog. *(queued)*
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+```

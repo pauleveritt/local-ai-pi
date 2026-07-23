@@ -1,0 +1,15 @@
+[project]
+name = "local-ai-pi"
+version = "0.1.0"
+description = "A course on keeping small local models on track under the Pi agent harness"
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+dependencies = []
+
+[dependency-groups]
+docs = [
+    "sphinx>=9.1.0",
+    "furo>=2025.12.19",
+    "myst-parser>=5.0.0",
+    "sphinx-autobuild>=2025.8.25",
+]
