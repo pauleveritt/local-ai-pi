@@ -20,6 +20,18 @@ def test_read_run_extracts_tool_calls(sample_session_path: Path):
         assert tc.name != "unknown"
 
 
+def test_read_run_extracts_tool_args(sample_session_path: Path):
+    """Args are on tool_execution_start, correlated by toolCallId."""
+    result = read_run(sample_session_path)
+    # At least one tool call should have non-empty args
+    calls_with_args = [tc for tc in result.tool_calls if tc.args]
+    assert len(calls_with_args) > 0, "should capture args from tool_execution_start"
+    # The first tool call in the fixture is 'mkdir -p templates tests'
+    bash_call = next((tc for tc in result.tool_calls if tc.name == "bash"), None)
+    if bash_call:
+        assert "command" in bash_call.args, f"bash call should have args, got: {bash_call.args}"
+
+
 def test_read_run_counts_turns(sample_session_path: Path):
     result = read_run(sample_session_path)
     assert result.turns > 0, "should count at least one turn"

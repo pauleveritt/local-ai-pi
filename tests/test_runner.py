@@ -20,7 +20,26 @@ def _make_result(run_id: str, tests_pass: bool, changed_files: list[str] | None 
         tests_pass=tests_pass,
         wall_time_s=10.0,
         artifact_path=f"research/sessions/{run_id}.jsonl",
+        stderr_text="",
     )
+
+
+def test_baseline_report_fields():
+    results = [
+        _make_result("r1", True),
+        _make_result("r2", False),
+    ]
+    report = BaselineReport(
+        phase="Phase 1 — Home Page",
+        n=2,
+        model="test/model",
+        results=results,
+    )
+    assert report.phase == "Phase 1 — Home Page"
+    assert report.model == "test/model"
+    assert report.n == 2
+    assert report.success_count == 1
+    assert report.success_rate == 0.5
 
 
 def test_baseline_report_success_rate():
@@ -35,9 +54,10 @@ def test_baseline_report_success_rate():
     report = BaselineReport(
         phase="Phase 1",
         n=6,
+        model="test/model",
         results=results,
     )
-    assert report.success_rate == 4 / 6  # r1, r3, r4, r6
+    assert report.success_rate == 4 / 6
     assert report.n == 6
     assert report.success_count == 4
 
@@ -53,6 +73,7 @@ def test_baseline_report_timeout_not_success():
         tests_pass=False,
         wall_time_s=300.0,
         artifact_path="sessions/t1.jsonl",
+        stderr_text="timeout",
     )
     assert timeout.is_success is False
 
@@ -67,12 +88,13 @@ def test_write_report_creates_file(tmp_path: Path):
         _make_result("r1", True),
         _make_result("r2", False),
     ]
-    report = BaselineReport(phase="Phase 1", n=2, results=results)
+    report = BaselineReport(phase="Phase 1", n=2, model="test/model", results=results)
     out = tmp_path / "report.md"
     write_report(report, out)
     assert out.exists()
     content = out.read_text()
     assert "Phase 1" in content
+    assert "test/model" in content
     assert "r1" in content
     assert "r2" in content
 
@@ -82,7 +104,7 @@ def test_baseline_report_mean_fields():
         _make_result("r1", True),
         _make_result("r2", True),
     ]
-    report = BaselineReport(phase="Phase 1", n=2, results=results)
+    report = BaselineReport(phase="Phase 1", n=2, model="test/model", results=results)
     assert report.mean_wall_time_s == 10.0
     assert report.mean_turns == 5.0
 

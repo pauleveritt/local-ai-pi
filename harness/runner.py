@@ -15,6 +15,7 @@ PI_EVAL_KEEP_WORKSPACES = "PI_EVAL_KEEP_WORKSPACES"
 class BaselineReport:
     phase: str
     n: int
+    model: str
     results: list[SessionResult]
 
     @property
@@ -60,9 +61,12 @@ def run_baseline(
     keep = bool(os.environ.get(PI_EVAL_KEEP_WORKSPACES))
 
     for i in range(1, n + 1):
-        ws_path, _ = prepare_workspace(app_source)
+        ws_path, pristine_hash = prepare_workspace(app_source)
         try:
-            result = run_session(ws_path, phase_prompt, model, timeout=timeout)
+            result = run_session(
+                ws_path, phase_prompt, model,
+                pristine_hash=pristine_hash, timeout=timeout,
+            )
             results.append(result)
         finally:
             if not keep:
@@ -80,6 +84,7 @@ def run_baseline(
     return BaselineReport(
         phase=phase_name,
         n=n,
+        model=model,
         results=results,
     )
 
@@ -95,7 +100,7 @@ def write_report(report: BaselineReport, output_path: str | Path) -> None:
         f"# Baseline: {report.phase}",
         f"",
         f"**Date:** {today}",
-        f"**Model:** omlx/gemma-4-12B-it-MLX-8bit",
+        f"**Model:** {report.model}",
         f"**Runs:** n={report.n}",
         f"**Success rate:** {report.success_count}/{report.n} ({report.success_rate:.0%})",
         f"",

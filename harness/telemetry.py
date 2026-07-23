@@ -7,10 +7,13 @@ message_end, message_start, message_update, session, tool_execution_end,
 tool_execution_start, tool_execution_update, turn_end, turn_start.
 
 Key findings:
-- No token usage data in any event type.
+- No token usage data in --mode json mode. Token data IS available via
+  --mode rpc and the get_session_stats command; that path is deferred
+  to a future iteration.
 - No evidence/appendEntry events appear in --mode json stdout.
 - isError is a string ("True"/"False"), not a boolean.
-- args and result are JSON strings, not parsed objects.
+- args live on tool_execution_start, result/isError on tool_execution_end —
+  correlated by toolCallId.
 """
 import json
 from dataclasses import dataclass, field
@@ -30,7 +33,9 @@ class RunTelemetry:
     prompts: list[str] = field(default_factory=list)
     tool_calls: list[ToolCall] = field(default_factory=list)
     turns: int = 0
-    # No token usage available from pi --mode json (verified in schema capture).
+    # Token usage not available from --mode json (verified in schema capture).
+    # Token data IS available via --mode rpc get_session_stats; see the
+    # course's future chapters or the Pi RPC docs for that path.
 
 
 def read_run(stream_path: str | Path) -> RunTelemetry:
@@ -39,11 +44,17 @@ def read_run(stream_path: str | Path) -> RunTelemetry:
     Reads line-by-line. Malformed lines (truncated writes, mid-write kills)
     are skipped rather than raised, so partial captures return whatever was
     successfully parsed.
+
+    Correlates tool_execution_start (args) with tool_execution_end
+    (result, isError) by toolCallId.
     """
     path = Path(stream_path)
     prompts: list[str] = []
-    tool_calls: list[ToolCall] = []
     turns = 0
+
+    # Collect args from tool_execution_start, then merge with results.
+    pending_args: dict[str, dict] = {}  # toolCallId -> args
+    tool_calls: list[ToolCall] = []
 
     if not path.exists():
         return RunTelemetry()
@@ -74,24 +85,25 @@ def read_run(stream_path: str | Path) -> RunTelemetry:
                         if isinstance(text, str) and text.strip():
                             prompts.append(text.strip())
 
-        # --- tool calls from tool_execution_end ---
+        # --- args from tool_execution_start ---
+        elif etype == "tool_execution_start":
+            call_id = event.get("toolCallId", "")
+            if call_id:
+                args = event.get("args", {})
+                if isinstance(args, dict):
+                    pending_args[call_id] = args
+
+        # --- result from tool_execution_end ---
         elif etype == "tool_execution_end":
-            args_raw = {}
-            args_str = event.get("args", "{}")
-            if isinstance(args_str, str):
-                try:
-                    args_raw = json.loads(args_str.replace("'", '"'))
-                except json.JSONDecodeError:
-                    args_raw = {}
-            elif isinstance(args_str, dict):
-                args_raw = args_str
+            call_id = event.get("toolCallId", "")
+            args = pending_args.pop(call_id, {})
 
             is_error_str = event.get("isError", "False")
             is_error = is_error_str == "True" if isinstance(is_error_str, str) else bool(is_error_str)
 
             tool_calls.append(ToolCall(
                 name=event.get("toolName", "unknown"),
-                args=args_raw if isinstance(args_raw, dict) else {},
+                args=args if isinstance(args, dict) else {},
                 result=event.get("result"),
                 is_error=is_error,
             ))
@@ -99,6 +111,14 @@ def read_run(stream_path: str | Path) -> RunTelemetry:
         # --- turns from turn_end ---
         elif etype == "turn_end":
             turns += 1
+
+    # Any pending starts without an end — include them with what we have.
+    for call_id, args in pending_args.items():
+        tool_calls.append(ToolCall(
+            name="unknown",
+            args=args,
+            is_error=True,  # no end event = assume error
+        ))
 
     return RunTelemetry(
         prompts=prompts,

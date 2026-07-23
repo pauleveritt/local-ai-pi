@@ -5,12 +5,9 @@ export default function (pi: ExtensionAPI) {
   pi.on("session_start", async (_event, ctx) => {
     ctx.ui.notify("Session started!", "info");
 
-    // Write an evidence entry into the session JSONL.
-    // Part II's telemetry reader will surface this.
-    pi.appendEntry({
-      type: "evidence",
-      data: { event: "session_start", timestamp: Date.now() },
-    });
+    // Write an evidence entry into the session.
+    // pi.appendEntry(customType, data?) — first arg is a string type ID.
+    pi.appendEntry("evidence", { event: "session_start", timestamp: Date.now() });
   });
 
   // ── agent_start: the LLM wakes up ─────────────────────────────────

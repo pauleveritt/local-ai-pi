@@ -108,13 +108,19 @@ via oMLX:
 ```{warning}
 Two surprising things from this capture:
 
-1. **No token counts.** Pi 0.81.1's `--mode json` stream does not include
-   input/output token usage in any event. We will track turns and tool calls but
-   not token cost — at least not from the JSONL alone.
+1. **No token counts in json mode.** Pi 0.81.1's `--mode json` stream does not
+   include input/output token usage in any event. We will track turns and tool
+   calls but not token cost from the JSONL alone. Token data IS available via
+   `--mode rpc` and the `get_session_stats` command — that path is deferred to
+   a later chapter.
 
 2. **`isError` is a string.** The `isError` field on `tool_execution_end` is
    `"True"` or `"False"` (a JSON string), not a boolean. Your parser must
    convert it.
+
+3. **Args live on `tool_execution_start`.** The `args` field (what the tool was
+   called with) is on the start event, not the end event. Correlate by
+   `toolCallId`.
 ```
 
 ## Building the telemetry reader

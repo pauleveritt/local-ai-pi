@@ -11,6 +11,9 @@ from pathlib import Path
 from harness.telemetry import RunTelemetry, read_run
 from harness.workspace import capture_diff
 
+# Resolve repo root for stable paths regardless of CWD.
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+
 
 @dataclass
 class SessionResult:
@@ -23,6 +26,7 @@ class SessionResult:
     tests_pass: bool
     wall_time_s: float
     artifact_path: str
+    stderr_text: str = ""   # captured stderr for diagnostics
 
     @property
     def is_success(self) -> bool:
@@ -38,6 +42,7 @@ def run_session(
     workspace: str | Path,
     phase_prompt: str,
     model: str,
+    pristine_hash: str,
     timeout: int = 300,
     max_startup_attempts: int = 3,
 ) -> SessionResult:
@@ -46,20 +51,23 @@ def run_session(
     Spawns `pi --mode json -p --no-session` with isolation flags.
     Stdout is teed to research/sessions/<run-id>.jsonl while being
     parsed in memory for telemetry. After pi exits, runs git diff
-    and uv run pytest for the acceptance oracle.
+    against the pristine_hash and uv run pytest for the acceptance oracle.
 
     Retries on empty-stdout timeout (startup hang) up to max_startup_attempts.
     A run that produced at least one event before timing out is not retried.
+    Non-timeout empty-stdout exits (flag errors, missing model) are NOT retried
+    — they are deterministic failures, not transient hangs.
     """
     workspace = Path(workspace)
     run_id = uuid.uuid4().hex[:12]
 
-    # Ensure the research sessions directory exists.
-    sessions_dir = Path("docs/superpowers/research/sessions")
+    # Ensure the research sessions directory exists (absolute path).
+    sessions_dir = _REPO_ROOT / "docs" / "superpowers" / "research" / "sessions"
     sessions_dir.mkdir(parents=True, exist_ok=True)
     artifact_path = sessions_dir / f"{run_id}.jsonl"
 
     stdout_text = ""
+    stderr_text = ""
     pi_exe = _find_pi()
 
     # The pi invocation with isolation flags.
@@ -87,6 +95,7 @@ def run_session(
     env = dict(os.environ)
     t0 = time.monotonic()
     proc = None
+    timed_out = False
 
     # Retry loop for startup hangs (empty-stdout timeouts).
     for attempt in range(1, max_startup_attempts + 1):
@@ -103,7 +112,11 @@ def run_session(
             stdout_text, stderr_text = proc.communicate(timeout=timeout)
             if stdout_text.strip():
                 break  # got output, not a startup hang
+            # Non-timeout empty exit (flag error, missing model) — don't retry.
+            if proc.returncode is not None:
+                break
         except subprocess.TimeoutExpired:
+            timed_out = True
             proc.kill()
             stdout_text, stderr_text = proc.communicate()
             if stdout_text.strip():
@@ -111,8 +124,13 @@ def run_session(
         if attempt < max_startup_attempts:
             continue
 
+    # If we never caught a TimeoutExpired but the process was killed (empty retry
+    # exhausted), mark it as timeout. Otherwise, outcome is from the flag.
+    if not timed_out and proc is not None and proc.returncode is None:
+        timed_out = True  # hung process that was killed, never produced output
+
     wall_time_s = time.monotonic() - t0
-    outcome = "exited" if proc is not None and proc.returncode is not None else "timeout"
+    outcome = "timeout" if timed_out else "exited"
     returncode = proc.returncode if proc is not None else None
 
     # Persist the captured stdout as the session artifact.
@@ -121,13 +139,8 @@ def run_session(
     # Parse telemetry.
     telemetry = read_run(artifact_path)
 
-    # Git diff against pristine (pristine_hash is in workspace context;
-    # we get it from git log).
-    pristine_proc = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=workspace, capture_output=True, text=True, check=True,
-    )
-    pristine_hash = pristine_proc.stdout.strip()
+    # Git diff against the pristine commit (passed from prepare_workspace)
+    # so committed SLM changes are still visible via diff.
     changed_files, diff_text = capture_diff(workspace, pristine_hash)
 
     # Acceptance tests.
@@ -154,6 +167,7 @@ def run_session(
         tests_pass=tests_pass,
         wall_time_s=wall_time_s,
         artifact_path=str(artifact_path),
+        stderr_text=stderr_text,
     )
 
 
