@@ -95,6 +95,10 @@ def run_session(
     # Use profile timeout if set, otherwise caller's default.
     effective_timeout = profile.timeout if profile.timeout is not None else timeout
 
+    stdout_text = ""
+    stderr_text = ""
+    pi_exe = _find_pi()
+
     # Prompt is written to a temp file and passed via @file syntax.
     prompt_file = workspace / f".pi-eval-prompt-{run_id}.txt"
     prompt_file.write_text(phase_prompt)

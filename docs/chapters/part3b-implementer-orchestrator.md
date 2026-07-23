@@ -177,16 +177,17 @@ holds consistently.
      - 45s
      - No delegation; raw SLM
    * - SP2 Ch2 (parent+implementer)
-     - ?/8
-     - ?
-     - ?
-     - See dated report in ``docs/superpowers/research/``
+     - 3/8 (38%)
+     - 7.8
+     - 329s
+     - 1-4 subagent calls per run; :ref:`dated report <sp2-baseline-phase-1>`
 ```
 
 ```{note}
-The SP1 unsteered baseline went 0/8 on Phase 1. Even a single success from
-the parent+implementer shape is a signal. The n=8 run tells you how loud.
-The dated evidence report lives in
-``docs/superpowers/research/YYYY-MM-DD-sp2-baseline-phase-1.md`` — the same
-convention as Part II's smoking gun.
+The SP1 unsteered baseline went 0/8 on Phase 1. 3/8 from the parent+implementer
+shape is a clear signal — delegation helps. The successful runs all used exactly
+1 delegation with a clean packet (1,315 bytes); the failures either had tests
+fail on the first attempt or spiraled into 3-4 repair attempts and timed out.
+The dated evidence report lives at
+:ref:`sp2-baseline-phase-1`.
 ```
