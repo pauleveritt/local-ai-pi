@@ -39,14 +39,47 @@ trivial; the point is the *steering*, not the app.
 
 ## Built the way it teaches
 
-This repository is itself spec-driven, roadmap-tracked, and evidence-gated.
-[`docs/superpowers/roadmap.md`](docs/superpowers/roadmap.md) is the live index of
-the course's own construction, and each Part's dated evidence reports — including
-the baseline that motivates the whole course — are written to
-[`docs/superpowers/research/`](docs/superpowers/research/), with the raw session
-transcripts they were derived from. No claim in the chapters is allowed to
-outrun its artifact. If you want to see the method the course teaches, read
-[how the course was built](docs/how-this-was-built.md).
+This course was itself written with [Superpowers](https://github.com/obra/superpowers)
+spec-driven development, and the whole paper trail is in the repository.
+
+Development is broken into a roadmap of **feature cycles**. Each cycle runs the
+same loop — brainstorm a design, write a plan, implement it task by task,
+verify, and record what actually happened — and each leaves the same artifacts
+behind:
+
+| Artifact | Where | What it is |
+|---|---|---|
+| **Roadmap** | [`docs/superpowers/roadmap.md`](docs/superpowers/roadmap.md) | The cross-cycle index: sequence, status, and a backlog whose items are held to a recurrence bar rather than scheduled because a neighbor shipped. |
+| **Specs** | [`docs/superpowers/specs/`](docs/superpowers/specs/) | What each cycle builds and why, settled before any code exists — starting with the [master course design](docs/superpowers/specs/2026-07-23-course-design.md). |
+| **Plans** | [`docs/superpowers/plans/`](docs/superpowers/plans/) | The work decomposed into small, individually testable tasks. |
+| **Evidence** | [`docs/superpowers/research/`](docs/superpowers/research/) | Dated reports from real runs, with the raw session transcripts they were derived from. |
+| **Policy** | [`docs/superpowers/policies/evidence.md`](docs/superpowers/policies/evidence.md) | The GREEN/YELLOW/RED tiers that decide what the course is allowed to assert. |
+
+Nothing here is reconstructed after the fact. The specs were written before the
+code, the reviews are recorded with the defects they caught, and no claim in the
+chapters is allowed to outrun its artifact.
+
+### Start from the beginning and build your own
+
+Because every cycle is on disk and in the commit history, you can work through
+this repository as a worked example rather than just reading its output:
+
+- **Start at [`KICKOFF.md`](KICKOFF.md)** — the handoff document that seeded the
+  project. It was extracted from the previous project's findings and is the
+  single file a fresh agent session reads to pick up the work. Reading it first
+  shows you what a project needs to have decided before implementation begins.
+- **Follow the roadmap in order.** Each cycle's spec explains the reasoning,
+  its plan shows the decomposition, and its commits show what actually landed —
+  including the corrections. The reviews that caught real defects are part of
+  the record.
+- **Then fork the method, not the content.** The loop is
+  brainstorm → spec → plan → implement → verify → record, with a roadmap
+  tracking status and a backlog holding un-triggered work. None of that is
+  specific to small local models or to Pi. Point it at your own project and the
+  artifacts will look the same.
+
+[How This Was Built](docs/how-this-was-built.md) covers the lineage and which
+model tiers did which work.
 
 ## Reading the course
 

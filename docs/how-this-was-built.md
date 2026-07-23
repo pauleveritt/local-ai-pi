@@ -36,7 +36,7 @@ by chapter, so the reader constructs it rather than inherits it.
 
 ## How the writing is organized
 
-The course is built with [Superpowers](https://github.com/anthropics/superpowers)
+The course is built with [Superpowers](https://github.com/obra/superpowers)
 spec-driven development. Development is broken into a roadmap of feature
 cycles, and each cycle carries the same artifacts:
 
