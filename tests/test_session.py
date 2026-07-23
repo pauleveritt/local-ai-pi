@@ -69,3 +69,4 @@ def test_run_session_signature_exists():
     assert "phase_prompt" in params
     assert "model" in params
     assert "pristine_hash" in params
+    assert "profile" in params

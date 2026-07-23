@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from harness.session import SessionResult, run_session
+from harness.session import InvocationProfile, SessionResult, run_session
 from harness.workspace import prepare_workspace
 
 PI_EVAL_KEEP_WORKSPACES = "PI_EVAL_KEEP_WORKSPACES"
@@ -41,6 +41,7 @@ def run_baseline(
     phase_prompt: str,
     app_source: str | Path,
     model: str,
+    profile: InvocationProfile,
     n: int = 8,
     timeout: int = 300,
     phase_name: str | None = None,
@@ -65,7 +66,9 @@ def run_baseline(
         try:
             result = run_session(
                 ws_path, phase_prompt, model,
-                pristine_hash=pristine_hash, timeout=timeout,
+                pristine_hash=pristine_hash,
+                profile=profile,
+                timeout=timeout,
             )
             results.append(result)
         finally:

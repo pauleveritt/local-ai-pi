@@ -8,7 +8,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
-from harness.telemetry import RunTelemetry, read_run
+from harness.telemetry import RunTelemetry, has_subagent_calls, read_run
 from harness.workspace import capture_diff
 
 # Resolve repo root for stable paths regardless of CWD.
@@ -16,9 +16,32 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 @dataclass
+class InvocationProfile:
+    """Describes how to invoke pi for a session."""
+    extensions: list[str]     # --extension paths (empty = none beyond built-in)
+    append_system_prompt: str | None = None  # --append-system-prompt path
+    no_extensions: bool = True  # --no-extensions (strip global config)
+
+    @staticmethod
+    def sp1() -> "InvocationProfile":
+        """The SP1 profile: hello-world extension only."""
+        return InvocationProfile(
+            extensions=[".pi/extensions/hello-world.ts"],
+        )
+
+    @staticmethod
+    def sp2(subagent_path: str) -> "InvocationProfile":
+        """The SP2 profile: subagent extension + orchestrator prompt."""
+        return InvocationProfile(
+            extensions=[subagent_path],
+            append_system_prompt="prompts/orchestrator.md",
+        )
+
+
+@dataclass
 class SessionResult:
     run_id: str
-    outcome: str            # "exited" | "timeout"
+    outcome: str            # "exited" | "timeout" | "no-delegation"
     returncode: int | None
     telemetry: RunTelemetry
     changed_files: list[str]
@@ -43,20 +66,17 @@ def run_session(
     phase_prompt: str,
     model: str,
     pristine_hash: str,
+    profile: InvocationProfile,
     timeout: int = 300,
     max_startup_attempts: int = 3,
 ) -> SessionResult:
     """Run pi headless in workspace against one phase prompt.
 
-    Spawns `pi --mode json -p --no-session` with isolation flags.
-    Stdout is teed to research/sessions/<run-id>.jsonl while being
-    parsed in memory for telemetry. After pi exits, runs git diff
-    against the pristine_hash and uv run pytest for the acceptance oracle.
+    Spawns `pi --mode json -p --no-session` with isolation flags from the
+    InvocationProfile. After pi exits, runs git diff against pristine_hash
+    and uv run pytest for the acceptance oracle.
 
     Retries on empty-stdout timeout (startup hang) up to max_startup_attempts.
-    A run that produced at least one event before timing out is not retried.
-    Non-timeout empty-stdout exits (flag errors, missing model) are NOT retried
-    — they are deterministic failures, not transient hangs.
     """
     workspace = Path(workspace)
     run_id = uuid.uuid4().hex[:12]
@@ -70,27 +90,32 @@ def run_session(
     stderr_text = ""
     pi_exe = _find_pi()
 
-    # The pi invocation with isolation flags.
-    # Prompt is written to a temp file and passed via @file syntax
-    # to avoid flag-parsing issues when the prompt starts with "-".
+    # Prompt is written to a temp file and passed via @file syntax.
     prompt_file = workspace / f".pi-eval-prompt-{run_id}.txt"
     prompt_file.write_text(phase_prompt)
 
+    # Build pi_cmd from the invocation profile.
     pi_cmd = [
         pi_exe,
         "--mode", "json",
         "-p",
         "--no-session",
         "--model", model,
-        "--no-extensions",
-        "--extension", ".pi/extensions/hello-world.ts",
         "--no-skills",
         "--no-prompt-templates",
         "--no-themes",
         "--no-context-files",
         "--approve",
-        f"@{prompt_file}",
     ]
+
+    if profile.no_extensions:
+        pi_cmd.append("--no-extensions")
+    for ext in profile.extensions:
+        pi_cmd.extend(["--extension", ext])
+    if profile.append_system_prompt:
+        pi_cmd.extend(["--append-system-prompt", profile.append_system_prompt])
+
+    pi_cmd.append(f"@{prompt_file}")
 
     env = dict(os.environ)
     t0 = time.monotonic()
@@ -112,7 +137,7 @@ def run_session(
             stdout_text, stderr_text = proc.communicate(timeout=timeout)
             if stdout_text.strip():
                 break  # got output, not a startup hang
-            # Non-timeout empty exit (flag error, missing model) — don't retry.
+            # Non-timeout empty exit — don't retry.
             if proc.returncode is not None:
                 break
         except subprocess.TimeoutExpired:
@@ -124,10 +149,8 @@ def run_session(
         if attempt < max_startup_attempts:
             continue
 
-    # If we never caught a TimeoutExpired but the process was killed (empty retry
-    # exhausted), mark it as timeout. Otherwise, outcome is from the flag.
     if not timed_out and proc is not None and proc.returncode is None:
-        timed_out = True  # hung process that was killed, never produced output
+        timed_out = True
 
     wall_time_s = time.monotonic() - t0
     outcome = "timeout" if timed_out else "exited"
@@ -139,8 +162,11 @@ def run_session(
     # Parse telemetry.
     telemetry = read_run(artifact_path)
 
-    # Git diff against the pristine commit (passed from prepare_workspace)
-    # so committed SLM changes are still visible via diff.
+    # Detect no-delegation: exited normally but never called subagent tool.
+    if outcome == "exited" and not has_subagent_calls(artifact_path):
+        outcome = "no-delegation"
+
+    # Git diff against the pristine commit.
     changed_files, diff_text = capture_diff(workspace, pristine_hash)
 
     # Acceptance tests.

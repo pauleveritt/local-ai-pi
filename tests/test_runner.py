@@ -118,4 +118,5 @@ def test_run_baseline_signature():
     assert "phase_prompt" in params
     assert "app_source" in params
     assert "model" in params
+    assert "profile" in params
     assert "n" in params

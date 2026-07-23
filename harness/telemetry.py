@@ -125,3 +125,18 @@ def read_run(stream_path: str | Path) -> RunTelemetry:
         tool_calls=tool_calls,
         turns=turns,
     )
+
+
+def has_subagent_calls(stream_path: str | Path) -> bool:
+    """True if the session includes at least one subagent tool call."""
+    path = Path(stream_path)
+    if not path.exists():
+        return False
+    for line in path.read_text().splitlines():
+        try:
+            event = json.loads(line.strip())
+            if event.get("type") == "tool_execution_end" and event.get("toolName") == "subagent":
+                return True
+        except json.JSONDecodeError:
+            continue
+    return False

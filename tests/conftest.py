@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+from harness.session import InvocationProfile
+
 
 @pytest.fixture
 def pi_binary() -> str:
@@ -63,3 +65,18 @@ def phase2_prompt() -> str:
 def phase3_prompt() -> str:
     roadmap = Path(__file__).resolve().parent.parent / "examples" / "agentclinic" / "specs" / "roadmap.md"
     return _extract_phase(roadmap.read_text(), 3)
+
+
+@pytest.fixture
+def sp1_profile() -> InvocationProfile:
+    return InvocationProfile.sp1()
+
+
+@pytest.fixture
+def sp2_profile() -> InvocationProfile:
+    subagent_path_file = Path(__file__).resolve().parent.parent / ".pi" / "subagent-extension-path.txt"
+    if subagent_path_file.exists():
+        path = subagent_path_file.read_text().strip()
+    else:
+        path = ""
+    return InvocationProfile.sp2(path)
