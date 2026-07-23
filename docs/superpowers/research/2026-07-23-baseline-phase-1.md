@@ -1,4 +1,4 @@
-# Baseline: Unknown
+# Baseline: Phase 1 — Home Page
 
 **Date:** 2026-07-23
 **Model:** omlx/gemma-4-12B-it-MLX-8bit
@@ -6,18 +6,18 @@
 **Success rate:** 0/8 (0%)
 
 **Mean wall time:** 45s
-**Mean turns:** 6.0
+**Mean turns:** 6.4
 
 | # | Outcome | Success | Turns | Wall Time | Changed Files | Artifact |
 |---|---------|---------|-------|-----------|---------------|----------|
-| 1 | exited | ❌ | 6 | 37s | .pi-eval-prompt-fe8fb983131d.txt, app.py, templates/base.html (+2) | [fe8fb983131d.jsonl](sessions/fe8fb983131d.jsonl) |
-| 2 | exited | ❌ | 6 | 42s | .pi-eval-prompt-7556aa76de12.txt, app.py, templates/base.html (+2) | [7556aa76de12.jsonl](sessions/7556aa76de12.jsonl) |
-| 3 | exited | ❌ | 6 | 42s | .pi-eval-prompt-752550a5746e.txt, app.py, templates/base.html (+2) | [752550a5746e.jsonl](sessions/752550a5746e.jsonl) |
-| 4 | exited | ❌ | 6 | 43s | .pi-eval-prompt-2a8452b6cf4a.txt, app.py, templates/base.html (+2) | [2a8452b6cf4a.jsonl](sessions/2a8452b6cf4a.jsonl) |
-| 5 | exited | ❌ | 6 | 48s | .pi-eval-prompt-0f624e4c8814.txt, app.py, templates/base.html (+2) | [0f624e4c8814.jsonl](sessions/0f624e4c8814.jsonl) |
-| 6 | exited | ❌ | 6 | 51s | .pi-eval-prompt-975f39d30dff.txt, app.py, templates/base.html (+2) | [975f39d30dff.jsonl](sessions/975f39d30dff.jsonl) |
-| 7 | exited | ❌ | 6 | 49s | .pi-eval-prompt-5d5175541970.txt, app.py, templates/base.html (+2) | [5d5175541970.jsonl](sessions/5d5175541970.jsonl) |
-| 8 | exited | ❌ | 6 | 50s | .pi-eval-prompt-a9ad44ca123c.txt, app.py, templates/base.html (+2) | [a9ad44ca123c.jsonl](sessions/a9ad44ca123c.jsonl) |
+| 1 | exited | ❌ | 6 | 43s | app.py, templates/base.html, templates/home.html (+1) | [e7b32440f47e.jsonl](sessions/e7b32440f47e.jsonl) |
+| 2 | exited | ❌ | 6 | 38s | app.py, templates/base.html, templates/home.html (+1) | [6fb41cb953ce.jsonl](sessions/6fb41cb953ce.jsonl) |
+| 3 | exited | ❌ | 6 | 39s | app.py, templates/base.html, templates/home.html (+1) | [2412dba6e110.jsonl](sessions/2412dba6e110.jsonl) |
+| 4 | exited | ❌ | 6 | 39s | app.py, templates/base.html, templates/home.html (+1) | [bc85c2e72a25.jsonl](sessions/bc85c2e72a25.jsonl) |
+| 5 | exited | ❌ | 6 | 43s | app.py, templates/base.html, templates/home.html (+1) | [106a89faa42a.jsonl](sessions/106a89faa42a.jsonl) |
+| 6 | exited | ❌ | 9 | 52s | app.py, templates/base.html, templates/home.html (+1) | [c4a30fee6a04.jsonl](sessions/c4a30fee6a04.jsonl) |
+| 7 | exited | ❌ | 6 | 64s | app.py, templates/base.html, templates/home.html (+1) | [eef6ba17f259.jsonl](sessions/eef6ba17f259.jsonl) |
+| 8 | exited | ❌ | 6 | 45s | app.py, templates/base.html, templates/home.html (+1) | [b53e9a5132cc.jsonl](sessions/b53e9a5132cc.jsonl) |
 
 ## Evidence tier
 
