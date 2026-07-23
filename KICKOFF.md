@@ -62,6 +62,23 @@ Read, in order:
   load-bearing — build it before III/IV, because they cannot be evaluated without
   its harness and baseline.
 
+## Key design decision already made: how Pi subagents work
+
+Part III depends on this; the master spec's "Part III" section has the full
+version. In short: Pi has **no native subagent**. A subagent is a composition you
+own — a registered tool whose `execute` spawns a child `pi --mode json` process
+(the mechanism, TypeScript) plus an `agents/<name>.md` file (the specialist,
+data). Think of a subagent as *a tool you wrote that happens to spawn another
+agent*, not a config the runtime interprets. Two consequences: the child is a
+full pi process so it **inherits the project's guardrail extensions** (this is
+how you get the permission enforcement OpenCode gave declaratively — from inside
+the child, not asserted over it); and from the parent a delegation is just a
+**tool call**, so every Part IV guardrail governs it. The reserved "galaxy-brain"
+role is a **planner** specialist on a bigger model — a hybrid deterministic+model
+tool-agent that turns business/user-story phases into right-sized packets and
+derives their acceptance oracles. Oracle derivation is the central evidence-gated
+research thread of Part III.
+
 ## Reference material (read-only, in a sibling repo)
 
 The four guardrails in Part IV were already designed and implemented once against

@@ -72,19 +72,86 @@ reimplements a minimal version and shares none of its type-checker machinery.
 
 Goal: teach SDD on Pi, and honestly test whether a subagent fleet helps.
 
-Deliverables:
+#### How a Pi "subagent" actually works (the mechanism this Part teaches)
+
+Pi has no native subagent primitive by design (the coding-agent README lists
+"no sub-agents" alongside "no MCP, no permission popups"). Unlike OpenCode —
+where a subagent is a declarative frontmatter config (model, tools, a
+`permission` block) the runtime enforces — a Pi subagent is a **composition of
+two things you own**:
+
+1. **The mechanism is a registered tool.** The `examples/extensions/subagent`
+   extension calls `pi.registerTool({ name: "subagent", execute })`. The
+   `execute` function is arbitrary TypeScript that spawns a separate
+   `pi --mode json -p --no-session` subprocess for the specialist, streams its
+   JSONL events over stdout, and returns the final result to the parent. You own
+   the delegation semantics — schema-checking the packet before spawning, sizing
+   it, chaining, parallelism, retry-with-a-narrower-packet.
+2. **The specialist is data.** An `agents/<name>.md` file: frontmatter
+   (`name`, `description`, `tools`, `model`) plus a system-prompt body,
+   discovered from `~/.pi/agent/agents/` and project-local `.pi/agents/`.
+
+Two consequences drive the whole Part, and both improve on the OpenCode
+limitations recorded in `LESSONS.md`:
+
+- **The child is a full `pi` process, so it loads the project's extensions.**
+  The permission enforcement OpenCode gave declaratively (a `permission` block
+  constraining the child from outside) is obtained here *from inside*: the child
+  inherits every Part IV guardrail — its own repeat-breaker, path-guard,
+  output-cap, turn-cap — enforced in its own lifecycle. Constrain the child by
+  the code it runs, not a config the parent asserts over it.
+- **From the parent, a delegation is a tool call.** So it is observable and
+  governable through the same event hooks as any tool: `tool_call` can block it,
+  `tool_execution_end` sees it fail, the repeat-breaker counts a runaway
+  re-delegation, `appendEntry` logs it as evidence. The parent's extension code
+  cannot hook the child's `turn_end` directly — it only reads the child's
+  emitted JSONL — but it fully governs the *delegation*.
+
+What this does **not** fix for free, and what the Part must therefore measure:
+the paraphrase-drift handoff (`LESSONS.md #4`) lives in the task string, which is
+still a model relaying another model's instruction; and there is no automatic
+nesting-depth cap (a spawned process can spawn again). Both are governable with
+your own code, not a runtime flag.
+
+#### Deliverables
+
 - The roadmap-and-packet method: a phase contract, the handoff packet, and the
   acceptance command, applied to the example app.
-- An orchestrator subagent (Pi has no native subagent primitive; this is the
-  `examples/extensions/subagent` construction or a spawned `pi`).
-- A **planning subagent** that converts loose user-stories into phase contracts,
-  so the roadmap can be less prescriptive than a hand-written phase list.
-- An evidence-gated fleet: each additional specialized subagent (planner,
-  implementer, verifier) is admitted only if a measured run shows it beats the
-  simpler shape it replaces. This directly re-opens the question the prior course
-  closed negatively — `LESSONS.md #4` recorded the orchestrator hop *drifting*
-  via paraphrase — and answers it with this harness's own measurements rather
-  than assuming either outcome.
+- An orchestrator subagent, built as the registered-tool mechanism above.
+- A **planner specialist — the reserved role for the "galaxy brain."** The
+  course does not banish open-ended reasoning; it assigns it to one up-front
+  role. The planner runs on a **bigger model** and its job is to turn
+  business/user-story phases (deliberately *not* implementation-heavy) into a
+  roadmap of right-sized phase contracts. It is a **hybrid tool-agent**: the
+  model supplies judgment (what does this story imply?), while deterministic
+  TypeScript in the tool's `execute` does the mechanical assembly and sizing —
+  reading named targets, computing the changed-file surface, extracting exact
+  literals/routes from the spec, and enforcing a token budget on the packet.
+  This is `LESSONS.md #3/#4`'s "big-brain planner → little-brain implementer"
+  split, with the planner realized as a Pi specialist rather than a chat window,
+  and it is the mechanical expression of `LESSONS.md #1` ("structure beats
+  strings"): assembly and sizing are code, not SLM improvisation.
+- An evidence-gated fleet: orchestrator, planner, implementer, verifier. Each
+  specialist is admitted only if a measured run shows it beats the simpler shape
+  it replaces. This re-opens the question the prior course closed negatively —
+  `LESSONS.md #4` recorded the orchestrator hop *drifting* via paraphrase — and
+  answers it with this harness's own measurements rather than assuming either
+  outcome.
+
+#### The hard, evidence-gated research thread: oracle derivation
+
+A business-focused phase is *harder* than the current implementation-heavy
+phases in one specific way: the current phases embed their own acceptance oracle
+(`Scope creep never ends.`, the 303 with `follow_redirects=False`), but a
+user-story phase does not hand you the oracle — the planner must **derive** one.
+Deriving a correct, complete acceptance check from a vague story is close to the
+"galaxy-brain" work `LESSONS.md #1` warns against delegating, which is exactly
+why it is assigned to the bigger-model planner and not the SLM implementer.
+Whether the planner can derive oracles that are both correct and right-sized is
+the central open question of this Part. It is a named, evidence-gated thread: the
+planner ships only if measured runs show its derived oracles hold up against the
+phases the SLM then implements. Until then it is a hypothesis under test, not a
+foregone deliverable.
 
 ### Part IV — Keeping the SLM on track
 

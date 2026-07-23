@@ -28,6 +28,12 @@ neighbor shipped:
   planner / implementer / verifier is admitted only if a measured run shows it
   beats the simpler shape. Prior evidence (`LESSONS.md #4`) is *against* the hop;
   this course re-tests it.
+- **Planner specialist + oracle derivation** (SP2). The reserved "galaxy-brain"
+  role: a bigger-model, hybrid deterministic+model tool-agent that turns
+  business/user-story phases into right-sized packets *and derives their
+  acceptance oracles*. Oracle derivation is the risky part; the planner ships
+  only if measured runs show its derived oracles hold. Hypothesis under test, not
+  a scheduled deliverable.
 - **Improvements whose motivating failure the baseline does not actually
   reproduce** (SP3). If Part II's baseline never triggers, say, the 48KB
   tool-output blowup on this model, the output-cap chapter is demoted to backlog
