@@ -17,6 +17,9 @@ _HARNESS_FILES = frozenset({
     ".gitignore",        # written by prepare_workspace
 })
 
+# Prefixes for files the harness creates — excluded from capture_diff.
+_HARNESS_PREFIXES = (".pi-eval-prompt-",)
+
 # Build artifacts pytest litters the workspace with — never model edits.
 _EXCLUDE_PREFIXES = (".pytest_cache/",)
 _EXCLUDE_SUFFIXES = (".pyc", ".pyo")
@@ -162,6 +165,8 @@ def _is_harness_file(path: str) -> bool:
     """True if this path is harness scaffolding, not a model edit."""
     basename = path.split("/")[-1] if "/" in path else path
     if basename in _HARNESS_FILES:
+        return True
+    if path.startswith(_HARNESS_PREFIXES):
         return True
     if path.startswith(_EXCLUDE_PREFIXES):
         return True

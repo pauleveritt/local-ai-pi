@@ -42,12 +42,16 @@ def run_baseline(
     model: str,
     n: int = 8,
     timeout: int = 300,
+    phase_name: str | None = None,
 ) -> BaselineReport:
     """Run n independent sessions against one phase, return aggregated report.
 
-    Each run gets a fresh workspace. Runs are sequential to avoid LM Studio
-    single-model contention. Timeout + token limits apply per run.
+    Each run gets a fresh workspace. Runs are sequential to avoid model
+    contention. Timeout + token limits apply per run.
     Workspaces are cleaned up unless PI_EVAL_KEEP_WORKSPACES is set.
+
+    phase_name is used in the report heading. If None, attempts to extract
+    from the prompt text (first ## Phase line).
     """
     import os
 
@@ -65,12 +69,13 @@ def run_baseline(
                 import shutil
                 shutil.rmtree(ws_path.parent, ignore_errors=True)
 
-    # Extract phase name from prompt (first heading line).
-    phase_name = "Unknown"
-    for line in phase_prompt.splitlines():
-        if line.startswith("## Phase ") and not line.startswith("### "):
-            phase_name = line[3:].strip()
-            break
+    # Use provided phase_name or extract from prompt.
+    if phase_name is None:
+        phase_name = "Unknown"
+        for line in phase_prompt.splitlines():
+            if line.startswith("## Phase ") and not line.startswith("### "):
+                phase_name = line[3:].strip()
+                break
 
     return BaselineReport(
         phase=phase_name,
