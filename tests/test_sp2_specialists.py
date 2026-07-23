@@ -48,3 +48,17 @@ def test_implementer_md_has_system_prompt_body():
     assert len(body) > 100, "system prompt body should be substantial"
     assert "implementer" in body.lower()
     assert "packet" in body.lower()
+
+
+def test_orchestrator_md_exists():
+    path = REPO_ROOT / "prompts" / "orchestrator.md"
+    assert path.exists(), f"{path} not found"
+
+
+def test_orchestrator_md_contains_packet_format():
+    path = REPO_ROOT / "prompts" / "orchestrator.md"
+    text = path.read_text()
+    assert "agentScope" in text, "must mention agentScope: both"
+    assert "packet" in text.lower()
+    assert "subagent" in text.lower()
+    assert "implementer" in text.lower()
