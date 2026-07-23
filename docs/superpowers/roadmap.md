@@ -38,6 +38,21 @@ neighbor shipped:
   reproduce** (SP3). If Part II's baseline never triggers, say, the 48KB
   tool-output blowup on this model, the output-cap chapter is demoted to backlog
   with a note rather than taught as if the failure were live.
+- **Investigate teaching how to wire `pi-lsp` into the setup** (candidate for
+  SP3/SP4). Motivated by `LESSONS.md #5` (orient the model with structure, not
+  repo-wide exploration) and `#4` (let an independent checker — LSP, type checker
+  — establish whether an edit worked). An LSP gives structural orientation
+  (symbols, imports, references) up front and a verification signal after, both
+  named as high-value in the lessons but out of scope in the prior course.
+  First step is confirmation, not implementation: `pi-lsp` is **not** a package
+  in the Pi checkout at `~/PycharmProjects/pi` — establish what it actually is
+  (a real component? external? planned?) and whether it can be wired through a
+  built-in Pi extension seam (e.g. a tool that shells to a language server, or
+  `before_agent_start` orientation fed from LSP symbols) without violating the
+  course's "built-in Pi only, no forks" constraint. If wiring it needs a runtime
+  patch, it stays out of scope and the item records that finding. Evidence-gated
+  like every other improvement: taught only if a measured run shows it helps the
+  SLM on the example workload.
 
 ## Conventions
 
