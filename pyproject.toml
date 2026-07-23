@@ -6,6 +6,12 @@ readme = "README.md"
 requires-python = ">=3.14,<3.15"
 dependencies = []
 
+[tool.pytest.ini_options]
+pythonpath = ["."]
+markers = [
+    "pi_available: tests that need the pi binary and a running model server",
+]
+
 [dependency-groups]
 docs = [
     "sphinx>=9.1.0",
