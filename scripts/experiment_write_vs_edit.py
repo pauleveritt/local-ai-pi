@@ -101,9 +101,8 @@ def summarize(rows: list[dict], label: str) -> None:
 
 
 if __name__ == "__main__":
-    control = run_arm("CONTROL", [".pi/extensions/hello-world.ts"])
-    guarded = run_arm("GUARDED", [".pi/extensions/hello-world.ts", GUARD])
-
-    print("\n=== RESULT (preservation = phase-1 acceptance after phase-2 work) ===")
-    summarize(control, "CONTROL")
-    summarize(guarded, "GUARDED")
+    which = sys.argv[2] if len(sys.argv) > 2 else "both"
+    if which in ("both", "control"):
+        summarize(run_arm("CONTROL", [".pi/extensions/hello-world.ts"]), "CONTROL")
+    if which in ("both", "guarded"):
+        summarize(run_arm("GUARDED", [".pi/extensions/hello-world.ts", GUARD]), "GUARDED")
