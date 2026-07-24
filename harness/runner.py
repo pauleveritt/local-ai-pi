@@ -283,7 +283,7 @@ def write_report(report: BaselineReport, output_path: str | Path) -> None:
     has_subagent = runs_with_delegation > 0
     lines.append(
         f"- **Success rate:** artifact-backed — n={report.n} dated session files "
-        f"(GREEN per [evidence policy](../superpowers/policies/evidence.md))."
+        f"(GREEN per [evidence policy](../../superpowers/policies/evidence.md))."
     )
     if has_subagent:
         lines.append(

@@ -36,6 +36,6 @@ No subagent delegations detected in any run.
 
 ## Evidence tier
 
-- **Success rate:** artifact-backed — n=8 dated session files (GREEN per [evidence policy](../superpowers/policies/evidence.md)).
+- **Success rate:** artifact-backed — n=8 dated session files (GREEN per [evidence policy](../../superpowers/policies/evidence.md)).
 - **Timing / turns:** real but noisy — n=8, single-model, single-provider (YELLOW). Compare deltas at n=4 with caution.
 - **Statistical note:** n=8 — per-run success-rate deltas of ±1 run are within noise at this sample size. Cite structural claims, not small-sample tuning deltas.
