@@ -5,18 +5,31 @@ Per-phase specs and plans are co-located in `docs/section-*/` directories.
 This file is the cross-phase index: sequence, status, and links. It is built the way the course teaches — each phase is evidence-gated, and
 a later phase is not queued just because an earlier one landed.
 
-**Current phase:** Sub-project 3 — Part IV (Keeping the SLM on track). SP0, SP1,
-and SP2 are complete. SP3 is unblocked — the SP2 baseline (5/8) is the
-before-picture for every guardrail.
+**Current phase: GRADING-PATH REBOOT** — see
+[`plans/2026-07-24-grading-path-reboot.md`](plans/2026-07-24-grading-path-reboot.md).
+
+A deep review (Fable, 2026-07-24) found five further integrity failures, two of
+which **defeat the hardened oracle** (a model-written `pytest.ini` with
+`addopts = --collect-only`, and an import-time `os._exit(0)`, each producing
+exit 0 on a deliberately broken app). Root cause: every fix so far has been a
+blacklist against an open category. The grading path is being rebuilt so
+model-controlled input cannot reach the grader at all.
+
+Consequences: **SP1 and SP2 status is withdrawn** — their chapter prose is
+discarded (it narrates the dead 0/8 arc) and their post-repair numbers are
+superseded. SP3 is **blocked** until the reboot's gates pass. Success-rate
+before/after is abandoned as a claim structure (evidence policy Rule 7). The
+strongest surviving evidence is oracle-independent: replace-vs-extend on
+inherited files was 8/8 predictive.
 
 ## Phases
 
 | ID | Phase | Status | Spec | Plan | Evidence |
 |----|-------|--------|------|------|----------|
 | SP0 | Scaffold + Section I (repo skeleton, docs toolchain, roadmap, LESSONS, example spec triple, hello-world extension) | **Done** | [spec](../section-1-hello-agent/spec.md) | [plan](../section-1-hello-agent/plan.md) | — |
-| SP1 | Section II — Measurement (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | **Done** | [spec](../section-2-measurement/spec.md) | [plan](../section-2-measurement/plan.md) | [0/8 baseline](../section-2-measurement/research/2026-07-23-baseline-phase-1.md) |
-| SP2 | Section III — SDD on Pi (roadmap/packet method, parent-as-orchestrator + implementer specialist) | **Done** | [spec](../section-3-sdd/spec.md) | [plan](../section-3-sdd/plan.md) | [3/8 pre](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1.md), [5/8 post](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1-post-tuning.md), [deep-dive](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md) |
-| SP3 | Section IV — Keeping the SLM on track (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | Queued (next, unblocked by corrected SP2 baselines) | — | — | — |
+| SP1 | Section II — Measurement *(harness kept; prose discarded, numbers superseded)* (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | **Done** | [spec](../section-2-measurement/spec.md) | [plan](../section-2-measurement/plan.md) | [0/8 baseline](../section-2-measurement/research/2026-07-23-baseline-phase-1.md) |
+| SP2 | Section III — SDD on Pi *(mechanism kept; prose discarded, numbers superseded)* (roadmap/packet method, parent-as-orchestrator + implementer specialist) | **Done** | [spec](../section-3-sdd/spec.md) | [plan](../section-3-sdd/plan.md) | [3/8 pre](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1.md), [5/8 post](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1-post-tuning.md), [deep-dive](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md) |
+| SP3 | Section IV — Keeping the SLM on track (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | **Blocked on the grading-path reboot** | — | — | — |
 
 
 ## Narrative reframe (adopted 2026-07-24)
