@@ -1,0 +1,31 @@
+# Baseline: Phase 2 — Complaints Board (pooled n=8, SP1)
+
+**Date:** 2026-07-24
+**Model:** omlx/gemma-4-12B-it-MLX-8bit
+**Runs:** n=8
+**Success rate:** 0/8 (0%)
+
+**Mean task duration:** 0s (over success-eligible runs; timeout/no-delegation excluded)
+**Mean turns:** 11.0
+**Oracle validated:** `tests/test_oracle.py` green at commit `083dbd7`
+
+| # | Outcome | Success | Turns | Wall Time | Changed Files | Artifact |
+|---|---------|---------|-------|-----------|---------------|----------|
+| 1 | exited | ❌ | 16 | 139s | app.py, models.py, templates/base.html (+2) | [190e436e3787.jsonl](sessions/190e436e3787.jsonl) |
+| 2 | exited | ❌ | 13 | 107s | app.py, models.py, templates/base.html (+2) | [34941389a337.jsonl](sessions/34941389a337.jsonl) |
+| 3 | exited | ❌ | 9 | 63s | app.py, models.py, templates/base.html (+2) | [686faff788f2.jsonl](sessions/686faff788f2.jsonl) |
+| 4 | exited | ❌ | 10 | 68s | app.py, models.py, templates/base.html (+2) | [46419db43a9f.jsonl](sessions/46419db43a9f.jsonl) |
+| 5 | exited | ❌ | 11 | 69s | app.py, models.py, templates/base.html (+2) | [4ef829bc0a4a.jsonl](sessions/4ef829bc0a4a.jsonl) |
+| 6 | exited | ❌ | 10 | 92s | app.py, models.py, templates/base.html (+2) | [0dbacb285f03.jsonl](sessions/0dbacb285f03.jsonl) |
+| 7 | exited | ❌ | 8 | 63s | app.py, models.py, templates/base.html (+2) | [4a9913015eee.jsonl](sessions/4a9913015eee.jsonl) |
+| 8 | exited | ❌ | 11 | 92s | app.py, models.py, templates/base.html (+2) | [de059e8b9351.jsonl](sessions/de059e8b9351.jsonl) |
+
+## Subagent delegation metrics
+
+No subagent delegations detected in any run.
+
+## Evidence tier
+
+- **Success rate:** artifact-backed — n=8 dated session files (GREEN per [evidence policy](../superpowers/policies/evidence.md)).
+- **Timing / turns:** real but noisy — n=8, single-model, single-provider (YELLOW). Compare deltas at n=4 with caution.
+- **Statistical note:** n=8 — per-run success-rate deltas of ±1 run are within noise at this sample size. Cite structural claims, not small-sample tuning deltas.
