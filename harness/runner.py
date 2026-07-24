@@ -47,6 +47,20 @@ class BaselineReport:
         return statistics.mean(times) if times else None
 
     @property
+    def mean_process_wall_time_s(self) -> float | None:
+        """Fallback duration metric: harness-side subprocess wall time (this
+        process's own clock around the pi invocation), for success-eligible
+        outcomes. Used when task_duration_s cannot be computed from the
+        artifact — as of pi 0.82.0, --mode json events carry a top-level
+        "timestamp" only on the initial "session" event, so no per-event
+        duration is recoverable from the stream. Unlike task_duration_s this
+        includes any dead time from a killed-then-retried attempt, so it is
+        reported separately and labeled, never silently substituted."""
+        times = [r.wall_time_s for r in self.results
+                 if r.outcome in ("exited", "exited-with-hang") and r.wall_time_s is not None]
+        return statistics.mean(times) if times else None
+
+    @property
     def mean_turns(self) -> float | None:
         turns = [r.telemetry.turns for r in self.results if r.telemetry and r.telemetry.turns > 0]
         return statistics.mean(turns) if turns else None
@@ -178,6 +192,12 @@ def write_report(report: BaselineReport, output_path: str | Path) -> None:
     if report.mean_wall_time_s is not None:
         lines.append(f"**Mean task duration:** {report.mean_wall_time_s:.0f}s "
                      f"(over success-eligible runs; timeout/no-delegation excluded)")
+    elif report.mean_process_wall_time_s is not None:
+        lines.append(f"**Mean process wall time:** {report.mean_process_wall_time_s:.0f}s "
+                     f"(harness-side subprocess timing, not artifact task duration — "
+                     f"this pi version's --mode json stream has no per-event timestamps "
+                     f"to compute the latter; over success-eligible runs, timeout/"
+                     f"no-delegation excluded)")
     if report.mean_turns is not None:
         lines.append(f"**Mean turns:** {report.mean_turns:.1f}")
     if report.hang_count > 0:

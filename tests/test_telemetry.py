@@ -94,13 +94,14 @@ def test_has_subagent_calls_nonexistent_file():
 
 
 def test_compute_task_duration_s_from_fixture(sample_session_path: Path):
-    """task_duration_s from the sample fixture should be a non-negative float.
-    The fixture has only one timestamped event (session start), so duration is 0.0."""
+    """The fixture has only one timestamped event (session start) — as real
+    pi 0.82.0 --mode json streams do, since no other event type carries a
+    top-level timestamp. A single timestamped event cannot yield a real
+    duration, so this must be None, not a fabricated 0.0 (which is
+    indistinguishable from a genuine zero-duration run in any aggregate)."""
     from harness.telemetry import compute_task_duration_s
     duration = compute_task_duration_s(sample_session_path)
-    assert duration is not None
-    assert duration >= 0.0
-    assert isinstance(duration, float)
+    assert duration is None
 
 
 def test_compute_task_duration_s_empty_file(tmp_path: Path):
@@ -116,12 +117,13 @@ def test_compute_task_duration_s_nonexistent_file():
 
 
 def test_compute_task_duration_s_single_event(tmp_path: Path):
-    """A single timestamped event should yield duration 0."""
+    """A single timestamped event cannot yield a real duration — must be
+    None, not a fabricated 0.0."""
     from harness.telemetry import compute_task_duration_s
     f = tmp_path / "single.jsonl"
     f.write_text('{"type": "session", "timestamp": "2026-07-23T09:38:11.322Z"}\n')
     duration = compute_task_duration_s(f)
-    assert duration == 0.0
+    assert duration is None
 
 
 def test_compute_task_duration_s_two_events(tmp_path: Path):

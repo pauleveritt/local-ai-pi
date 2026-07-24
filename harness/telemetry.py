@@ -143,6 +143,7 @@ def compute_task_duration_s(stream_path: str | Path) -> float | None:
 
     first_ts: datetime | None = None
     last_ts: datetime | None = None
+    timestamped_events = 0
 
     for line in path.read_text().splitlines():
         line = line.strip()
@@ -161,13 +162,20 @@ def compute_task_duration_s(stream_path: str | Path) -> float | None:
                 # Parse ISO 8601 with optional fractional seconds and Z suffix.
                 ts_str_clean = ts_str.replace("Z", "+00:00")
                 ts = datetime.fromisoformat(ts_str_clean)
+                timestamped_events += 1
                 if first_ts is None:
                     first_ts = ts
                 last_ts = ts
             except ValueError:
                 continue
 
-    if first_ts is None or last_ts is None:
+    # This pi version's --mode json stream carries a top-level "timestamp"
+    # on only the initial "session" event — no other event type has one.
+    # With a single timestamped event, first_ts == last_ts and the naive
+    # subtraction silently yields 0.0 instead of the "uncomputable" None
+    # this function's contract promises. Require at least two distinct
+    # timestamped events before reporting a real duration.
+    if first_ts is None or last_ts is None or timestamped_events < 2:
         return None
 
     return (last_ts - first_ts).total_seconds()

@@ -1,30 +1,21 @@
 # Baseline: Phase 2 — Complaints Board
 
-```{warning}
-**Non-canonical start state (Amendment 1, 2026-07-24).** These runs started
-from an EMPTY workspace, so they measured "build Phases 1+2 combined from
-nothing," not Phase 2. The canonical phase-2 workload seeds the phase-1
-reference solution (see the oracle-repair plan, Amendment 1). Kept as an
-exploratory combined-workload data point; not citable as the Phase 2
-baseline. Superseded by the seeded phase-2 reports.
-```
-
-
 **Date:** 2026-07-24
 **Model:** omlx/gemma-4-12B-it-MLX-8bit
+**Start state:** seeded: examples/reference/phase-1
 **Runs:** n=4
-**Success rate:** 0/4 (0%)
+**Success rate:** 2/4 (50%)
 
-**Mean task duration:** 0s (over success-eligible runs; timeout/no-delegation excluded)
-**Mean turns:** 11.8
-**Oracle validated:** `tests/test_oracle.py` green at commit `760197c`
+**Mean process wall time:** 60s (harness-side subprocess timing, not artifact task duration — this pi version's --mode json stream has no per-event timestamps to compute the latter; over success-eligible runs, timeout/no-delegation excluded)
+**Mean turns:** 10.0
+**Oracle validated:** `tests/test_oracle.py` green at commit `d5c294b`
 
 | # | Outcome | Success | Turns | Wall Time | Changed Files | Artifact |
 |---|---------|---------|-------|-----------|---------------|----------|
-| 1 | exited | ❌ | 13 | 63s | app.py, models.py, templates/base.html (+2) | [8c9e54401325.jsonl](sessions/8c9e54401325.jsonl) |
-| 2 | exited | ❌ | 12 | 63s | app.py, models.py, templates/base.html (+2) | [e5e447a20181.jsonl](sessions/e5e447a20181.jsonl) |
-| 3 | exited | ❌ | 12 | 68s | app.py, models.py, templates/base.html (+2) | [960f3cd5753d.jsonl](sessions/960f3cd5753d.jsonl) |
-| 4 | exited | ❌ | 10 | 72s | app.py, models.py, templates/base.html (+2) | [d7e713bd071f.jsonl](sessions/d7e713bd071f.jsonl) |
+| 1 | exited | ✅ | 8 | 42s | app.py, tests/test_app.py, models.py (+1) | [f638e3d0088a.jsonl](sessions/f638e3d0088a.jsonl) |
+| 2 | exited | ❌ | 11 | 49s | app.py, templates/base.html, tests/test_app.py (+2) | [aa7a0ac8980b.jsonl](sessions/aa7a0ac8980b.jsonl) |
+| 3 | exited | ✅ | 10 | 59s | app.py, tests/test_app.py, models.py (+1) | [5d6c176ddda3.jsonl](sessions/5d6c176ddda3.jsonl) |
+| 4 | exited | ❌ | 11 | 91s | app.py, tests/test_app.py, models.py (+1) | [c1acd1f2b533.jsonl](sessions/c1acd1f2b533.jsonl) |
 
 ## Subagent delegation metrics
 
