@@ -13,6 +13,8 @@ models did which work — the same accounting the course asks you to demand of a
 demonstrated impact and traceable to session telemetry rather than intuition. Every improvement chapter cites one of
 these by number.
 
+(about-sdd)=
+
 ## Spec-driven development
 
 Yes, this repo use SDD both to build the system and as the first example application. This triggers some people. As a
