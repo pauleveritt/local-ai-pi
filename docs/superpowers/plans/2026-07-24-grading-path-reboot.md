@@ -2,9 +2,13 @@
 
 > **Supersedes** the remaining Tasks 6–8 of
 > [`2026-07-24-oracle-repair.md`](2026-07-24-oracle-repair.md). That plan's
-> Amendments 1–3 survive as **doctrine** (seeded start state, failure-mode
-> incidence as primary metric, harness-owned acceptance suite) and are not
-> re-litigated here. Its Tasks 1–5 shipped and stand.
+> Amendments 1–3 survive as **doctrine** and are not re-litigated here; they
+> now live as **D1–D3** in
+> [`policies/evidence.md`](../policies/evidence.md), alongside D4 (the grader
+> accepts no model-controlled input) which this plan's Task 2 implements.
+> **Read that policy first — it is the single authoritative statement of how a
+> batch must be constructed.** The oracle-repair plan's Tasks 1–5 shipped and
+> stand.
 
 **Date:** 2026-07-24
 **Status:** approved after deep review (Fable), pending execution
@@ -161,24 +165,20 @@ Banner: superseded — self-graded oracle (Amendment 3) and a fabricated
 
 **Gate:** no unbannered report contains `Mean task duration:** 0s`.
 
-### Task 6 — Evidence policy Rule 7
+### Task 6 — Evidence policy Rule 7 ✅ DONE (2026-07-24)
 
-Add to `docs/superpowers/policies/evidence.md`:
+Landed ahead of its gate, as prose with no code dependency, so that Task 2's
+implementer reads it first. Rule 7 ("no chapter may claim a success-rate
+delta") is now in
+[`policies/evidence.md`](../policies/evidence.md).
 
-> 7. **No chapter may claim a success-rate delta.** Detecting a realistic
->    mechanism effect (e.g. 75% → 90%) needs ~100 runs per arm; at 130–380s
->    per steered run across ~8 mechanisms that is never affordable, so such a
->    claim would always be made on evidence too thin to support it. Every
->    mechanism claims one of:
->    - **structural impossibility** — the mechanism makes failure X
->      unreachable. Evidence: one artifact trace of it firing, plus n=8–16
->      showing the task still completes.
->    - **behavioral-incidence change** — a high-frequency, per-run countable
->      signal (inherited-file write attempts, replace-vs-extend,
->      self-report-vs-verdict disagreement). Evidence: n=16 with counts.
->    - **rare-outcome change** — only for unsteered arms, n≥20–25 per arm,
->      reported with the exact test and p-value.
->    Success rate may be reported as context, always with its interval.
+The same pass consolidated the **measurement doctrine** into that one file:
+D1 seeded start state, D2 failure-mode incidence and pooled decisions, D3
+harness-owned acceptance suite, D4 the grader accepts no model-controlled
+input. These were previously reachable only by reading plan headers. The
+amendments keep the full argument and the incident that produced each; the
+policy is now the single authoritative statement. **Read it before starting
+any task below.**
 
 ### Task 7 — Standing behavioral instrumentation
 
@@ -219,6 +219,30 @@ run them durably.
 Against the reframe and the final numbers. The Section 2 second arc:
 *validating the oracle* · *what the workload actually is* · *when your metrics
 are fiction*. Section 4 leads with the write-vs-edit mechanism chapter.
+
+### Task 10 — Consolidate the entry points
+
+Doctrine was consolidated in Task 6. This closes the other half: what a fresh
+session has to read before it can act.
+
+The project now carries three plans, three amendments, twelve research
+reports, and this reboot plan. `KICKOFF.md` and the roadmap header describe a
+state two reboots old. That is a real cost — an implementer that reads the
+wrong file first repeats a fixed mistake, which is how the blacklist commit
+landed hours after the backlog warned against blacklists.
+
+1. Rewrite `KICKOFF.md` against the shipped state, or delete it and point at
+   the roadmap. One entry point, not two.
+2. Give the roadmap header a **read-this-first** list, in order: evidence
+   policy (rules + doctrine), current plan, then everything else as archive.
+3. Fold the superseded plans under an explicit *Archive* heading so their
+   status is visible without opening them.
+
+Do this **last**, when the numbers are final — doing it earlier just means
+doing it twice.
+
+**Gate:** a reader following the roadmap header reaches every currently-live
+constraint without opening a superseded plan.
 
 ---
 

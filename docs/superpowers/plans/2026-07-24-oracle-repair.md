@@ -1,5 +1,12 @@
 # Oracle Repair Implementation Plan
 
+> **Doctrine has been consolidated (2026-07-24).** The operative rules from
+> Amendments 1–3 now live in
+> [`policies/evidence.md`](../policies/evidence.md) as **D1–D3** — that file is
+> authoritative and is what to read before running a batch. The amendments
+> below are retained because they carry the full argument and the measurement
+> each one invalidated, which the policy deliberately compresses.
+
 > **Amendment 3 (2026-07-24, decided by the project owner — third
 > unstated-oracle-semantics finding).** The acceptance oracle runs
 > `uv run pytest -q` inside the workspace, which executes

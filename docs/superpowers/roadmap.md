@@ -65,24 +65,31 @@ propagated into chapter prose.
 Items held to a recurrence bar or a trigger, not scheduled just because a
 neighbor shipped:
 
-- **Harness telemetry improvements** (triggered by SP2 deep-dive, 2026-07-24).
-  Five gaps identified in [`research/2026-07-24-sp2-deep-dive.md`](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md):
-  1. **Capture child session JSONL** — the highest-value gap. The parent JSONL
-     shows the subagent tool call and its summary result, but the child's
-     detailed event stream (every tool call, every message, full pytest output
-     at each step) is not captured. Fix: run the child with `--session <path>` so
-     pi writes its own JSONL, then parse it alongside the parent's.
-  2. **Capture harness pytest output on failure** ✅ (fixed in SP2 cleanup,
-     2026-07-24). `SessionResult` now stores `pytest_stdout` and `pytest_stderr`.
-     Old fix text: store in `SessionResult` and include in the report.
-  3. **Packet fidelity metric** — mechanically check whether the packet's
-     acceptance strings and allowed-files list match the roadmap verbatim.
-     Directly measures the spec's "handoff drift" commitment.
-  4. **Validation command drift detection** — the implementer runs a narrower
-     pytest (`tests/test_app.py`) than the packet specifies (`uv run pytest -q`).
-     Parse the child's result for the exact command and flag disagreement.
-  5. **Self-report vs harness verdict agreement** — compare the implementer's
-     claimed pass/fail to the harness verdict, record disagreement as a metric.
+- **Harness telemetry improvements** (triggered by SP2 deep-dive, 2026-07-24;
+  status reconciled 2026-07-24). Five gaps identified in
+  [`research/2026-07-24-sp2-deep-dive.md`](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md).
+  Two shipped, one was promoted out of the backlog, two remain:
+  1. **Capture child session JSONL** — OPEN, and now the highest-value
+     remaining gap. The parent JSONL shows the subagent tool call and its
+     summary result, but the child's detailed event stream (every tool call,
+     every message, full pytest output at each step) is not captured. Fix: run
+     the child with `--session <path>` so pi writes its own JSONL, then parse
+     it alongside the parent's.
+  2. **Capture harness pytest output on failure** — ✅ **shipped** (SP2
+     cleanup). `SessionResult` stores `pytest_stdout` and `pytest_stderr`.
+  3. **Packet fidelity metric** — OPEN. Mechanically check whether the
+     packet's acceptance strings and allowed-files list match the roadmap
+     verbatim. Directly measures the spec's "handoff drift" commitment.
+     Reports currently state this as deferred, in text
+     (`runner.py`) — keep that line honest until it ships.
+  4. **Validation command drift detection** — ✅ **shipped**.
+     `telemetry.detect_validation_drift` flags a narrower pytest than the
+     packet specifies; `BaselineReport.validation_drift_count` reports it.
+  5. **Self-report vs harness verdict agreement** — **promoted out of the
+     backlog** into [grading-path reboot Task 7](plans/2026-07-24-grading-path-reboot.md),
+     where it is one of three standing behavioral metrics that evidence policy
+     Rule 7 now depends on. The per-run field (`SessionResult.model_tests_pass`)
+     already exists; the aggregate is what Task 7 owes.
 
 - **Specialized subagent fleet beyond the orchestrator** (SP2). Each of
   planner / implementer / verifier is admitted only if a measured run shows it
@@ -171,21 +178,20 @@ neighbor shipped:
   Section 4 once the preservation-breakage chapter has its before-picture.
 
 
-- **Coverage (or an equivalent) as an anti-neutralization mechanism for the
-  acceptance suite.** A model-written `tests/conftest.py` can skip-mark every
-  collected test; pytest exits 0 on all-skipped, so the oracle returns
-  "passed" with the contract entirely unenforced (verified defeat,
-  2026-07-24). The harness now removes conftest files and re-stamps
-  `pyproject.toml` before grading, but that is a blacklist — it closes two
-  known vectors, not the category. A positive check would be stronger:
-  require the acceptance run to report a minimum number of *executed*
-  assertions, or measure coverage of the app under the acceptance suite and
-  fail below a floor. Open question: coverage adds a dependency to the
-  workspace (against the thin-workload preference) and measures the wrong
-  thing (lines executed, not contract satisfied) — an executed-test-count
-  floor from pytest's own summary may be the cheaper 80%. Evidence-gated:
-  build it when a run actually neutralizes the suite, or when authoring the
-  phase-2/3 suites shows the blacklist is insufficient.
+- **Coverage as an anti-neutralization mechanism** — *residual only; the
+  main item was scheduled.* Three verified defeats (a skip-marking
+  `conftest.py`, a `pytest.ini` with `addopts = --collect-only`, and an
+  import-time `os._exit(0)`) each produced exit 0 on an unenforced contract.
+  The cheaper 80% — **an executed-test-count floor read from pytest's own
+  summary** — is no longer speculative: it is
+  [reboot Task 2, step 5](plans/2026-07-24-grading-path-reboot.md), gated by
+  two regression tests, and its doctrine is evidence policy **D4**. What stays
+  in the backlog is only the stronger form: measuring *coverage of the app
+  under the acceptance suite* and failing below a floor. Open question
+  unchanged — coverage adds a workspace dependency (against the thin-workload
+  preference) and measures the wrong thing (lines executed, not contract
+  satisfied). Trigger: a run that satisfies the executed-count floor while
+  still leaving the contract unenforced.
 
 - **The long tail: where the model needs help at generation time.** The
   mechanisms in Section 4 are a floor — they make specific failures
