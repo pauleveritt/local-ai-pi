@@ -109,6 +109,7 @@ def run_baseline(
     phase_name: str | None = None,
     research_dir: Path | None = None,
     seed: str | Path | None = None,
+    acceptance_suite: str | Path | None = None,
 ) -> BaselineReport:
     """Run n independent sessions against one phase, return aggregated report.
 
@@ -135,6 +136,7 @@ def run_baseline(
                 profile=profile,
                 timeout=timeout,
                 research_dir=research_dir,
+                acceptance_suite=acceptance_suite,
             )
             print(f"{result.outcome} ({result.wall_time_s:.0f}s, {result.telemetry.turns}turns, {'PASS' if result.tests_pass else 'FAIL'})")
             results.append(result)

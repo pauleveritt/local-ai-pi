@@ -1,5 +1,49 @@
 # Oracle Repair Implementation Plan
 
+> **Amendment 3 (2026-07-24, decided by the project owner — third
+> unstated-oracle-semantics finding).** The acceptance oracle runs
+> `uv run pytest -q` inside the workspace, which executes
+> `tests/test_app.py` — **a file the model writes**. Every phase-2 row lists
+> `tests/test_app.py` in changed files: the model inherits the seeded
+> prior-phase test file and rewrites it. The harness holds no independent
+> copy. This is a self-graded exam: a model that rewrites the suite with only
+> the current phase's assertions passes green while prior-phase behavior goes
+> unverified — precisely the `lessons.md` #7 failure ("passed a smoke test
+> while silently changing branding, the favicon, navigation, imports, or
+> required strings"), and the reason preservation breakage is currently hard
+> to measure. Decisions:
+>
+> 1. **The acceptance suite is harness-owned and human-authored.** It lives
+>    at `examples/acceptance/phase-<N>/test_acceptance.py`, is overlaid into
+>    the workspace *after the model finishes and immediately before the oracle
+>    runs*, and is the sole grade. The model may still write its own tests —
+>    the roadmap asks it to — but they do not grade it.
+> 2. **Acceptance is cumulative.** Phase N's suite asserts the contract for
+>    phases 1..N. Preservation breakage becomes mechanically detectable rather
+>    than inferred from a diff.
+> 3. **The model's own suite is run separately, as a signal, not a grade.**
+>    Model-tests-pass + acceptance-fails is exactly the *false self-report*
+>    failure mode admitted in Amendment 2, now measurable per run instead of
+>    read out of prose.
+> 4. **Non-vacuity is gated.** Tainie's campaign found its repo-pytest oracle
+>    collected zero tests on all 34 targets and was silently vacuous. The
+>    oracle-validation test family must therefore assert both directions: the
+>    acceptance suite passes the reference solution AND fails a deliberately
+>    broken one. An acceptance file that collects nothing, or that passes
+>    everything, fails the gate.
+> 5. **Authoring is human work, deliberately.** The acceptance suite is the
+>    contract; it is the one artifact in this project that should not be
+>    written by a model, since it is what grades models. Phase 1 ships as a
+>    worked example; phases 2 and 3 ship as skeletons with the contract
+>    checklist extracted from the roadmap, for the project owner to fill in.
+>
+> **Invalidation:** any batch measured before this lands reports success under
+> the lenient model-authored oracle. Failure counts are roughly a lower bound
+> (a model's own failing test usually means the contract failed too); pass
+> counts are inflated and not citable. The seeded Phase 2 pooled 6/8 and the
+> partial Phase 3 scout both fall under this. Keep the artifacts for
+> failure-mode analysis; re-run for any citable number.
+
 > **Amendment 2 (2026-07-24, decided by the project owner — supersedes
 > Amendment 1's decision rules where they conflict).** Two independent n=4
 > samples of the *identical* seeded-Phase-2 unsteered configuration returned

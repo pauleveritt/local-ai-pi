@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from harness.runner import run_baseline, write_report
-from harness.workspace import seed_for_phase
+from harness.workspace import acceptance_suite_for_phase, seed_for_phase
 from harness.session import InvocationProfile
 
 ROADMAP = REPO_ROOT / "examples" / "agentclinic" / "specs" / "roadmap.md"
@@ -89,6 +89,7 @@ def run_steered(phase: int, untuned: bool = False):
             timeout=900,
             phase_name=f"Phase {phase} — {'Untuned' if untuned else 'Tuned'} SP2",
             seed=seed_for_phase(phase),
+acceptance_suite=acceptance_suite_for_phase(phase),
             research_dir=research_dir,
         )
 

@@ -85,3 +85,78 @@ def test_seed_lands_in_pristine_baseline():
     assert changed == [], (
         f"seeded files appear as changes against pristine: {changed}"
     )
+
+
+# ---------------------------------------------------------------------------
+# Amendment 3: the acceptance suite is harness-owned and must be non-vacuous.
+# Tainie's campaign found its repo-pytest oracle collected zero tests on all
+# 34 targets and was silently vacuous. Both directions are gated here.
+# ---------------------------------------------------------------------------
+
+import pytest
+
+from harness.workspace import acceptance_suite_for_phase, seed_for_phase
+
+
+def _suite_is_authored(phase: int) -> bool:
+    return "test_suite_is_authored" not in acceptance_suite_for_phase(phase).read_text()
+
+
+def _workspace_with(phase: int, solution: Path) -> Path:
+    ws, _ = prepare_workspace(
+        REPO_ROOT / "examples" / "agentclinic", seed=seed_for_phase(phase)
+    )
+    for src in solution.rglob("*"):
+        if src.is_file():
+            dest = ws / src.relative_to(solution)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dest)
+    dest = ws / "tests" / "test_acceptance.py"
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(acceptance_suite_for_phase(phase), dest)
+    return ws
+
+
+def _run_acceptance(ws: Path) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["uv", "run", "pytest", "-q", "tests/test_acceptance.py"],
+        cwd=ws, capture_output=True, text=True, timeout=300,
+    )
+
+
+@pytest.mark.parametrize("phase", [1, 2, 3])
+def test_acceptance_suite_accepts_reference(phase: int):
+    """Direction 1: the suite must PASS the reference solution."""
+    if not _suite_is_authored(phase):
+        pytest.skip(f"phase-{phase} acceptance suite is an unauthored skeleton")
+    ref = REPO_ROOT / "examples" / "reference" / f"phase-{phase}"
+    if not ref.is_dir():
+        pytest.skip(f"no reference solution for phase {phase}")
+    proc = _run_acceptance(_workspace_with(phase, ref))
+    assert proc.returncode == 0, (
+        f"acceptance suite rejected the phase-{phase} reference solution\n"
+        f"{proc.stdout}\n{proc.stderr}"
+    )
+
+
+@pytest.mark.parametrize("phase", [1, 2, 3])
+def test_acceptance_suite_rejects_broken_solution(phase: int):
+    """Direction 2 (non-vacuity): the suite must FAIL a deliberately broken
+    solution. A suite that passes everything grades nothing."""
+    if not _suite_is_authored(phase):
+        pytest.skip(f"phase-{phase} acceptance suite is an unauthored skeleton")
+    ref = REPO_ROOT / "examples" / "reference" / f"phase-{phase}"
+    if not ref.is_dir():
+        pytest.skip(f"no reference solution for phase {phase}")
+    ws = _workspace_with(phase, ref)
+    # Break the contract in the most basic way available: remove the home route
+    # body so the tagline can no longer render.
+    app_py = ws / "app.py"
+    app_py.write_text(
+        "from fastapi import FastAPI\n\napp = FastAPI()\n"
+    )
+    proc = _run_acceptance(ws)
+    assert proc.returncode != 0, (
+        f"phase-{phase} acceptance suite PASSED a deliberately broken solution "
+        f"— the oracle is vacuous.\n{proc.stdout}"
+    )

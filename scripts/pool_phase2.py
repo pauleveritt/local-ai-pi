@@ -7,7 +7,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from harness.runner import run_baseline, write_report
-from harness.workspace import seed_for_phase
+from harness.workspace import acceptance_suite_for_phase, seed_for_phase
 from harness.session import InvocationProfile
 
 ROADMAP = REPO_ROOT / "examples" / "agentclinic" / "specs" / "roadmap.md"
@@ -46,6 +46,7 @@ report = run_baseline(
     timeout=300,
     phase_name="Phase 2 — Complaints Board (pooled n=8, SP1)",
     seed=seed_for_phase(2),
+acceptance_suite=acceptance_suite_for_phase(2),
     research_dir=RESEARCH_DIR,
 )
 

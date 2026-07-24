@@ -260,3 +260,21 @@ def seed_for_phase(phase: int) -> Path | None:
             f"author it before measuring phase {phase} (oracle-repair plan, Amendment 1)."
         )
     return seed
+
+
+def acceptance_suite_for_phase(phase: int) -> Path:
+    """The harness-owned acceptance suite for a phase (Amendment 3).
+
+    This is the grade: overlaid into the workspace after the model finishes,
+    so the model cannot edit what judges it. Human-authored by design.
+    Raises if the suite is missing — a phase must never be measured against
+    an oracle that does not exist.
+    """
+    repo_root = Path(__file__).resolve().parent.parent
+    suite = repo_root / "examples" / "acceptance" / f"phase-{phase}" / "test_acceptance.py"
+    if not suite.is_file():
+        raise FileNotFoundError(
+            f"No acceptance suite for phase {phase} at {suite} — "
+            f"author it before measuring (oracle-repair plan, Amendment 3)."
+        )
+    return suite

@@ -2,6 +2,7 @@
 """Run one pi subprocess in a disposable workspace.
 """
 import os
+import shutil
 import subprocess
 import time
 import uuid
@@ -61,6 +62,9 @@ class SessionResult:
     stderr_text: str = ""   # captured stderr for diagnostics
     pytest_stdout: str = ""  # harness pytest stdout (for failure diagnosis)
     pytest_stderr: str = ""  # harness pytest stderr
+    # Amendment 3: did the MODEL's own suite pass? None when not evaluated.
+    # model_tests_pass=True with tests_pass=False is the false-self-report signal.
+    model_tests_pass: bool | None = None
 
     @property
     def is_success(self) -> bool:
@@ -83,6 +87,7 @@ def run_session(
     pristine_hash: str,
     profile: InvocationProfile,
     timeout: int = 300,
+    acceptance_suite: str | Path | None = None,
     max_startup_attempts: int = 3,
     research_dir: Path | None = None,
 ) -> SessionResult:
@@ -209,13 +214,41 @@ def run_session(
     # Git diff against the pristine commit.
     changed_files, diff_text = capture_diff(workspace, pristine_hash)
 
-    # Acceptance tests.
+    # --- Acceptance (Amendment 3) ----------------------------------------
+    # The grade is the HARNESS-OWNED suite, overlaid now that the model has
+    # finished so it cannot edit what judges it. The model's own tests are run
+    # separately as a signal, never as the grade: model-tests-pass while
+    # acceptance fails is the "false self-report" failure mode.
+    model_tests_pass: bool | None = None
+    if acceptance_suite is not None:
+        suite_src = Path(acceptance_suite).resolve()
+        if not suite_src.is_file():
+            raise FileNotFoundError(f"acceptance suite not found: {suite_src}")
+
+        # Model's own suite first, before we overlay anything.
+        try:
+            own = subprocess.run(
+                ["uv", "run", "pytest", "-q"],
+                cwd=workspace, capture_output=True, text=True,
+                timeout=effective_timeout,
+            )
+            model_tests_pass = own.returncode == 0
+        except subprocess.TimeoutExpired:
+            model_tests_pass = False
+
+        dest = workspace / "tests" / "test_acceptance.py"
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(suite_src, dest)
+        acceptance_cmd = ["uv", "run", "pytest", "-q", "tests/test_acceptance.py"]
+    else:
+        acceptance_cmd = ["uv", "run", "pytest", "-q"]
+
     tests_pass = False
     pytest_stdout = ""
     pytest_stderr = ""
     try:
         test_proc = subprocess.run(
-            ["uv", "run", "pytest", "-q"],
+            acceptance_cmd,
             cwd=workspace,
             capture_output=True,
             text=True,
@@ -241,6 +274,7 @@ def run_session(
         stderr_text=stderr_text,
         pytest_stdout=pytest_stdout,
         pytest_stderr=pytest_stderr,
+        model_tests_pass=model_tests_pass,
     )
 
 
