@@ -173,6 +173,82 @@ def compute_task_duration_s(stream_path: str | Path) -> float | None:
     return (last_ts - first_ts).total_seconds()
 
 
+# ---------------------------------------------------------------------------
+# Drift detection — measures whether the implementer deviates from the packet.
+# ---------------------------------------------------------------------------
+
+# Files expected per phase (not exhaustive — the phase contract's
+# allowed-files list). Any file in changed_files NOT in this set for
+# the current phase is classified as overreach.
+PHASE_EXPECTED_FILES: dict[int, frozenset[str]] = {
+    1: frozenset({"app.py", "templates/base.html", "templates/home.html",
+                   "tests/test_app.py"}),
+    2: frozenset({"app.py", "models.py",
+                   "templates/base.html", "templates/home.html",
+                   "templates/complaints.html",
+                   "tests/test_app.py"}),
+    3: frozenset({"app.py", "models.py",
+                   "templates/base.html", "templates/home.html",
+                   "templates/complaints.html",
+                   "tests/test_app.py"}),
+}
+
+# Files that are never overreach — scaffolding the model may legitimately
+# create in any phase (uv.lock, __init__.py for import workarounds, etc.).
+_NEVER_OVERREACH: frozenset[str] = frozenset({
+    "uv.lock", "__init__.py", "tests/__init__.py",
+})
+
+
+def detect_overreach(changed_files: list[str], phase: int) -> bool:
+    """True if any changed file is outside the phase's expected set."""
+    expected = PHASE_EXPECTED_FILES.get(phase)
+    if expected is None:
+        return False
+    for f in changed_files:
+        if f in _NEVER_OVERREACH:
+            continue
+        if f not in expected:
+            return True
+    return False
+
+
+def detect_validation_drift(artifact_path: str | Path) -> bool:
+    """True if the implementer ran a pytest command different from the
+    packet-specified `uv run pytest -q`.
+
+    Parses the subagent tool result from the parent JSONL for the exact
+    pytest invocation. If no subagent result is present or the command
+    can't be determined, returns False (conservative — no evidence of drift).
+    """
+    path = Path(artifact_path)
+    if not path.exists():
+        return False
+    for line in path.read_text().splitlines():
+        try:
+            event = json.loads(line.strip())
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        if event.get("type") == "tool_execution_end" and event.get("toolName") == "subagent":
+            result = event.get("result", "")
+            if not isinstance(result, str):
+                continue
+            # Look for any pytest invocation in the result text.
+            import re
+            pytest_cmds = re.findall(r'uv run pytest[^\n"]*', result)
+            for cmd in pytest_cmds:
+                cmd = cmd.strip()
+                # The canonical command is exactly `uv run pytest -q`.
+                # Any narrowing (e.g. `uv run pytest -q tests/test_app.py`)
+                # or alteration is drift.
+                if cmd != "uv run pytest -q":
+                    return True
+            return False
+    return False
+
+
 def has_subagent_calls(stream_path: str | Path) -> bool:
     """True if the session includes at least one subagent tool call.
 

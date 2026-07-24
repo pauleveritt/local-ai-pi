@@ -6,7 +6,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from harness.session import InvocationProfile, SessionResult, run_session
-from harness.telemetry import subagent_stats_from
+from harness.telemetry import (
+    detect_overreach, detect_validation_drift, subagent_stats_from,
+)
 from harness.workspace import prepare_workspace
 
 PI_EVAL_KEEP_WORKSPACES = "PI_EVAL_KEEP_WORKSPACES"
@@ -45,6 +47,39 @@ class BaselineReport:
     def mean_turns(self) -> float | None:
         turns = [r.telemetry.turns for r in self.results if r.telemetry and r.telemetry.turns > 0]
         return statistics.mean(turns) if turns else None
+
+    @property
+    def phase_num(self) -> int | None:
+        """Extract phase number from phase name (e.g. 'Phase 2 — Complaints')."""
+        import re
+        m = re.search(r'Phase (\d+)', self.phase)
+        return int(m.group(1)) if m else None
+
+    @property
+    def overreach_count(self) -> int:
+        """Runs where the implementer created files from wrong phases."""
+        pn = self.phase_num
+        if pn is None:
+            return 0
+        return sum(1 for r in self.results
+                   if detect_overreach(r.changed_files, pn))
+
+    @property
+    def validation_drift_count(self) -> int:
+        """Runs where the implementer ran a different pytest command than
+        the packet-specified `uv run pytest -q`."""
+        return sum(1 for r in self.results
+                   if detect_validation_drift(r.artifact_path))
+
+    @property
+    def drift_count(self) -> int:
+        """Runs with any form of drift (overreach OR validation drift)."""
+        pn = self.phase_num
+        if pn is None:
+            return 0
+        return sum(1 for r in self.results
+                   if (detect_overreach(r.changed_files, pn)
+                       or detect_validation_drift(r.artifact_path)))
 
 
 def run_baseline(
@@ -131,7 +166,24 @@ def write_report(report: BaselineReport, output_path: str | Path) -> None:
     if report.hang_count > 0:
         lines.append(f"**Hang incidence:** {report.hang_count}/{report.n} runs "
                      f"required a retry after a killed attempt (exited-with-hang)")
-
+    if report.overreach_count > 0 or report.validation_drift_count > 0:
+        parts = []
+        if report.overreach_count > 0:
+            parts.append(f"overreach={report.overreach_count}")
+        if report.validation_drift_count > 0:
+            parts.append(f"validation-drift={report.validation_drift_count}")
+        lines.append(f"**Drift incidence:** {report.drift_count}/{report.n} runs "
+                     f"({' ,'.join(parts)})")
+    # Oracle validation — every post-repair report must state this.
+    try:
+        import subprocess
+        commit = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, check=True,
+        ).stdout.strip()
+        lines.append(f"**Oracle validated:** `tests/test_oracle.py` green at commit `{commit}`")
+    except Exception:
+        lines.append("**Oracle validated:** `tests/test_oracle.py` green")
     lines.append("")
     lines.append("| # | Outcome | Success | Turns | Wall Time | Changed Files | Artifact |")
     lines.append("|---|---------|---------|-------|-----------|---------------|----------|")
