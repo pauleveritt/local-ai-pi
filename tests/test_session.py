@@ -187,7 +187,32 @@ def test_exited_with_hang_complete_output_times_out(tmp_path: Path, monkeypatch)
         f"Expected exited-with-hang but got {result.outcome}"
 
 
-def test_run_session_signature_exists():
+def test_sp1_exited_no_subagent_calls_is_success():
+    """Plain baselines (SP1) are not vetoed by the no-delegation check.
+    
+    SP1 profiles never delegate by design (expects_delegation=False).
+    A SessionResult from a plain run with exited+tests_pass+changed_files
+    must be is_success=True, even with zero subagent calls in the artifact.
+    Regression test for C1 fix — before the fix, this would be classified
+    as no-delegation and is_success would be False."""
+    from harness.telemetry import RunTelemetry
+    r = SessionResult(
+        run_id="sp1-1",
+        outcome="exited",
+        returncode=0,
+        telemetry=RunTelemetry(prompts=["test"], turns=5),
+        changed_files=["app.py"],
+        diff="+ # hello",
+        tests_pass=True,
+        wall_time_s=45.0,
+        task_duration_s=30.0,
+        artifact_path="sessions/sp1-1.jsonl",
+        stderr_text="",
+    )
+    assert r.is_success is True, (
+        "SP1 plain run with exited+tests_pass+changed_files must be success "
+        "even when no subagent calls occurred"
+    )
     from harness.session import run_session
     import inspect
     sig = inspect.signature(run_session)

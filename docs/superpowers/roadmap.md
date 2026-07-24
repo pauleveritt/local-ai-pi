@@ -30,9 +30,9 @@ neighbor shipped:
      detailed event stream (every tool call, every message, full pytest output
      at each step) is not captured. Fix: run the child with `--session <path>` so
      pi writes its own JSONL, then parse it alongside the parent's.
-  2. **Capture harness pytest output on failure** — when the harness's pytest
-     fails, stdout/stderr is discarded. Fix: store in `SessionResult` and
-     include in the report.
+  2. **Capture harness pytest output on failure** ✅ (fixed in SP2 cleanup,
+     2026-07-24). `SessionResult` now stores `pytest_stdout` and `pytest_stderr`.
+     Old fix text: store in `SessionResult` and include in the report.
   3. **Packet fidelity metric** — mechanically check whether the packet's
      acceptance strings and allowed-files list match the roadmap verbatim.
      Directly measures the spec's "handoff drift" commitment.

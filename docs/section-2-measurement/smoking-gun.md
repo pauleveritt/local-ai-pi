@@ -19,8 +19,8 @@ modes, not so many that each baseline takes hours. At n=8 you get better
 statistics but pay double the time — for this course's teaching goals,
 n=4 is sufficient.
 
-At roughly 30-90 seconds per run (for a 12B model on Apple Silicon), n=4
-completes in 2-7 minutes.
+The course uses n=8 for published baselines (better statistics) but n=4 is
+fine for quick measurements during development.
 
 ## The runner
 
@@ -28,7 +28,16 @@ completes in 2-7 minutes.
 and returns a `BaselineReport`:
 
 ```python
-def run_baseline(phase_prompt, app_source, model, n=4, timeout=300):
+def run_baseline(
+    phase_prompt: str,
+    app_source: str | Path,
+    model: str,
+    profile: InvocationProfile,
+    n: int = 4,
+    timeout: int = 300,
+    phase_name: str | None = None,
+    research_dir: Path | None = None,
+) -> BaselineReport:
     results: list[SessionResult] = []
     keep = bool(os.environ.get("PI_EVAL_KEEP_WORKSPACES"))
 
@@ -70,7 +79,9 @@ prompt = '\n'.join(body).strip()
 report = run_baseline(
     prompt, app_source,
     'omlx/gemma-4-12B-it-MLX-8bit',
+    profile=InvocationProfile.sp1(),
     n=4, timeout=300,
+    research_dir=Path('docs/section-2-measurement/research'),
 )
 write_report(report, f'docs/superpowers/research/$(date +%Y-%m-%d)-baseline-phase-1.md')
 print(f'Success: {report.success_count}/{report.n} ({report.success_rate:.0%})')
@@ -114,10 +125,10 @@ much steering and guardrails improve this number.
 **All timeouts, all test failures** — something is broken. Check that oMLX is
 running, the model is loaded, and the prompt is correct.
 
-**All successes** — the phase is too easy for this model. The runner
-automatically escalates to Phase 2, then Phase 3, until a failure surface
-appears. If all three phases pass, that is itself a finding — record it
-honestly and consider a harder task.
+**All successes** — the phase is too easy for this model. Try Phase 2 or 3.
+The runner snippet below shows how to iterate phases; it stops at the first
+phase where success drops below 50%. If all three phases pass, that is itself
+a finding — record it honestly and consider a harder task.
 
 ## If the SLM passes Phase 1
 
