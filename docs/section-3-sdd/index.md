@@ -29,7 +29,7 @@ well-sized packet is the difference between "build a FastAPI app" (too vague)
 and "create app.py with a single route, one template, and one test that
 checks for this exact string" (tight enough to succeed).
 
-See {ref}`about-sdd` in the course overview for the broader rationale
+See {ref}`about-sdd` in the course overview for the broader rationale.
 
 
 ```{toctree}
@@ -38,6 +38,7 @@ See {ref}`about-sdd` in the course overview for the broader rationale
 subagent-mechanism
 implementer-orchestrator
 lessons-from-handoff
+cleanup/index
 spec
 plan
 research/2026-07-23-sp2-baseline-phase-1
