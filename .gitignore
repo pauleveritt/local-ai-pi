@@ -9,3 +9,4 @@ node_modules/
 
 # Generated session artifacts
 docs/section-*/research/sessions/
+.worktrees/
