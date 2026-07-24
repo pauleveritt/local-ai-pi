@@ -1,9 +1,10 @@
-"""Post-repair scout: run n=4 for a given phase with SP1 profile.
+"""Post-repair scout: run n=16 for a given phase with SP1 profile.
 
 Locate the first phase where the unsteered model fails. Decision rule:
-  4/4 pass → escalate to next phase.
-  ≤3/4 pass → candidate ditch; stop escalating.
-  All three 4/4 → stop and return decision to human.
+  >=15/16 → escalate to next phase (Amendment 2; pooled results only).
+  <=12/16 → candidate ditch; stop escalating.
+  13-14/16 → ambiguous; decide the site with the human.
+  All phases solved → stop and return decision to human.
 """
 import sys
 from pathlib import Path
@@ -18,7 +19,7 @@ from harness.session import InvocationProfile
 ROADMAP = REPO_ROOT / "examples" / "agentclinic" / "specs" / "roadmap.md"
 APP_SOURCE = REPO_ROOT / "examples" / "agentclinic"
 MODEL = "omlx/gemma-4-12B-it-MLX-8bit"
-N = 4
+N = 16  # Amendment 2: unsteered batches are n=16 (~60s/run); pooled decisions only
 
 
 def extract_phase_prompt(phase: int) -> str:
@@ -38,7 +39,11 @@ def extract_phase_prompt(phase: int) -> str:
 
 
 def run_scout(phase: int) -> int:
-    """Run n=4 SP1 scouts for a phase. Returns success count."""
+    """Run n=16 SP1 scouts for a phase. Returns success count.
+
+    Amendment 2 decision rule (pooled results only, never a sub-batch):
+    >=15/16 phase solved, escalate; <=12/16 candidate ditch; between,
+    ambiguous -- report and decide with the human."""
     prompt = extract_phase_prompt(phase)
     research_dir = REPO_ROOT / "docs" / "section-2-measurement" / "research"
     research_dir.mkdir(parents=True, exist_ok=True)
@@ -88,7 +93,11 @@ if __name__ == "__main__":
     phase = int(sys.argv[1]) if len(sys.argv) > 1 else 1
     success_count = run_scout(phase)
 
-    if success_count == 4:
-        print(f"\n→ 4/4 — Phase {phase} solved. Escalate to Phase {phase + 1}.")
-    elif success_count <= 3:
-        print(f"\n→ {success_count}/4 — candidate ditch at Phase {phase}. Pool to n=8 next.")
+    # Amendment 2 decision rule, on POOLED results only (never a sub-batch).
+    if success_count >= 15:
+        print(f"\n→ {success_count}/{N} — Phase {phase} solved. Escalate to Phase {phase + 1}.")
+    elif success_count <= 12:
+        print(f"\n→ {success_count}/{N} — candidate ditch at Phase {phase}.")
+    else:
+        print(f"\n→ {success_count}/{N} — AMBIGUOUS (13-14/16). Report honestly; "
+              f"decide the site with the human rather than auto-escalating.")

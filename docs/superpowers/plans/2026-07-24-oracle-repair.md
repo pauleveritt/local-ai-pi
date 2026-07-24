@@ -1,5 +1,48 @@
 # Oracle Repair Implementation Plan
 
+> **Amendment 2 (2026-07-24, decided by the project owner — supersedes
+> Amendment 1's decision rules where they conflict).** Two independent n=4
+> samples of the *identical* seeded-Phase-2 unsteered configuration returned
+> 4/4 and 2/4 (pooled 6/8). The Wilson 95% CI on 6/8 is ~41–93%: at n=8,
+> success rate cannot support the claims Section 4 chapters need, and
+> detecting a 75%→90% effect would take ~100 runs per arm. Decisions:
+>
+> 1. **Primary metric: failure-mode incidence; success rate is secondary.**
+>    Each chapter names a failure mode, reports its incidence before/after,
+>    and — where the mechanism makes the failure *structurally impossible* —
+>    explains why the count is categorically zero rather than statistically
+>    lower. Mechanism-level guardrails make categorical claims, not
+>    statistical ones. Success rate is reported as noisy context, always with
+>    its interval or a within-noise caveat.
+> 2. **Measurement site: scout Phase 3 before committing.** Phase 3 is
+>    unmeasured, seedable from the new `reference/phase-2` fixture, and
+>    carries the known `follow_redirects=False` / 303 semantic trap. If it is
+>    meaningfully harder than Phase 2's 6/8, it becomes the canonical site;
+>    otherwise fall back to Phase 2 on its failure modes.
+> 3. **Two new chapters, admitted on observed evidence:**
+>    - **Preservation breakage** — NEW, no existing chapter. Run
+>      `aa7a0ac8980b` rewrote `templates/base.html`, a Phase 1 file. This is
+>      the failure the seeded workload was built to expose (`lessons.md` #7,
+>      #15). Mechanism direction: packet preservation contract + prior-phase
+>      assertions; a diff-guard flagging deletions in shared files is the
+>      Section 4 escalation.
+>    - **False self-report** — both Phase 2 failures ended with the model
+>      asserting "I have completed the task as requested" while the harness's
+>      independent pytest disagreed. This finally motivates the long-deferred
+>      self-report-vs-verdict metric and pairs with Terminal Validation.
+> 4. **Batch sizes: n=16 unsteered, n=8 steered.** Unsteered runs are ~60s
+>    (n=16 ≈ 15 min); steered are ~130–380s. **All escalation decisions
+>    operate on pooled results only** — never a single sub-batch. Amendment
+>    1's "4/4 → escalate" is replaced by: on the pooled unsteered batch,
+>    ≥15/16 → phase solved, escalate; ≤12/16 → candidate ditch; in between →
+>    ambiguous, report honestly and decide with the human. Sub-batches of the
+>    identical configuration pool legitimately; the report states the pooling.
+>
+> Rationale for (1) recorded because it is load-bearing: a chapter claiming
+> "this guardrail improved the success rate" at n=8 would violate this
+> repository's own evidence policy. Failure-mode incidence is both more
+> sensitive and more honest about what a mechanism actually does.
+
 > **Amendment 1 (2026-07-24, decided by the project owner — supersedes Task 6
 > where they conflict).** The first Task 6 execution surfaced a second
 > unstated-workload defect: Phase 2 runs started from an EMPTY workspace
