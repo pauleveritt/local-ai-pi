@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5">
+    <h1>Complaints Board</h1>
+    {% for complaint in complaints %}
+    <div class="card my-3">
+        <div class="card-body">
+            <h5 class="card-title">{{ complaint.agent_name }}</h5>
+            <h6 class="card-subtitle mb-2 text-body-secondary">
+                {{ complaint.timestamp.strftime("%Y-%m-%d %H:%M UTC") }}
+            </h6>
+            <p class="card-text">{{ complaint.text }}</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

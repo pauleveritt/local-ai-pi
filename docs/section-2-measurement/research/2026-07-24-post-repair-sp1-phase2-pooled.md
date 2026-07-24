@@ -1,5 +1,15 @@
 # Baseline: Phase 2 — Complaints Board (pooled n=8, SP1)
 
+```{warning}
+**Non-canonical start state (Amendment 1, 2026-07-24).** These runs started
+from an EMPTY workspace, so they measured "build Phases 1+2 combined from
+nothing," not Phase 2. The canonical phase-2 workload seeds the phase-1
+reference solution (see the oracle-repair plan, Amendment 1). Kept as an
+exploratory combined-workload data point; not citable as the Phase 2
+baseline. Superseded by the seeded phase-2 reports.
+```
+
+
 **Date:** 2026-07-24
 **Model:** omlx/gemma-4-12B-it-MLX-8bit
 **Runs:** n=8

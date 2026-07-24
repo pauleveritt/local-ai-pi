@@ -20,6 +20,9 @@ class BaselineReport:
     n: int
     model: str
     results: list[SessionResult]
+    # Amendment 1: every report states its starting state; a report without
+    # one is not citable.
+    start_state: str = "empty (no seed)"
 
     @property
     def success_rate(self) -> float:
@@ -91,6 +94,7 @@ def run_baseline(
     timeout: int = 300,
     phase_name: str | None = None,
     research_dir: Path | None = None,
+    seed: str | Path | None = None,
 ) -> BaselineReport:
     """Run n independent sessions against one phase, return aggregated report.
 
@@ -109,7 +113,7 @@ def run_baseline(
 
     for i in range(1, n + 1):
         print(f"  run {i}/{n}...", end=" ", flush=True)
-        ws_path, pristine_hash = prepare_workspace(app_source)
+        ws_path, pristine_hash = prepare_workspace(app_source, seed=seed)
         try:
             result = run_session(
                 ws_path, phase_prompt, model,
@@ -133,11 +137,23 @@ def run_baseline(
                 phase_name = line[3:].strip()
                 break
 
+    if seed is not None:
+        seed_path = Path(seed).resolve()
+        repo_root = Path(__file__).resolve().parent.parent
+        try:
+            label = str(seed_path.relative_to(repo_root))
+        except ValueError:
+            label = str(seed_path)
+        start_state = f"seeded: {label}"
+    else:
+        start_state = "empty (no seed)"
+
     return BaselineReport(
         phase=phase_name,
         n=n,
         model=model,
         results=results,
+        start_state=start_state,
     )
 
 
@@ -153,6 +169,7 @@ def write_report(report: BaselineReport, output_path: str | Path) -> None:
         f"",
         f"**Date:** {today}",
         f"**Model:** {report.model}",
+        f"**Start state:** {report.start_state}",
         f"**Runs:** n={report.n}",
         f"**Success rate:** {report.success_count}/{report.n} ({report.success_rate:.0%})",
         f"",

@@ -25,10 +25,18 @@ _EXCLUDE_PREFIXES = (".pytest_cache/",)
 _EXCLUDE_SUFFIXES = (".pyc", ".pyo")
 
 
-def prepare_workspace(app_dir: str | Path) -> tuple[Path, str]:
+def prepare_workspace(
+    app_dir: str | Path, seed: str | Path | None = None
+) -> tuple[Path, str]:
     """Copy app_dir into a disposable temp workspace, stamp a pyproject.toml
     with dependencies from tech-stack.md, install via uv sync, init a git repo,
     and commit everything as the pristine baseline.
+
+    seed, when given, is a reference-solution directory (e.g.
+    examples/reference/phase-1) overlaid into the workspace BEFORE the
+    pristine commit — so a Phase N run starts from the completed prior-phase
+    state and `changed_files` reflects only the model's Phase N work.
+    See the oracle-repair plan, Amendment 1 (incremental start-state).
 
     Returns (workspace_path, pristine_commit_hash).
     """
@@ -46,6 +54,18 @@ def prepare_workspace(app_dir: str | Path) -> tuple[Path, str]:
         workspace,
         ignore=shutil.ignore_patterns(".venv", ".git", "__pycache__", "reference"),
     )
+
+    # Overlay the seed (prior-phase reference solution) before the stamp and
+    # the pristine commit, per Amendment 1.
+    if seed is not None:
+        seed_dir = Path(seed).resolve()
+        if not seed_dir.is_dir():
+            raise FileNotFoundError(f"seed directory does not exist: {seed_dir}")
+        for src in sorted(seed_dir.rglob("*")):
+            if src.is_file():
+                dest = workspace / src.relative_to(seed_dir)
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, dest)
 
     # Stamp pyproject.toml with the dependencies from tech-stack.md.
     _stamp_pyproject(workspace)
@@ -220,3 +240,23 @@ def _is_harness_file(path: str) -> bool:
     if "__pycache__" in path:
         return True
     return False
+
+
+def seed_for_phase(phase: int) -> Path | None:
+    """The canonical start-state seed for a phase-N run (Amendment 1).
+
+    Phase 1 starts empty; phase N >= 2 starts from the cumulative reference
+    solution of phase N-1 (examples/reference/phase-<N-1>). Raises if the
+    required fixture does not exist yet — a phase must not be measured
+    against a missing start state.
+    """
+    if phase <= 1:
+        return None
+    repo_root = Path(__file__).resolve().parent.parent
+    seed = repo_root / "examples" / "reference" / f"phase-{phase - 1}"
+    if not seed.is_dir():
+        raise FileNotFoundError(
+            f"No reference fixture for phase {phase - 1} at {seed} — "
+            f"author it before measuring phase {phase} (oracle-repair plan, Amendment 1)."
+        )
+    return seed
