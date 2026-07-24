@@ -163,14 +163,12 @@ def capture_diff(workspace: str | Path, pristine_hash: str) -> tuple[list[str], 
     return changed_files, diff_text
 
 
-def _stamp_pyproject(workspace: Path) -> None:
-    """Write a pyproject.toml with the AgentClinic dependencies into workspace."""
-    pyproject = workspace / "pyproject.toml"
-    # This pythonpath line is load-bearing — without it, `uv run pytest`
-    # cannot import `app` from `tests/` and the acceptance oracle fails
-    # correct solutions. See:
-    # docs/section-2-measurement/research/2026-07-24-oracle-invalid-incident.md
-    pyproject.write_text("""\
+def _stamp_pyproject_text() -> str:
+    """The canonical workspace pyproject.toml. Shared with session.py, which
+    re-stamps it before the acceptance run so a model edit cannot steer
+    grading (pyproject.toml is excluded from capture_diff, so such an edit
+    would otherwise be invisible)."""
+    return """\
 [project]
 name = "agentclinic"
 version = "0.1.0"
@@ -183,7 +181,17 @@ dependencies = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-""")
+"""
+
+
+def _stamp_pyproject(workspace: Path) -> None:
+    """Write a pyproject.toml with the AgentClinic dependencies into workspace."""
+    pyproject = workspace / "pyproject.toml"
+    # This pythonpath line is load-bearing — without it, `uv run pytest`
+    # cannot import `app` from `tests/` and the acceptance oracle fails
+    # correct solutions. See:
+    # docs/section-2-measurement/research/2026-07-24-oracle-invalid-incident.md
+    pyproject.write_text(_stamp_pyproject_text())
 
 
 def _copy_hello_world_extension(workspace: Path) -> None:

@@ -160,3 +160,38 @@ def test_acceptance_suite_rejects_broken_solution(phase: int):
         f"phase-{phase} acceptance suite PASSED a deliberately broken solution "
         f"— the oracle is vacuous.\n{proc.stdout}"
     )
+
+
+def test_conftest_sabotage_is_neutralized(tmp_path):
+    """A model-written conftest.py can skip-mark every collected test; pytest
+    exits 0 on all-skipped, so tests_pass would be True and the contract
+    silently unenforced. Verified defeat 2026-07-24. The harness removes
+    conftest files before the acceptance run; this pins that."""
+    ws = tmp_path / "ws"
+    (ws / "tests").mkdir(parents=True)
+    (ws / "tests" / "conftest.py").write_text(
+        "import pytest\n"
+        "def pytest_collection_modifyitems(items):\n"
+        "    for i in items: i.add_marker(pytest.mark.skip(reason='sabotaged'))\n"
+    )
+    # Sanity: the sabotage really does defeat a naive run.
+    (ws / "tests" / "test_contract.py").write_text(
+        "def test_contract():\n    assert False\n"
+    )
+    naive = subprocess.run(
+        ["uv", "run", "--with", "pytest", "python", "-m", "pytest", "-q",
+         "tests/test_contract.py"],
+        cwd=ws, capture_output=True, text=True, timeout=180,
+    )
+    assert naive.returncode == 0, "sabotage no longer works; this test is stale"
+
+    # The harness's defense: remove conftest files, then the failure surfaces.
+    for cf in (ws / "conftest.py", ws / "tests" / "conftest.py"):
+        if cf.exists():
+            cf.unlink()
+    hardened = subprocess.run(
+        ["uv", "run", "--with", "pytest", "python", "-m", "pytest", "-q",
+         "tests/test_contract.py"],
+        cwd=ws, capture_output=True, text=True, timeout=180,
+    )
+    assert hardened.returncode != 0, "conftest removal did not restore enforcement"
