@@ -13,14 +13,20 @@ models did which work — the same accounting the course asks you to demand of a
 demonstrated impact and traceable to session telemetry rather than intuition. Every improvement chapter cites one of
 these by number.
 
+## Scope
+
+Small-language models (SLMs) are quite different than the "godbox" experience we're used to. You don't just type in some
+vague prompt and let a huge AI work its way to a conclusion, perhaps in a long conversation.
+
+Agentic coding with SLMs is...small. Routine. It feels more like engineering. This repo tries to show a way of working
+that keeps the human in the loop. It's your car: you want to drive your car, not be a passenger.
+
 (about-sdd)=
 
 ## Spec-driven development
 
 Yes, this repo use SDD both to build the system and as the first example application. This triggers some people. As a
-note: Satyrn doesn't have to adopt SDD.
-
-That said, I think SDD is uniquely valuable for what we're doing:
+note: Satyrn doesn't have to adopt SDD. That said, I think SDD is uniquely valuable for what we're doing:
 
 1. It promotes the human-in-the-loop. The roadmap, specs, and plans plans let you put on your thinking cap and steer.
 2. We are a distributed project with lots of folks. It's a useful artifact (even if ultimately unmaintained) for seeing
@@ -48,11 +54,9 @@ lessons
 
 ## Development record
 
-The course's own construction — the roadmap, the design specs, the evidence
-policy — is documented here. Evidence reports live in their respective section
-research directories. Implementation plans (the task-by-task decomposition of
-each spec) live alongside their specs in the section directories rather than
-listed here.
+The course's own construction — the roadmap, the design specs, the evidence policy — is documented here. Evidence
+reports live in their respective section research directories. Implementation plans (the task-by-task decomposition of
+each spec) live alongside their specs in the section directories rather than listed here.
 
 ```{toctree}
 :maxdepth: 1

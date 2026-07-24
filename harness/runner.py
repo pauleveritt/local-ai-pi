@@ -64,6 +64,7 @@ def run_baseline(
     keep = bool(os.environ.get(PI_EVAL_KEEP_WORKSPACES))
 
     for i in range(1, n + 1):
+        print(f"  run {i}/{n}...", end=" ", flush=True)
         ws_path, pristine_hash = prepare_workspace(app_source)
         try:
             result = run_session(
@@ -73,6 +74,7 @@ def run_baseline(
                 timeout=timeout,
                 research_dir=research_dir,
             )
+            print(f"{result.outcome} ({result.wall_time_s:.0f}s, {result.telemetry.turns}turns, {'PASS' if result.tests_pass else 'FAIL'})")
             results.append(result)
         finally:
             if not keep:
