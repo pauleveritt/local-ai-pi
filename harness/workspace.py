@@ -37,10 +37,14 @@ def prepare_workspace(app_dir: str | Path) -> tuple[Path, str]:
     # reported by subprocesses match what we expect.
     workspace = (Path(tempfile.mkdtemp(prefix="pi-eval-")) / "workspace").resolve()
 
+    # Ignore reference/ — it contains answer keys that must never leak
+    # into a measurement workspace. Belt-and-suspenders: the directory was
+    # moved outside examples/agentclinic/ for the same reason. See:
+    # docs/section-2-measurement/research/2026-07-24-oracle-invalid-incident.md
     shutil.copytree(
         app_dir,
         workspace,
-        ignore=shutil.ignore_patterns(".venv", ".git", "__pycache__"),
+        ignore=shutil.ignore_patterns(".venv", ".git", "__pycache__", "reference"),
     )
 
     # Stamp pyproject.toml with the dependencies from tech-stack.md.

@@ -19,4 +19,5 @@ smoking-gun
 spec
 plan
 research/2026-07-23-baseline-phase-1
+research/2026-07-24-oracle-invalid-incident
 ```

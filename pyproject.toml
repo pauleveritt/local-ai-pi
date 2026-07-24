@@ -8,7 +8,12 @@ dependencies = []
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-norecursedirs = ["examples/agentclinic/reference"]
+# Load-bearing — the reference solution fixture (tests/test_app.py) must
+# never be collected as a project test. Removing this line causes collection
+# to fail with "import file mismatch" or "RuntimeError: starlette.testclient
+# requires httpx2". See tests/test_oracle.py and the oracle-invalid incident
+# report.
+norecursedirs = ["examples/reference"]
 markers = [
     "pi_available: tests that need the pi binary and a running model server",
 ]

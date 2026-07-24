@@ -69,8 +69,8 @@ spec, the course roadmap, or the phased implementation packet.
   regression: the prior course used `python -m pytest` (implicit CWD on path);
   this course uses `uv run pytest` (no implicit CWD).
 
-- Adding `tests/__init__.py` makes `tests/` a package, and Python (by default,
-  via `testpaths` inference) adds its parent directory to `sys.path` during
+- Adding `tests/__init__.py` makes `tests/` a package, and pytest adds the
+  package's parent directory to `sys.path` during collection.
   collection. This workaround happens to resolve the import, but nothing in
   the spec requires or mentions it.
 
@@ -93,7 +93,7 @@ stumbled onto one of two unstated workarounds (`tests/__init__.py` or a
 In particular:
 
 - The SP1 claim of "0/8 — Phase 1 is the ditch" is an oracle artifact. Every
-  SP1 run wrote the correct three files in ~40s (the model is fast at this
+  SP1 run wrote files with the correct filenames in ~40s (the model is fast at this
   task) but 8/8 failed collection because of the missing pythonpath. The
   model was fine; the workspace was broken.
 
@@ -155,7 +155,10 @@ for the full task sequence. Summary:
 3. Permanent oracle-validation test (`tests/test_oracle.py`)
 4. Evidence policy rule 6 (oracle validation gates every batch)
 5. Superseded banners on all six invalidated reports
-6. Pre-registered scout-then-pool re-run protocol with honest terminal case
+6. `norecursedirs = ["examples/reference"]` in the root `pyproject.toml` —
+   load-bearing: removing it causes the reference fixture's test suite to be
+   collected as a project test, crashing collection with an import mismatch
+7. Pre-registered scout-then-pool re-run protocol with honest terminal case
 
 Post-repair reports replace the superseded ones in the evidence chain. The
 roadmap and all narrative documents are updated to cite the new numbers.
