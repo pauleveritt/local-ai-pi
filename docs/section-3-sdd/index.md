@@ -3,7 +3,7 @@
 Three chapters that install Pi's shipped subagent extension, author an
 implementer specialist and an orchestrator parent prompt, then measure and
 tune the parent+implementer shape. The structural baseline improved from SP1's
-0/8 to 3–4/8 (SP2, n=8 per batch; the 3/8→4/8 tuning delta is one run at n=8
+0/8 to 3–4/8 (SP2, n=4 per batch; the 3/8→4/8 tuning delta is one run at n=4
 and not statistically significant).
 
 

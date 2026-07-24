@@ -124,7 +124,7 @@ fresh child process, writes the code, runs the tests, and reports back.
 
 ## Measuring: the SP2 baseline
 
-Run the SP1 harness against the parent+implementer setup with n=8:
+Run the SP1 harness against the parent+implementer setup with n=4:
 
 ```bash
 uv run python -c "
@@ -140,7 +140,7 @@ profile = InvocationProfile.sp2(subagent_path)
 
 # Run per-phase measurement
 for phase_num in (1, 2, 3):
-    ...  # extract phase, run n=8, write report
+    ...  # extract phase, run n=4, write report
 "
 ```
 
@@ -158,7 +158,7 @@ and not averaged into delegation data as if the mechanism had been exercised.
 
 The single-run verification (Task 4) produced one success: tests passed, 5 files
 changed, 247s wall time. The implementer was discovered, the packet was
-dispatched, and the child built a working Phase 1. n=8 will show whether this
+dispatched, and the child built a working Phase 1. n=4 will show whether this
 holds consistently.
 
 ```{eval-rst}

@@ -2,7 +2,7 @@
 
 # The Smoking Gun
 
-You have a telemetry reader. You have an eval session. Now run it 8 times
+You have a telemetry reader. You have an eval session. Now run it 4 times
 and see whether the unsteered SLM can build Phase 1 of the AgentClinic
 complaints board.
 
@@ -10,15 +10,17 @@ This chapter produces the first dated evidence report in
 `docs/superpowers/research/`. Every claim later in the course — "guardrail X
 reduced failures by Y" — links back to what you establish here.
 
-## Why n=8?
+## Why n=4?
 
 A small local model is non-deterministic. One run might succeed by luck.
 One run might fail for a transient reason. You need enough runs to see a
-real signal. Eight is a practical compromise: enough for mean and standard
-deviation, not so many that each baseline takes hours.
+real signal. Four is a practical compromise: enough to surface the primary failure
+modes, not so many that each baseline takes hours. At n=8 you get better
+statistics but pay double the time — for this course's teaching goals,
+n=4 is sufficient.
 
-At roughly 30-90 seconds per run (for a 12B model on Apple Silicon), n=8
-completes in 5-15 minutes.
+At roughly 30-90 seconds per run (for a 12B model on Apple Silicon), n=4
+completes in 2-7 minutes.
 
 ## The runner
 
@@ -26,7 +28,7 @@ completes in 5-15 minutes.
 and returns a `BaselineReport`:
 
 ```python
-def run_baseline(phase_prompt, app_source, model, n=8, timeout=300):
+def run_baseline(phase_prompt, app_source, model, n=4, timeout=300):
     results: list[SessionResult] = []
     keep = bool(os.environ.get("PI_EVAL_KEEP_WORKSPACES"))
 
@@ -68,7 +70,7 @@ prompt = '\n'.join(body).strip()
 report = run_baseline(
     prompt, app_source,
     'omlx/gemma-4-12B-it-MLX-8bit',
-    n=8, timeout=300,
+    n=4, timeout=300,
 )
 write_report(report, f'docs/superpowers/research/$(date +%Y-%m-%d)-baseline-phase-1.md')
 print(f'Success: {report.success_count}/{report.n} ({report.success_rate:.0%})')
@@ -78,7 +80,7 @@ print(f'Success: {report.success_count}/{report.n} ({report.success_rate:.0%})')
 ## The report
 
 Here is a sample report with n=3 for illustration — your actual report will
-have n=8:
+have n=4:
 
 ```markdown
 # Baseline: Phase 1 — Home Page
@@ -99,8 +101,8 @@ have n=8:
 
 ## Evidence tier
 
-- **Success rate:** GREEN — n=8 artifact-backed runs
-- **Timing / turns:** YELLOW — real but noisy (n=8, single-model, single-provider)
+- **Success rate:** GREEN — n=4 artifact-backed runs
+- **Timing / turns:** YELLOW — real but noisy (n=4, single-model, single-provider)
 ```
 
 ## What the numbers mean
@@ -125,7 +127,7 @@ success rate drops below 50%:
 ```python
 for phase_num in (1, 2, 3):
     prompt = extract_phase(roadmap, phase_num)
-    report = run_baseline(prompt, app_source, model, n=8)
+    report = run_baseline(prompt, app_source, model, n=4)
     write_report(report, f"research/{today}-baseline-phase-{phase_num}.md")
     if report.success_rate < 0.5:
         print(f"Smoking gun found at Phase {phase_num}!")
@@ -138,6 +140,6 @@ model struggling.
 
 ## What you built
 
-A repeatable measurement loop. `harness/runner.py` runs any phase n=8 times,
+A repeatable measurement loop. `harness/runner.py` runs any phase n=4 times,
 aggregates the results, and writes a dated evidence report. You now have the
 tool that Parts III and IV will use to prove every improvement they claim.

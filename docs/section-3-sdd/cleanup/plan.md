@@ -56,7 +56,7 @@ cap only add up as hung attempt + completed attempt).
 **Unrecoverable:** Whether those four runs passed pytest was computed at run
 time and never persisted — workspaces were disposable. So 4 of 16 SP2 rows
 carry an unreliable ❌. Pre could be 3–5/8; post could be 4–6/8. **Both SP2
-n=8 batches must be re-run under the fixed harness.**
+batches must be re-run (now at n=4) under the fixed harness.**
 
 **Fix (code):**
 1. Reset `timed_out = False` at the top of each retry attempt (or track
@@ -113,7 +113,7 @@ Reframing broken promises as evidence-gated backlog isn't descoping honestly.
 **Where:** "38% → 50% improvement is real and verified." Roadmap's "4/8 is the
 before-picture." GREEN/YELLOW stamps in reports.
 
-**Problem:** 3/8 → 4/8 at n=8 is one run — statistically nothing (Fisher
+**Problem:** 3/8 → 4/8 at n=4 is one run — statistically nothing (Fisher
 p≈1.0). The GREEN/YELLOW stamps in `harness/runner.py:175` are hardcoded
 template text, emitted unconditionally rather than assessed.
 
@@ -146,10 +146,10 @@ template text, emitted unconditionally rather than assessed.
 
 After Phase 1 + Phase 2 code fixes land, re-run:
 
-- Pre-tuning: n=8, SP2 profile, Phase 1
-- Post-tuning: n=8, SP2 profile, Phase 1 (same prompts as the first post run)
+- Pre-tuning: n=4, SP2 profile, Phase 1
+- Post-tuning: n=4, SP2 profile, Phase 1 (same prompts as the first post run)
 
-~16 runs at 3–10 min each. Update the two research reports and the chapter
+~8 runs at 3–10 min each. Update the two research reports and the chapter
 tables with the corrected numbers. The SP1 0/8 stands — no timeout rows, all
 real 38–64s exits, neither bug touches it. The smoking gun survives.
 

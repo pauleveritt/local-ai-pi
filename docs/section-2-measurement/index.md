@@ -1,6 +1,6 @@
 # Section II — Measurement
 
-Three chapters that build the evaluation harness, run the n=8 baseline, and
+Three chapters that build the evaluation harness, run the n=4 baseline, and
 produce the smoking-gun evidence report. The harness drives Pi headless via
 `subprocess`, provisions disposable git-tracked workspaces, captures diffs, and
 runs pytest as the acceptance oracle.

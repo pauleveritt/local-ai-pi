@@ -56,8 +56,8 @@ terminal event. The agent completed its work; the "timeout" label is wrong.
 The unrecoverable part: whether those four runs passed pytest was computed at
 run time and never persisted (workspaces were disposable). So 4 of 16 SP2 rows
 carry an unreliable ❌. Pre could be 3–5/8; post could be 4–6/8. Since those two
-numbers are the entire before-picture for SP3, both n=8 batches had to be
-re-run.
+numbers are the entire before-picture for SP3, both batches had to be
+re-run (now at n=4).
 
 ### Spec-promised metrics that don't exist (C3)
 
@@ -69,7 +69,7 @@ honestly.
 
 ### Statistical claims and hardcoded stamps (I1)
 
-3/8 → 4/8 at n=8 is one run (Fisher p≈1.0). The GREEN/YELLOW stamps in the
+3/8 → 4/8 at n=4 is one run (Fisher p≈1.0). The GREEN/YELLOW stamps in the
 reports were hardcoded template text, emitted unconditionally rather than
 assessed. The defensible claim is the structural one (0/8 → 3–4/8); the tuning
 delta needed a within-noise caveat everywhere it was cited.

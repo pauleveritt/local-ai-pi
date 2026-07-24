@@ -1,5 +1,5 @@
 # harness/runner.py
-"""n=8 baseline loop, aggregation, and report generation."""
+"""n=4 baseline loop, aggregation, and report generation."""
 import statistics
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -43,7 +43,7 @@ def run_baseline(
     app_source: str | Path,
     model: str,
     profile: InvocationProfile,
-    n: int = 8,
+    n: int = 4,
     timeout: int = 300,
     phase_name: str | None = None,
     research_dir: Path | None = None,
@@ -186,13 +186,13 @@ def write_report(report: BaselineReport, output_path: str | Path) -> None:
         )
     lines.append(
         f"- **Timing / turns:** real but noisy — n={report.n}, single-model, "
-        f"single-provider (YELLOW). Compare deltas at n=8 with caution."
+        f"single-provider (YELLOW). Compare deltas at n=4 with caution."
     )
     if report.n <= 8:
         lines.append(
             f"- **Statistical note:** n={report.n} — per-run success-rate deltas "
-            f"of ±1 run are within noise (Fisher exact p≈1.0 at 3/8 vs 4/8). "
-            f"Cite the structural claim (0/8 → 3–4/8), not the tuning delta."
+            f"of ±1 run are within noise at this sample size. "
+            f"Cite structural claims, not small-sample tuning deltas."
         )
 
     output_path.write_text("\n".join(lines) + "\n")

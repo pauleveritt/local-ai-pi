@@ -38,7 +38,7 @@ signature. Each artifact ends with a graceful `agent_settled` event — a killed
 process can't write its terminal event. Wall times corroborate (1426s, 1609s
 against a 900s cap). The `tests_pass` verdict was computed at run time and never
 persisted — workspaces were disposable. Pre could be 3–5/8; post could be
-4–6/8. **Both SP2 n=8 batches must be re-run.**
+4–6/8. **Both SP2 batches must be re-run (now at n=4).**
 
 **C3: Spec-promised metrics silently descoped.**
 The SP2 spec committed packet-fidelity, self-report-vs-verdict agreement, and
@@ -49,7 +49,7 @@ all. Either implement or descope honestly.
 ### Important — dishonest claims
 
 **I1: Statistical claims violate evidence policy.**
-3/8 → 4/8 at n=8 is one run (Fisher p≈1.0). GREEN/YELLOW stamps in reports are
+3/8 → 4/8 at n=4 is one run (Fisher p≈1.0). GREEN/YELLOW stamps in reports are
 hardcoded template text, emitted unconditionally. The defensible claim is the
 structural one (0/8 → 3–4/8); the tuning delta needs a within-noise caveat.
 
