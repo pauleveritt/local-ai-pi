@@ -14,7 +14,8 @@ The five failures fell into three patterns:
 
 ### Overreach
 
-Runs 3, 5, 7, and 8 created `models.py` and `complaints.html` — Phase 2-3
+Runs 3, 5, 7, and 8 showed `models.py` and `complaints.html` in their
+changed-files list — Phase 2-3
 files not in the Allowed Files list. The implementer specialist said "do not
 redesign" but didn't explicitly forbid creating out-of-scope files. The
 implementer saw the full roadmap in context and "helped" by building ahead.

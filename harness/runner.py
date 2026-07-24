@@ -174,7 +174,25 @@ def write_report(report: BaselineReport, output_path: str | Path) -> None:
     lines.append("")
     lines.append("## Evidence tier")
     lines.append("")
-    lines.append(f"- **Success rate:** GREEN — n={report.n} artifact-backed runs")
-    lines.append(f"- **Timing / turns:** YELLOW — real but noisy (n={report.n}, single-model, single-provider)")
+    has_subagent = runs_with_delegation > 0
+    lines.append(
+        f"- **Success rate:** artifact-backed — n={report.n} dated session files "
+        f"(GREEN per [evidence policy](../superpowers/policies/evidence.md))."
+    )
+    if has_subagent:
+        lines.append(
+            f"- **Delegation metrics:** artifact-backed — subagent call counts "
+            f"and packet sizes extracted from parent JSONLs (GREEN)."
+        )
+    lines.append(
+        f"- **Timing / turns:** real but noisy — n={report.n}, single-model, "
+        f"single-provider (YELLOW). Compare deltas at n=8 with caution."
+    )
+    if report.n <= 8:
+        lines.append(
+            f"- **Statistical note:** n={report.n} — per-run success-rate deltas "
+            f"of ±1 run are within noise (Fisher exact p≈1.0 at 3/8 vs 4/8). "
+            f"Cite the structural claim (0/8 → 3–4/8), not the tuning delta."
+        )
 
     output_path.write_text("\n".join(lines) + "\n")

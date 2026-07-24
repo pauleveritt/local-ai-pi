@@ -185,7 +185,10 @@ The chapter conclusions are correct but under-specified:
   child's actual command).
 - "Overreach" is inferred from `changed_files`, not directly observed. The
   child-session capture (Gap 1) would make this a direct measurement.
-- The 38% → 50% improvement from prompt tuning is real and verified. The
+- The 38% → 50% delta from prompt tuning is one run at n=8 (Fisher p≈1.0) —
+  not statistically significant. The defensible claim is the structural one:
+  0/8 (SP1, unsteered) → 3–4/8 (SP2, parent+implementer). The tuning delta
+  is a direction signal, not a confirmed improvement.
   remaining 50% failure rate breaks down into: command drift (fixable in
   prompt or harness), child hangs (model-level), and residual overreach
   (mechanism-level, Part IV).

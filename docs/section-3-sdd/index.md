@@ -2,8 +2,9 @@
 
 Three chapters that install Pi's shipped subagent extension, author an
 implementer specialist and an orchestrator parent prompt, then measure and
-tune the parent+implementer shape. The baseline improved from SP1's 0/8 to
-4/8 (50%) post-tuning.
+tune the parent+implementer shape. The structural baseline improved from SP1's
+0/8 to 3–4/8 (SP2, n=8 per batch; the 3/8→4/8 tuning delta is one run at n=8
+and not statistically significant).
 
 
 **Status:** ✅ Complete ([spec](spec.md), [plan](plan.md))
@@ -14,7 +15,7 @@ tune the parent+implementer shape. The baseline improved from SP1's 0/8 to
 
 ## About SDD
 
-Satyrn doesn't require spec-driven development. This course uses it for two
+This course doesn't require spec-driven development. It uses it for two
 reasons, both directly relevant to keeping a small local model on track:
 
 **The handoff packet.** The whole point of a phase contract — a task
