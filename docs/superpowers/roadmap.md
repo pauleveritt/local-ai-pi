@@ -1,9 +1,8 @@
 # local-ai-pi Roadmap
 
 The master design is [`specs/2026-07-23-course-design.md`](specs/2026-07-23-course-design.md).
-Per-phase specs in `specs/` and plans in `plans/` are the source of truth for
-*what* each phase does. This file is the cross-phase index: sequence, status, and
-links. It is built the way the course teaches — each phase is evidence-gated, and
+Per-phase specs and plans are co-located in `docs/section-*/` directories.
+This file is the cross-phase index: sequence, status, and links. It is built the way the course teaches — each phase is evidence-gated, and
 a later phase is not queued just because an earlier one landed.
 
 **Current phase:** Sub-project 3 — Part IV (Keeping the SLM on track). SP0, SP1,
@@ -16,8 +15,8 @@ before-picture for every guardrail.
 |----|-------|--------|------|------|----------|
 | SP0 | Scaffold + Section I (repo skeleton, docs toolchain, roadmap, LESSONS, example spec triple, hello-world extension) | **Done** | [spec](../section-1-hello-agent/spec.md) | [plan](../section-1-hello-agent/plan.md) | — |
 | SP1 | Section II — Measurement (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | **Done** | [spec](../section-2-measurement/spec.md) | [plan](../section-2-measurement/plan.md) | [0/8 baseline](../section-2-measurement/research/2026-07-23-baseline-phase-1.md) |
-| SP2 | Section III — SDD on Pi (roadmap/packet method, parent-as-orchestrator + implementer specialist) | **Done** | [spec](../section-3-sdd/spec.md) | [plan](../section-3-sdd/plan.md) | [3/8 pre](../section-3-sdd/research/2026-07-23-sp2-baseline-phase-1.md), [4/8 post](../section-3-sdd/research/2026-07-23-sp2-baseline-phase-1-post-tuning.md), [deep-dive](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md) |
-| SP3 | Section IV — Keeping the SLM on track (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | Queued (next) | — | — | — |
+| SP2 | Section III — SDD on Pi (roadmap/packet method, parent-as-orchestrator + implementer specialist) | **Done** | [spec](../section-3-sdd/spec.md) | [plan](../section-3-sdd/plan.md) | [3/8 pre](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1.md), [5/8 post](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1-post-tuning.md), [deep-dive](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md) |
+| SP3 | Section IV — Keeping the SLM on track (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | Queued (next, unblocked by corrected SP2 baselines) | — | — | — |
 
 ## Backlog (evidence-gated, not queued)
 
@@ -82,7 +81,6 @@ neighbor shipped:
 
 ## Conventions
 
-- Completed specs/plans move to `archive/{specs,plans}/`; the row here keeps the
-  archived link.
+- Specs and plans are co-located with section content in `docs/section-*/`.
 - Every "this helps" claim links to a dated report in `research/`.
 - Status vocabulary: Queued, In progress, Blocked on <ID>, Done, Backlog.

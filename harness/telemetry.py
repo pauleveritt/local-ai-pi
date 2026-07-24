@@ -127,6 +127,52 @@ def read_run(stream_path: str | Path) -> RunTelemetry:
     )
 
 
+def compute_task_duration_s(stream_path: str | Path) -> float | None:
+    """Return wall-clock duration from the artifact's first event timestamp
+    to its terminal event (agent_settled or last event), in seconds.
+
+    For clean exited runs this approximates wall_time_s. For hang/retry runs
+    it measures the real work, excluding the dead attempt and the wait-to-kill.
+    Returns None when the artifact is missing, empty, or has no timestamped events.
+    """
+    path = Path(stream_path)
+    if not path.exists():
+        return None
+
+    from datetime import datetime, timezone
+
+    first_ts: datetime | None = None
+    last_ts: datetime | None = None
+
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict):
+            continue
+
+        ts_str = event.get("timestamp")
+        if ts_str:
+            try:
+                # Parse ISO 8601 with optional fractional seconds and Z suffix.
+                ts_str_clean = ts_str.replace("Z", "+00:00")
+                ts = datetime.fromisoformat(ts_str_clean)
+                if first_ts is None:
+                    first_ts = ts
+                last_ts = ts
+            except ValueError:
+                continue
+
+    if first_ts is None or last_ts is None:
+        return None
+
+    return (last_ts - first_ts).total_seconds()
+
+
 def has_subagent_calls(stream_path: str | Path) -> bool:
     """True if the session includes at least one subagent tool call.
 

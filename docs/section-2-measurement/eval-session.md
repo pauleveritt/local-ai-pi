@@ -145,13 +145,17 @@ class SessionResult:
 
     @property
     def is_success(self) -> bool:
-        return (self.outcome == "exited"
+        return (self.outcome in ("exited", "exited-with-hang")
                 and self.tests_pass
                 and len(self.changed_files) > 0)
 ```
 
 A run is "successful" when:
-- It exited normally (no timeout)
+- It exited normally (no timeout) or completed its work but the process
+  lifecycle misbehaved (`exited-with-hang` — the server hung or failed to exit
+  cleanly after the agent finished its task). Treating exit hangs as failures
+  would charge task-level metrics for server symptoms uncorrelated with the
+  interventions under test.
 - `pytest` passed
 - The model actually wrote something (not a null-action run)
 

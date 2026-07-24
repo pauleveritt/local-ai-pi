@@ -34,9 +34,10 @@ Read, in order:
 
 ## Where things live
 
-- `docs/chapters/` — the course content the reader consumes (Sphinx + MyST).
-- `docs/superpowers/` — how the course is built (specs, plans, roadmap, research,
-  archive, policies). Development record, separate from the product.
+- `docs/section-*/` — the course content the reader consumes (Sphinx + MyST).
+  Sections I–IV each live in their own directory with co-located specs, plans,
+  and research evidence.
+- `docs/superpowers/` — cross-cutting development record (roadmap, policies).
 - `examples/agentclinic/` — the example workload.
 - `.superpowers/sdd/` — SDD execution scratch (gitignored).
 
@@ -55,8 +56,8 @@ Read, in order:
 
 ## What is NOT done
 
-- Parts III, IV are unbuilt. Part III (SDD on Pi) is **next** and unblocked
-  now that SP1's harness and baseline exist.
+- Section IV is unbuilt. SP3 (Keeping the SLM on track) is **next** and
+  unblocked now that SP2's corrected baselines are in (3/8 pre, 5/8 post).
 
 ## Key design decision already made: how Pi subagents work
 
@@ -147,17 +148,14 @@ machinery.
 
 ## How to start
 
-1. `git log --oneline` to confirm current state. SP0 and SP1 are done; SP2 is
-   next.
-2. **SP2 — Part III (SDD on Pi).** Invoke the brainstorming skill for
-   sub-project 2. The design is reframed around the *shipped* Pi subagent
-   example (see "Key design decision" above) — the course specializes it rather
-   than rebuilding it. If the Superpowers skills are unavailable in your session,
-   follow the same shape by hand: brainstorm a spec into
-   `docs/superpowers/specs/`, write a plan into `plans/`, build it, and record
-   evidence in `research/`.
-3. Follow the master spec's sub-project order. Keep the roadmap current, and move
-   shipped specs/plans to `archive/`.
+1. `git log --oneline` to confirm current state. SP0, SP1, and SP2 are done;
+   SP3 is next.
+2. **SP3 — Section IV (Keeping the SLM on track).** Invoke the brainstorming
+   skill for sub-project 3. The corrected SP2 baselines (3/8 pre-tuning,
+   5/8 post-tuning, both n=8 under the fixed harness) are in
+   `docs/section-3-sdd/research/` and are the before-picture for every
+   guardrail.
+3. Follow the master spec's sub-project order. Keep the roadmap current.
 
 ## Design decisions already resolved (do not re-litigate)
 

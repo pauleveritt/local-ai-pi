@@ -124,7 +124,7 @@ fresh child process, writes the code, runs the tests, and reports back.
 
 ## Measuring: the SP2 baseline
 
-Run the SP1 harness against the parent+implementer setup with n=4:
+Run the SP1 harness against the parent+implementer setup with n=8:
 
 ```bash
 uv run python -c "
@@ -140,7 +140,7 @@ profile = InvocationProfile.sp2(subagent_path)
 
 # Run per-phase measurement
 for phase_num in (1, 2, 3):
-    ...  # extract phase, run n=4, write report
+    ...  # extract phase, run n=8, write report
 "
 ```
 
@@ -158,7 +158,7 @@ and not averaged into delegation data as if the mechanism had been exercised.
 
 The single-run verification (Task 4) produced one success: tests passed, 5 files
 changed, 247s wall time. The implementer was discovered, the packet was
-dispatched, and the child built a working Phase 1. n=4 will show whether this
+dispatched, and the child built a working Phase 1. n=8 will show whether this
 holds consistently.
 
 ```{eval-rst}
@@ -178,9 +178,9 @@ holds consistently.
      - No delegation; raw SLM
    * - SP2 Ch2 (parent+implementer)
      - 3/8 (38%)
-     - 7.8
-     - 329s
-     - 1-4 subagent calls per run; [dated report](research/2026-07-23-sp2-baseline-phase-1.md)
+     - 9.9
+     - 483s
+     - 2-5 subagent calls per run; [dated report](research/2026-07-24-sp2-baseline-phase-1.md)
 ```
 
 ```{note}
@@ -189,7 +189,15 @@ shape is a clear signal — delegation helps. The successful runs all used exact
 1 delegation with a clean packet (1,315 bytes); the failures either had tests
 fail on the first attempt or spiraled into 3-4 repair attempts and timed out.
 The dated evidence report lives at
-[SP2 pre-tuning baseline](research/2026-07-23-sp2-baseline-phase-1.md).
+[SP2 pre-tuning baseline](research/2026-07-24-sp2-baseline-phase-1.md).
+
+```{note}
+These numbers are from the corrected July 24 re-run under the fixed harness
+(n=8). The original July 23 run had a timeout-recording bug that incorrectly
+marked two runs as timeouts when the agent had actually completed.
+The structural claim (0/8 → 3/8) holds; per-run deltas of ±1 are within noise
+at n=8.
+```
 ```
 
 ## Results
@@ -199,20 +207,21 @@ The dated evidence report lives at
 | Metric | SP2 Ch2 | SP1 (for comparison) |
 |--------|---------|----------------------|
 | Success rate | 3/8 (38%) | 0/8 (0%) |
-| Mean wall time | 329s | 45s |
-| Mean parent turns | 7.8 | 6.4 |
-| Mean subagent calls | 2.2 | N/A (no delegation) |
+| Mean wall time | 483s | 45s |
+| Mean parent turns | 9.9 | 6.4 |
+| Mean subagent calls | 2.9 | N/A (no delegation) |
 | Runs with delegation | 8/8 | 0/8 |
-| Mean packet size | 2,837 bytes | N/A |
+| Mean packet size | 3,502 bytes | N/A |
 
 ### What the telemetry revealed
 
 **Delegation happened in every run.** No `no-delegation` outcomes — the parent
 always called the subagent tool. The mechanism works.
 
-**Successful runs (3/8) used exactly 1 delegation with a clean packet.** Each
-successful run dispatched a single 1,315-byte packet. The implementer wrote
-the correct files, tests passed, and the run completed in 145-243s.
+**Successful runs (3/8) used 1-5 delegations.** The successful runs dispatched
+clean packets — the implementer wrote the home page template and app route,
+tests passed. Wall times ranged from 508s to 860s — much slower than SP1's 45s
+mean, reflecting the subagent overhead.
 
 **Two failure modes emerged:**
 
@@ -221,7 +230,7 @@ the correct files, tests passed, and the run completed in 145-243s.
    specialist prompt said "do not redesign" but the implementer saw the full
    roadmap and built ahead.
 
-2. **Repair spirals (2/8 runs).** Four subagent calls each — one initial
+2. **Repair spirals (1/8 runs).** Four subagent calls — one initial
    delegation plus three repair attempts. Both runs hit the 900s timeout. The
    parent's repair policy ("at most twice") wasn't enforced strongly enough,
    and the implementer's overreach meant repairs never converged.

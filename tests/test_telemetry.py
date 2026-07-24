@@ -91,3 +91,46 @@ def test_has_subagent_calls_empty_file(tmp_path: Path):
 def test_has_subagent_calls_nonexistent_file():
     from harness.telemetry import has_subagent_calls
     assert has_subagent_calls("/nonexistent/subagent.jsonl") is False
+
+
+def test_compute_task_duration_s_from_fixture(sample_session_path: Path):
+    """task_duration_s from the sample fixture should be a non-negative float.
+    The fixture has only one timestamped event (session start), so duration is 0.0."""
+    from harness.telemetry import compute_task_duration_s
+    duration = compute_task_duration_s(sample_session_path)
+    assert duration is not None
+    assert duration >= 0.0
+    assert isinstance(duration, float)
+
+
+def test_compute_task_duration_s_empty_file(tmp_path: Path):
+    from harness.telemetry import compute_task_duration_s
+    f = tmp_path / "empty.jsonl"
+    f.write_text("")
+    assert compute_task_duration_s(f) is None
+
+
+def test_compute_task_duration_s_nonexistent_file():
+    from harness.telemetry import compute_task_duration_s
+    assert compute_task_duration_s("/nonexistent/task.jsonl") is None
+
+
+def test_compute_task_duration_s_single_event(tmp_path: Path):
+    """A single timestamped event should yield duration 0."""
+    from harness.telemetry import compute_task_duration_s
+    f = tmp_path / "single.jsonl"
+    f.write_text('{"type": "session", "timestamp": "2026-07-23T09:38:11.322Z"}\n')
+    duration = compute_task_duration_s(f)
+    assert duration == 0.0
+
+
+def test_compute_task_duration_s_two_events(tmp_path: Path):
+    """Two events 5 seconds apart should yield duration ~5.0."""
+    from harness.telemetry import compute_task_duration_s
+    f = tmp_path / "two.jsonl"
+    f.write_text(
+        '{"type": "session", "timestamp": "2026-07-23T09:38:10.000Z"}\n'
+        '{"type": "agent_settled", "timestamp": "2026-07-23T09:38:15.000Z"}\n'
+    )
+    duration = compute_task_duration_s(f)
+    assert duration == 5.0

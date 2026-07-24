@@ -3,14 +3,14 @@
 Three chapters that install Pi's shipped subagent extension, author an
 implementer specialist and an orchestrator parent prompt, then measure and
 tune the parent+implementer shape. The structural baseline improved from SP1's
-0/8 to 3–4/8 (SP2, n=4 per batch; the 3/8→4/8 tuning delta is one run at n=4
-and not statistically significant).
+0/8 to 3/8 pre-tuning and 5/8 post-tuning (SP2, n=8 per batch; the ±1-run
+within-noise caveat applies — cite the structural claim, not the tuning delta).
 
 
 **Status:** ✅ Complete ([spec](spec.md), [plan](plan.md))
 
-**Evidence:** [3/8 pre-tuning](research/2026-07-23-sp2-baseline-phase-1.md),
-[4/8 post-tuning](research/2026-07-23-sp2-baseline-phase-1-post-tuning.md),
+**Evidence:** [3/8 pre-tuning](research/2026-07-24-sp2-baseline-phase-1.md),
+[5/8 post-tuning](research/2026-07-24-sp2-baseline-phase-1-post-tuning.md),
 [deep-dive (5 telemetry gaps)](research/2026-07-24-sp2-deep-dive.md)
 
 ## About SDD
@@ -42,7 +42,7 @@ lessons-from-handoff
 cleanup/index
 spec
 plan
-research/2026-07-23-sp2-baseline-phase-1
-research/2026-07-23-sp2-baseline-phase-1-post-tuning
+research/2026-07-24-sp2-baseline-phase-1
+research/2026-07-24-sp2-baseline-phase-1-post-tuning
 research/2026-07-24-sp2-deep-dive
 ```

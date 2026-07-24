@@ -8,7 +8,7 @@ import uuid
 from dataclasses import dataclass
 from pathlib import Path
 
-from harness.telemetry import RunTelemetry, has_subagent_calls, read_run
+from harness.telemetry import RunTelemetry, compute_task_duration_s, has_subagent_calls, read_run
 from harness.workspace import capture_diff
 
 # Resolve repo root for stable paths regardless of CWD.
@@ -57,6 +57,7 @@ class SessionResult:
     tests_pass: bool
     wall_time_s: float
     artifact_path: str
+    task_duration_s: float | None = None  # first-to-terminal timestamp delta from artifact; None if uncomputable
     stderr_text: str = ""   # captured stderr for diagnostics
     pytest_stdout: str = ""  # harness pytest stdout (for failure diagnosis)
     pytest_stderr: str = ""  # harness pytest stderr
@@ -65,7 +66,9 @@ class SessionResult:
     def is_success(self) -> bool:
         """A run is successful when it exited (or exited-with-hang), tests pass,
         and files changed. exited-with-hang means the agent completed its work
-        but pi/oMLX failed to exit cleanly — judged on tests+diff like any exit."""
+        but the process lifecycle misbehaved (server hang, failure to exit).
+        Treating it as failure would charge task-level metrics for server
+        symptoms uncorrelated with the interventions under test."""
         return (
             self.outcome in ("exited", "exited-with-hang")
             and self.tests_pass
@@ -162,12 +165,16 @@ def run_session(
             if proc.returncode is not None:
                 break
         except subprocess.TimeoutExpired:
-            timed_out = True
             prior_killed = True
             proc.kill()
             stdout_text, stderr_text = proc.communicate()
             if stdout_text.strip():
-                break  # partial output before timeout, keep it
+                # Got real output — not a startup hang, the process just
+                # failed to exit cleanly. Don't mark this as timed_out.
+                timed_out = False
+                break
+            else:
+                timed_out = True  # empty output on timeout = true startup hang
         if attempt < max_startup_attempts:
             continue
 
@@ -186,6 +193,9 @@ def run_session(
 
     # Persist the captured stdout as the session artifact.
     artifact_path.write_text(stdout_text)
+
+    # Compute task duration from artifact timestamps.
+    task_duration_s = compute_task_duration_s(artifact_path)
 
     # Parse telemetry.
     telemetry = read_run(artifact_path)
@@ -227,6 +237,7 @@ def run_session(
         tests_pass=tests_pass,
         wall_time_s=wall_time_s,
         artifact_path=str(artifact_path),
+        task_duration_s=task_duration_s,
         stderr_text=stderr_text,
         pytest_stdout=pytest_stdout,
         pytest_stderr=pytest_stderr,

@@ -747,7 +747,7 @@ Create `docs/section-4-keeping-on-track/terminal-validation/index.md` with:
 
 # Terminal Validation
 
-The SP2 post-tuning baseline went 4/8 (50%). The deep-dive found validation
+The SP2 post-tuning baseline went 5/8 (62%). The deep-dive found validation
 command drift caused 2 of the 4 failures: the implementer narrowed
 `uv run pytest -q` to `uv run pytest -q tests/test_app.py`, the narrower
 command passed, and the implementer stopped confident and wrong.

@@ -2,13 +2,13 @@
 
 Part II showed the ditch: an unsteered SLM goes 0/8 on Phase 1. Part III gave
 it an implementer specialist and a parent taught to make packets — that took
-the baseline to 4/8 (50%). The remaining failures are the target of this
+the baseline to 5/8 (62%). The remaining failures are the target of this
 Section.
 
 Every chapter in this Section picks one failure mode from the measured evidence,
 applies one or more built-in Pi mechanisms, and measures whether they helped. No
 technique is adopted on faith. Each chapter maps to a numbered lesson from
-[LESSONS.md](../lessons.md) and is measured against the Section III 4/8 (50%)
+[LESSONS.md](../lessons.md) and is measured against the Section III 5/8 (62%)
 baseline.
 
 ```{note}
@@ -84,18 +84,18 @@ parent+implementer shape running Phase 1 of the AgentClinic app.
 
 | Metric | Value |
 |--------|-------|
-| Success rate | 4/8 (50%) |
-| Mean wall time | 213s |
-| Mean turns | 7.6 |
-| Mean subagent calls | 1.5 |
-| Remaining failure modes | Overreach (1/8), validation command drift (2/8), child hang (1/8) |
+| Success rate | 5/8 (62%) |
+| Mean wall time | 261s |
+| Mean turns | 6.6 |
+| Mean subagent calls | 1.2 |
+| Remaining failure modes | Child hang (1/8 exited-with-hang), test failures on well-scoped builds (2/8) |
 
-The [post-tuning baseline](../section-3-sdd/research/2026-07-23-sp2-baseline-phase-1-post-tuning.md)
+The [post-tuning baseline](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1-post-tuning.md)
 and the [deep-dive telemetry analysis](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md)
 are the evidence this Section's chapters cite.
 
 ```{note}
-The before-picture (4/8 at 50%) was collected at n=8 by SP2. Going forward,
+The before-picture (5/8 at 62%) was collected at n=8 by SP2. Going forward,
 guardrail chapters default to n=4 — sufficient to surface the primary failure
 modes while keeping measurement cycles practical. The shared re-run batch (the
 one measurement every Section IV chapter compares against) overrides this

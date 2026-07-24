@@ -28,8 +28,17 @@ class BaselineReport:
         return sum(1 for r in self.results if r.is_success)
 
     @property
+    def hang_count(self) -> int:
+        """Number of runs that succeeded after a prior attempt was killed (exited-with-hang)."""
+        return sum(1 for r in self.results if r.outcome == "exited-with-hang")
+
+    @property
     def mean_wall_time_s(self) -> float | None:
-        times = [r.wall_time_s for r in self.results if r.outcome == "exited"]
+        """Mean task duration (artifact first-to-terminal timestamp) for
+        success-eligible outcomes (exited, exited-with-hang). Timeout and
+        no-delegation runs are excluded — they have no meaningful task duration."""
+        times = [r.task_duration_s for r in self.results
+                 if r.outcome in ("exited", "exited-with-hang") and r.task_duration_s is not None]
         return statistics.mean(times) if times else None
 
     @property
@@ -115,9 +124,13 @@ def write_report(report: BaselineReport, output_path: str | Path) -> None:
     ]
 
     if report.mean_wall_time_s is not None:
-        lines.append(f"**Mean wall time:** {report.mean_wall_time_s:.0f}s")
+        lines.append(f"**Mean task duration:** {report.mean_wall_time_s:.0f}s "
+                     f"(over success-eligible runs; timeout/no-delegation excluded)")
     if report.mean_turns is not None:
         lines.append(f"**Mean turns:** {report.mean_turns:.1f}")
+    if report.hang_count > 0:
+        lines.append(f"**Hang incidence:** {report.hang_count}/{report.n} runs "
+                     f"required a retry after a killed attempt (exited-with-hang)")
 
     lines.append("")
     lines.append("| # | Outcome | Success | Turns | Wall Time | Changed Files | Artifact |")

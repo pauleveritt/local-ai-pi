@@ -92,24 +92,25 @@ for the parent to verify before dispatching.
      - N/A
    * - SP2 Ch2 (pre-tuning)
      - 3/8 (38%)
-     - 7.8
-     - 329s
-     - 2.2
+     - 9.9
+     - 483s
+     - 2.9
    * - SP2 Ch3 (post-tuning)
-     - 4/8 (50%)
-     - 7.6
-     - 213s
-     - 1.5
+     - 5/8 (62%)
+     - 6.6
+     - 261s
+     - 1.2
 ```
 
 ### What the telemetry revealed
 
-**Overreach dropped from 4/8 to 1/8.** The "build only this phase" rule worked
-for most runs. The one remaining overreach run (run 5) still created `models.py`
-and built all three phases — the rule needs mechanism-level enforcement.
+**Overreach dropped from 4/8 to 0/8.** The "build only this phase" rule
+eliminated overreach entirely in the post-tuning re-run — no implementer
+created `models.py` during Phase 1. The pre-tuning runs consistently built
+Phase 2+ files; the prompt fix worked.
 
-**Repair spirals cut in half.** Mean subagent calls dropped from 2.2 to 1.5.
-Mean wall time dropped from 329s to 213s. The parent's repair policy ("at most
+**Repair spirals reduced.** Mean subagent calls dropped from 2.9 to 1.2.
+Mean wall time dropped from 483s to 261s. The parent's repair policy ("at most
 once") and the pre-dispatch packet checklist reduced runaway repairs.
 
 **Validation command drift persists.** Two runs (7, 8) wrote correct Phase 1
@@ -181,7 +182,7 @@ This is the method Part IV inherits:
 4. **Deep-dive** to verify the conclusions and find what telemetry misses
 5. **Escalate to mechanism** only when needed (Part IV: guardrails)
 
-The post-tuning 4/8 (50%) is the before-picture for Part IV. Every guardrail in
+The post-tuning 5/8 (62%) is the before-picture for Part IV. Every guardrail in
 Part IV will be measured against this baseline, not SP1's 0/8 — the implementer
 delegation is the new floor. And the five telemetry gaps recorded here are the
 harness improvements that make the next deep-dive sharper.
