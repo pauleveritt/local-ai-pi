@@ -182,6 +182,7 @@ def run_session(
     else:
         outcome = "exited"
     returncode = proc.returncode if proc is not None else None
+    wall_time_s = time.monotonic() - t0
 
     # Persist the captured stdout as the session artifact.
     artifact_path.write_text(stdout_text)
