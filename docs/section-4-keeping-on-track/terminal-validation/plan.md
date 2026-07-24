@@ -2,19 +2,19 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Land validation-command drift detection in the harness and an un-narrowable `./validate.sh` wrapper so the implementer's stop-decision runs against the true oracle.
+**Goal:** Land validation-command drift detection in the harness, an un-narrowable `./validate.sh` wrapper, and a Pi-registered `validate` tool so the implementer's stop-decision runs against the true oracle. Three escalating arms: shared pre (no fix) → wrapper (prompt/packet) → validate tool (mechanism-level). The tool arm only runs if the wrapper leaves residual drift.
 
-**Architecture:** A drift-detection function in `harness/telemetry.py` scans the parent JSONL's subagent result text for validation commands that don't match the packet's expected command. `InvocationProfile` carries the expected command. `SessionResult` stores per-run drift data. `BaselineReport` and `write_report` aggregate and report drift incidence. A zero-arg `./validate.sh` wrapper in the AgentClinic workspace removes the model's ability to narrow the command.
+**Architecture:** A drift-detection function in `harness/telemetry.py` scans the parent JSONL's subagent result text for validation commands that don't match the packet's expected command. `InvocationProfile` carries the expected command. `SessionResult` stores per-run drift data. `BaselineReport` and `write_report` aggregate and report drift incidence. A zero-arg `./validate.sh` wrapper in the AgentClinic workspace removes the model's ability to narrow the command (Level 2). A Pi-registered `validate` tool with empty parameter schema makes drift structurally impossible by dropping bash from the child's `--tools` entirely (Level 3).
 
 **Tech Stack:** Python 3.14+ (harness), bash (validate.sh), pytest (tests)
 
 ## Global Constraints
 
 - Python >=3.14, <3.15
-- Built-in Pi only — no fork, no new extensions
-- The chapter is scoped to prompt/packet tuning only per the SP2 spec boundary clause
-- Mechanism-level enforcement (tool_call hook) is explicitly Section IV, not this chapter
+- Built-in Pi only — no fork, no new package dependencies
+- Chapter 1 teaches escalation: prompt/packet fix first, mechanism-level fix if residual drift remains
 - n=4 default for iteration; override to n=8 for the shared pre-arm batch
+- The validate tool arm only runs if the wrapper leaves measurable drift
 
 ## File Structure
 
@@ -24,6 +24,8 @@
 | `harness/session.py` | `validation_command` on `InvocationProfile`; `drifted_commands`/`has_drift` on `SessionResult`; wire drift detection into `run_session` |
 | `harness/runner.py` | Drift aggregation on `BaselineReport`; drift section in `write_report` |
 | `examples/agentclinic/validate.sh` | Zero-arg wrapper script |
+| `.pi/extensions/validate.ts` | Pi-registered `validate` tool (empty parameter schema) |
+| `.pi/agents/implementer.md` | Tools list: `read,write,validate` (bash dropped) |
 | `prompts/orchestrator.md` | Validation section changed to `./validate.sh` |
 | `tests/test_telemetry.py` | Tests for `detect_validation_drift` |
 | `tests/test_runner.py` | Tests for drift aggregation and reporting |
@@ -614,7 +616,117 @@ git commit -m "evidence: terminal validation post-arm — wrapper vs baseline dr
 
 ---
 
-### Task 5: Chapter narrative
+### Task 5: Validate tool registration
+
+**Conditional — only runs if the wrapper left residual drift.** If the wrapper
+zeroes drift at n=8, this task is skipped and the chapter reports that the cheap
+fix sufficed.
+
+**Files:**
+- Create: `.pi/extensions/validate.ts`
+- Modify: `.pi/agents/implementer.md` (drop bash, add validate to tools list)
+
+**Interfaces:**
+- Consumes: `./validate.sh` in the AgentClinic workspace (Task 2)
+- Produces: `validate` tool registered with empty parameter schema; implementer
+  restricted to `read`, `write`, `validate` (bash dropped)
+
+- [ ] **Step 1: Create `.pi/extensions/validate.ts`**
+
+```typescript
+import type { ToolCallContext } from "@earendil-works/pi-coding-agent";
+
+export default function validate(_ctx: ToolCallContext, _params: Record<string, never>) {
+  const proc = Bun.spawnSync(["./validate.sh"], {
+    cwd: _ctx.workspaceDir,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  const passed = proc.exitCode === 0;
+  const output = proc.stdout.toString().slice(0, 4096);
+  const errors = proc.stderr.toString().slice(0, 1024);
+  return {
+    passed,
+    exitCode: proc.exitCode,
+    output,
+    ...(errors ? { errors } : {}),
+  };
+}
+```
+
+The empty parameter type (`Record<string, never>`) is load-bearing: Pi's schema
+validation will reject any arguments the model attempts to pass. There is
+nothing to narrow.
+
+- [ ] **Step 2: Register the tool**
+
+Pi extension registration requires the standard boilerplate. The `validate.ts`
+file must export the tool function. Pi auto-discovers `.pi/extensions/*.ts`.
+
+- [ ] **Step 3: Update implementer specialist tools list**
+
+In `.pi/agents/implementer.md`, change the frontmatter `tools:` field:
+
+```yaml
+---
+name: implementer
+description: Builds exactly what the packet specifies. No exploration, no redesign.
+tools: read,write,validate
+model: omlx/gemma-4-12B-it-MLX-8bit
+---
+```
+
+`bash` is dropped entirely. The child can read files, write files, and run
+`validate` — and `validate` takes no arguments, so drift is structurally
+impossible.
+
+- [ ] **Step 4: Run n=8 baseline with validate tool arm**
+
+```bash
+uv run python -c "
+from harness.runner import run_baseline, write_report
+from harness.session import InvocationProfile
+from pathlib import Path
+
+app_source = Path('examples/agentclinic')
+subagent_path = Path('.pi/subagent-extension-path.txt').read_text().strip()
+profile = InvocationProfile.sp2(subagent_path)
+profile.validation_command = './validate.sh'
+
+roadmap = (app_source / 'specs' / 'roadmap.md').read_text()
+from tests.conftest import _extract_phase
+phase1 = _extract_phase(roadmap, 1)
+
+report = run_baseline(
+    phase1, app_source,
+    'omlx/gemma-4-12B-it-MLX-8bit',
+    profile,
+    n=8, timeout=900,
+    phase_name='Phase 1 — Home Page',
+)
+write_report(report, 'docs/section-4-keeping-on-track/terminal-validation/research/validate-tool-post.md')
+print(f'Success: {report.success_count}/{report.n} ({report.success_rate:.0%})')
+print(f'Drift: {report.total_drifted_runs}/{report.n} runs')
+"
+```
+
+- [ ] **Step 5: Commit Task 5**
+
+```bash
+git add .pi/extensions/validate.ts .pi/agents/implementer.md
+git add docs/section-4-keeping-on-track/terminal-validation/research/
+git commit -m "feat: validate tool — empty parameter schema, bash dropped from implementer
+
+The validate tool makes drift structurally impossible. Pi's schema
+validation rejects any arguments — there is no parameter to narrow.
+The implementer's tools are now read, write, validate (bash dropped).
+
+Evidence report attached."
+```
+
+---
+
+### Task 6: Chapter narrative
 
 **Can run in parallel with all other tasks.** Writes the chapter's `index.md`.
 
@@ -694,7 +806,7 @@ uv run sphinx-build -j auto -b html docs docs/_build/html
 ```
 Expected: build succeeds, no warnings
 
-- [ ] **Step 4: Commit Task 5**
+- [ ] **Step 4: Commit Task 6****
 
 ```bash
 git add docs/section-4-keeping-on-track/terminal-validation/index.md docs/section-4-keeping-on-track/index.md

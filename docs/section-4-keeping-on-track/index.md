@@ -6,7 +6,7 @@ the baseline to 4/8 (50%). The remaining failures are the target of this
 Section.
 
 Every chapter in this Section picks one failure mode from the measured evidence,
-applies a single built-in Pi mechanism, and measures whether it helped. No
+applies one or more built-in Pi mechanisms, and measures whether they helped. No
 technique is adopted on faith. Each chapter maps to a numbered lesson from
 [LESSONS.md](../lessons.md) and is measured against the Section III 4/8 (50%)
 baseline.
@@ -33,6 +33,13 @@ Every chapter follows the pattern established in Part II and Part III:
 
 No mechanism ships without measured evidence that it helps.
 
+```{note}
+Chapter 1 is the exception to the "one mechanism" pattern: it teaches
+escalation — a cheap prompt/packet fix first, then a mechanism-level fix if
+residual drift remains. This is the course's thesis ("structure beats strings")
+landing with the escalation visible rather than asserted.
+```
+
 ## The chapter catalog
 
 Chapters are ordered by the frequency of their motivating failure in the SP2
@@ -45,7 +52,7 @@ These chapters address failure modes that actually appear in the SP2 deep-dive:
 
 | # | Chapter | Failure (post-tuning) | Lesson | Pi mechanism |
 |---|---------|----------------------|--------|--------------|
-| 1 | Terminal validation | Validation command drift (2/8) | #16 | Register a `validate` tool with an empty parameter schema — Pi's own schema validation prevents narrowing. Drop bash from the child's `--tools`. Drift becomes structurally impossible, not policed. |
+| 1 | Terminal validation | Validation command drift (2/8) | #16 | Escalating: first `./validate.sh` wrapper (prompt/packet fix), then a `validate` tool with empty parameter schema + drop bash from child `--tools` (mechanism-level fix). The wrapper is the cheap first line; the tool makes drift structurally impossible. |
 | 2 | Path guard | Overreach (1/8) | #8, #12 | `tool_call` hook — reject writes outside the Allowed Files list |
 | 3 | Turn cap | Child hang (1/8) | #11 | `turn_end` hook — abort session after N turns |
 | 4 | Repeat breaker | Repair spirals (2/8 pre-tuning, reduced by tuning) | #1, #11 | `tool_execution_start`/`tool_execution_end` — count repeats, abort on threshold |
@@ -85,18 +92,7 @@ parent+implementer shape running Phase 1 of the AgentClinic app.
 
 The [post-tuning baseline](../section-3-sdd/research/2026-07-23-sp2-baseline-phase-1-post-tuning.md)
 and the [deep-dive telemetry analysis](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md)
-are the provisional before-picture.
-
-```{note}
-**Provisional — will be re-pointed.** The Section III cleanup chapter plans
-a `./validate.sh` wrapper (prompt/packet tuning) that reduces validation
-command drift before Section IV starts. Once that wrapper lands and the shared
-re-run batch completes, this baseline table must point at the wrapper
-post-arm result, not the SP2 post-tuning run. The "validation command drift
-(2/8)" failure mode will no longer describe reality, and Chapter 1's
-motivating evidence will be the wrapper's remaining drift, not SP2's raw
-drift.
-```
+are the evidence this Section's chapters cite.
 
 ```{note}
 The before-picture (4/8 at 50%) was collected at n=8 by SP2. Going forward,

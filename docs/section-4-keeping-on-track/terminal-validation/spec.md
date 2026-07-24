@@ -107,6 +107,10 @@ effect is ~X-of-N → ~0 — a claim small n can support.
 p≈1.0). The chapter leans on drift incidence for its primary claim; success
 rate is descriptive, supporting context.
 
+If the wrapper zeroes drift, the tool arm does not run — the chapter reports
+that result honestly. If the wrapper leaves residual drift, the tool arm runs
+and its own drift incidence is the secondary claim.
+
 ## Binding sequencing
 
 This sequencing is binding given the current cleanup state. The order matters
@@ -131,10 +135,10 @@ recomputed after the fact.
    it stays n=4, the chapter must lean entirely on drift incidence and treat
    success rate as descriptive only.
 
-4. **Then land the wrapper and run the post-arm only.**
-
-5. **Chapter authoring** (wrapper script, packet edit, prose) can proceed in
-   parallel now — it touches nothing in `harness/`.
+4. **Then land the wrapper, run the post-arm, and measure.**
+5. **If residual drift remains, land the validate tool and run the third arm.**
+6. **Chapter authoring** (wrapper script, validate tool, packet edit, prose)
+   can proceed in parallel now — it touches nothing in `harness/`.
 
 ## Deliverables
 
