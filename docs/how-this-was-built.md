@@ -78,6 +78,37 @@ checker decides whether it worked. A plan detailed enough to remove decisions
 from the implementer is what makes the cheaper tier viable — plan quality and
 model tier are coupled, and you cannot economize on both at once.
 
+## What the method actually caught
+
+The model split above is not just a cost optimization; it turned out to be the
+single most productive part of the process, and the evidence is uncomfortable.
+
+**Every adversarial review round, run by a different model than the one that
+wrote the work, found defects the author had missed** — including defects in
+work that had just been reviewed by its own author:
+
+- a spec review found the central guardrail wired to an event that
+  structurally cannot observe the failure it was built for;
+- a task review found a path-traversal bypass in code that had passed its
+  implementer's self-review;
+- a whole-branch review found a guard that blocked the project's own test
+  command — a false positive that would have aborted legitimate runs;
+- a deep review found two live defeats of an oracle that had been hardened
+  hours earlier, and named the reason: every fix so far had blacklisted an
+  open category rather than closing it.
+
+The pattern holds in the other direction too. A forensic replay corrected an
+amendment written by the same assistant a few hours before, and several of the
+fabricated metrics catalogued in this project were produced by its own
+automation and passed its own checks.
+
+The durable finding: **self-review is not a substitute for review by a
+different model, and an author's confidence carries no information about
+whether the work is correct.** Where a claim mattered, it was verified by
+execution — reproducing a defeat, running a mutation test, replaying an
+artifact — not by reading. That discipline, not any individual model's
+capability, is what kept the evidence chain honest.
+
 ## The Pi configuration
 
 Model routing lives in Pi's user-global model registry at

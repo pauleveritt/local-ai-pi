@@ -194,6 +194,26 @@ which were never built: per-run **inherited-file write attempts**,
 Unsteered n=16 per phase (seeded), locate the ditch by the Amendment 2 rule,
 then the steered arms n=8. Only after Tasks 1–7 are gated green.
 
+**Operational precondition — batch durability.** Three separate batches were
+lost mid-run on 2026-07-24 (a 16-run scout killed at run 8, an experiment
+killed between arms, another killed at run 1). Causes: agent-session teardown
+reaping child processes, and `setsid` not existing on macOS. `nohup` alone was
+not sufficient. Because `run_baseline` writes its report only after ALL n runs
+complete, a kill at run 15 of 16 loses the entire batch.
+
+Two requirements before spending an hour on a 16-run batch:
+1. **Checkpoint per run.** Persist each `SessionResult` as it completes (the
+   artifacts already survive; the aggregation does not), so a killed batch can
+   be resumed or reported partially rather than lost.
+2. **Use an execution mechanism verified to survive.** On this host only the
+   agent harness's own backgrounding completed a long batch reliably. Record
+   whichever mechanism is used in the report, and confirm it survives a
+   session ending before relying on it.
+
+This is also a reproducibility problem for readers, not just an annoyance
+here — a course that asks someone to run n=16 batches must tell them how to
+run them durably.
+
 ### Task 9 — Write Sections 2–4 from scratch
 
 Against the reframe and the final numbers. The Section 2 second arc:
