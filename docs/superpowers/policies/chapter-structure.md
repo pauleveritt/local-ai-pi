@@ -1,6 +1,6 @@
 # Chapter Structure Policy
 
-Every chapter in `docs/chapters/` ends with a **Results** section that makes the
+Every chapter in `docs/course/` ends with a **Results** section that makes the
 chapter's measured claims auditable. This is the course's evidence-gated
 constraint applied to the product the reader consumes, not just the development
 record in `docs/superpowers/`.

@@ -27,10 +27,13 @@ That said, I think SDD is uniquely valuable for what we're doing:
    smaller brains which pre-chew the food for implementers that are even smaller brains.
 
 ```{toctree}
-:maxdepth: 2
-:caption: Chapters
+:maxdepth: 1
+:caption: Sections
 
-chapters/index
+section-1-hello-agent/index
+section-2-measurement/index
+section-3-sdd/index
+section-4-keeping-on-track/index
 ```
 
 ```{toctree}
@@ -44,33 +47,17 @@ lessons
 ## Development record
 
 The course's own construction — the roadmap, the design specs, the evidence
-policy, and the dated evidence reports each cycle produced — is part of the
-site, not hidden in the repository. New specs and reports appear here
-automatically as they land; nothing needs to be hand-added to this page.
-Implementation plans (the task-by-task decomposition of each spec) are linked
-from the roadmap table rather than listed here, to keep this page to the parts
-meant to be read rather than executed.
+policy — is documented here. Evidence reports live in their respective section
+research directories. Implementation plans (the task-by-task decomposition of
+each spec) live alongside their specs in the section directories rather than
+listed here.
 
 ```{toctree}
 :maxdepth: 1
 :caption: Development record
 
 superpowers/roadmap
+superpowers/specs/2026-07-23-course-design
 superpowers/policies/evidence
-```
-
-```{toctree}
-:maxdepth: 1
-:caption: Specs
-:glob:
-
-superpowers/specs/*
-```
-
-```{toctree}
-:maxdepth: 1
-:caption: Evidence reports
-:glob:
-
-superpowers/research/*
+superpowers/policies/chapter-structure
 ```

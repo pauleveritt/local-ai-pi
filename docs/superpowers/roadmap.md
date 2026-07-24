@@ -14,10 +14,10 @@ before-picture for every guardrail.
 
 | ID | Phase | Status | Spec | Plan | Evidence |
 |----|-------|--------|------|------|----------|
-| SP0 | Scaffold + Part I (repo skeleton, docs toolchain, roadmap, LESSONS, example spec triple, hello-world extension) | **Done** | [course-design](specs/2026-07-23-course-design.md), [sp0-hello-agent](specs/2026-07-23-sp0-hello-agent-design.md) | [sp0-plan](plans/2026-07-23-sp0-hello-agent.md) | — |
-| SP1 | Part II — Measurement (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | **Done** | [sp1-measurement-design](specs/2026-07-24-sp1-measurement-design.md) | [sp1-plan](plans/2026-07-24-sp1-measurement.md) | [baseline-phase-1](research/2026-07-23-baseline-phase-1.md) — 0/8 |
-| SP2 | Part III — SDD on Pi (roadmap/packet method, parent-as-orchestrator + implementer specialist; planner + fleet are evidence-gated, see backlog). Uses the shipped Pi subagent example — the course installs and specializes it. 4/8 (50%) post-tuning, up from SP1's 0/8. | **Done** | [sp2-implementer-orchestrator](specs/2026-07-24-sp2-implementer-orchestrator-design.md) | [sp2-plan](plans/2026-07-24-sp2-implementer-orchestrator.md) | [pre-tuning](research/2026-07-23-sp2-baseline-phase-1.md) 3/8, [post-tuning](research/2026-07-23-sp2-baseline-phase-1-post-tuning.md) 4/8, [deep-dive](research/2026-07-24-sp2-deep-dive.md) |
-| SP3 | Part IV — Improvements catalog (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | Blocked on SP1 | — | — | — |
+| SP0 | Scaffold + Section I (repo skeleton, docs toolchain, roadmap, LESSONS, example spec triple, hello-world extension) | **Done** | [spec](../section-1-hello-agent/spec.md) | [plan](../section-1-hello-agent/plan.md) | — |
+| SP1 | Section II — Measurement (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | **Done** | [spec](../section-2-measurement/spec.md) | [plan](../section-2-measurement/plan.md) | [0/8 baseline](../section-2-measurement/research/2026-07-23-baseline-phase-1.md) |
+| SP2 | Section III — SDD on Pi (roadmap/packet method, parent-as-orchestrator + implementer specialist) | **Done** | [spec](../section-3-sdd/spec.md) | [plan](../section-3-sdd/plan.md) | [3/8 pre](../section-3-sdd/research/2026-07-23-sp2-baseline-phase-1.md), [4/8 post](../section-3-sdd/research/2026-07-23-sp2-baseline-phase-1-post-tuning.md), [deep-dive](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md) |
+| SP3 | Section IV — Keeping the SLM on track (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | Queued (next) | — | — | — |
 
 ## Backlog (evidence-gated, not queued)
 
@@ -25,7 +25,7 @@ Items held to a recurrence bar or a trigger, not scheduled just because a
 neighbor shipped:
 
 - **Harness telemetry improvements** (triggered by SP2 deep-dive, 2026-07-24).
-  Five gaps identified in [`research/2026-07-24-sp2-deep-dive.md`](research/2026-07-24-sp2-deep-dive.md):
+  Five gaps identified in [`research/2026-07-24-sp2-deep-dive.md`](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md):
   1. **Capture child session JSONL** — the highest-value gap. The parent JSONL
      shows the subagent tool call and its summary result, but the child's
      detailed event stream (every tool call, every message, full pytest output
