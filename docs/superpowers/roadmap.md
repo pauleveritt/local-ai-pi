@@ -79,6 +79,55 @@ neighbor shipped:
   it is a normal package install for the reader; it does not touch the pinned
   global `pi` runtime.)
 
+- **Investigate putting git to work: change visibility, pseudo-transactions,
+  and an atomic-overlay equivalent.** Both predecessor efforts converged on git
+  as the substrate for making agent work *inspectable and reversible*, and Pi
+  ships more machinery for it than either used.
+
+  **Prior art.** `local-ai-gemma`'s medium tier had the controller record a
+  `git status --short` baseline before delegating and diff it after, so scope
+  violations were mechanical rather than self-reported (`lessons.md` #15, #16).
+  This course's harness already goes further: every eval workspace is a git repo
+  with a pristine commit, and `capture_diff` reduces a run to changed-files plus
+  a diff — that is what makes the acceptance oracle independent of the model's
+  claims. The Tainie Pi spike hit the limit from the other side: a model `rm`'d a
+  file via bash, write/edit dirty-tracking missed it, and the spike concluded
+  verify extensions are *unsound against bash mutations*, proposing a
+  workspace-diff event that makes the `git-checkpoint.ts` pattern first-class
+  (`VERIFY-LOOP-SLM-SUPPORT.md`, item 4, status TBD upstream).
+
+  **What Pi actually ships** (all in the installed package's
+  `examples/extensions/`, no fork required): `git-checkpoint.ts` creates a
+  `git stash create` checkpoint on every `turn_start` and restores it on
+  `session_before_fork` — per-turn rollback points; `dirty-repo-guard.ts` blocks
+  session changes when the tree is dirty; `auto-commit-on-exit.ts`;
+  `git-merge-and-resolve.ts` merges upstream after each turn and feeds conflict
+  blocks back to the model as follow-ups. Plus `pi.exec` for arbitrary git from
+  any extension.
+
+  **The three things worth teaching, in ascending ambition:**
+  1. *See the changes.* A per-turn workspace diff surfaced as evidence —
+     closing the bash-mutation blind spot the spike identified, and the natural
+     mechanism for the newly-admitted **preservation breakage** chapter (a
+     Phase 1 file rewritten during Phase 2 is exactly a diff-detectable event).
+  2. *Pseudo-transactions.* Checkpoint before a delegation, roll back on a
+     failed acceptance run — bounding a bad turn's blast radius mechanically
+     instead of asking the model to be careful (`lessons.md` #1).
+  3. *The atomic-overlay equivalent.* Tainie's pyrefly fork verified edits in an
+     in-memory overlay and wrote only on success. The built-in-only analogue is
+     write → verify → keep-or-revert on a checkpoint, i.e. a transaction where
+     the acceptance oracle is the commit gate. This is the most interesting and
+     the least proven; it may also subsume the "verify gate" idea the master
+     spec has carried as out-of-scope since SP0.
+
+  **Open questions.** Does per-turn stashing cost enough wall-clock to matter at
+  the batch sizes Amendment 2 sets? Does rollback confuse a small model that
+  sees its own edits vanish (a real risk — this is state changing under it
+  between turns)? And does any of it beat simply *reporting* the diff, which the
+  harness already does? Evidence-gated like everything else: taught only if a
+  measured run shows it helps the SLM on the example workload. Candidate for
+  Section 4 once the preservation-breakage chapter has its before-picture.
+
 ## Conventions
 
 - Specs and plans are co-located with section content in `docs/section-*/`.
