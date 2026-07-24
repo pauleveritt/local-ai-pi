@@ -6,9 +6,9 @@ Per-phase specs in `specs/` and plans in `plans/` are the source of truth for
 links. It is built the way the course teaches — each phase is evidence-gated, and
 a later phase is not queued just because an earlier one landed.
 
-**Current phase:** Sub-project 2 — Part III (SDD on Pi). This is unblocked
-now that SP1's measurement harness and baseline exist. SP0 and SP1 are
-complete.
+**Current phase:** Sub-project 3 — Part IV (Keeping the SLM on track). SP0, SP1,
+and SP2 are complete. SP3 is unblocked — the SP2 baseline (4/8) is the
+before-picture for every guardrail.
 
 ## Phases
 
@@ -16,7 +16,7 @@ complete.
 |----|-------|--------|------|------|----------|
 | SP0 | Scaffold + Part I (repo skeleton, docs toolchain, roadmap, LESSONS, example spec triple, hello-world extension) | **Done** | [course-design](specs/2026-07-23-course-design.md), [sp0-hello-agent](specs/2026-07-23-sp0-hello-agent-design.md) | [sp0-plan](plans/2026-07-23-sp0-hello-agent.md) | — |
 | SP1 | Part II — Measurement (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | **Done** | [sp1-measurement-design](specs/2026-07-24-sp1-measurement-design.md) | [sp1-plan](plans/2026-07-24-sp1-measurement.md) | [baseline-phase-1](research/2026-07-23-baseline-phase-1.md) — 0/8 |
-| SP2 | Part III — SDD on Pi (roadmap/packet method, subagent specialist; planner + fleet are evidence-gated, see backlog). Reframed around the *shipped* Pi subagent example — the course specializes it rather than rebuilding it. Guardrail inheritance is taught as a forward promise, demonstrated in SP3. | Queued (next) | — | — | — |
+| SP2 | Part III — SDD on Pi (roadmap/packet method, parent-as-orchestrator + implementer specialist; planner + fleet are evidence-gated, see backlog). Uses the shipped Pi subagent example — the course installs and specializes it. 4/8 (50%) post-tuning, up from SP1's 0/8. | **Done** | [sp2-implementer-orchestrator](specs/2026-07-24-sp2-implementer-orchestrator-design.md) | [sp2-plan](plans/2026-07-24-sp2-implementer-orchestrator.md) | [pre-tuning](research/2026-07-23-sp2-baseline-phase-1.md) 3/8, [post-tuning](research/2026-07-23-sp2-baseline-phase-1-post-tuning.md) 4/8, [deep-dive](research/2026-07-24-sp2-deep-dive.md) |
 | SP3 | Part IV — Improvements catalog (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | Blocked on SP1 | — | — | — |
 
 ## Backlog (evidence-gated, not queued)
