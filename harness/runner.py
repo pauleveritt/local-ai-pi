@@ -46,6 +46,7 @@ def run_baseline(
     n: int = 8,
     timeout: int = 300,
     phase_name: str | None = None,
+    research_dir: Path | None = None,
 ) -> BaselineReport:
     """Run n independent sessions against one phase, return aggregated report.
 
@@ -70,6 +71,7 @@ def run_baseline(
                 pristine_hash=pristine_hash,
                 profile=profile,
                 timeout=timeout,
+                research_dir=research_dir,
             )
             results.append(result)
         finally:
