@@ -32,3 +32,8 @@ Borrowed from the prior work's evidence ledger. Every number carries a tier.
 5. If the baseline does not reproduce a failure on the target model, the
    corresponding improvement is moved to backlog with a note — it is not taught
    as if the failure were live.
+6. **Validate the oracle before trusting a batch.** An oracle's verdict is
+   not evidence until the oracle has been shown to accept a known-good
+   solution (see `tests/test_oracle.py`). Any change to the workload, the
+   workspace stamp, or the acceptance command re-triggers this validation
+   before the next published batch.
