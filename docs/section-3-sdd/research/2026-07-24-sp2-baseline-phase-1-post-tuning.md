@@ -1,5 +1,14 @@
 # Baseline: Phase 1 — Home Page (post-tuning re-run)
 
+```{warning}
+**Superseded (2026-07-24).** The acceptance oracle behind this report was
+invalid — it failed textbook-correct solutions — so these numbers measure an
+unstated pytest-configuration workaround, not model competence. Kept for the
+historical record. See the
+[oracle-invalid incident report](../../section-2-measurement/research/2026-07-24-oracle-invalid-incident.md) and the
+post-repair reports that replace this one.
+```
+
 **Date:** 2026-07-24
 **Model:** omlx/gemma-4-12B-it-MLX-8bit
 **Runs:** n=8

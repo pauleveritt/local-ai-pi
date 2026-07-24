@@ -1,5 +1,16 @@
 # SP2 Deep-Dive: Metrics Verification and Telemetry Gaps
 
+```{warning}
+**Superseded (2026-07-24).** The acceptance oracle behind this report was
+invalid — it failed textbook-correct solutions — so the numerical base is
+contaminated. The drift *mechanism* findings (narrowing behavior, overreach
+patterns, false-pass/validation-command-drift analysis) remain informative
+even though the numbers they were derived from don't. Kept for the historical
+record. See the
+[oracle-invalid incident report](../../section-2-measurement/research/2026-07-24-oracle-invalid-incident.md) and the
+post-repair reports that replace this one.
+```
+
 **Date**: 2026-07-24
 **Status**: analysis note, not a baseline report
 **Parent**: SP2 (Part III)
