@@ -6,7 +6,7 @@ This file is the cross-phase index: sequence, status, and links. It is built the
 a later phase is not queued just because an earlier one landed.
 
 **Current phase:** Sub-project 3 — Part IV (Keeping the SLM on track). SP0, SP1,
-and SP2 are complete. SP3 is unblocked — the SP2 baseline (4/8) is the
+and SP2 are complete. SP3 is unblocked — the SP2 baseline (5/8) is the
 before-picture for every guardrail.
 
 ## Phases
