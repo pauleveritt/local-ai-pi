@@ -8,6 +8,32 @@ a later phase is not queued just because an earlier one landed.
 **Current phase: GRADING-PATH REBOOT** — see
 [`plans/2026-07-24-grading-path-reboot.md`](plans/2026-07-24-grading-path-reboot.md).
 
+> ## ▶ Next action — Task 1, and it is human work
+>
+> **Author the Phase 2 and Phase 3 acceptance suites.**
+> `examples/acceptance/phase-{2,3}/test_acceptance.py` are skeletons: the
+> preservation checks are written, the contract assertions are a commented
+> checklist (8 items for Phase 2, 4 for Phase 3). Author them, then delete each
+> `test_suite_is_authored` guard.
+>
+> **Why it blocks everything.** `tests/test_oracle.py` *skips* on a skeleton
+> suite — right now 6 passed, **4 skipped** — so phases 2 and 3, the entire
+> measurement site, are gated by nothing. No task below produces a citable
+> number until this lands.
+>
+> **Why you and not a model** (doctrine [D3](policies/evidence.md)): the
+> acceptance suite is the one artifact that must not be model-written, because
+> it is what grades models. Under [Rule 8](policies/evidence.md) a different
+> model then reviews it adversarially — human-authored, model-attacked.
+>
+> **Read first:** [`policies/evidence.md`](policies/evidence.md) — rules and
+> doctrine, the single authoritative statement.
+>
+> **Done when:** `uv run pytest tests/test_oracle.py -q` reports **zero skips**.
+>
+> **Where:** the `oracle-repair` worktree (27 commits ahead of `main`, tree
+> clean). Everything below happens there; nothing has been merged.
+
 A deep review (Fable, 2026-07-24) found five further integrity failures, two of
 which **defeat the hardened oracle** (a model-written `pytest.ini` with
 `addopts = --collect-only`, and an import-time `os._exit(0)`, each producing
@@ -29,7 +55,8 @@ inherited files was 8/8 predictive.
 | SP0 | Scaffold + Section I (repo skeleton, docs toolchain, roadmap, LESSONS, example spec triple, hello-world extension) | **Done** | [spec](../section-1-hello-agent/spec.md) | [plan](../section-1-hello-agent/plan.md) | — |
 | SP1 | Section II — Measurement *(harness kept; prose discarded, numbers superseded)* (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | **Done** | [spec](../section-2-measurement/spec.md) | [plan](../section-2-measurement/plan.md) | [0/8 baseline](../section-2-measurement/research/2026-07-23-baseline-phase-1.md) |
 | SP2 | Section III — SDD on Pi *(mechanism kept; prose discarded, numbers superseded)* (roadmap/packet method, parent-as-orchestrator + implementer specialist) | **Done** | [spec](../section-3-sdd/spec.md) | [plan](../section-3-sdd/plan.md) | [3/8 pre](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1.md), [5/8 post](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1-post-tuning.md), [deep-dive](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md) |
-| SP3 | Section IV — Keeping the SLM on track (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | **Blocked on the grading-path reboot** | — | — | — |
+| SPR | **Grading-path reboot** — rebuild the grader so model-controlled input cannot reach it, restore honest reporting, then re-run the evidence chain | **In progress — blocked on Task 1 (human)** | — | [plan](plans/2026-07-24-grading-path-reboot.md) | — |
+| SP3 | Section IV — Keeping the SLM on track (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | **Blocked on SPR** | — | — | — |
 
 
 ## Narrative reframe (adopted 2026-07-24)
