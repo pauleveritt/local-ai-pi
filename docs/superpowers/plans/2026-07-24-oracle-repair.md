@@ -1,5 +1,51 @@
 # Oracle Repair Implementation Plan
 
+> **Amendment 1 (2026-07-24, decided by the project owner — supersedes Task 6
+> where they conflict).** The first Task 6 execution surfaced a second
+> unstated-workload defect: Phase 2 runs started from an EMPTY workspace
+> (`examples/agentclinic` has no app code), so the recorded "Phase 2 — 0/8
+> pooled" actually measured "build Phases 1+2 combined from nothing," and the
+> Phase-1-passed→Phase-2-is-the-ditch escalation inference does not hold from
+> an empty start. Decisions:
+>
+> 1. **Start-state semantics (canonical): incremental.** A Phase N run starts
+>    from the reference solution of phases 1..N−1 seeded into the workspace.
+>    This restores the escalation logic and makes preservation failures
+>    (Phase 2 erasing Phase 1 behavior) measurable.
+> 2. **Seed source: the reference fixture** (`examples/reference/phase-<k>/`),
+>    identical across runs and arms — never a model's own prior output.
+> 3. **In-flight combined batch: stopped after Arm A; do not run Arm B.**
+>    Keep the artifacts; relabel their report "Phases 1–2 combined, from
+>    empty — exploratory, non-canonical workload." The pooled
+>    `2026-07-24-post-repair-sp1-phase2*` reports get a superseded-style
+>    banner: wrong start state, kept for the record.
+> 4. **No-ditch contingency (pre-registered):** if seeded Phase 2 and Phase 3
+>    scouts both pass 4/4, the next workload is the higher-level user-story
+>    roadmap (the planner-thread input from the master spec) — not ad-hoc
+>    hardening of the fixed app.
+>
+> Execution deltas this implies, in order:
+> - **New fixture:** `examples/reference/phase-2/` (spec-compliant Phase 2 on
+>   top of phase-1, no pytest workarounds) — needed as Phase 3's seed and for
+>   the Phase 2 oracle gate. Author it exactly like the phase-1 fixture task.
+> - **Harness:** `prepare_workspace` (or the runner) gains a
+>   `seed: Path | None` parameter that overlays a reference solution after
+>   provisioning, recorded in the artifact/report. The seed must be committed
+>   into the workspace's pristine git baseline so `changed_files` reflects
+>   only the model's Phase N work.
+> - **Oracle gate per rule 6:** a Phase 2 oracle-validation test (seed
+>   phase-1, overlay reference phase-2, acceptance must pass) green BEFORE any
+>   seeded Phase 2 batch.
+> - **Re-run:** Phase 2 scout n=4 from seeded state (the empty-start scout
+>   does not carry over); pool to n=8 if it fails per the standing rule; then
+>   the two steered arms, n=8, same seeded state.
+> - **Every report header states the starting state** ("seeded: reference
+>   phase-1 @ <path or hash>" / "empty"). A report without it is not citable.
+> - **Delegation counts in any status or report derive from
+>   `subagent_stats_from` only.** The first Arm A status hand-derived ~70
+>   calls/run; the artifact showed 1. No interpretation ships without an
+>   artifact-derived number behind it.
+
 > **For agentic workers:** execute task-by-task, in order. Each task ends with a
 > verification command and a commit. Do not reorder: the incident must be
 > recorded before anything is repaired, and the oracle must be repaired and
