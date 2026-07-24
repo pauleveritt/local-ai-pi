@@ -142,6 +142,10 @@ def capture_diff(workspace: str | Path, pristine_hash: str) -> tuple[list[str], 
 def _stamp_pyproject(workspace: Path) -> None:
     """Write a pyproject.toml with the AgentClinic dependencies into workspace."""
     pyproject = workspace / "pyproject.toml"
+    # This pythonpath line is load-bearing — without it, `uv run pytest`
+    # cannot import `app` from `tests/` and the acceptance oracle fails
+    # correct solutions. See:
+    # docs/section-2-measurement/research/2026-07-24-oracle-invalid-incident.md
     pyproject.write_text("""\
 [project]
 name = "agentclinic"
@@ -152,6 +156,9 @@ dependencies = [
     "uvicorn==0.51.0",
     "pytest==8.3.4",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
 """)
 
 

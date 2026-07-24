@@ -8,6 +8,7 @@ dependencies = []
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+norecursedirs = ["examples/agentclinic/reference"]
 markers = [
     "pi_available: tests that need the pi binary and a running model server",
 ]
