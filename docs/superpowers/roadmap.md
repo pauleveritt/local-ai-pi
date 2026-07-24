@@ -18,6 +18,35 @@ before-picture for every guardrail.
 | SP2 | Section III — SDD on Pi (roadmap/packet method, parent-as-orchestrator + implementer specialist) | **Done** | [spec](../section-3-sdd/spec.md) | [plan](../section-3-sdd/plan.md) | [3/8 pre](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1.md), [5/8 post](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1-post-tuning.md), [deep-dive](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md) |
 | SP3 | Section IV — Keeping the SLM on track (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | Queued (next, unblocked by corrected SP2 baselines) | — | — | — |
 
+
+## Narrative reframe (adopted 2026-07-24)
+
+The course's original hook — "an unsteered SLM goes 0/8; here is the ditch" —
+is dead. That 0/8 was an oracle artifact (see the oracle-invalid incident), and
+under a valid oracle the model clears seeded Phase 1 and Phase 2 comfortably.
+
+**The course is now about a different and more interesting failure: the model
+succeeds at the task and damages the repository.** Every element of this is
+artifact-backed as of 2026-07-24:
+
+- it silently destroys inherited work when files are shared (preservation
+  breakage; `lessons.md` #12 clause 2, reachable for the first time under the
+  seeded incremental workload);
+- it rewrites its own grader (2/8 seeded runs replaced the inherited test
+  suite wholesale);
+- it reports success while the contract is broken (false self-report in both
+  observed failures).
+
+The thesis this serves: **determinism, not persuasion.** The move from OpenCode
+to Pi is worth making precisely because Pi's extension points let these be
+handled mechanically — a `tool_call` block makes a failure structurally
+impossible — rather than by prompt wording, which `lessons.md` #16 already
+recorded as insufficient. Expect a long tail of places where the model still
+needs help at generation time; the mechanisms are the floor, not the ceiling.
+
+This reframe governs the Section 2-4 rewrite pass and has not yet been
+propagated into chapter prose.
+
 ## Backlog (evidence-gated, not queued)
 
 Items held to a recurrence bar or a trigger, not scheduled just because a
@@ -127,6 +156,32 @@ neighbor shipped:
   harness already does? Evidence-gated like everything else: taught only if a
   measured run shows it helps the SLM on the example workload. Candidate for
   Section 4 once the preservation-breakage chapter has its before-picture.
+
+
+- **Coverage (or an equivalent) as an anti-neutralization mechanism for the
+  acceptance suite.** A model-written `tests/conftest.py` can skip-mark every
+  collected test; pytest exits 0 on all-skipped, so the oracle returns
+  "passed" with the contract entirely unenforced (verified defeat,
+  2026-07-24). The harness now removes conftest files and re-stamps
+  `pyproject.toml` before grading, but that is a blacklist — it closes two
+  known vectors, not the category. A positive check would be stronger:
+  require the acceptance run to report a minimum number of *executed*
+  assertions, or measure coverage of the app under the acceptance suite and
+  fail below a floor. Open question: coverage adds a dependency to the
+  workspace (against the thin-workload preference) and measures the wrong
+  thing (lines executed, not contract satisfied) — an executed-test-count
+  floor from pytest's own summary may be the cheaper 80%. Evidence-gated:
+  build it when a run actually neutralizes the suite, or when authoring the
+  phase-2/3 suites shows the blacklist is insufficient.
+
+- **The long tail: where the model needs help at generation time.** The
+  mechanisms in Section 4 are a floor — they make specific failures
+  structurally impossible. They do not make the model *good*. Expect a
+  residue of failures that no `tool_call` block can prevent because they are
+  failures of generation, not of tool discipline (wrong logic, misread
+  contract, plausible-but-incorrect template). Worth cataloguing as it
+  emerges from measured runs rather than speculating now; the honest course
+  ends by naming what mechanism cannot fix.
 
 ## Conventions
 
