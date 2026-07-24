@@ -236,9 +236,18 @@ def write_report(report: BaselineReport, output_path: str | Path) -> None:
             files += f" (+{len(r.changed_files) - 3})"
         lines.append(
             f"| {i} | {r.outcome} | {success_icon} | {turns} | {wt} | {files} | "
-            f"[{r.run_id}.jsonl](sessions/{r.run_id}.jsonl) |"
+            f"`{r.run_id}` |"
         )
 
+    lines.append("")
+    # Session IDs are cited as plain text, never linked: transcripts are
+    # gitignored, so links resolve locally and 404 on the published site.
+    # See policies/evidence.md#artifact-retention.
+    lines.append(
+        "*Session transcripts are retained locally at "
+        "`research/sessions/<id>.jsonl` and are not published — see "
+        "[artifact retention](../../superpowers/policies/evidence.md#artifact-retention).*"
+    )
     lines.append("")
     lines.append("## Subagent delegation metrics")
     lines.append("")

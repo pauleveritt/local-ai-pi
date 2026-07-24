@@ -45,4 +45,7 @@ plan
 research/2026-07-24-sp2-baseline-phase-1
 research/2026-07-24-sp2-baseline-phase-1-post-tuning
 research/2026-07-24-sp2-deep-dive
+research/2026-07-23-sp2-baseline-phase-1
+research/2026-07-23-sp2-baseline-phase-1-post-tuning
+research/2026-07-24-sp2-session-deletion-record
 ```

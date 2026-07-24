@@ -19,14 +19,16 @@ post-repair reports that replace this one.
 
 | # | Outcome | Success | Turns | Wall Time | Changed Files | Artifact |
 |---|---------|---------|-------|-----------|---------------|----------|
-| 1 | exited | ✅ | 8 | 236s | app.py, templates/base.html, templates/home.html (+1) | [03b60d2ee8b9.jsonl](sessions/03b60d2ee8b9.jsonl) |
-| 2 | exited | ✅ | 7 | 305s | uv.lock, app.py, templates/base.html (+2) | [1929617fa8dd.jsonl](sessions/1929617fa8dd.jsonl) |
-| 3 | timeout | ❌ | 12 | 947s | app.py, templates/base.html, templates/home.html (+1) | [0c4cb9e51290.jsonl](sessions/0c4cb9e51290.jsonl) |
-| 4 | exited | ✅ | 9 | 195s | app.py, templates/base.html, templates/home.html (+2) | [44a9f34c51a5.jsonl](sessions/44a9f34c51a5.jsonl) |
-| 5 | timeout | ❌ | 6 | 913s | app.py, models.py, templates/base.html (+3) | [c2d816c525ac.jsonl](sessions/c2d816c525ac.jsonl) |
-| 6 | exited | ✅ | 9 | 167s | app.py, templates/base.html, templates/home.html (+2) | [65a74c4b7498.jsonl](sessions/65a74c4b7498.jsonl) |
-| 7 | exited | ❌ | 5 | 173s | __init__.py, app.py, templates/base.html (+3) | [b017a8b1dc2b.jsonl](sessions/b017a8b1dc2b.jsonl) |
-| 8 | exited | ❌ | 5 | 200s | app.py, templates/base.html, templates/home.html (+1) | [8527dc8c3d4d.jsonl](sessions/8527dc8c3d4d.jsonl) |
+| 1 | exited | ✅ | 8 | 236s | app.py, templates/base.html, templates/home.html (+1) | `03b60d2ee8b9` |
+| 2 | exited | ✅ | 7 | 305s | uv.lock, app.py, templates/base.html (+2) | `1929617fa8dd` |
+| 3 | timeout | ❌ | 12 | 947s | app.py, templates/base.html, templates/home.html (+1) | `0c4cb9e51290` |
+| 4 | exited | ✅ | 9 | 195s | app.py, templates/base.html, templates/home.html (+2) | `44a9f34c51a5` |
+| 5 | timeout | ❌ | 6 | 913s | app.py, models.py, templates/base.html (+3) | `c2d816c525ac` |
+| 6 | exited | ✅ | 9 | 167s | app.py, templates/base.html, templates/home.html (+2) | `65a74c4b7498` |
+| 7 | exited | ❌ | 5 | 173s | __init__.py, app.py, templates/base.html (+3) | `b017a8b1dc2b` |
+| 8 | exited | ❌ | 5 | 200s | app.py, templates/base.html, templates/home.html (+1) | `8527dc8c3d4d` |
+
+*Session transcripts are retained locally at `research/sessions/<id>.jsonl` and are not published — see [artifact retention](../../superpowers/policies/evidence.md#artifact-retention).*
 
 ## Subagent delegation metrics
 

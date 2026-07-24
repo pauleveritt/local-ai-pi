@@ -19,14 +19,16 @@ post-repair reports that replace this one.
 
 | # | Outcome | Success | Turns | Wall Time | Changed Files | Artifact |
 |---|---------|---------|-------|-----------|---------------|----------|
-| 1 | exited | ✅ | 9 | 860s | app.py, models.py, templates/base.html (+4) | [947ed30c636b.jsonl](sessions/947ed30c636b.jsonl) |
-| 2 | timeout | ❌ | 22 | 1396s | uv.lock, __init__.py, app.py (+7) | [11c78d4956d1.jsonl](sessions/11c78d4956d1.jsonl) |
-| 3 | exited | ✅ | 7 | 508s | app.py, models.py, templates/base.html (+4) | [9e7cddfeaed6.jsonl](sessions/9e7cddfeaed6.jsonl) |
-| 4 | exited | ❌ | 5 | 157s | app.py, templates/base.html, templates/home.html (+1) | [9fb6c2a64b64.jsonl](sessions/9fb6c2a64b64.jsonl) |
-| 5 | exited | ❌ | 13 | 334s | app.py, templates/base.html, templates/home.html (+1) | [1d4fb2e033b0.jsonl](sessions/1d4fb2e033b0.jsonl) |
-| 6 | exited | ✅ | 9 | 542s | app.py, models.py, templates/base.html (+4) | [b206d889c1e8.jsonl](sessions/b206d889c1e8.jsonl) |
-| 7 | exited | ❌ | 9 | 778s | uv.lock, app.py, models.py (+5) | [c40312831cbf.jsonl](sessions/c40312831cbf.jsonl) |
-| 8 | exited | ❌ | 5 | 205s | __init__.py, app.py, templates/base.html (+2) | [e3f2039e3fd4.jsonl](sessions/e3f2039e3fd4.jsonl) |
+| 1 | exited | ✅ | 9 | 860s | app.py, models.py, templates/base.html (+4) | `947ed30c636b` |
+| 2 | timeout | ❌ | 22 | 1396s | uv.lock, __init__.py, app.py (+7) | `11c78d4956d1` |
+| 3 | exited | ✅ | 7 | 508s | app.py, models.py, templates/base.html (+4) | `9e7cddfeaed6` |
+| 4 | exited | ❌ | 5 | 157s | app.py, templates/base.html, templates/home.html (+1) | `9fb6c2a64b64` |
+| 5 | exited | ❌ | 13 | 334s | app.py, templates/base.html, templates/home.html (+1) | `1d4fb2e033b0` |
+| 6 | exited | ✅ | 9 | 542s | app.py, models.py, templates/base.html (+4) | `b206d889c1e8` |
+| 7 | exited | ❌ | 9 | 778s | uv.lock, app.py, models.py (+5) | `c40312831cbf` |
+| 8 | exited | ❌ | 5 | 205s | __init__.py, app.py, templates/base.html (+2) | `e3f2039e3fd4` |
+
+*Session transcripts are retained locally at `research/sessions/<id>.jsonl` and are not published — see [artifact retention](../../superpowers/policies/evidence.md#artifact-retention).*
 
 ## Subagent delegation metrics
 

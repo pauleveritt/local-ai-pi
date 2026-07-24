@@ -133,5 +133,7 @@ before drift detection lands, Chapter 1's primary metric is lost.
 
 ```{toctree}
 :hidden:
+terminal-validation/spec
+terminal-validation/plan
 
 ```

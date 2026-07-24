@@ -21,14 +21,16 @@ baseline. Superseded by the seeded phase-2 reports.
 
 | # | Outcome | Success | Turns | Wall Time | Changed Files | Artifact |
 |---|---------|---------|-------|-----------|---------------|----------|
-| 1 | exited | ❌ | 16 | 139s | app.py, models.py, templates/base.html (+2) | [190e436e3787.jsonl](sessions/190e436e3787.jsonl) |
-| 2 | exited | ❌ | 13 | 107s | app.py, models.py, templates/base.html (+2) | [34941389a337.jsonl](sessions/34941389a337.jsonl) |
-| 3 | exited | ❌ | 9 | 63s | app.py, models.py, templates/base.html (+2) | [686faff788f2.jsonl](sessions/686faff788f2.jsonl) |
-| 4 | exited | ❌ | 10 | 68s | app.py, models.py, templates/base.html (+2) | [46419db43a9f.jsonl](sessions/46419db43a9f.jsonl) |
-| 5 | exited | ❌ | 11 | 69s | app.py, models.py, templates/base.html (+2) | [4ef829bc0a4a.jsonl](sessions/4ef829bc0a4a.jsonl) |
-| 6 | exited | ❌ | 10 | 92s | app.py, models.py, templates/base.html (+2) | [0dbacb285f03.jsonl](sessions/0dbacb285f03.jsonl) |
-| 7 | exited | ❌ | 8 | 63s | app.py, models.py, templates/base.html (+2) | [4a9913015eee.jsonl](sessions/4a9913015eee.jsonl) |
-| 8 | exited | ❌ | 11 | 92s | app.py, models.py, templates/base.html (+2) | [de059e8b9351.jsonl](sessions/de059e8b9351.jsonl) |
+| 1 | exited | ❌ | 16 | 139s | app.py, models.py, templates/base.html (+2) | `190e436e3787` |
+| 2 | exited | ❌ | 13 | 107s | app.py, models.py, templates/base.html (+2) | `34941389a337` |
+| 3 | exited | ❌ | 9 | 63s | app.py, models.py, templates/base.html (+2) | `686faff788f2` |
+| 4 | exited | ❌ | 10 | 68s | app.py, models.py, templates/base.html (+2) | `46419db43a9f` |
+| 5 | exited | ❌ | 11 | 69s | app.py, models.py, templates/base.html (+2) | `4ef829bc0a4a` |
+| 6 | exited | ❌ | 10 | 92s | app.py, models.py, templates/base.html (+2) | `0dbacb285f03` |
+| 7 | exited | ❌ | 8 | 63s | app.py, models.py, templates/base.html (+2) | `4a9913015eee` |
+| 8 | exited | ❌ | 11 | 92s | app.py, models.py, templates/base.html (+2) | `de059e8b9351` |
+
+*Session transcripts are retained locally at `research/sessions/<id>.jsonl` and are not published — see [artifact retention](../../superpowers/policies/evidence.md#artifact-retention).*
 
 ## Subagent delegation metrics
 

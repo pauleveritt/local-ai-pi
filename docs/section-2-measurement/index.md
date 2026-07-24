@@ -20,4 +20,9 @@ spec
 plan
 research/2026-07-23-baseline-phase-1
 research/2026-07-24-oracle-invalid-incident
+research/2026-07-24-post-repair-sp1-phase1
+research/2026-07-24-post-repair-sp1-phase2
+research/2026-07-24-post-repair-sp1-phase2-pooled
+research/2026-07-24-selfgrade-forensics
+research/2026-07-24-write-vs-edit-experiment
 ```

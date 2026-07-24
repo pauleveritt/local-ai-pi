@@ -19,14 +19,16 @@ post-repair reports that replace this one.
 
 | # | Outcome | Success | Turns | Wall Time | Changed Files | Artifact |
 |---|---------|---------|-------|-----------|---------------|----------|
-| 1 | exited | ✅ | 5 | 243s | uv.lock, app.py, templates/base.html (+3) | [59a7953f99c2.jsonl](sessions/59a7953f99c2.jsonl) |
-| 2 | exited | ❌ | 5 | 354s | app.py, templates/base.html, templates/home.html (+1) | [2f2cd6290a07.jsonl](sessions/2f2cd6290a07.jsonl) |
-| 3 | exited | ❌ | 14 | 447s | app.py, models.py, templates/base.html (+3) | [fbb1228e0b31.jsonl](sessions/fbb1228e0b31.jsonl) |
-| 4 | exited | ✅ | 5 | 145s | app.py, templates/base.html, templates/home.html (+2) | [c5c3aaef9664.jsonl](sessions/c5c3aaef9664.jsonl) |
-| 5 | exited | ❌ | 7 | 619s | app.py, models.py, templates/base.html (+3) | [27b6a8cb533a.jsonl](sessions/27b6a8cb533a.jsonl) |
-| 6 | exited | ✅ | 5 | 166s | app.py, templates/base.html, templates/home.html (+2) | [03fbeae3549d.jsonl](sessions/03fbeae3549d.jsonl) |
-| 7 | timeout | ❌ | 9 | 1426s | app.py, models.py, templates/base.html (+4) | [2d6a552cfdcf.jsonl](sessions/2d6a552cfdcf.jsonl) |
-| 8 | timeout | ❌ | 12 | 1609s | uv.lock, app.py, models.py (+4) | [b31afcf6dc58.jsonl](sessions/b31afcf6dc58.jsonl) |
+| 1 | exited | ✅ | 5 | 243s | uv.lock, app.py, templates/base.html (+3) | `59a7953f99c2` |
+| 2 | exited | ❌ | 5 | 354s | app.py, templates/base.html, templates/home.html (+1) | `2f2cd6290a07` |
+| 3 | exited | ❌ | 14 | 447s | app.py, models.py, templates/base.html (+3) | `fbb1228e0b31` |
+| 4 | exited | ✅ | 5 | 145s | app.py, templates/base.html, templates/home.html (+2) | `c5c3aaef9664` |
+| 5 | exited | ❌ | 7 | 619s | app.py, models.py, templates/base.html (+3) | `27b6a8cb533a` |
+| 6 | exited | ✅ | 5 | 166s | app.py, templates/base.html, templates/home.html (+2) | `03fbeae3549d` |
+| 7 | timeout | ❌ | 9 | 1426s | app.py, models.py, templates/base.html (+4) | `2d6a552cfdcf` |
+| 8 | timeout | ❌ | 12 | 1609s | uv.lock, app.py, models.py (+4) | `b31afcf6dc58` |
+
+*Session transcripts are retained locally at `research/sessions/<id>.jsonl` and are not published — see [artifact retention](../../superpowers/policies/evidence.md#artifact-retention).*
 
 ## Subagent delegation metrics
 

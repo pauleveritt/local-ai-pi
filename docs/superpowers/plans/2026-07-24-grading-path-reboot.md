@@ -88,6 +88,15 @@ write-vs-edit reports, the evidence policy, Amendments 1–3 as doctrine.
 Each task ends with a **gate**. Do not start the next task until the gate
 passes. Run `uv run pytest -q` from the worktree root after each.
 
+**Standing gate on Tasks 1–4 and 7** — the tasks that touch the grading path,
+the acceptance suites, or measurement code. Per evidence policy **Rule 8**,
+their gates are not passed until a **model other than the one that wrote the
+change** has reviewed it adversarially, with findings recorded alongside the
+commit. This is not ceremony: every prior review round by a different model
+found a defect self-review had cleared, including two oracle defeats found
+hours after the hardening commit meant to close them. Tasks 5, 6, 8, and 9 are
+prose, batch execution, and bannering — exempt.
+
 ### Task 1 — Author the phase-2 and phase-3 acceptance suites (HUMAN)
 
 The unblocker. `examples/acceptance/phase-{2,3}/test_acceptance.py` are

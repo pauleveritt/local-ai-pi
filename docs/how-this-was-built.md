@@ -102,6 +102,11 @@ amendment written by the same assistant a few hours before, and several of the
 fabricated metrics catalogued in this project were produced by its own
 automation and passed its own checks.
 
+This is now a rule rather than an observation: evidence policy
+[Rule 8](superpowers/policies/evidence.md#rules) requires cross-model review
+before any gate on the grading path, the acceptance suites, or measurement
+code can pass.
+
 The durable finding: **self-review is not a substitute for review by a
 different model, and an author's confidence carries no information about
 whether the work is correct.** Where a claim mattered, it was verified by

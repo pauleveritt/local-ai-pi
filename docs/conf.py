@@ -23,6 +23,11 @@ myst_enable_extensions = [
     "tasklist",
 ]
 
+# Generate anchors for h1-h3 so cross-file links can target a section
+# (e.g. policies/evidence.md#artifact-retention). Without this, a
+# path#fragment link silently resolves to the document and drops the anchor.
+myst_heading_anchors = 3
+
 pygments_style = "sphinx"
 pygments_dark_style = "monokai"
 

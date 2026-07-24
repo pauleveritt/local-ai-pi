@@ -10,10 +10,12 @@
 
 | # | Outcome | Success | Turns | Wall Time | Changed Files | Artifact |
 |---|---------|---------|-------|-----------|---------------|----------|
-| 1 | exited | ✅ | 6 | 36s | app.py, templates/base.html, templates/home.html (+1) | [36c9ba2307c0.jsonl](sessions/36c9ba2307c0.jsonl) |
-| 2 | exited | ✅ | 9 | 47s | app.py, templates/base.html, templates/home.html (+1) | [ff6bd301caea.jsonl](sessions/ff6bd301caea.jsonl) |
-| 3 | exited | ✅ | 9 | 46s | app.py, templates/base.html, templates/home.html (+1) | [18f6ba307774.jsonl](sessions/18f6ba307774.jsonl) |
-| 4 | exited | ✅ | 6 | 43s | app.py, templates/base.html, templates/home.html (+1) | [70ba2af68613.jsonl](sessions/70ba2af68613.jsonl) |
+| 1 | exited | ✅ | 6 | 36s | app.py, templates/base.html, templates/home.html (+1) | `36c9ba2307c0` |
+| 2 | exited | ✅ | 9 | 47s | app.py, templates/base.html, templates/home.html (+1) | `ff6bd301caea` |
+| 3 | exited | ✅ | 9 | 46s | app.py, templates/base.html, templates/home.html (+1) | `18f6ba307774` |
+| 4 | exited | ✅ | 6 | 43s | app.py, templates/base.html, templates/home.html (+1) | `70ba2af68613` |
+
+*Session transcripts are retained locally at `research/sessions/<id>.jsonl` and are not published — see [artifact retention](../../superpowers/policies/evidence.md#artifact-retention).*
 
 ## Subagent delegation metrics
 

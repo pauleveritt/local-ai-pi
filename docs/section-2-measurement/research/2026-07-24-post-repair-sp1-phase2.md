@@ -12,10 +12,12 @@
 
 | # | Outcome | Success | Turns | Wall Time | Changed Files | Artifact |
 |---|---------|---------|-------|-----------|---------------|----------|
-| 1 | exited | ✅ | 8 | 42s | app.py, tests/test_app.py, models.py (+1) | [f638e3d0088a.jsonl](sessions/f638e3d0088a.jsonl) |
-| 2 | exited | ❌ | 11 | 49s | app.py, templates/base.html, tests/test_app.py (+2) | [aa7a0ac8980b.jsonl](sessions/aa7a0ac8980b.jsonl) |
-| 3 | exited | ✅ | 10 | 59s | app.py, tests/test_app.py, models.py (+1) | [5d6c176ddda3.jsonl](sessions/5d6c176ddda3.jsonl) |
-| 4 | exited | ❌ | 11 | 91s | app.py, tests/test_app.py, models.py (+1) | [c1acd1f2b533.jsonl](sessions/c1acd1f2b533.jsonl) |
+| 1 | exited | ✅ | 8 | 42s | app.py, tests/test_app.py, models.py (+1) | `f638e3d0088a` |
+| 2 | exited | ❌ | 11 | 49s | app.py, templates/base.html, tests/test_app.py (+2) | `aa7a0ac8980b` |
+| 3 | exited | ✅ | 10 | 59s | app.py, tests/test_app.py, models.py (+1) | `5d6c176ddda3` |
+| 4 | exited | ❌ | 11 | 91s | app.py, tests/test_app.py, models.py (+1) | `c1acd1f2b533` |
+
+*Session transcripts are retained locally at `research/sessions/<id>.jsonl` and are not published — see [artifact retention](../../superpowers/policies/evidence.md#artifact-retention).*
 
 ## Subagent delegation metrics
 

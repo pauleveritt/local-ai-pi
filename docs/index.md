@@ -66,4 +66,6 @@ superpowers/roadmap
 superpowers/specs/2026-07-23-course-design
 superpowers/policies/evidence
 superpowers/policies/chapter-structure
+superpowers/plans/2026-07-24-grading-path-reboot
+superpowers/plans/2026-07-24-oracle-repair
 ```

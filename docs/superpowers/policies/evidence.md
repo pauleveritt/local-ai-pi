@@ -53,6 +53,54 @@ Borrowed from the prior work's evidence ledger. Every number carries a tier.
 
    Success rate may be reported as context, always with its interval.
 
+8. **A gate is not passed until a different model has tried to break it.**
+   Every adversarial review round in this project's history was run by a
+   different model than the one that produced the work, and every round found
+   a defect the author had missed and self-review had cleared: a guardrail
+   wired to an event that structurally could not observe its own target
+   failure; a path-traversal bypass; a guard that blocked the project's own
+   test command; and two live oracle defeats found hours after the hardening
+   commit that was supposed to close them. The reverse holds too — a forensic
+   replay overturned an amendment written the same day by the same assistant.
+
+   Therefore: for any change to the **grading path, the acceptance suites, or
+   the harness's measurement code**, the task's gate requires a review by a
+   model other than the one that wrote it, and the review's findings are
+   recorded with the change. Chapter prose and reports are exempt; what grades
+   models is not.
+
+   The reason this is a rule and not advice: **an author's confidence carries
+   no information about whether the work is correct.** Every defect above was
+   committed by an author who believed the work was done. Self-review cannot
+   be the last step, because the thing being reviewed is the reviewer.
+
+(artifact-retention)=
+
+## Artifact retention
+
+Reports name the session that produced each row — `` `e2e126110318` `` — but do
+**not** link the transcript, because transcripts are not published.
+
+They are written to `docs/section-*/research/sessions/<id>.jsonl` and are
+gitignored. That is deliberate: a single delegating run has exceeded 60 MB, and
+a batch of sixteen routinely exceeds the practical size of a GitHub Pages
+deployment. Linking them anyway produced 40 dead download links on the live
+site — the failure this note exists to prevent, found 2026-07-24.
+
+Consequences, which a reader is owed plainly:
+
+- A published report is **checkable in structure but not re-derivable from
+  source** by a reader. The counts, the changed-file sets, and the verdicts are
+  what is published; the raw transcript stays with whoever ran the batch.
+- The fix is a **distilled per-run artifact** — the tool-call sequence and the
+  verdict, a few KB — small enough to commit and publish. That derivation is
+  owed by [reboot Task 7](../plans/2026-07-24-grading-path-reboot.md); until it
+  ships, reports cite IDs as plain text.
+- Transcripts backing a **withdrawn** batch may be deleted to reclaim disk, but
+  only after confirming no surviving report's finding was replay-derived from
+  them, and only with an inventory record. See the
+  [SP2 deletion record](../../section-3-sdd/research/2026-07-24-sp2-session-deletion-record.md).
+
 ## Measurement doctrine
 
 The rules above govern what may be *claimed*. These four govern how a batch is
