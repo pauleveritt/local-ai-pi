@@ -13,7 +13,12 @@ it made preservation breakage nearly unmeasurable.
 ## Rules
 
 1. **Human-authored.** This is the one artifact in the project that should not be
-   written by a model, because it is what grades models. Do not delegate it.
+   written by a model, because it is what grades models. Do not delegate it —
+   and note that "a model drafts it, a human reviews it" does **not** satisfy
+   this rule. Reviewing plausible assertion code is not the same act as
+   deciding what the contract is; it converts the judgment that is the
+   deliverable into a rubber stamp. This happened on 2026-07-24 and the work
+   was discarded (see [`WORKLOAD-FACTS.md`](WORKLOAD-FACTS.md)).
 2. **Cumulative.** `phase-<N>/test_acceptance.py` asserts the contract for
    phases 1 through N. Phase 2's suite must still check the Phase 1 tagline.
 3. **Contract, not implementation.** Assert user-visible behavior and the exact
@@ -32,7 +37,7 @@ it made preservation breakage nearly unmeasurable.
 |-------|------|-------|
 | 1 | `phase-1/test_acceptance.py` | Authored — worked example |
 | 2 | `phase-2/test_acceptance.py` | **Skeleton — needs authoring** |
-| 3 | `phase-3/test_acceptance.py` | **Skeleton — needs authoring** |
+| 3 | `phase-3/test_acceptance.py` | **Skeleton — needs authoring**, and blocked: no `examples/reference/phase-3/` exists, so it cannot be validated in either direction until that fixture is written |
 
 Each skeleton carries the contract checklist extracted from
 `examples/agentclinic/specs/roadmap.md`. Fill in the assertions; delete the

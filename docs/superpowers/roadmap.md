@@ -24,14 +24,31 @@ a later phase is not queued just because an earlier one landed.
 > **Why you and not a model** (doctrine [D3](policies/evidence.md)): the
 > acceptance suite is the one artifact that must not be model-written, because
 > it is what grades models. Under [Rule 8](policies/evidence.md) a different
-> model then reviews it adversarially — human-authored, model-attacked.
+> model then reviews it adversarially — human-authored, model-attacked. On
+> 2026-07-24 a briefing handed this task to a model; that work was discarded
+> and the guards restored. A human reviewing a model-written suite is not the
+> same thing and does not satisfy D3.
 >
-> **Read first:** [`policies/evidence.md`](policies/evidence.md) — rules and
-> doctrine, the single authoritative statement.
+> **Read first**, in the worktree, and confirm it contains "Measurement
+> doctrine" and "Rule 8" before acting: [`policies/evidence.md`](policies/evidence.md).
+> The copy on `main` is 34 lines and predates both — reading it instead is how
+> you end up violating a rule you never saw. Then
+> `examples/acceptance/WORKLOAD-FACTS.md` (in the repo, outside the docs tree)
+> for the workload's mechanical traps.
 >
-> **Done when:** `uv run pytest tests/test_oracle.py -q` reports **zero skips**.
+> **Two prerequisites** the earlier gate missed: `examples/reference/phase-3/`
+> does not exist, so the phase-3 suite cannot be validated at all (author it
+> first — it is application code, not a grader, so it may be delegated); and
+> the non-vacuity fixture blanks `app.py` for every phase, which for phase 2
+> only trips the *phase-1* checks and would clear a phase-2 suite full of
+> `assert True`. Both are detailed in
+> [Task 1 of the plan](plans/2026-07-24-grading-path-reboot.md).
 >
-> **Where:** the `oracle-repair` worktree (27 commits ahead of `main`, tree
+> **Done when:** with per-phase broken fixtures in place,
+> `uv run pytest tests/test_oracle.py -q` reports **zero skips and zero
+> failures**, followed by the Rule 8 review.
+>
+> **Where:** the `oracle-repair` worktree (28 commits ahead of `main`, tree
 > clean). Everything below happens there; nothing has been merged.
 
 A deep review (Fable, 2026-07-24) found five further integrity failures, two of

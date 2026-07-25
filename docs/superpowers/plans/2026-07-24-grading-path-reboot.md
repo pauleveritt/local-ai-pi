@@ -104,11 +104,49 @@ skeletons carrying the contract checklist extracted from the roadmap; the
 preservation checks are already written. Author the contract assertions and
 delete each `test_suite_is_authored` guard.
 
-Per Amendment 3 rule 5 this is human work by design: the acceptance suite is
-the one artifact that must not be model-written, because it is what grades
-models.
+Per Amendment 3 rule 5 — doctrine **D3** — this is human work by design: the
+acceptance suite is the one artifact that must not be model-written, because it
+is what grades models. Read `examples/acceptance/WORKLOAD-FACTS.md` (in the
+repo, outside the docs tree) first; it records mechanical properties of the
+workload — escaping, import paths, mutable seed state — without pre-empting any
+judgment call.
 
-**Gate:** `uv run pytest tests/test_oracle.py -q` reports **zero skips**.
+> **Incident, 2026-07-24.** A briefing handed this task to a model, which
+> authored both suites. The work was discarded unmerged and the guards
+> restored. It is recorded because the failure is instructive: the brief cited
+> D3 and then instructed the agent to author anyway, and "a human reviews the
+> model's suite afterwards" is not a substitute — it converts the judgment that
+> *is* the deliverable into a rubber stamp on plausible code. The facts worth
+> keeping were harvested into `WORKLOAD-FACTS.md`; the judgment calls were
+> deliberately not.
+
+**Three prerequisites the original gate missed**, all found 2026-07-24:
+
+1. **`examples/reference/phase-3/` does not exist.** Both phase-3 oracle tests
+   skip on `no reference solution for phase 3`, so the phase-3 suite cannot be
+   validated in either direction. Author it before the phase-3 suite. A
+   reference solution is spec-compliant *application* code, not a grader — D3
+   does not apply and it may be delegated, provided the human-authored suite is
+   what later judges it. Model it on `examples/reference/phase-2/`.
+
+2. **The non-vacuity fixture is too weak to prove anything about phases 2–3.**
+   `test_acceptance_suite_rejects_broken_solution` blanks `app.py` for every
+   phase, removing all routes. For phase 2 that trips the *phase-1*
+   preservation checks, so the test passes whether or not the phase-2
+   assertions have teeth — a phase-2 suite whose contract assertions were all
+   `assert True` would still clear the gate. Replace with a per-phase break
+   that violates only that phase's own contract (phase 2: home route intact,
+   `/complaints` removed; phase 3: GET intact, POST returning 200 instead of
+   303). This is harness measurement code, so **Rule 8 applies** — it needs
+   adversarial review by a different model.
+
+3. **"Zero skips" is unreachable until (1) lands**, which is why the gate below
+   now names both conditions explicitly.
+
+**Gate:** with the per-phase broken fixtures from (2) in place,
+`uv run pytest tests/test_oracle.py -q` reports **zero skips and zero
+failures** — currently 6 passed, 4 skipped. Then the Rule 8 review of the
+suites, findings recorded with the commit.
 
 ### Task 2 — Rebuild the grading path (closes F1, F2)
 
