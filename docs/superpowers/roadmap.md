@@ -36,20 +36,24 @@ a later phase is not queued just because an earlier one landed.
 > `examples/acceptance/WORKLOAD-FACTS.md` (in the repo, outside the docs tree)
 > for the workload's mechanical traps.
 >
-> **Two prerequisites** the earlier gate missed: `examples/reference/phase-3/`
-> does not exist, so the phase-3 suite cannot be validated at all (author it
-> first — it is application code, not a grader, so it may be delegated); and
-> the non-vacuity fixture blanks `app.py` for every phase, which for phase 2
-> only trips the *phase-1* checks and would clear a phase-2 suite full of
-> `assert True`. Both are detailed in
+> **Two prerequisites come first, and both are delegable.** (a)
+> `examples/reference/phase-3/` does not exist, so the phase-3 suite cannot be
+> validated at all — it is application code, not a grader. (b) The non-vacuity
+> fixture blanks `app.py` for every phase, which for phase 2 only trips the
+> *phase-1* checks and would clear a phase-2 suite full of `assert True`;
+> authoring before it is fixed means every verification run reports green from
+> a gate known to be vacuous. Fix it, get it Rule 8 reviewed, **then** author.
+> Both are detailed in
 > [Task 1 of the plan](plans/2026-07-24-grading-path-reboot.md).
 >
-> **Done when:** with per-phase broken fixtures in place,
+> **Done when:** with the break matrix in place,
 > `uv run pytest tests/test_oracle.py -q` reports **zero skips and zero
-> failures**, followed by the Rule 8 review.
+> failures**, `uv run pytest -q` is fully green, and both Rule 8 reviews are
+> recorded — the fixture's before authoring starts, the suites' after.
 >
-> **Where:** the `oracle-repair` worktree (28 commits ahead of `main`, tree
-> clean). Everything below happens there; nothing has been merged.
+> **Where:** the `oracle-repair` worktree, unmerged — everything below happens
+> there. Check how far ahead with `git rev-list --count main..`; a number
+> written into a doc goes stale the next commit.
 
 A deep review (Fable, 2026-07-24) found five further integrity failures, two of
 which **defeat the hardened oracle** (a model-written `pytest.ini` with

@@ -120,33 +120,70 @@ judgment call.
 > keeping were harvested into `WORKLOAD-FACTS.md`; the judgment calls were
 > deliberately not.
 
-**Three prerequisites the original gate missed**, all found 2026-07-24:
+**Two prerequisites, both delegable, both to land BEFORE the human authors.**
+Found 2026-07-24; ordering corrected 2026-07-25 after cross-model review
+(Rule 8) of the task briefing.
 
-1. **`examples/reference/phase-3/` does not exist.** Both phase-3 oracle tests
-   skip on `no reference solution for phase 3`, so the phase-3 suite cannot be
-   validated in either direction. Author it before the phase-3 suite. A
-   reference solution is spec-compliant *application* code, not a grader — D3
-   does not apply and it may be delegated, provided the human-authored suite is
-   what later judges it. Model it on `examples/reference/phase-2/`.
+**1a. `examples/reference/phase-3/` does not exist**, so the phase-3 suite
+cannot be validated in either direction. A reference solution is spec-compliant
+*application* code, not a grader — D3 does not apply and it may be delegated,
+provided the human-authored suite is what later judges it. Model it on
+`examples/reference/phase-2/`, which **includes a roadmap-mandated
+`tests/test_app.py`**: the prohibition is on pytest *configuration*
+(`conftest.py`, `pytest.ini`, `tox.ini`, `setup.cfg`), not on the smoke test the
+roadmap dictates. Write it from the roadmap without opening the phase-3
+acceptance skeleton.
 
-2. **The non-vacuity fixture is too weak to prove anything about phases 2–3.**
-   `test_acceptance_suite_rejects_broken_solution` blanks `app.py` for every
-   phase, removing all routes. For phase 2 that trips the *phase-1*
-   preservation checks, so the test passes whether or not the phase-2
-   assertions have teeth — a phase-2 suite whose contract assertions were all
-   `assert True` would still clear the gate. Replace with a per-phase break
-   that violates only that phase's own contract (phase 2: home route intact,
-   `/complaints` removed; phase 3: GET intact, POST returning 200 instead of
-   303). This is harness measurement code, so **Rule 8 applies** — it needs
-   adversarial review by a different model.
+*Note on the observable:* the four current skips all read `unauthored
+skeleton`, not `no reference solution` — the authored-check precedes the
+reference-check (`tests/test_oracle.py:130-134`). Landing the reference
+therefore produces **no change** in oracle output until a suite is authored.
+Expect that.
 
-3. **"Zero skips" is unreachable until (1) lands**, which is why the gate below
-   now names both conditions explicitly.
+**1b. The non-vacuity fixture is too weak to prove anything about phases 2–3.**
+`test_acceptance_suite_rejects_broken_solution` blanks `app.py` for every
+phase, removing all routes. For phase 2 that trips the *phase-1* preservation
+checks, so the test passes whether or not the phase-2 assertions have teeth — a
+phase-2 suite whose contract assertions were all `assert True` would clear the
+gate today.
 
-**Gate:** with the per-phase broken fixtures from (2) in place,
-`uv run pytest tests/test_oracle.py -q` reports **zero skips and zero
-failures** — currently 6 passed, 4 skipped. Then the Rule 8 review of the
-suites, findings recorded with the commit.
+**Augment; do not replace.** The blank-app break was a crude proxy for a real
+direction — that a cumulative suite's *earlier-phase* checks still fire —
+and dropping it loses that silently. Nothing else gates the preservation
+checks; "do not delete them" is an instruction, not a test, and a check can be
+neutered by edit as easily as by deletion. The property to establish for suite
+N is: **for each k ≤ N, the suite fails a solution violating only phase k.**
+Parametrize `(suite_phase, broken_phase)` over every `broken_phase <=
+suite_phase`. Isolated breaks available today:
+
+- **phase 1** — tagline removed from `home.html`, routes intact.
+- **phase 2** — the `Scope creep never ends.` seed removed from `models.py`, or
+  the `/complaints` route dropped. Either leaves phase-1 preservation green,
+  since `href="/complaints"` lives in `base.html` markup.
+- **phase 3** — POST returns 200 instead of 303, **while still appending the
+  complaint and still rendering the form**. The append clause is load-bearing:
+  without it a suite that omitted the 303 assertion still fails on the append
+  check, and the gate cannot see the missing tooth. This break doubles as a
+  `follow_redirects` trap detector (`lessons.md` #13) — a suite that asserts a
+  final 200 passes the broken fixture and is caught.
+
+This is harness measurement code, so **Rule 8 applies**: adversarial review by
+a fresh session on a different model, and it must complete **before the human
+starts authoring**. Validate the fixture against the already-authored phase-1
+suite and reference.
+
+**Why the fixture goes first.** If the human authors while 1b is outstanding,
+every verification run reports green from the exact gate this plan diagnoses as
+vacuous, and teeth defects surface only after the suite is believed finished.
+There is no dependency forcing the other order.
+
+**Gate:** with the break matrix from 1b in place, `uv run pytest
+tests/test_oracle.py -q` reports **zero skips and zero failures** (currently 6
+passed, 4 skipped), and `uv run pytest -q` is fully green (expect ~55 passed,
+0 skipped; currently 51 passed, 4 skipped). Plus **both** Rule 8 reviews
+recorded with their commits — the fixture review before authoring begins, the
+suite review after. Neither may be performed by a model that sat in the
+authoring loop.
 
 ### Task 2 — Rebuild the grading path (closes F1, F2)
 
