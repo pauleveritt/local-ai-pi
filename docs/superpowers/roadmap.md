@@ -241,6 +241,22 @@ neighbor shipped:
   satisfied). Trigger: a run that satisfies the executed-count floor while
   still leaving the contract unenforced.
 
+- **Replace the acceptance-suite HTML text-extraction with a real parser.**
+  — ✅ **shipped** (oracle-repair worktree, 2026-07-26). The stdlib
+  `html.parser`-based `_RenderedTextParser` — which did not implement HTML5's
+  optional-tag auto-closing rules, so an unclosed `<p>` before a block sibling
+  (valid, browser-renders-identically markup) could be misjudged — is removed
+  from both
+  [`examples/acceptance/phase-2/test_acceptance.py`](../../examples/acceptance/phase-2/test_acceptance.py)
+  and
+  [`examples/acceptance/phase-3/test_acceptance.py`](../../examples/acceptance/phase-3/test_acceptance.py),
+  replaced by [TurboHTML](https://turbohtml.readthedocs.io/en/stable/)
+  (`turbohtml==1.5.0`), a WHATWG-spec-compliant parser with CSS-selector
+  querying. Kept out of the model-visible workspace stamp per D4 — it reaches
+  the grader only via `harness/acceptance.py`'s `uv run --no-cache --with
+  turbohtml==1.5.0 ...`, pinned by
+  `tests/test_session.py::test_acceptance_command_uses_ephemeral_turbohtml_only`.
+
 - **The long tail: where the model needs help at generation time.** The
   mechanisms in Section 4 are a floor — they make specific failures
   structurally impossible. They do not make the model *good*. Expect a

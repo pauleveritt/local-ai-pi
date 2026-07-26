@@ -7,12 +7,17 @@ Assert user-visible behavior and exact literals. Do not assert on internal
 function names or file layout — a correct-but-different solution must pass.
 """
 from starlette.testclient import TestClient
+from turbohtml import Doctype, parse
 
 from app import app
 
 client = TestClient(app)
 
 TAGLINE = "Come in. Sit down. Tell us about your human."
+
+
+def _normalized_text(element) -> str:
+    return " ".join(element.text.split())
 
 
 def test_home_returns_200():
@@ -29,12 +34,26 @@ def test_home_extends_the_shared_layout():
     duplicate a standalone page. Asserted through rendered output (the navbar
     brand and both nav links), not by inspecting template source."""
     body = client.get("/").text
+    document = parse(body)
+
     assert "AgentClinic" in body
-    assert 'href="/"' in body
-    assert 'href="/complaints"' in body
+    assert any(
+        link.attr("href") == "/" and _normalized_text(link).casefold() == "home"
+        for link in document.select("a")
+    )
+    assert any(
+        link.attr("href") == "/complaints"
+        and _normalized_text(link).casefold() == "complaints"
+        for link in document.select("a")
+    )
 
 
 def test_home_declares_html5_and_language():
-    body = client.get("/").text
-    assert "<!DOCTYPE html>" in body or "<!doctype html>" in body
-    assert 'lang="en"' in body
+    document = parse(client.get("/").text)
+
+    assert any(
+        isinstance(node, Doctype) and node.name.casefold() == "html"
+        for node in document.children
+    )
+    html = document.select_one("html")
+    assert html is not None and html.attr("lang").casefold() == "en"
