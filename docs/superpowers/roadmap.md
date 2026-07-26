@@ -8,52 +8,37 @@ a later phase is not queued just because an earlier one landed.
 **Current phase: GRADING-PATH REBOOT** — see
 [`plans/2026-07-24-grading-path-reboot.md`](plans/2026-07-24-grading-path-reboot.md).
 
-> ## ▶ Next action — Task 1, and it is human work
+> ## ▶ Next action — Task 8, and it needs you
 >
-> **Author the Phase 2 and Phase 3 acceptance suites.**
-> `examples/acceptance/phase-{2,3}/test_acceptance.py` are skeletons: the
-> preservation checks are written, the contract assertions are a commented
-> checklist (8 items for Phase 2, 4 for Phase 3). Author them, then delete each
-> `test_suite_is_authored` guard.
+> **Tasks 1–7 are done** (`oracle-repair` worktree, unmerged — 38 commits
+> ahead of `main` as of this writing; re-check with `git rev-list --count
+> main..`, a number written into a doc goes stale the next commit). Every
+> gate up through Task 7 is green: `uv run pytest -q` passes in full, both
+> the isolated grading path and the standing behavioral-instrumentation
+> metrics (inherited-file write attempts, replace-vs-extend, false
+> self-report) are built, tested, and Rule 8 reviewed — see the commit
+> history for each task's review record.
 >
-> **Why it blocks everything.** `tests/test_oracle.py` *skips* on a skeleton
-> suite — right now 6 passed, **4 skipped** — so phases 2 and 3, the entire
-> measurement site, are gated by nothing. No task below produces a citable
-> number until this lands.
+> **Task 8 — run the evidence chain — needs the project owner present,**
+> not because the harness can't launch the runs, but for two reasons that
+> are not delegable:
+> 1. It requires oMLX actually serving the model. The harness cannot start
+>    it.
+> 2. Amendment 2's escalation rule reserves the 13–14/16 pooled-result zone
+>    as "ambiguous, decided with the human" — some batches may land exactly
+>    there, and that decision is not one to make solo.
 >
-> **Why you and not a model** (doctrine [D3](policies/evidence.md)): the
-> acceptance suite is the one artifact that must not be model-written, because
-> it is what grades models. Under [Rule 8](policies/evidence.md) a different
-> model then reviews it adversarially — human-authored, model-attacked. On
-> 2026-07-24 a briefing handed this task to a model; that work was discarded
-> and the guards restored. A human reviewing a model-written suite is not the
-> same thing and does not satisfy D3.
+> **Read `docs/superpowers/plans/2026-07-24-grading-path-reboot.md`'s Task 8
+> section before starting a batch** — it has its own precondition, now met:
+> per-run checkpointing exists (`run_baseline(..., checkpoint_path=...)`),
+> closing the failure mode that lost three batches on 2026-07-24 (killed
+> mid-run, no way to resume). Batch sizes are n=16 unsteered, n=8 steered
+> per Amendment 2.
 >
-> **Read first**, in the worktree, and confirm it contains "Measurement
-> doctrine" and "Rule 8" before acting: [`policies/evidence.md`](policies/evidence.md).
-> The copy on `main` is 34 lines and predates both — reading it instead is how
-> you end up violating a rule you never saw. Then
-> `examples/acceptance/WORKLOAD-FACTS.md` (in the repo, outside the docs tree)
-> for the workload's mechanical traps.
->
-> **Two prerequisites come first, and both are delegable.** (a)
-> `examples/reference/phase-3/` does not exist, so the phase-3 suite cannot be
-> validated at all — it is application code, not a grader. (b) The non-vacuity
-> fixture blanks `app.py` for every phase, which for phase 2 only trips the
-> *phase-1* checks and would clear a phase-2 suite full of `assert True`;
-> authoring before it is fixed means every verification run reports green from
-> a gate known to be vacuous. Fix it, get it Rule 8 reviewed, **then** author.
-> Both are detailed in
-> [Task 1 of the plan](plans/2026-07-24-grading-path-reboot.md).
->
-> **Done when:** with the break matrix in place,
-> `uv run pytest tests/test_oracle.py -q` reports **zero skips and zero
-> failures**, `uv run pytest -q` is fully green, and both Rule 8 reviews are
-> recorded — the fixture's before authoring starts, the suites' after.
->
-> **Where:** the `oracle-repair` worktree, unmerged — everything below happens
-> there. Check how far ahead with `git rev-list --count main..`; a number
-> written into a doc goes stale the next commit.
+> **After Task 8:** Task 9's rewrite half (Sections 2–4, against the reframe
+> and final numbers) and Task 10 (consolidate entry points) are deliberately
+> last — see the plan. Task 9's *discard* half (dead chapter prose) is
+> already done.
 
 A deep review (Fable, 2026-07-24) found five further integrity failures, two of
 which **defeat the hardened oracle** (a model-written `pytest.ini` with
@@ -66,8 +51,11 @@ Consequences: **SP1 and SP2 status is withdrawn** — their chapter prose is
 discarded (it narrates the dead 0/8 arc) and their post-repair numbers are
 superseded. SP3 is **blocked** until the reboot's gates pass. Success-rate
 before/after is abandoned as a claim structure (evidence policy Rule 7). The
-strongest surviving evidence is oracle-independent: replace-vs-extend on
-inherited files was 8/8 predictive.
+strongest surviving evidence is oracle-independent: replace-vs-extend on the
+inherited **test suite specifically** was 8/8 predictive (Rule 8 review,
+2026-07-26 — Fable: the run-level any-inherited-file classification now
+standing in `harness/telemetry.py` gives 6/8 on the same sample; see that
+module's docstring for the distinction).
 
 ## Phases
 
@@ -76,7 +64,7 @@ inherited files was 8/8 predictive.
 | SP0 | Scaffold + Section I (repo skeleton, docs toolchain, roadmap, LESSONS, example spec triple, hello-world extension) | **Done** | [spec](../section-1-hello-agent/spec.md) | [plan](../section-1-hello-agent/plan.md) | — |
 | SP1 | Section II — Measurement *(harness kept; prose discarded, numbers superseded)* (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | **Done** | [spec](../section-2-measurement/spec.md) | [plan](../section-2-measurement/plan.md) | [0/8 baseline](../section-2-measurement/research/2026-07-23-baseline-phase-1.md) |
 | SP2 | Section III — SDD on Pi *(mechanism kept; prose discarded, numbers superseded)* (roadmap/packet method, parent-as-orchestrator + implementer specialist) | **Done** | [spec](../section-3-sdd/spec.md) | [plan](../section-3-sdd/plan.md) | [3/8 pre](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1.md), [5/8 post](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1-post-tuning.md), [deep-dive](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md) |
-| SPR | **Grading-path reboot** — rebuild the grader so model-controlled input cannot reach it, restore honest reporting, then re-run the evidence chain | **In progress — blocked on Task 1 (human)** | — | [plan](plans/2026-07-24-grading-path-reboot.md) | — |
+| SPR | **Grading-path reboot** — rebuild the grader so model-controlled input cannot reach it, restore honest reporting, then re-run the evidence chain | **In progress — Tasks 1–7 done, blocked on Task 8 (human + oMLX)** | — | [plan](plans/2026-07-24-grading-path-reboot.md) | — |
 | SP3 | Section IV — Keeping the SLM on track (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | **Blocked on SPR** | — | — | — |
 
 
