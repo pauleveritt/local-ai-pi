@@ -313,3 +313,98 @@ def subagent_stats_from(stream_path: str | Path) -> SubagentStats:
             # (start+end both fire for each call; we count starts only above)
             pass
     return stats
+
+
+# ---------------------------------------------------------------------------
+# Task 7 (grading-path reboot) -- standing behavioral instrumentation.
+# Amendment 2 named these as the metrics its failure-mode-incidence doctrine
+# depends on; the 2026-07-24 forensics report and write-vs-edit experiment
+# established them empirically before they existed as standing metrics here.
+# ---------------------------------------------------------------------------
+
+@dataclass
+class InheritedFileActivity:
+    """How a run touched files it inherited from a phase seed, not created
+    itself this run. write_attempts and edit_touches are disjoint -- a file
+    touched by both counts only as a write attempt (see classification)."""
+    write_attempts: list[str] = field(default_factory=list)
+    edit_touches: list[str] = field(default_factory=list)
+
+    @property
+    def classification(self) -> str:
+        """'replace' if any inherited file was targeted by a whole-file
+        `write` attempt (lessons.md #12) -- blocked or failed attempts
+        still count, since the attempt itself is the behavior this metric
+        names, not whether it succeeded. 'extend' if inherited files were
+        touched only via `edit`. 'untouched' if none were touched at all
+        (always true for an unseeded phase-1 run).
+
+        Rule 8 review, 2026-07-26 (Fable): the 2026-07-24 forensics
+        report's 8/8 correlation (every run that incrementally edited an
+        inherited file passed, every run that replaced one from scratch
+        failed) was measured on the inherited TEST SUITE specifically
+        (tests/test_app.py), not on any-inherited-file at the run level.
+        Re-running this run-level classification against the same 8
+        forensics artifacts gives 6/8, not 8/8 -- one old-oracle passer
+        (3ff54760771a) whole-file-wrote app.py while incrementally
+        editing the test suite. The per-file write_attempts/edit_touches
+        above retain what's needed to recover the test-suite-scoped
+        signal specifically; do not cite "8/8" for this run-level
+        classification."""
+        if self.write_attempts:
+            return "replace"
+        if self.edit_touches:
+            return "extend"
+        return "untouched"
+
+
+def inherited_file_activity(
+    stream_path: str | Path, inherited_files: frozenset[str],
+) -> InheritedFileActivity:
+    """Classify how a run touched files present at session start (the
+    `inherited_files` set, e.g. from harness.workspace.seed_file_paths).
+
+    A `write` tool call's args carry the target under "path" (verified
+    against real captured artifacts, 2026-07-26); same for `edit`. Only
+    tool_execution_start events are read -- sufficient to detect an
+    *attempt*, which is the metric (a blocked or failed write is still
+    evidence of the behavior the metric names)."""
+    activity = InheritedFileActivity()
+    if not inherited_files:
+        return activity
+    path = Path(stream_path)
+    if not path.exists():
+        return activity
+
+    seen_write: set[str] = set()
+    seen_edit: set[str] = set()
+    for line in path.read_text().splitlines():
+        try:
+            event = json.loads(line.strip())
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict) or event.get("type") != "tool_execution_start":
+            continue
+        tool_name = event.get("toolName")
+        if tool_name not in ("write", "edit"):
+            continue
+        args = event.get("args", {})
+        if not isinstance(args, dict):
+            continue
+        file_path = args.get("path")
+        if not isinstance(file_path, str) or file_path not in inherited_files:
+            continue
+        (seen_write if tool_name == "write" else seen_edit).add(file_path)
+
+    activity.write_attempts = sorted(seen_write)
+    activity.edit_touches = sorted(seen_edit - seen_write)
+    return activity
+
+
+def is_false_self_report(model_tests_pass: bool | None, tests_pass: bool) -> bool:
+    """The model's own suite passed (it believes/reports success) while the
+    harness's independent acceptance grade disagreed -- Amendment 2's
+    motivating incident (both Phase 2 failures ended with the model
+    asserting completion while pytest disagreed). None (not evaluated)
+    is not a false report -- there is nothing to disagree with."""
+    return bool(model_tests_pass) and not tests_pass

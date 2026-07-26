@@ -2,7 +2,7 @@
 import subprocess
 from pathlib import Path
 
-from harness.workspace import prepare_workspace, capture_diff
+from harness.workspace import prepare_workspace, capture_diff, seed_file_paths
 
 
 def test_prepare_workspace_returns_path_and_hash(app_source: Path):
@@ -160,3 +160,20 @@ def test_capture_diff_detects_seed_hash_mismatch_independent_of_git(app_source: 
     finally:
         import shutil
         shutil.rmtree(ws_path.parent, ignore_errors=True)
+
+
+def test_seed_file_paths_returns_relative_paths(tmp_path: Path):
+    seed_dir = tmp_path / "seed"
+    (seed_dir / "templates").mkdir(parents=True)
+    (seed_dir / "app.py").write_text("# app\n")
+    (seed_dir / "templates" / "base.html").write_text("<html></html>\n")
+
+    paths = seed_file_paths(seed_dir)
+
+    assert paths == frozenset({"app.py", "templates/base.html"})
+
+
+def test_seed_file_paths_empty_dir(tmp_path: Path):
+    seed_dir = tmp_path / "empty_seed"
+    seed_dir.mkdir()
+    assert seed_file_paths(seed_dir) == frozenset()

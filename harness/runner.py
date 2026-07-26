@@ -1,5 +1,7 @@
 # harness/runner.py
 """n=4 baseline loop, aggregation, and report generation."""
+import dataclasses
+import json
 import shutil
 import statistics
 import subprocess
@@ -9,6 +11,7 @@ from pathlib import Path
 
 from harness.session import InvocationProfile, SessionResult, run_session
 from harness.telemetry import (
+    RunTelemetry, ToolCall,
     detect_overreach, detect_validation_drift, subagent_stats_from,
 )
 from harness.workspace import prepare_workspace
@@ -32,6 +35,56 @@ def _pi_version() -> str | None:
         return proc.stdout.strip() or None
     except Exception:
         return None
+
+
+# ---------------------------------------------------------------------------
+# Batch durability (Task 8 precondition, grading-path reboot plan). Three
+# batches were lost mid-run on 2026-07-24 (killed at run 8/16, between arms,
+# and at run 1) because run_baseline only wrote its report after every run
+# completed. The artifacts already survive a kill; the aggregation did not.
+# Checkpointing to a JSONL file, one line per completed run, closes that --
+# a killed batch resumes from its last completed run instead of restarting.
+# ---------------------------------------------------------------------------
+
+def _append_checkpoint(path: Path, result: SessionResult) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a") as f:
+        f.write(json.dumps(dataclasses.asdict(result)) + "\n")
+
+
+def _load_checkpoint(path: Path) -> list[SessionResult]:
+    """Reconstruct already-completed SessionResults from a checkpoint file.
+    Returns [] if the file doesn't exist -- a fresh batch, not an error.
+
+    A process killed mid-write (the exact scenario this mechanism exists
+    for) can leave a truncated final line. That must not crash the resume
+    it exists to enable -- the whole point is recovering from a kill, not
+    failing louder at the recovery step (Rule 8 review, 2026-07-26 --
+    Fable). A truncated line means that run never finished, so dropping it
+    is the correct semantics: it gets re-run. A malformed line that is NOT
+    the last one indicates something is wrong with the checkpoint file
+    itself, not just an in-flight write -- that still raises."""
+    if not path.is_file():
+        return []
+    lines = [line.strip() for line in path.read_text().splitlines() if line.strip()]
+    results: list[SessionResult] = []
+    for i, line in enumerate(lines):
+        try:
+            data = json.loads(line)
+        except json.JSONDecodeError:
+            if i == len(lines) - 1:
+                print(f"  checkpoint: dropping truncated final line in {path} "
+                      f"(that run did not finish; it will be re-run)")
+                break
+            raise
+        telemetry_data = data.pop("telemetry")
+        telemetry = RunTelemetry(
+            prompts=telemetry_data.get("prompts", []),
+            tool_calls=[ToolCall(**tc) for tc in telemetry_data.get("tool_calls", [])],
+            turns=telemetry_data.get("turns", 0),
+        )
+        results.append(SessionResult(telemetry=telemetry, **data))
+    return results
 
 
 @dataclass
@@ -118,6 +171,38 @@ class BaselineReport:
                    if (detect_overreach(r.changed_files, pn)
                        or detect_validation_drift(r.artifact_path)))
 
+    # -- Task 7: standing behavioral instrumentation (Amendment 2) --------
+
+    @property
+    def inherited_write_attempt_count(self) -> int:
+        """Runs where the model attempted a whole-file `write` on at least
+        one file it inherited from the phase seed (always 0 for an
+        unseeded phase-1 batch)."""
+        return sum(1 for r in self.results if r.inherited_write_attempts)
+
+    @property
+    def shared_file_replace_count(self) -> int:
+        """Runs classified 'replace' -- an inherited file was targeted by a
+        whole-file `write` attempt, blocked or not. See
+        InheritedFileActivity.classification for the scope of the
+        2026-07-24 forensics report's 8/8 correlation, which was measured
+        on the inherited test suite specifically, not this run-level any-
+        inherited-file classification (Rule 8 review, 2026-07-26)."""
+        return sum(1 for r in self.results if r.shared_file_classification == "replace")
+
+    @property
+    def shared_file_extend_count(self) -> int:
+        """Runs classified 'extend' -- inherited files were touched only
+        via incremental `edit`, never whole-file `write`."""
+        return sum(1 for r in self.results if r.shared_file_classification == "extend")
+
+    @property
+    def false_self_report_count(self) -> int:
+        """Runs where the model's own suite passed but the harness's
+        independent acceptance grade disagreed (Amendment 2's motivating
+        incident)."""
+        return sum(1 for r in self.results if r.false_self_report)
+
 
 def run_baseline(
     phase_prompt: str,
@@ -130,6 +215,7 @@ def run_baseline(
     research_dir: Path | None = None,
     seed: str | Path | None = None,
     acceptance_suite: str | Path | None = None,
+    checkpoint_path: str | Path | None = None,
 ) -> BaselineReport:
     """Run n independent sessions against one phase, return aggregated report.
 
@@ -139,14 +225,41 @@ def run_baseline(
 
     phase_name is used in the report heading. If None, attempts to extract
     from the prompt text (first ## Phase line).
+
+    checkpoint_path, when given, persists each completed SessionResult to a
+    JSONL file as it finishes. A batch killed mid-run (agent-session
+    teardown reaping child processes; setsid unavailable on macOS -- both
+    documented causes of three lost batches on 2026-07-24) resumes from its
+    last completed run on the next call with the same checkpoint_path,
+    instead of restarting from run 1. The caller is responsible for using a
+    checkpoint_path unique to this batch -- reusing one across a genuinely
+    different batch (different model, phase, or seed) would silently
+    resume with the wrong runs.
     """
     import os
 
     app_source = Path(app_source).resolve()
-    results: list[SessionResult] = []
+    checkpoint = Path(checkpoint_path) if checkpoint_path is not None else None
+    results: list[SessionResult] = _load_checkpoint(checkpoint) if checkpoint is not None else []
+    if len(results) > n:
+        # Cheap guard (Rule 8 review, 2026-07-26 -- Fable): the caller is
+        # responsible for using a checkpoint_path unique to this batch, but
+        # this mechanism is meant to run unsupervised overnight -- silently
+        # producing a report with more results than n (negative "untouched"
+        # counts, a wrong n in every ratio) on a stale or mismatched
+        # checkpoint is exactly the kind of fiction this project's evidence
+        # policy exists to prevent. Loud failure, not a guess.
+        raise ValueError(
+            f"checkpoint at {checkpoint} has {len(results)} results but n={n} "
+            f"was requested -- this looks like a checkpoint from a different "
+            f"batch. Use a checkpoint_path unique to this batch."
+        )
+    start = len(results) + 1
+    if start > 1:
+        print(f"  resuming from checkpoint: {len(results)}/{n} runs already complete")
     keep = bool(os.environ.get(PI_EVAL_KEEP_WORKSPACES))
 
-    for i in range(1, n + 1):
+    for i in range(start, n + 1):
         print(f"  run {i}/{n}...", end=" ", flush=True)
         ws_path, pristine_hash = prepare_workspace(app_source, seed=seed)
         try:
@@ -161,9 +274,10 @@ def run_baseline(
             )
             print(f"{result.outcome} ({result.wall_time_s:.0f}s, {result.telemetry.turns}turns, {'PASS' if result.tests_pass else 'FAIL'})")
             results.append(result)
+            if checkpoint is not None:
+                _append_checkpoint(checkpoint, result)
         finally:
             if not keep:
-                import shutil
                 shutil.rmtree(ws_path.parent, ignore_errors=True)
 
     # Use provided phase_name or extract from prompt.
@@ -305,6 +419,25 @@ def write_report(report: BaselineReport, output_path: str | Path) -> None:
         lines.append("vs harness verdict agreement are deferred to a future harness iteration.*")
     else:
         lines.append("No subagent delegations detected in any run.")
+
+    lines.append("")
+    lines.append("## Behavioral instrumentation")
+    lines.append("")
+    no_seed_note = "" if report.start_state.startswith("seeded") else " (no seed -- not applicable)"
+    lines.append(
+        f"**Inherited-file write attempts:** {report.inherited_write_attempt_count}/{report.n} "
+        f"runs{no_seed_note}"
+    )
+    lines.append(
+        f"**Shared-file replace-vs-extend:** replace={report.shared_file_replace_count} "
+        f"extend={report.shared_file_extend_count} "
+        f"untouched={report.n - report.shared_file_replace_count - report.shared_file_extend_count}"
+        f"{no_seed_note}"
+    )
+    lines.append(
+        f"**False self-report:** {report.false_self_report_count}/{report.n} runs "
+        f"(model's own suite passed; harness acceptance disagreed)"
+    )
 
     lines.append("")
     lines.append("## Evidence tier")

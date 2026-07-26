@@ -9,8 +9,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from harness.grading import grade_acceptance
-from harness.telemetry import RunTelemetry, compute_task_duration_s, has_subagent_calls, read_run
-from harness.workspace import capture_diff
+from harness.telemetry import (
+    RunTelemetry, compute_task_duration_s, has_subagent_calls,
+    inherited_file_activity, is_false_self_report, read_run,
+)
+from harness.workspace import capture_diff, seed_file_paths
 
 # Resolve repo root for stable paths regardless of CWD.
 _REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -69,6 +72,11 @@ class SessionResult:
     grading_env_tampered: list[str] = field(default_factory=list)
     acceptance_tests_executed: int = 0
     acceptance_tests_expected: int = 0
+    # Task 7 (grading-path reboot) -- standing behavioral instrumentation,
+    # Amendment 2. Empty/"untouched" for an unseeded (phase-1) run.
+    inherited_write_attempts: list[str] = field(default_factory=list)
+    shared_file_classification: str = "untouched"  # "replace" | "extend" | "untouched"
+    false_self_report: bool = False
 
     @property
     def is_success(self) -> bool:
@@ -265,6 +273,11 @@ def run_session(
         acceptance_tests_executed = 0
         acceptance_tests_expected = 0
 
+    # Task 7 -- standing behavioral instrumentation (Amendment 2).
+    inherited_files = seed_file_paths(seed) if seed is not None else frozenset()
+    activity = inherited_file_activity(artifact_path, inherited_files)
+    false_self_report = is_false_self_report(model_tests_pass, tests_pass)
+
     return SessionResult(
         run_id=run_id,
         outcome=outcome,
@@ -283,6 +296,9 @@ def run_session(
         grading_env_tampered=grading_env_tampered,
         acceptance_tests_executed=acceptance_tests_executed,
         acceptance_tests_expected=acceptance_tests_expected,
+        inherited_write_attempts=activity.write_attempts,
+        shared_file_classification=activity.classification,
+        false_self_report=false_self_report,
     )
 
 

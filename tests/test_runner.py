@@ -7,7 +7,10 @@ from harness.telemetry import RunTelemetry
 
 
 def _make_result(run_id: str, tests_pass: bool, changed_files: list[str] | None = None,
-                 outcome: str = "exited", task_duration_s: float | None = 10.0) -> SessionResult:
+                 outcome: str = "exited", task_duration_s: float | None = 10.0,
+                 inherited_write_attempts: list[str] | None = None,
+                 shared_file_classification: str = "untouched",
+                 false_self_report: bool = False) -> SessionResult:
     """Factory for mock session results."""
     if changed_files is None:
         changed_files = ["app.py"] if tests_pass else []
@@ -23,6 +26,9 @@ def _make_result(run_id: str, tests_pass: bool, changed_files: list[str] | None 
         artifact_path=f"research/sessions/{run_id}.jsonl",
         task_duration_s=task_duration_s,
         stderr_text="",
+        inherited_write_attempts=inherited_write_attempts or [],
+        shared_file_classification=shared_file_classification,
+        false_self_report=false_self_report,
     )
 
 
@@ -233,6 +239,36 @@ def test_write_report_tier_claims_timing_when_present(tmp_path: Path):
     assert "2 exited" in content
 
 
+def test_baseline_report_behavioral_instrumentation_counts():
+    """Task 7 (grading-path reboot): the three Amendment-2 standing
+    metrics aggregate correctly across a batch."""
+    results = [
+        _make_result("r1", True, inherited_write_attempts=["tests/test_app.py"],
+                     shared_file_classification="replace", false_self_report=True),
+        _make_result("r2", True, shared_file_classification="extend"),
+        _make_result("r3", False, shared_file_classification="untouched"),
+    ]
+    report = BaselineReport(phase="Phase 2", n=3, model="test/model", results=results)
+    assert report.inherited_write_attempt_count == 1
+    assert report.shared_file_replace_count == 1
+    assert report.shared_file_extend_count == 1
+    assert report.false_self_report_count == 1
+
+
+def test_write_report_shows_all_three_behavioral_counts(tmp_path: Path):
+    """Task 7's plan-mandated gate: a report from any batch shows all three
+    counts (inherited-file write attempts, replace-vs-extend, false
+    self-report), not just when they're non-zero."""
+    results = [_make_result("r1", True), _make_result("r2", False)]
+    report = BaselineReport(phase="Phase 1", n=2, model="test/model", results=results)
+    out = tmp_path / "report.md"
+    write_report(report, out)
+    content = out.read_text()
+    assert "Inherited-file write attempts:" in content
+    assert "Shared-file replace-vs-extend:" in content
+    assert "False self-report:" in content
+
+
 def test_run_baseline_signature():
     """Ensure run_baseline has the expected signature."""
     from harness.runner import run_baseline
@@ -244,3 +280,180 @@ def test_run_baseline_signature():
     assert "model" in params
     assert "profile" in params
     assert "n" in params
+    assert "checkpoint_path" in params
+
+
+# ---------------------------------------------------------------------------
+# Batch durability (Task 8 precondition): checkpoint per run, resume a
+# killed batch instead of restarting it.
+# ---------------------------------------------------------------------------
+
+def test_checkpoint_round_trips_a_session_result(tmp_path: Path):
+    from harness.runner import _append_checkpoint, _load_checkpoint
+
+    result = _make_result("r1", True, inherited_write_attempts=["app.py"],
+                          shared_file_classification="replace", false_self_report=True)
+    checkpoint = tmp_path / "checkpoint.jsonl"
+    _append_checkpoint(checkpoint, result)
+
+    loaded = _load_checkpoint(checkpoint)
+
+    assert len(loaded) == 1
+    assert loaded[0].run_id == "r1"
+    assert loaded[0].tests_pass is True
+    assert loaded[0].inherited_write_attempts == ["app.py"]
+    assert loaded[0].shared_file_classification == "replace"
+    assert loaded[0].false_self_report is True
+    assert loaded[0].telemetry.turns == 5
+    assert loaded[0].telemetry.prompts == ["test"]
+
+
+def test_checkpoint_appends_multiple_runs_in_order(tmp_path: Path):
+    from harness.runner import _append_checkpoint, _load_checkpoint
+
+    checkpoint = tmp_path / "checkpoint.jsonl"
+    _append_checkpoint(checkpoint, _make_result("r1", True))
+    _append_checkpoint(checkpoint, _make_result("r2", False))
+
+    loaded = _load_checkpoint(checkpoint)
+
+    assert [r.run_id for r in loaded] == ["r1", "r2"]
+
+
+def test_load_checkpoint_missing_file_returns_empty(tmp_path: Path):
+    from harness.runner import _load_checkpoint
+    assert _load_checkpoint(tmp_path / "does-not-exist.jsonl") == []
+
+
+def test_load_checkpoint_drops_truncated_final_line(tmp_path: Path, capsys):
+    """Rule 8 review, 2026-07-26 (Fable): a process killed mid-_append_checkpoint
+    write can leave a truncated final line -- the exact scenario this
+    mechanism exists to survive. It must not crash the resume it exists to
+    enable; that run just gets re-run."""
+    from harness.runner import _append_checkpoint, _load_checkpoint
+
+    checkpoint = tmp_path / "checkpoint.jsonl"
+    _append_checkpoint(checkpoint, _make_result("r1", True))
+    with open(checkpoint, "a") as f:
+        f.write('{"run_id": "r2", "outcome": "exi')  # truncated, no newline
+
+    loaded = _load_checkpoint(checkpoint)
+
+    assert [r.run_id for r in loaded] == ["r1"]
+    assert "truncated" in capsys.readouterr().out
+
+
+def test_load_checkpoint_raises_on_malformed_non_trailing_line(tmp_path: Path):
+    """A malformed line that is NOT the last one means the checkpoint file
+    itself is corrupt, not just an in-flight write -- that should not be
+    silently swallowed the way a trailing truncation is."""
+    from harness.runner import _load_checkpoint
+
+    checkpoint = tmp_path / "checkpoint.jsonl"
+    checkpoint.write_text('{"run_id": "r1", "broken\n{"run_id": "r2"}\n')
+
+    import pytest
+    with pytest.raises(Exception):
+        _load_checkpoint(checkpoint)
+
+
+def test_run_baseline_rejects_checkpoint_with_more_results_than_n(tmp_path: Path):
+    """A checkpoint with more results than n looks like it belongs to a
+    different batch -- fail loudly rather than silently produce a report
+    with a wrong n in every ratio."""
+    from harness.runner import run_baseline, _append_checkpoint
+    from harness.session import InvocationProfile
+
+    checkpoint = tmp_path / "checkpoint.jsonl"
+    _append_checkpoint(checkpoint, _make_result("r1", True))
+    _append_checkpoint(checkpoint, _make_result("r2", True))
+
+    import pytest
+    with pytest.raises(ValueError, match="different batch"):
+        run_baseline(
+            phase_prompt="## Phase 1 — Home Page",
+            app_source=tmp_path,
+            model="test/model",
+            profile=InvocationProfile.sp1(),
+            n=1,
+            checkpoint_path=checkpoint,
+        )
+
+
+def test_write_report_notes_no_seed_for_behavioral_instrumentation(tmp_path: Path):
+    """An unseeded (phase-1) batch has no inherited files -- the report
+    should say so rather than silently show replace=0 extend=0 as if the
+    metric were meaningfully assessed."""
+    results = [_make_result("r1", True)]
+    report = BaselineReport(phase="Phase 1", n=1, model="test/model", results=results)
+    assert report.start_state == "empty (no seed)"
+    out = tmp_path / "report.md"
+    write_report(report, out)
+    content = out.read_text()
+    assert "not applicable" in content
+
+
+def test_run_baseline_resumes_from_checkpoint(tmp_path: Path):
+    """A batch with 1/3 runs already checkpointed must not re-run them --
+    only the 2 remaining runs execute, and the final report has all 3."""
+    from unittest.mock import patch
+    from harness.runner import run_baseline, _append_checkpoint
+    from harness.session import InvocationProfile
+
+    checkpoint = tmp_path / "checkpoint.jsonl"
+    _append_checkpoint(checkpoint, _make_result("already-done", True))
+
+    call_count = {"n": 0}
+
+    def fake_run_session(*args, **kwargs):
+        call_count["n"] += 1
+        return _make_result(f"resumed-{call_count['n']}", True)
+
+    fake_ws = tmp_path / "fake-ws"
+    fake_ws.mkdir()
+
+    with patch("harness.runner.prepare_workspace", return_value=(fake_ws, "deadbeef")), \
+         patch("harness.runner.run_session", side_effect=fake_run_session), \
+         patch("harness.runner.shutil.rmtree"):
+        report = run_baseline(
+            phase_prompt="## Phase 1 — Home Page",
+            app_source=tmp_path,
+            model="test/model",
+            profile=InvocationProfile.sp1(),
+            n=3,
+            checkpoint_path=checkpoint,
+        )
+
+    assert call_count["n"] == 2, "only the 2 remaining runs should have executed"
+    assert len(report.results) == 3
+    assert report.results[0].run_id == "already-done"
+
+
+def test_run_baseline_without_checkpoint_path_runs_all_n(tmp_path: Path):
+    """No checkpoint_path -- unchanged behavior, every run executes."""
+    from unittest.mock import patch
+    from harness.runner import run_baseline
+    from harness.session import InvocationProfile
+
+    call_count = {"n": 0}
+
+    def fake_run_session(*args, **kwargs):
+        call_count["n"] += 1
+        return _make_result(f"r{call_count['n']}", True)
+
+    fake_ws = tmp_path / "fake-ws"
+    fake_ws.mkdir()
+
+    with patch("harness.runner.prepare_workspace", return_value=(fake_ws, "deadbeef")), \
+         patch("harness.runner.run_session", side_effect=fake_run_session), \
+         patch("harness.runner.shutil.rmtree"):
+        report = run_baseline(
+            phase_prompt="## Phase 1 — Home Page",
+            app_source=tmp_path,
+            model="test/model",
+            profile=InvocationProfile.sp1(),
+            n=2,
+        )
+
+    assert call_count["n"] == 2
+    assert len(report.results) == 2

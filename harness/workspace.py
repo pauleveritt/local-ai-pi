@@ -185,6 +185,18 @@ def capture_diff(
     return changed_files, diff_text
 
 
+def seed_file_paths(seed: str | Path) -> frozenset[str]:
+    """Relative paths of every file in a phase seed directory -- the set of
+    files a run *inherits* rather than creates. Shared with telemetry.py's
+    inherited-file write-attempt / replace-vs-extend metrics (Task 7), so
+    both use the same definition of "inherited" as capture_diff's hash
+    comparison does."""
+    seed_dir = Path(seed).resolve()
+    return frozenset(
+        str(src.relative_to(seed_dir)) for src in seed_dir.rglob("*") if src.is_file()
+    )
+
+
 def _seed_mismatches(workspace: Path, seed: str | Path) -> list[str]:
     """Relative paths of seeded files whose content in `workspace` no longer
     hashes the same as the reference source in `seed` -- detected by direct
@@ -193,10 +205,12 @@ def _seed_mismatches(workspace: Path, seed: str | Path) -> list[str]:
 
     seed_dir = Path(seed).resolve()
     mismatches: list[str] = []
-    for src in seed_dir.rglob("*"):
-        if not src.is_file():
-            continue
-        rel = str(src.relative_to(seed_dir))
+    # sorted(): seed_file_paths returns a frozenset, whose iteration order
+    # varies per process (hash randomization) -- iterating it directly here
+    # made changed_files ordering nondeterministic across runs (Rule 8
+    # review, 2026-07-26 -- Fable).
+    for rel in sorted(seed_file_paths(seed)):
+        src = seed_dir / rel
         dest = workspace / rel
         if not dest.is_file():
             mismatches.append(rel)
