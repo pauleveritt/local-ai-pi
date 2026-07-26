@@ -1,13 +1,15 @@
 # Section III — Spec-Driven Development on Pi
 
-Three chapters that install Pi's shipped subagent extension, author an
-implementer specialist and an orchestrator parent prompt, then measure and
-tune the parent+implementer shape. The structural baseline improved from SP1's
-0/8 to 3/8 pre-tuning and 5/8 post-tuning (SP2, n=8 per batch; the ±1-run
-within-noise caveat applies — cite the structural claim, not the tuning delta).
+Installs Pi's shipped subagent extension, authors an implementer specialist
+and an orchestrator parent prompt, then measures and tunes the
+parent+implementer shape.
 
-
-**Status:** ✅ Complete ([spec](spec.md), [plan](plan.md))
+**Status:** withdrawn pending rewrite. The chapter prose that narrated the
+SP1→SP2 structural-baseline arc is discarded — see
+[`docs/superpowers/plans/2026-07-24-grading-path-reboot.md`](../superpowers/plans/2026-07-24-grading-path-reboot.md),
+Task 9. Spec and plan are kept as historical record; the numbers below
+predate the grading-path reboot. New chapter prose is written against the
+reframe and final numbers, not before.
 
 **Evidence:** [3/8 pre-tuning](research/2026-07-24-sp2-baseline-phase-1.md),
 [5/8 post-tuning](research/2026-07-24-sp2-baseline-phase-1-post-tuning.md),
@@ -36,9 +38,6 @@ See {ref}`about-sdd` in the course overview for the broader rationale.
 ```{toctree}
 :hidden:
 
-subagent-mechanism
-implementer-orchestrator
-lessons-from-handoff
 cleanup/index
 spec
 plan
