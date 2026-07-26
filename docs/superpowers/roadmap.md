@@ -252,10 +252,37 @@ neighbor shipped:
   [`examples/acceptance/phase-3/test_acceptance.py`](../../examples/acceptance/phase-3/test_acceptance.py),
   replaced by [TurboHTML](https://turbohtml.readthedocs.io/en/stable/)
   (`turbohtml==1.5.0`), a WHATWG-spec-compliant parser with CSS-selector
-  querying. Kept out of the model-visible workspace stamp per D4 — it reaches
-  the grader only via `harness/acceptance.py`'s `uv run --no-cache --with
-  turbohtml==1.5.0 ...`, pinned by
-  `tests/test_session.py::test_acceptance_command_uses_ephemeral_turbohtml_only`.
+  querying. Kept out of the model-visible workspace stamp per D4 — it is
+  declared only in the isolated grader's own harness-authored
+  `pyproject.toml`, written by `harness/grading.py::grade_acceptance()`
+  into a directory the model never controls, pinned by
+  `tests/test_session.py::test_turbohtml_stays_out_of_model_visible_workspace_stamp`.
+
+- **Acceptance grading still trusts a same-process signal a model can
+  forge.** `harness/grading.py`'s executed-test-count floor previously
+  regex-scanned pytest's captured stdout/stderr (Rule 8, Fable,
+  2026-07-26, round 1: a model-imported `app.py` writing a fake summary
+  line into a captured fd, then `os._exit(0)`, forged `tests_pass=True`
+  for a solution that does not exist). Fixed by
+  `harness/grading_plugin.py`, a pytest plugin recording real per-test
+  hook events to a results file instead of trusting captured text —
+  closes that specific attack, pinned in `tests/test_grading.py`. A
+  second Rule 8 round (Fable, same day) found the fix moved the forge,
+  not closed it: model-imported code can read the results-file path from
+  its own `os.environ` and write directly-formatted fake lines into it,
+  comparably cheap (~7 lines) to the first attack. No in-process secret
+  can close this — anything the plugin can read, model-imported code
+  sharing its process and memory can read too. The real fix requires
+  moving model-authored code out of the grading process entirely: launch
+  the model's app as a server subprocess and drive the acceptance suite
+  against it over HTTP, instead of today's in-process
+  `TestClient(app)` (`examples/acceptance/phase-{1,2,3}/test_acceptance.py`).
+  That is a materially larger change than the plugin and was deliberately
+  deferred rather than done under Task 2. Documented on
+  `harness/grading_plugin.py`'s module docstring, which links back here.
+  Trigger: before this project publishes any success/failure claim that
+  depends on `tests_pass` being resistant to a deliberately adversarial
+  solution, or the grading path needs another capability anyway.
 
 - **The long tail: where the model needs help at generation time.** The
   mechanisms in Section 4 are a floor — they make specific failures

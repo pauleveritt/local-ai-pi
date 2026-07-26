@@ -56,4 +56,4 @@ def test_home_declares_html5_and_language():
         for node in document.children
     )
     html = document.select_one("html")
-    assert html is not None and html.attr("lang").casefold() == "en"
+    assert html is not None and (html.attr("lang") or "").casefold() == "en"

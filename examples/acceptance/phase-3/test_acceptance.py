@@ -24,6 +24,11 @@ client = TestClient(app)
 TAGLINE = "Come in. Sit down. Tell us about your human."
 SEED_COMPLAINT = "Scope creep never ends."
 SEED_COMPLAINTS = tuple(models.complaints)
+_HEADING_SELECTOR = (
+    "body h1, body h2, body h3, body h4, body h5, body h6, "
+    "body [role='heading'], body .h1, body .h2, body .h3, "
+    "body .h4, body .h5, body .h6"
+)
 
 
 def _normalized_text(element) -> str:
@@ -34,6 +39,43 @@ def _has_html5_doctype(document) -> bool:
     return any(
         isinstance(node, Doctype) and node.name.casefold() == "html"
         for node in document.children
+    )
+
+
+def _has_body_heading(document, text: str) -> bool:
+    """Accept semantic and Bootstrap-style headings, never document metadata."""
+    return any(
+        _normalized_text(element).casefold() == text.casefold()
+        and element.closest("[hidden], [aria-hidden='true']") is None
+        for element in document.select(_HEADING_SELECTOR)
+    )
+
+
+def _leaf_cards(document):
+    """Return card elements that do not merely aggregate nested card text."""
+    return [card for card in document.select(".card") if not card.select(".card")]
+
+
+def _renders_timestamp(card_text: str, complaint: Complaint) -> bool:
+    month_tokens = {
+        str(complaint.timestamp.month),
+        f"{complaint.timestamp.month:02d}",
+        complaint.timestamp.strftime("%B"),
+        complaint.timestamp.strftime("%b"),
+    }
+    day_tokens = {str(complaint.timestamp.day), f"{complaint.timestamp.day:02d}"}
+    return (
+        str(complaint.timestamp.year) in card_text
+        and any(token in card_text for token in month_tokens)
+        and any(token in card_text for token in day_tokens)
+    )
+
+
+def _matches_complaint(card_text: str, complaint: Complaint) -> bool:
+    return (
+        complaint.agent_name in card_text
+        and complaint.text in card_text
+        and _renders_timestamp(card_text, complaint)
     )
 
 
@@ -57,7 +99,7 @@ def test_home_html_element_declares_english_language():
     document = parse(client.get("/").text)
     html = document.select_one("html")
 
-    assert html is not None and html.attr("lang").casefold() == "en"
+    assert html is not None and (html.attr("lang") or "").casefold() == "en"
 
 
 def test_home_still_has_navigation_links():
@@ -88,7 +130,7 @@ def test_complaints_board_preserves_the_shared_layout():
     html = document.select_one("html")
 
     assert _has_html5_doctype(document)
-    assert html is not None and html.attr("lang").casefold() == "en"
+    assert html is not None and (html.attr("lang") or "").casefold() == "en"
     assert "AgentClinic" in response.text
     assert any(
         link.attr("href") == "/" and _normalized_text(link).casefold() == "home"
@@ -102,38 +144,42 @@ def test_complaints_board_preserves_the_shared_layout():
 
 
 def test_complaints_board_still_has_its_heading():
-    assert "Complaints Board" in client.get("/complaints").text
+    document = parse(client.get("/complaints").text)
+
+    assert _has_body_heading(document, "Complaints Board")
 
 
 def test_complaints_board_still_renders_seed_complaint_details():
     document = parse(client.get("/complaints").text)
-    cards = [_normalized_text(card) for card in document.select(".card")]
+    cards = [_normalized_text(card) for card in _leaf_cards(document)]
     assert len(cards) >= len(SEED_COMPLAINTS)
 
     for complaint in SEED_COMPLAINTS:
-        matching_cards = [
-            text
-            for text in cards
-            if complaint.agent_name in text
-            and complaint.text in text
-        ]
-        assert matching_cards, (
-            f"Complaint details not rendered for {complaint.agent_name!r}"
-        )
+        matching_cards = [text for text in cards if _matches_complaint(text, complaint)]
+        assert matching_cards, f"Complaint details not rendered for {complaint.agent_name!r}"
 
-        month_tokens = {
-            str(complaint.timestamp.month),
-            f"{complaint.timestamp.month:02d}",
-            complaint.timestamp.strftime("%B"),
-            complaint.timestamp.strftime("%b"),
-        }
-        day_tokens = {str(complaint.timestamp.day), f"{complaint.timestamp.day:02d}"}
-        assert any(
-            str(complaint.timestamp.year) in text
-            and any(token in text for token in month_tokens)
-            and any(token in text for token in day_tokens)
-            for text in matching_cards
-        ), f"Formatted timestamp not rendered for {complaint.agent_name!r}"
+
+def test_complaint_cards_keep_controlled_records_separate():
+    """Prove one-card association with values that cannot collide by substring."""
+    original = list(models.complaints)
+    probes = [
+        Complaint("CARD-PROBE-ALPHA", "Opaque probe text alpha-7f3b."),
+        Complaint("CARD-PROBE-BRAVO", "Opaque probe text bravo-9c2d."),
+    ]
+    models.complaints[:] = probes
+    try:
+        document = parse(client.get("/complaints").text)
+        cards = [_normalized_text(card) for card in _leaf_cards(document)]
+        probe_card_indexes = []
+        for probe in probes:
+            matches = [
+                index for index, card in enumerate(cards) if _matches_complaint(card, probe)
+            ]
+            assert len(matches) == 1
+            probe_card_indexes.append(matches[0])
+        assert len(set(probe_card_indexes)) == len(probes)
+    finally:
+        models.complaints[:] = original
 
 
 def test_complaint_model_contract_is_preserved():
@@ -183,24 +229,38 @@ def test_posted_complaint_appears_on_complaints_board():
 def test_complaints_board_renders_add_complaint_form():
     document = parse(client.get("/complaints").text)
 
-    assert any(
-        form.attr("action") in {None, "", "/complaints"}
-        and (form.attr("method") or "").lower() == "post"
+    forms = [
+        form
         for form in document.select("form")
-    )
-    assert any(
-        control.tag == "input" and control.attr("name") == "agent_name"
-        for control in document.select("input, textarea, button")
-    )
-    assert any(
-        control.tag == "textarea" and control.attr("name") == "text"
-        for control in document.select("input, textarea, button")
-    )
-    assert any(
-        (control.tag == "button" and (control.attr("type") or "").lower() in {"", "submit"})
-        or (control.tag == "input" and (control.attr("type") or "").lower() == "submit")
-        for control in document.select("input, textarea, button")
-    )
+        if form.attr("action") in {None, "", "/complaints"}
+        and (form.attr("method") or "").lower() == "post"
+    ]
+    assert forms, "No POST form targets /complaints"
+
+    for form in forms:
+        controls = form.select("input, textarea, button")
+        if (
+            any(
+                control.tag == "input"
+                and control.attr("name") == "agent_name"
+                and (control.attr("type") or "text").lower() == "text"
+                for control in controls
+            )
+            and any(
+                control.tag == "textarea" and control.attr("name") == "text"
+                for control in controls
+            )
+            and any(
+                (control.tag == "button"
+                 and (control.attr("type") or "").lower() in {"", "submit"})
+                or (control.tag == "input"
+                    and (control.attr("type") or "").lower() == "submit")
+                for control in controls
+            )
+        ):
+            return
+
+    raise AssertionError("No qualifying POST form contains all required controls")
 
 # ---------------------------------------------------------------------------
 # Carried-forward obligations — open, from the non-vacuity gate
@@ -230,11 +290,11 @@ def test_complaints_board_renders_add_complaint_form():
 #   [X] p2-field-rename      — "Fields: `agent_name: str`, `text: str`,
 #                               `timestamp: datetime`"
 #
-# Phase 3, not caught by any suite today:
+# Phase 3 coverage:
 #   [X] p3-ignores-agent-name — "Read `agent_name` and `text` from form data
 #                               (`Form` from `fastapi`)". A POST that honors
 #                               `text` but discards the submitted `agent_name`
-#                               currently passes all three suites.
+#                               is caught by this suite's POST round-trip test.
 #
 # TRAP on p2-seed-count: this suite's own POST tests append to
 # models.complaints, so a 3-5 length check placed after them false-fails the

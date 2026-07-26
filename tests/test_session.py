@@ -6,6 +6,14 @@ from unittest.mock import patch
 from harness.session import InvocationProfile, SessionResult, run_session
 
 
+def test_turbohtml_stays_out_of_model_visible_workspace_stamp():
+    """The grader's pyproject.toml (harness/grading.py) declares TurboHTML;
+    the model-visible workspace stamp must never mention it."""
+    from harness.workspace import _stamp_pyproject_text
+
+    assert "turbohtml" not in _stamp_pyproject_text().casefold()
+
+
 def test_session_result_fields():
     from harness.telemetry import RunTelemetry
     r = SessionResult(

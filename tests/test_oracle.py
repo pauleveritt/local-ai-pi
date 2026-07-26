@@ -6,9 +6,10 @@ Motivated by docs/section-2-measurement/research/2026-07-24-oracle-invalid-incid
 """
 import shutil
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 
-from harness.acceptance import acceptance_command
+from harness.grading import grade_acceptance
 from harness.workspace import prepare_workspace
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -95,7 +96,6 @@ def test_seed_lands_in_pristine_baseline():
 # ---------------------------------------------------------------------------
 
 import re
-from dataclasses import dataclass
 
 import pytest
 
@@ -124,10 +124,29 @@ def _workspace_with(phase: int, solution: Path) -> Path:
     return ws
 
 
-def _run_acceptance(ws: Path) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        acceptance_command("tests/test_acceptance.py"),
-        cwd=ws, capture_output=True, text=True, timeout=300,
+@dataclass
+class _AcceptanceResult:
+    """Adapts GradeResult to the subprocess.CompletedProcess shape the
+    existing oracle assertions already check (.returncode/.stdout/.stderr),
+    so the oracle exercises the real batch-grading path -- harness.grading.
+    grade_acceptance -- instead of the now-deleted harness/acceptance.py
+    mechanism harness/session.py no longer called. Before this, the
+    oracle's green result proved the old command worked, not the one a
+    real batch actually runs (Rule 8 review, 2026-07-26 -- Fable;
+    evidence-policy Rule 6 requires re-validating the oracle against the
+    real command)."""
+    returncode: int
+    stdout: str
+    stderr: str
+
+
+def _run_acceptance(ws: Path) -> _AcceptanceResult:
+    suite = ws / "tests" / "test_acceptance.py"
+    grade = grade_acceptance(ws, suite, timeout=300)
+    return _AcceptanceResult(
+        returncode=0 if grade.passed else 1,
+        stdout=grade.stdout,
+        stderr=grade.stderr,
     )
 
 
@@ -161,6 +180,36 @@ def _suite_accepts_reference(phase: int) -> bool:
     rejects every solution. (Rule 8 review, 2026-07-25.)
     """
     return _direction1_result(phase).returncode == 0
+
+
+@pytest.mark.parametrize("phase", [2, 3])
+def test_acceptance_suite_accepts_duplicate_complaint_content(phase: int):
+    """Duplicate user-entered content must still render as separate cards.
+
+    The roadmap does not require complaint names or text to be unique. This
+    guards the card-association check against conflating two valid complaints
+    merely because their visible fields happen to match.
+    """
+    if not _suite_is_authored(phase):
+        pytest.skip(f"phase-{phase} acceptance suite is an unauthored skeleton")
+    ref = REPO_ROOT / "examples" / "reference" / f"phase-{phase}"
+    ws = _workspace_with(phase, ref)
+    models = ws / "models.py"
+    source = models.read_text()
+    assert 'agent_name="Gemma"' in source and 'text="I was told to be concise, then asked why my answer was so short."' in source
+    source = source.replace('agent_name="Gemma"', 'agent_name="Claude"', 1)
+    source = source.replace(
+        'text="I was told to be concise, then asked why my answer was so short."',
+        'text="The instructions said \'make it pop\' with no acceptance criteria."',
+        1,
+    )
+    models.write_text(source)
+
+    proc = _run_acceptance(ws)
+    assert proc.returncode == 0, (
+        f"phase-{phase} acceptance suite rejected valid duplicate complaint content\n"
+        f"{proc.stdout}\n{proc.stderr}"
+    )
 
 
 @pytest.mark.parametrize("phase", [1, 2, 3])
@@ -358,7 +407,40 @@ def _break_p1_home_no_extends(ws: Path) -> None:
 # --- phase-2 breaks --------------------------------------------------------
 
 def _break_p2_heading(ws: Path) -> None:
-    _rewrite(ws / "templates" / "complaints.html", "Complaints Board", "Feedback Log")
+    """Keep the required words in ``<title>``, but remove their body heading.
+
+    A title-only match is the false positive that prompted this fixture: it is
+    document metadata, not a heading a visitor encounters on the board.
+    """
+    template = ws / "templates" / "complaints.html"
+    source = template.read_text()
+    old = "<h1>Complaints Board</h1>"
+    assert old in source, "no reference heading to replace — fixture stale"
+    template.write_text(
+        source.replace(
+            old,
+            "{% block title %}Complaints Board{% endblock %}\n    <h1>Feedback Log</h1>",
+            1,
+        )
+    )
+
+
+def _break_p2_hidden_heading(ws: Path) -> None:
+    """Keep the heading markup and words while making it non-visible."""
+    _rewrite(
+        ws / "templates" / "complaints.html",
+        "<h1>Complaints Board</h1>",
+        "<h1 hidden>Complaints Board</h1>",
+    )
+
+
+def _break_p2_aria_hidden_heading(ws: Path) -> None:
+    """Hide the heading through an ancestor's accessibility state."""
+    _rewrite(
+        ws / "templates" / "complaints.html",
+        "<h1>Complaints Board</h1>",
+        '<div aria-hidden="true"><h1>Complaints Board</h1></div>',
+    )
 
 
 def _break_p2_agent_name(ws: Path) -> None:
@@ -383,6 +465,29 @@ def _break_p2_swapped_attribution(ws: Path) -> None:
         r"\{\{\s*complaint\.agent_name\s*\}\}",
         "{{ complaints[(loop.index0 + 1) % (complaints|length)].agent_name }}",
     )
+
+
+def _break_p2_every_card_has_every_complaint(ws: Path) -> None:
+    """Each leaf card repeats all complaints instead of representing one."""
+    template = ws / "templates" / "complaints.html"
+    source = template.read_text()
+    replacements = {
+        "{{ complaint.agent_name }}": (
+            "{% for repeated in complaints %}{{ repeated.agent_name }} {% endfor %}"
+        ),
+        '{{ complaint.timestamp.strftime("%Y-%m-%d %H:%M UTC") }}': (
+            '{% for repeated in complaints %}'
+            '{{ repeated.timestamp.strftime("%Y-%m-%d %H:%M UTC") }} '
+            "{% endfor %}"
+        ),
+        "{{ complaint.text }}": (
+            "{% for repeated in complaints %}{{ repeated.text }} {% endfor %}"
+        ),
+    }
+    for old, new in replacements.items():
+        assert old in source, f"no {old!r} placeholder to replace — fixture stale"
+        source = source.replace(old, new, 1)
+    template.write_text(source)
 
 
 def _break_p2_text(ws: Path) -> None:
@@ -423,11 +528,18 @@ def _break_p2_no_extends(ws: Path) -> None:
 
 def _break_p2_timestamp_first_only(ws: Path) -> None:
     """The timestamp renders for the first complaint card only; every other
-    card's timestamp is silently blank. A page-wide "does the year appear
-    anywhere" check cannot see this — it must be caught per-card.
+    card's timestamp is silently blank. The wrapper is also made a ``.card``:
+    an ancestor-text implementation can then borrow the first inner card's
+    timestamp to satisfy every complaint. The acceptance suite must inspect
+    only leaf cards.
     (Rule 8 review, 2026-07-26 — this was the shape of the CRITICAL
     cumulativity defect found in this task: a solution passing 5/5 on
     phase-3 while three of four seed complaints rendered with no timestamp.)"""
+    _rewrite(
+        ws / "templates" / "complaints.html",
+        '<div class="container py-5">',
+        '<div class="container py-5 card">',
+    )
     _sub(
         ws / "templates" / "complaints.html",
         r"(<h6[^>]*>\s*\{\{ complaint\.timestamp[^}]*\}\}\s*</h6>)",
@@ -524,6 +636,27 @@ def _break_p3_no_submit(ws: Path) -> None:
 def _break_p3_wrong_action(ws: Path) -> None:
     _rewrite(
         ws / "templates" / "complaints.html", 'action="/complaints"', 'action="/elsewhere"'
+    )
+
+
+def _break_p3_detached_form_controls(ws: Path) -> None:
+    """Leave a valid empty POST form while detaching every control from it."""
+    template = ws / "templates" / "complaints.html"
+    source = template.read_text()
+    opening = '<form method="post" action="/complaints" class="my-4">'
+    assert opening in source and source.count("</form>") == 1, (
+        "expected one canonical form wrapper — fixture stale"
+    )
+    source = source.replace(opening, opening + "</form>\n    <div>", 1)
+    template.write_text(source.replace("    </form>", "    </div>", 1))
+
+
+def _break_p3_hidden_agent_input(ws: Path) -> None:
+    """Preserve the agent-name field but make it non-text input semantics."""
+    _rewrite(
+        ws / "templates" / "complaints.html",
+        '<input type="text" class="form-control" id="agent_name" name="agent_name" required>',
+        '<input type="hidden" class="form-control" id="agent_name" name="agent_name" required>',
     )
 
 
@@ -641,7 +774,20 @@ _BREAKS = [
         "p2-heading", 2,
         'A heading: "Complaints Board"',
         _break_p2_heading,
-        'assert "Complaints Board" not in board, "heading still rendered"',
+        'assert "<title>Complaints Board</title>" in board, "title-only fixture did not land"\n'
+        'assert "<h1>Feedback Log</h1>" in board, "visible replacement heading did not land"',
+    ),
+    _Break(
+        "p2-hidden-heading", 2,
+        'A heading: "Complaints Board"',
+        _break_p2_hidden_heading,
+        'assert "<h1 hidden>Complaints Board</h1>" in board, "hidden-heading fixture did not land"',
+    ),
+    _Break(
+        "p2-aria-hidden-heading", 2,
+        'A heading: "Complaints Board"',
+        _break_p2_aria_hidden_heading,
+        'assert \'aria-hidden="true"\' in board, "aria-hidden fixture did not land"',
     ),
     _Break(
         "p2-agent-name", 2,
@@ -695,6 +841,13 @@ _BREAKS = [
         '), "swap should misattribute at least one card (fixture stale if not)"\n'
         'assert all(name in board for name in _names), \\\n'
         '    "every name should still appear SOMEWHERE on the page"',
+    ),
+    _Break(
+        "p2-every-card-has-every-complaint", 2,
+        "render each as a Bootstrap card showing agent name, timestamp (formatted), and complaint text",
+        _break_p2_every_card_has_every_complaint,
+        'assert board.count(models.complaints[0].agent_name) > 1, \\\n'
+        '    "each card does not repeat every complaint"',
     ),
     _Break(
         "p2-no-extends", 2,
@@ -810,6 +963,22 @@ _BREAKS = [
         "`POST` method to `/complaints`",
         _break_p3_wrong_action,
         'assert \'action="/complaints"\' not in board, "form still targets /complaints"',
+    ),
+    _Break(
+        "p3-detached-form-controls", 3,
+        "Text input for agent name, textarea for complaint text, and submit button",
+        _break_p3_detached_form_controls,
+        'assert \'<form method="post" action="/complaints" class="my-4"></form>\' in board, \\\n'
+        '    "empty POST form fixture did not land"\n'
+        'assert \'name="agent_name"\' in board and "<textarea" in board, \\\n'
+        '    "detached controls did not survive"',
+    ),
+    _Break(
+        "p3-hidden-agent-input", 3,
+        "Text input for agent name",
+        _break_p3_hidden_agent_input,
+        'assert \'type="hidden"\' in board and \'name="agent_name"\' in board, \\\n'
+        '    "hidden agent-input fixture did not land"',
     ),
 ]
 

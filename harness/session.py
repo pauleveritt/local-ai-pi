@@ -2,15 +2,15 @@
 """Run one pi subprocess in a disposable workspace.
 """
 import os
-import shutil
 import subprocess
 import time
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from harness.grading import grade_acceptance
 from harness.telemetry import RunTelemetry, compute_task_duration_s, has_subagent_calls, read_run
-from harness.workspace import _stamp_pyproject_text, capture_diff
+from harness.workspace import capture_diff
 
 # Resolve repo root for stable paths regardless of CWD.
 _REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -67,6 +67,8 @@ class SessionResult:
     model_tests_pass: bool | None = None
     # Files that would have steered grading, removed/restored before acceptance.
     grading_env_tampered: list[str] = field(default_factory=list)
+    acceptance_tests_executed: int = 0
+    acceptance_tests_expected: int = 0
 
     @property
     def is_success(self) -> bool:
@@ -239,48 +241,27 @@ def run_session(
         except subprocess.TimeoutExpired:
             model_tests_pass = False
 
-        # Harden the grading environment before overlaying the suite.
+        # Grade in a fresh harness-owned directory. No model-controlled
+        # configuration, modules, or workspace paths enter this process.
         # Verified defeats (2026-07-24), both exit 0 so tests_pass would be True:
         #   - a model-written conftest.py can skip-mark every collected test
         #     (pytest exits 0 on all-skipped), neutralizing the contract;
         #   - pyproject.toml is excluded from capture_diff, so a model edit to
         #     pytest config would steer grading INVISIBLY.
         # Both are recorded as evidence rather than silently repaired.
-        tampered: list[str] = []
-        for cf in (workspace / "conftest.py", workspace / "tests" / "conftest.py"):
-            if cf.exists():
-                tampered.append(str(cf.relative_to(workspace)))
-                cf.unlink()
-        stamped = _stamp_pyproject_text()
-        pp = workspace / "pyproject.toml"
-        if pp.exists() and pp.read_text() != stamped:
-            tampered.append("pyproject.toml")
-        pp.write_text(stamped)
-        grading_env_tampered = tampered
-
-        dest = workspace / "tests" / "test_acceptance.py"
-        dest.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(suite_src, dest)
-        acceptance_cmd = ["uv", "run", "pytest", "-q", "tests/test_acceptance.py"]
+        grade = grade_acceptance(workspace, suite_src, effective_timeout)
+        tests_pass = grade.passed
+        pytest_stdout = grade.stdout
+        pytest_stderr = grade.stderr
+        grading_env_tampered = grade.refused_config_files
+        acceptance_tests_executed = grade.tests_executed
+        acceptance_tests_expected = grade.tests_expected
     else:
-        acceptance_cmd = ["uv", "run", "pytest", "-q"]
-
-    tests_pass = False
-    pytest_stdout = ""
-    pytest_stderr = ""
-    try:
-        test_proc = subprocess.run(
-            acceptance_cmd,
-            cwd=workspace,
-            capture_output=True,
-            text=True,
-            timeout=effective_timeout,
-        )
-        tests_pass = test_proc.returncode == 0
-        pytest_stdout = test_proc.stdout
-        pytest_stderr = test_proc.stderr
-    except subprocess.TimeoutExpired:
         tests_pass = False
+        pytest_stdout = ""
+        pytest_stderr = ""
+        acceptance_tests_executed = 0
+        acceptance_tests_expected = 0
 
     return SessionResult(
         run_id=run_id,
@@ -298,6 +279,8 @@ def run_session(
         pytest_stderr=pytest_stderr,
         model_tests_pass=model_tests_pass,
         grading_env_tampered=grading_env_tampered,
+        acceptance_tests_executed=acceptance_tests_executed,
+        acceptance_tests_expected=acceptance_tests_expected,
     )
 
 
