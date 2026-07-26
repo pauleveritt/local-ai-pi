@@ -13,7 +13,7 @@ pythonpath = ["."]
 # to fail with "import file mismatch" or "RuntimeError: starlette.testclient
 # requires httpx2". See tests/test_oracle.py and the oracle-invalid incident
 # report.
-norecursedirs = ["examples/reference", "examples/acceptance"]
+norecursedirs = ["examples/reference", "examples/acceptance", "docs/_build"]
 markers = [
     "pi_available: tests that need the pi binary and a running model server",
 ]

@@ -1,6 +1,8 @@
 # harness/runner.py
 """n=4 baseline loop, aggregation, and report generation."""
+import shutil
 import statistics
+import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -12,6 +14,24 @@ from harness.telemetry import (
 from harness.workspace import prepare_workspace
 
 PI_EVAL_KEEP_WORKSPACES = "PI_EVAL_KEEP_WORKSPACES"
+
+
+def _pi_version() -> str | None:
+    """The pi CLI's own version string, for report provenance -- a schema
+    or behavior change between pi versions (e.g. the 0.81.1 -> 0.82.0 skew
+    that removed per-event timestamps from --mode json) should be visible
+    on the report that used it, not silently assumed. None if pi is not on
+    PATH; write_report must not fail just because provenance is missing."""
+    path = shutil.which("pi")
+    if not path:
+        return None
+    try:
+        proc = subprocess.run(
+            [path, "--version"], capture_output=True, text=True, timeout=10,
+        )
+        return proc.stdout.strip() or None
+    except Exception:
+        return None
 
 
 @dataclass
@@ -137,6 +157,7 @@ def run_baseline(
                 timeout=timeout,
                 research_dir=research_dir,
                 acceptance_suite=acceptance_suite,
+                seed=seed,
             )
             print(f"{result.outcome} ({result.wall_time_s:.0f}s, {result.telemetry.turns}turns, {'PASS' if result.tests_pass else 'FAIL'})")
             results.append(result)
@@ -186,10 +207,15 @@ def write_report(report: BaselineReport, output_path: str | Path) -> None:
         f"**Date:** {today}",
         f"**Model:** {report.model}",
         f"**Start state:** {report.start_state}",
+    ]
+    version = _pi_version()
+    if version is not None:
+        lines.append(f"**pi version:** `{version}`")
+    lines.extend([
         f"**Runs:** n={report.n}",
         f"**Success rate:** {report.success_count}/{report.n} ({report.success_rate:.0%})",
         f"",
-    ]
+    ])
 
     if report.mean_wall_time_s is not None:
         lines.append(f"**Mean task duration:** {report.mean_wall_time_s:.0f}s "
@@ -213,16 +239,10 @@ def write_report(report: BaselineReport, output_path: str | Path) -> None:
             parts.append(f"validation-drift={report.validation_drift_count}")
         lines.append(f"**Drift incidence:** {report.drift_count}/{report.n} runs "
                      f"({' ,'.join(parts)})")
-    # Oracle validation — every post-repair report must state this.
-    try:
-        import subprocess
-        commit = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            capture_output=True, text=True, check=True,
-        ).stdout.strip()
-        lines.append(f"**Oracle validated:** `tests/test_oracle.py` green at commit `{commit}`")
-    except Exception:
-        lines.append("**Oracle validated:** `tests/test_oracle.py` green")
+    # No "Oracle validated" line: write_report never runs tests/test_oracle.py
+    # itself, so it cannot honestly claim the oracle is green. That claim is
+    # made separately, by whoever runs the oracle, and cited in the commit or
+    # prose that publishes this report — never fabricated here (closes F4).
     lines.append("")
     lines.append("| # | Outcome | Success | Turns | Wall Time | Changed Files | Artifact |")
     lines.append("|---|---------|---------|-------|-----------|---------------|----------|")
@@ -290,19 +310,37 @@ def write_report(report: BaselineReport, output_path: str | Path) -> None:
     lines.append("## Evidence tier")
     lines.append("")
     has_subagent = runs_with_delegation > 0
-    lines.append(
-        f"- **Success rate:** artifact-backed — n={report.n} dated session files "
-        f"(GREEN per [evidence policy](../../superpowers/policies/evidence.md))."
-    )
+    has_timing_data = report.mean_wall_time_s is not None or report.mean_process_wall_time_s is not None
+
+    # Outcome mix — a real fact from this run, not template text, so the
+    # tier lines below can be checked against it rather than taken on faith.
+    outcome_counts: dict[str, int] = {}
+    for r in report.results:
+        outcome_counts[r.outcome] = outcome_counts.get(r.outcome, 0) + 1
+    mix = ", ".join(f"{count} {outcome}" for outcome, count in sorted(outcome_counts.items()))
+    lines.append(f"- **Outcome mix:** {mix or 'no runs recorded'}.")
+
+    if report.n > 0 and len(report.results) > 0:
+        lines.append(
+            f"- **Success rate:** artifact-backed — n={report.n} dated session files "
+            f"(GREEN per [evidence policy](../../superpowers/policies/evidence.md))."
+        )
+    else:
+        lines.append("- **Success rate:** no runs recorded — not assessable.")
     if has_subagent:
         lines.append(
             f"- **Delegation metrics:** artifact-backed — subagent call counts "
             f"and packet sizes extracted from parent JSONLs (GREEN)."
         )
-    lines.append(
-        f"- **Timing / turns:** real but noisy — n={report.n}, single-model, "
-        f"single-provider (YELLOW). Compare deltas at n=4 with caution."
-    )
+    if has_timing_data:
+        lines.append(
+            f"- **Timing / turns:** real but noisy — n={report.n}, single-model, "
+            f"single-provider (YELLOW). Compare deltas at n=4 with caution."
+        )
+    else:
+        lines.append(
+            "- **Timing / turns:** no success-eligible runs — no timing data to report."
+        )
     if report.n <= 8:
         lines.append(
             f"- **Statistical note:** n={report.n} — per-run success-rate deltas "

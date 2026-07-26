@@ -1,5 +1,16 @@
 # Baseline: Phase 2 — Complaints Board
 
+```{warning}
+**Superseded (2026-07-24).** Two fabrications, both closed by the
+grading-path reboot (Task 4): the oracle was self-graded by the model's
+own `tests/test_app.py` (pre-Amendment-3; see
+[evidence policy](../../superpowers/policies/evidence.md), doctrine D3),
+and the **Oracle validated** line below never actually ran
+`tests/test_oracle.py` — it asserted "green" unconditionally, regardless
+of whether the oracle was ever checked. The 2/4 success rate is not
+citable evidence under a valid grader. Kept for the historical record.
+```
+
 **Date:** 2026-07-24
 **Model:** omlx/gemma-4-12B-it-MLX-8bit
 **Start state:** seeded: examples/reference/phase-1

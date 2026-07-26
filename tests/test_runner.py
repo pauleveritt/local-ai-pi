@@ -164,6 +164,75 @@ def test_write_report_no_hang_incidence_when_zero(tmp_path: Path):
     assert "Hang incidence" not in content
 
 
+def test_write_report_never_fabricates_oracle_validation(tmp_path: Path):
+    """F4 plan-mandated gate: a report must never claim the oracle is green
+    -- write_report never runs tests/test_oracle.py itself, so it cannot
+    honestly make that claim, regardless of whether this run's own tests
+    passed or failed. Checked as "oracle" absent entirely, not just the
+    literal lowercase "green" -- the tier section legitimately says GREEN
+    for a different, honest claim (an artifact-backed success count), and
+    a case-sensitive check on "green" alone would not catch a reintroduced
+    "**Oracle status:** GREEN" (Rule 8 review, 2026-07-26 -- Fable)."""
+    results = [_make_result("r1", tests_pass=False, outcome="timeout", task_duration_s=None)]
+    report = BaselineReport(phase="Phase 1", n=1, model="test/model", results=results)
+    out = tmp_path / "report.md"
+    write_report(report, out)
+    content = out.read_text()
+    assert "oracle" not in content.lower()
+
+
+def test_write_report_includes_pi_version(tmp_path: Path, monkeypatch):
+    """Task 4: pi --version in the report header for provenance."""
+    import harness.runner as mod
+
+    monkeypatch.setattr(mod, "_pi_version", lambda: "pi 0.82.0")
+    results = [_make_result("r1", True)]
+    report = BaselineReport(phase="Phase 1", n=1, model="test/model", results=results)
+    out = tmp_path / "report.md"
+    write_report(report, out)
+    content = out.read_text()
+    assert "pi 0.82.0" in content
+
+
+def test_write_report_omits_pi_version_line_when_unavailable(tmp_path: Path, monkeypatch):
+    import harness.runner as mod
+
+    monkeypatch.setattr(mod, "_pi_version", lambda: None)
+    results = [_make_result("r1", True)]
+    report = BaselineReport(phase="Phase 1", n=1, model="test/model", results=results)
+    out = tmp_path / "report.md"
+    write_report(report, out)
+    content = out.read_text()
+    assert "pi version" not in content
+
+
+def test_write_report_tier_reflects_real_outcome_mix(tmp_path: Path):
+    """Tier lines are derived from this run's actual facts, not fixed
+    template text (F5): a run with zero success-eligible outcomes must not
+    claim timing data it does not have, and the outcome mix must be the
+    real per-outcome counts."""
+    results = [
+        _make_result("r1", tests_pass=False, outcome="timeout", task_duration_s=None),
+        _make_result("r2", tests_pass=False, outcome="timeout", task_duration_s=None),
+    ]
+    report = BaselineReport(phase="Phase 1", n=2, model="test/model", results=results)
+    out = tmp_path / "report.md"
+    write_report(report, out)
+    content = out.read_text()
+    assert "no timing data to report" in content
+    assert "2 timeout" in content
+
+
+def test_write_report_tier_claims_timing_when_present(tmp_path: Path):
+    results = [_make_result("r1", True), _make_result("r2", True)]
+    report = BaselineReport(phase="Phase 1", n=2, model="test/model", results=results)
+    out = tmp_path / "report.md"
+    write_report(report, out)
+    content = out.read_text()
+    assert "Timing / turns:** real but noisy" in content
+    assert "2 exited" in content
+
+
 def test_run_baseline_signature():
     """Ensure run_baseline has the expected signature."""
     from harness.runner import run_baseline

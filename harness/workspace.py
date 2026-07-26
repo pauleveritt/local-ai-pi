@@ -12,16 +12,28 @@ from pathlib import Path
 
 # Files the harness itself writes into the workspace — never model edits,
 # excluded from capture_diff so they don't appear as changed files.
+#
+# .gitignore is deliberately NOT here (closes F3): it is written by
+# prepare_workspace, but it is model-visible and model-editable inside the
+# workspace, and a model editing it to hide a created file from `git status`
+# is itself evidence, not scaffolding to filter out.
 _HARNESS_FILES = frozenset({
     "pyproject.toml",   # stamped by prepare_workspace
-    ".gitignore",        # written by prepare_workspace
 })
 
 # Prefixes for files the harness creates — excluded from capture_diff.
 _HARNESS_PREFIXES = (".pi-eval-prompt-",)
 
-# Build artifacts pytest litters the workspace with — never model edits.
-_EXCLUDE_PREFIXES = (".pytest_cache/",)
+# Build artifacts the harness's own tooling creates — never model edits.
+# .venv/ matters here specifically because of --ignored (added for F3): it
+# is gitignored, so before --ignored it was invisible to `git status -uall`
+# regardless; --ignored surfaces it, and it holds thousands of pinned
+# dependency files that would otherwise flood changed_files as noise. This
+# does not reopen F3 -- grade_acceptance() never reads from a workspace's
+# .venv/ at all (the grader is a separate directory built from an
+# allowlist), so a model editing its own .venv/ only affects its own
+# self-report test run, already documented as a signal, never the grade.
+_EXCLUDE_PREFIXES = (".pytest_cache/", ".venv/")
 _EXCLUDE_SUFFIXES = (".pyc", ".pyo")
 
 
@@ -118,12 +130,19 @@ def prepare_workspace(
     return workspace, pristine_hash
 
 
-def capture_diff(workspace: str | Path, pristine_hash: str) -> tuple[list[str], str]:
+def capture_diff(
+    workspace: str | Path, pristine_hash: str, seed: str | Path | None = None,
+) -> tuple[list[str], str]:
     """Return (changed_files, full_diff) for a workspace since its pristine commit.
 
-    Uses both `git diff <pristine_hash>` (for tracked changes, including
-    files the model may have committed) and `git status --porcelain -uall -z`
-    (for untracked files the model never staged). Unions both.
+    Uses `git diff <pristine_hash>` (for tracked changes, including files the
+    model may have committed), `git status --porcelain -uall --ignored -z`
+    (for untracked files the model never staged, INCLUDING ones a model hid
+    via .gitignore — closes F3: `-uall` alone still omits ignored paths), and,
+    when `seed` is given, a hash comparison of every seeded file against its
+    reference source (closes F3's second half — detects preservation
+    breakage independent of git, so it still fires even against a workspace
+    where git itself has been tampered with). Unions all three.
     """
     workspace = Path(workspace)
 
@@ -141,9 +160,9 @@ def capture_diff(workspace: str | Path, pristine_hash: str) -> tuple[list[str], 
     )
     diff_files = [line for line in name_proc.stdout.splitlines() if line]
 
-    # git status for untracked files.
+    # git status for untracked files, including gitignored ones.
     status_proc = subprocess.run(
-        ["git", "status", "--porcelain", "-uall", "-z"],
+        ["git", "status", "--porcelain", "-uall", "--ignored", "-z"],
         cwd=workspace, capture_output=True, text=True, check=True,
     )
     status_files: list[str] = []
@@ -153,14 +172,38 @@ def capture_diff(workspace: str | Path, pristine_hash: str) -> tuple[list[str], 
         path = record[3:]  # XY PATH format
         status_files.append(path)
 
-    # Union tracked + untracked, deduplicate, exclude harness scaffolding.
-    all_files = list(dict.fromkeys(diff_files + status_files))
+    seed_mismatches = _seed_mismatches(workspace, seed) if seed is not None else []
+
+    # Union tracked + untracked + seed-hash mismatches, deduplicate, exclude
+    # harness scaffolding.
+    all_files = list(dict.fromkeys(diff_files + status_files + seed_mismatches))
     changed_files = [
         f for f in all_files
         if not _is_harness_file(f)
     ]
 
     return changed_files, diff_text
+
+
+def _seed_mismatches(workspace: Path, seed: str | Path) -> list[str]:
+    """Relative paths of seeded files whose content in `workspace` no longer
+    hashes the same as the reference source in `seed` -- detected by direct
+    comparison, not by trusting the workspace's own git history."""
+    import hashlib
+
+    seed_dir = Path(seed).resolve()
+    mismatches: list[str] = []
+    for src in seed_dir.rglob("*"):
+        if not src.is_file():
+            continue
+        rel = str(src.relative_to(seed_dir))
+        dest = workspace / rel
+        if not dest.is_file():
+            mismatches.append(rel)
+            continue
+        if hashlib.sha256(src.read_bytes()).digest() != hashlib.sha256(dest.read_bytes()).digest():
+            mismatches.append(rel)
+    return mismatches
 
 
 def _stamp_pyproject_text() -> str:
@@ -245,7 +288,11 @@ def _is_harness_file(path: str) -> bool:
         return True
     if path.endswith(_EXCLUDE_SUFFIXES):
         return True
-    if "__pycache__" in path:
+    # Path-segment match, not substring (Rule 8 review, 2026-07-26 -- Fable):
+    # "__pycache__" in path would also match a model's own
+    # my__pycache__helper.py, silently dropping a real model file from
+    # changed_files -- the exact evidence-hiding F3 exists to close.
+    if "__pycache__" in path.split("/"):
         return True
     return False
 

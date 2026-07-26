@@ -6,7 +6,12 @@ from an EMPTY workspace, so they measured "build Phases 1+2 combined from
 nothing," not Phase 2. The canonical phase-2 workload seeds the phase-1
 reference solution (see the oracle-repair plan, Amendment 1). Kept as an
 exploratory combined-workload data point; not citable as the Phase 2
-baseline. Superseded by the seeded phase-2 reports.
+baseline. Superseded by the seeded phase-2 reports — which carry their own
+banner: the oracle behind both was self-graded (pre-Amendment-3), the
+**Mean task duration: 0s** below is a duration metric that always returned
+zero with a unit test pinning that as correct, and the **Oracle
+validated** line never actually ran `tests/test_oracle.py`. None of the
+numbers on this page are citable evidence.
 ```
 
 

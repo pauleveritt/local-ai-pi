@@ -94,6 +94,7 @@ def run_session(
     acceptance_suite: str | Path | None = None,
     max_startup_attempts: int = 3,
     research_dir: Path | None = None,
+    seed: str | Path | None = None,
 ) -> SessionResult:
     """Run pi headless in workspace against one phase prompt.
 
@@ -215,8 +216,9 @@ def run_session(
     if outcome == "exited" and profile.expects_delegation and not has_subagent_calls(artifact_path):
         outcome = "no-delegation"
 
-    # Git diff against the pristine commit.
-    changed_files, diff_text = capture_diff(workspace, pristine_hash)
+    # Git diff against the pristine commit, plus (when seeded) a hash
+    # comparison of every seeded file against its reference source.
+    changed_files, diff_text = capture_diff(workspace, pristine_hash, seed=seed)
 
     # --- Acceptance (Amendment 3) ----------------------------------------
     # The grade is the HARNESS-OWNED suite, overlaid now that the model has

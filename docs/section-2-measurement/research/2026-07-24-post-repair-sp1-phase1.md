@@ -1,5 +1,15 @@
 # Baseline: Phase 1 — Home Page
 
+```{warning}
+**Superseded (2026-07-24).** Two fabrications, both closed by the
+grading-path reboot (Task 4): the oracle was self-graded by the model's
+own `tests/test_app.py` (pre-Amendment-3; see
+[evidence policy](../../superpowers/policies/evidence.md), doctrine D3),
+and the **Mean task duration: 0s** below is a duration metric that always
+returned zero with a unit test pinning that as correct, not a real
+measurement. Kept for the historical record.
+```
+
 **Date:** 2026-07-24
 **Model:** omlx/gemma-4-12B-it-MLX-8bit
 **Runs:** n=4
