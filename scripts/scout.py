@@ -54,6 +54,9 @@ def run_scout(phase: int) -> int:
     print(f"n={N}")
     print()
 
+    checkpoint_dir = REPO_ROOT / ".pi-eval-checkpoints"
+    checkpoint_path = checkpoint_dir / f"scout-phase{phase}-n{N}.jsonl"
+
     report = run_baseline(
         phase_prompt=prompt,
         app_source=APP_SOURCE,
@@ -63,8 +66,9 @@ def run_scout(phase: int) -> int:
         timeout=300,
         phase_name=f"Phase {phase} — {_phase_title(phase)}",
         seed=seed_for_phase(phase),
-acceptance_suite=acceptance_suite_for_phase(phase),
+        acceptance_suite=acceptance_suite_for_phase(phase),
         research_dir=research_dir,
+        checkpoint_path=checkpoint_path,
     )
 
     today = __import__("datetime").datetime.now().isoformat()[:10]

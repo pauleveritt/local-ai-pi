@@ -10,3 +10,7 @@ node_modules/
 # Generated session artifacts
 docs/section-*/research/sessions/
 .worktrees/
+
+# Batch checkpoints (harness/runner.py's checkpoint_path) -- resumable
+# in-progress batch state, not a publishable artifact.
+.pi-eval-checkpoints/

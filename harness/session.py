@@ -2,6 +2,7 @@
 """Run one pi subprocess in a disposable workspace.
 """
 import os
+import signal
 import subprocess
 import time
 import uuid
@@ -164,6 +165,21 @@ def run_session(
     prior_killed = False  # True if any earlier attempt was killed (hung)
 
     # Retry loop for startup hangs (empty-stdout timeouts).
+    #
+    # Incident, 2026-07-27 (Rule 8 review -- Fable): a batch run hung for
+    # ~45-60 min with no progress and no oMLX traffic. Root cause, confirmed
+    # by code: pi is an agentic CLI that shells out (bash, pytest, git); a
+    # grandchild it spawns can inherit these pipes' write ends. proc.kill()
+    # only signals the DIRECT child -- if pi dies but a grandchild still
+    # holds a pipe open, proc.communicate() blocks forever waiting for EOF
+    # that never comes, even though the direct child is already a zombie
+    # (this matched every observed symptom exactly: child zombie, parent
+    # still blocked, no model traffic since nothing was left running).
+    # start_new_session=True gives pi and everything it spawns one process
+    # group; killing the whole group on timeout, not just the direct PID,
+    # closes the leak. The drain communicate() also now has its own
+    # timeout, so even a group-escaped process (e.g. a double-forked
+    # daemon) can't wedge the harness indefinitely.
     for attempt in range(1, max_startup_attempts + 1):
         timed_out = False  # reset per attempt — only THIS attempt's result matters
         try:
@@ -175,6 +191,7 @@ def run_session(
                 stdin=subprocess.DEVNULL,
                 text=True,
                 env=env,
+                start_new_session=True,
             )
             stdout_text, stderr_text = proc.communicate(timeout=effective_timeout)
             if stdout_text.strip():
@@ -184,8 +201,25 @@ def run_session(
                 break
         except subprocess.TimeoutExpired:
             prior_killed = True
-            proc.kill()
-            stdout_text, stderr_text = proc.communicate()
+            _killpg_or_kill(proc)
+            try:
+                stdout_text, stderr_text = proc.communicate(timeout=30)
+            except subprocess.TimeoutExpired as drain_timeout:
+                # A process outside pi's own group is still holding a pipe
+                # open (e.g. escaped via double-fork). Kill the group again
+                # and take whatever partial output the drain captured
+                # rather than block indefinitely.
+                #
+                # Rule 8 review, 2026-07-27 (Fable): even though Popen was
+                # created with text=True, TimeoutExpired.stdout/.stderr are
+                # bytes, not str -- CPython builds the exception directly
+                # from the raw byte buffers on this path with no decoding
+                # step. Passing bytes to artifact_path.write_text() below
+                # would crash the whole batch with no except around it in
+                # runner.py -- worse than the hang this fix closes.
+                _killpg_or_kill(proc)
+                stdout_text = _decode_partial(drain_timeout.stdout)
+                stderr_text = _decode_partial(drain_timeout.stderr)
             if stdout_text.strip():
                 # Got real output — not a startup hang, the process just
                 # failed to exit cleanly. Don't mark this as timed_out.
@@ -309,3 +343,30 @@ def _find_pi() -> str:
     if not path:
         raise RuntimeError("pi not found on PATH — is it installed?")
     return path
+
+
+def _killpg_or_kill(proc: subprocess.Popen) -> None:
+    """Kill pi's whole process group, not just the direct PID -- proc.kill()
+    alone leaves any grandchild that inherited the stdout/stderr pipes free
+    to keep them open, which hangs proc.communicate() forever even after
+    the direct child is dead (2026-07-27 incident). Requires
+    start_new_session=True at Popen time so pi's group id equals its own
+    pid. Falls back to a direct kill if the group is already gone."""
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        proc.kill()
+
+
+def _decode_partial(output: str | bytes | None) -> str:
+    """Normalize TimeoutExpired.stdout/.stderr to str. Despite Popen being
+    created with text=True, CPython's TimeoutExpired carries raw bytes on
+    this path (built directly from the byte buffers, no decode step) --
+    verified against a real text-mode Popen, not assumed (Rule 8 review,
+    2026-07-27 -- Fable). Passing bytes to Path.write_text() downstream
+    would crash the whole batch."""
+    if output is None:
+        return ""
+    if isinstance(output, bytes):
+        return output.decode(errors="replace")
+    return output
