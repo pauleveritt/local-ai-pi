@@ -298,6 +298,33 @@ This is also a reproducibility problem for readers, not just an annoyance
 here — a course that asks someone to run n=16 batches must tell them how to
 run them durably.
 
+**Addendum, 2026-07-27 (decided by the project owner).** Task 8 is split.
+The unsteered half is DONE: n=16 per phase, under the fully rebuilt grading
+path (Tasks 1–7 complete). All three phases solved —
+[Phase 1](../../section-2-measurement/research/2026-07-27-post-repair-sp1-phase1.md)
+15/16, [Phase 2](../../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md)
+15/16, [Phase 3](../../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md)
+16/16 — no ditch, per Amendment 2's rule. The checkpointing and
+process-group fixes this precondition called for both landed and were
+exercised for real: two live batch interruptions during the Phase 1 run
+were recovered from checkpoint without losing completed runs, and a real
+subprocess hang (a `pi`-spawned grandchild holding a pipe open past
+`proc.kill()`) was found and fixed mid-batch, Rule 8 reviewed twice.
+
+The steered half ("then the steered arms n=8") as originally scoped
+assumed a ditch to test recovery from. There isn't one — see
+**Amendment 1, decision 4** (the pre-registered no-ditch contingency) in
+`2026-07-24-oracle-repair.md`, which is now triggered and its disposition
+is an open, explicit decision (not yet resolved as of this addendum; see
+that amendment's note). The steered-arm work is therefore **deferred to
+the Section 2/SP2 decision** in `docs/superpowers/roadmap.md`, not
+executed as originally scoped here.
+
+**Gate for the unsteered half:** met. `uv run pytest -q` fully green
+(154 passed at commit `1883a9c`), all three phase reports committed,
+both harness fixes Rule 8 reviewed. The steered half's gate does not
+apply until that work is re-scoped under the Section 2 decision.
+
 ### Task 9 — Write Sections 2–4 from scratch
 
 Against the reframe and the final numbers. The Section 2 second arc:

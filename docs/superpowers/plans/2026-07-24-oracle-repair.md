@@ -118,6 +118,18 @@
 >    roadmap (the planner-thread input from the master spec) — not ad-hoc
 >    hardening of the fixed app.
 >
+> **Triggered, 2026-07-27 (flagged, not yet dispositioned).** Under Amendment
+> 2's revised threshold (n=16, >=15/16), seeded Phase 2 scored 15/16 and
+> Phase 3 scored 16/16 — the contingency's condition is met (see the
+> grading-path reboot plan's Task 8 addendum for the run details). Whether
+> this contingency is followed as written (move to the user-story roadmap
+> next) or the Section 2/SP2 orchestrator work proceeds first as a teaching
+> building block for Section 3, on the existing fixed-app workload, is an
+> open decision for the project owner — recorded here as flagged rather
+> than silently overridden by proceeding, per this project's own standing
+> practice for pre-registered decisions. See `docs/superpowers/roadmap.md`
+> for the resolution once made.
+>
 > Execution deltas this implies, in order:
 > - **New fixture:** `examples/reference/phase-2/` (spec-compliant Phase 2 on
 >   top of phase-1, no pytest workarounds) — needed as Phase 3's seed and for

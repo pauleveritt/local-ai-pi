@@ -1,5 +1,18 @@
 # Baseline: Phase 1 — Home Page
 
+**Provenance note (added 2026-07-27, Rule 8 review — Fable).** This batch
+was interrupted twice mid-run (a killed harness session at run 5, then a
+genuine subprocess hang at run 13 — a `pi`-spawned grandchild holding a
+pipe open past `proc.kill()`) and resumed both times from the checkpoint
+introduced for exactly this purpose; no completed run was lost or
+re-run. All 16 runs in this report — including runs 13–16 — completed
+**before** the process-group hang fix (commit `1883a9c`) landed; Phases 2
+and 3's reports ran under the fixed harness. This does not affect
+grading (the acceptance path was already fully rebuilt and unaffected by
+either issue), but it does mean runs 9 and 10's wall-time figures (658s,
+882s) reflect hang-and-retry overhead specific to the pre-fix harness,
+not model behavior, and are not comparable to Phase 2/3's timing.
+
 **Date:** 2026-07-27
 **Model:** omlx/gemma-4-12B-it-MLX-8bit
 **Start state:** empty (no seed)

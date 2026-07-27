@@ -8,37 +8,33 @@ a later phase is not queued just because an earlier one landed.
 **Current phase: GRADING-PATH REBOOT** — see
 [`plans/2026-07-24-grading-path-reboot.md`](plans/2026-07-24-grading-path-reboot.md).
 
-> ## ▶ Next action — Task 8, and it needs you
+> ## ▶ Next action — Section II/measurement is finished; Section III is an open decision
 >
-> **Tasks 1–7 are done** (`oracle-repair` worktree, unmerged — 38 commits
-> ahead of `main` as of this writing; re-check with `git rev-list --count
-> main..`, a number written into a doc goes stale the next commit). Every
-> gate up through Task 7 is green: `uv run pytest -q` passes in full, both
-> the isolated grading path and the standing behavioral-instrumentation
-> metrics (inherited-file write attempts, replace-vs-extend, false
-> self-report) are built, tested, and Rule 8 reviewed — see the commit
-> history for each task's review record.
+> **Task 8's unsteered half is DONE, 2026-07-27.** n=16 per phase, under the
+> fully rebuilt grading path — no ditch found anywhere, per Amendment 2's
+> rule: [Phase 1](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase1.md)
+> 15/16, [Phase 2](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md)
+> 15/16, [Phase 3](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md)
+> 16/16. First trustworthy numbers this project has produced; every earlier
+> count is superseded. See the grading-path reboot plan's Task 8 addendum
+> for the run details, including two live batch interruptions recovered via
+> checkpoint and a real subprocess-hang fix found and Rule-8-reviewed
+> mid-batch.
 >
-> **Task 8 — run the evidence chain — needs the project owner present,**
-> not because the harness can't launch the runs, but for two reasons that
-> are not delegable:
-> 1. It requires oMLX actually serving the model. The harness cannot start
->    it.
-> 2. Amendment 2's escalation rule reserves the 13–14/16 pooled-result zone
->    as "ambiguous, decided with the human" — some batches may land exactly
->    there, and that decision is not one to make solo.
+> **This triggers Amendment 1's pre-registered no-ditch contingency**
+> (`plans/2026-07-24-oracle-repair.md`) — flagged there explicitly, not yet
+> dispositioned. Whether Section III's orchestrator+implementer work (SP2)
+> proceeds next as a teaching building block on the existing fixed-app
+> workload, or the project moves to the higher-level user-story roadmap the
+> contingency names, is an open decision for the project owner. Do not
+> start an SP2 evidence batch before that decision is recorded.
 >
-> **Read `docs/superpowers/plans/2026-07-24-grading-path-reboot.md`'s Task 8
-> section before starting a batch** — it has its own precondition, now met:
-> per-run checkpointing exists (`run_baseline(..., checkpoint_path=...)`),
-> closing the failure mode that lost three batches on 2026-07-24 (killed
-> mid-run, no way to resume). Batch sizes are n=16 unsteered, n=8 steered
-> per Amendment 2.
->
-> **After Task 8:** Task 9's rewrite half (Sections 2–4, against the reframe
-> and final numbers) and Task 10 (consolidate entry points) are deliberately
-> last — see the plan. Task 9's *discard* half (dead chapter prose) is
-> already done.
+> **What can proceed now, independent of that decision:** Section II's
+> close-out — Task 9's rewrite of Section II prose (the oracle-validation /
+> workload / "when your metrics are fiction" arc) against these final
+> numbers, and Task 10 (consolidate entry points, this file included).
+> Section III and IV's rewrite under Task 9 waits on the Section III
+> decision above and its own evidence, once run.
 
 A deep review (Fable, 2026-07-24) found five further integrity failures, two of
 which **defeat the hardened oracle** (a model-written `pytest.ini` with
@@ -64,7 +60,7 @@ module's docstring for the distinction).
 | SP0 | Scaffold + Section I (repo skeleton, docs toolchain, roadmap, LESSONS, example spec triple, hello-world extension) | **Done** | [spec](../section-1-hello-agent/spec.md) | [plan](../section-1-hello-agent/plan.md) | — |
 | SP1 | Section II — Measurement *(harness kept; prose discarded, numbers superseded)* (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | **Done** | [spec](../section-2-measurement/spec.md) | [plan](../section-2-measurement/plan.md) | [0/8 baseline](../section-2-measurement/research/2026-07-23-baseline-phase-1.md) |
 | SP2 | Section III — SDD on Pi *(mechanism kept; prose discarded, numbers superseded)* (roadmap/packet method, parent-as-orchestrator + implementer specialist) | **Done** | [spec](../section-3-sdd/spec.md) | [plan](../section-3-sdd/plan.md) | [3/8 pre](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1.md), [5/8 post](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1-post-tuning.md), [deep-dive](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md) |
-| SPR | **Grading-path reboot** — rebuild the grader so model-controlled input cannot reach it, restore honest reporting, then re-run the evidence chain | **In progress — Tasks 1–7 done, blocked on Task 8 (human + oMLX)** | — | [plan](plans/2026-07-24-grading-path-reboot.md) | — |
+| SPR | **Grading-path reboot** — rebuild the grader so model-controlled input cannot reach it, restore honest reporting, then re-run the evidence chain | **Tasks 1–8 (unsteered) done; Tasks 9–10 (Section II) in progress; Section III proceeding pending open decision** | — | [plan](plans/2026-07-24-grading-path-reboot.md) | [Phase 1](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase1.md), [Phase 2](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md), [Phase 3](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md) |
 | SP3 | Section IV — Keeping the SLM on track (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | **Blocked on SPR** | — | — | — |
 
 
