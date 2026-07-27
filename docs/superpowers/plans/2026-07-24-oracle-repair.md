@@ -118,17 +118,33 @@
 >    roadmap (the planner-thread input from the master spec) — not ad-hoc
 >    hardening of the fixed app.
 >
-> **Triggered, 2026-07-27 (flagged, not yet dispositioned).** Under Amendment
-> 2's revised threshold (n=16, >=15/16), seeded Phase 2 scored 15/16 and
-> Phase 3 scored 16/16 — the contingency's condition is met (see the
-> grading-path reboot plan's Task 8 addendum for the run details). Whether
-> this contingency is followed as written (move to the user-story roadmap
-> next) or the Section 2/SP2 orchestrator work proceeds first as a teaching
-> building block for Section 3, on the existing fixed-app workload, is an
-> open decision for the project owner — recorded here as flagged rather
-> than silently overridden by proceeding, per this project's own standing
-> practice for pre-registered decisions. See `docs/superpowers/roadmap.md`
-> for the resolution once made.
+> **Triggered and dispositioned, 2026-07-27 (decided by the project owner).**
+> Under Amendment 2's revised threshold (n=16, >=15/16), seeded Phase 2
+> scored 15/16 and Phase 3 scored 16/16 — the contingency's condition is
+> met (see the grading-path reboot plan's Task 8 addendum for the run
+> details).
+>
+> Resolution: the contingency and Section III's (SP2) orchestrator work
+> are on different axes and are not in conflict, so both proceed rather
+> than one superseding the other. This contingency governs *workload
+> complexity* (move to the higher-level, underspecified user-story
+> roadmap once the recipe-level app stops producing failures); Section
+> III's orchestrator+implementer work is a *mechanism-teaching* sequence,
+> staged deliberately on the still-fixed, already-solved app precisely
+> because it is familiar ground — teaching a new mechanism against
+> unfamiliar material fights two unknowns at once. Section III makes no
+> improvement claim (there is nothing left to improve on this workload,
+> per this contingency's own trigger): its only empirical claim is
+> continuous-cost equivalence — does adopting the mechanism cost
+> materially more (turns, packet/token size; wall time is context only,
+> per the Fable review of the Task 8 results) without degrading below
+> Amendment 2's solved line. That framing is why it does not re-trip this
+> contingency: it is not "ad-hoc hardening of the fixed app" seeking
+> evidence of improvement, it is admittedly building-block instructional
+> content, laying groundwork for Section IV/SP3 (keeping the SLM on
+> track), where the mechanism's actual payoff is expected to land. The
+> move to the user-story roadmap this contingency names stays open and
+> is not retired by this decision — it is simply not what happens next.
 >
 > Execution deltas this implies, in order:
 > - **New fixture:** `examples/reference/phase-2/` (spec-compliant Phase 2 on

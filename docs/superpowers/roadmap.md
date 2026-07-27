@@ -8,7 +8,8 @@ a later phase is not queued just because an earlier one landed.
 **Current phase: GRADING-PATH REBOOT** — see
 [`plans/2026-07-24-grading-path-reboot.md`](plans/2026-07-24-grading-path-reboot.md).
 
-> ## ▶ Next action — Section II/measurement is finished; Section III is an open decision
+> ## ▶ Next action — Section II is finished; Section III proceeds as a
+> ## teaching building block, cost-equivalence only
 >
 > **Task 8's unsteered half is DONE, 2026-07-27.** n=16 per phase, under the
 > fully rebuilt grading path — no ditch found anywhere, per Amendment 2's
@@ -21,20 +22,29 @@ a later phase is not queued just because an earlier one landed.
 > checkpoint and a real subprocess-hang fix found and Rule-8-reviewed
 > mid-batch.
 >
-> **This triggers Amendment 1's pre-registered no-ditch contingency**
-> (`plans/2026-07-24-oracle-repair.md`) — flagged there explicitly, not yet
-> dispositioned. Whether Section III's orchestrator+implementer work (SP2)
-> proceeds next as a teaching building block on the existing fixed-app
-> workload, or the project moves to the higher-level user-story roadmap the
-> contingency names, is an open decision for the project owner. Do not
-> start an SP2 evidence batch before that decision is recorded.
+> **This triggered Amendment 1's pre-registered no-ditch contingency**
+> (`plans/2026-07-24-oracle-repair.md`) — now dispositioned. The contingency
+> (move to the higher-level user-story roadmap) governs *workload
+> complexity*; Section III's orchestrator+implementer work is a
+> *mechanism-teaching* sequence on a different axis, and both proceed
+> rather than one superseding the other — see the full reasoning at the
+> contingency's own definition. Section III makes **no improvement claim**
+> (there is nothing left to improve on this workload); its only empirical
+> claim is continuous-cost equivalence (turns, packet/token size — wall
+> time is context only) without dropping below Amendment 2's solved line.
+> That scoping is why it does not re-trip the contingency: it is admitted
+> building-block instructional content for Section IV/SP3 (keeping the SLM
+> on track), not a search for evidence of improvement. The move to the
+> user-story roadmap stays open for later, not retired by this decision.
 >
-> **What can proceed now, independent of that decision:** Section II's
-> close-out — Task 9's rewrite of Section II prose (the oracle-validation /
-> workload / "when your metrics are fiction" arc) against these final
-> numbers, and Task 10 (consolidate entry points, this file included).
-> Section III and IV's rewrite under Task 9 waits on the Section III
-> decision above and its own evidence, once run.
+> **What proceeds now:** Section II's close-out — Task 9's rewrite of
+> Section II prose (the oracle-validation / workload / "when your metrics
+> are fiction" arc) against these final numbers, Task 10 (consolidate entry
+> points, this file included) — and Section III's reframed orchestrator
+> work, scoped as above. Before any Section III evidence batch: pre-register
+> the cost-equivalence metric set and degradation budget (see the Fable
+> review of the Task 8 results for a draft), so the claim can't be set
+> after seeing the data.
 
 A deep review (Fable, 2026-07-24) found five further integrity failures, two of
 which **defeat the hardened oracle** (a model-written `pytest.ini` with
@@ -60,7 +70,7 @@ module's docstring for the distinction).
 | SP0 | Scaffold + Section I (repo skeleton, docs toolchain, roadmap, LESSONS, example spec triple, hello-world extension) | **Done** | [spec](../section-1-hello-agent/spec.md) | [plan](../section-1-hello-agent/plan.md) | — |
 | SP1 | Section II — Measurement *(harness kept; prose discarded, numbers superseded)* (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | **Done** | [spec](../section-2-measurement/spec.md) | [plan](../section-2-measurement/plan.md) | [0/8 baseline](../section-2-measurement/research/2026-07-23-baseline-phase-1.md) |
 | SP2 | Section III — SDD on Pi *(mechanism kept; prose discarded, numbers superseded)* (roadmap/packet method, parent-as-orchestrator + implementer specialist) | **Done** | [spec](../section-3-sdd/spec.md) | [plan](../section-3-sdd/plan.md) | [3/8 pre](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1.md), [5/8 post](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1-post-tuning.md), [deep-dive](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md) |
-| SPR | **Grading-path reboot** — rebuild the grader so model-controlled input cannot reach it, restore honest reporting, then re-run the evidence chain | **Tasks 1–8 (unsteered) done; Tasks 9–10 (Section II) in progress; Section III proceeding pending open decision** | — | [plan](plans/2026-07-24-grading-path-reboot.md) | [Phase 1](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase1.md), [Phase 2](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md), [Phase 3](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md) |
+| SPR | **Grading-path reboot** — rebuild the grader so model-controlled input cannot reach it, restore honest reporting, then re-run the evidence chain | **Tasks 1–8 (unsteered) done; Tasks 9–10 (Section II) in progress; Section III proceeding, reframed as cost-equivalence teaching content** | — | [plan](plans/2026-07-24-grading-path-reboot.md) | [Phase 1](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase1.md), [Phase 2](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md), [Phase 3](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md) |
 | SP3 | Section IV — Keeping the SLM on track (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | **Blocked on SPR** | — | — | — |
 
 
