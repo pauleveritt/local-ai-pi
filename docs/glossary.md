@@ -80,12 +80,29 @@ Success rate
   ``exited-with-hang`` (not timeout/crash), the {term}`acceptance oracle` passes (pytest exit 0), and the
   model actually wrote something (non-zero {term}`change surface`).
 
+Suite
+  The literal test file(s) making assertions, in
+  `examples/acceptance/phase-N/`. Most people mean this when they say "the
+  tests." Distinct from the {term}`oracle` (the suite acting as
+  verdict-giver) and the {term}`grader` (the process that runs it). The
+  suite is {term}`harness`-owned, human-authored, overlaid after the agent
+  finishes, and cumulative across phases — the agent never sees, edits, or
+  reasons against it.
+
 Stop condition
   What tells the agent it is done and should stop working. The
   {term}`implementer`'s stop condition is its validation command passing —
   when the command drifts, the agent falsely stops. The harness's
   stop condition is the independent {term}`acceptance oracle`, which is
   authoritative.
+
+Acceptance contract
+  The literal, stated requirements a phase must satisfy. The
+  {term}`suite` asserts them; the {term}`oracle` judges them. Distinct
+  from the suite itself — the contract is the *what*, the suite is the
+  *how*. A phase's contract is defined by its spec (detailed roadmap or
+  user-story variant); the suite is valid only if it correctly checks that
+  contract.
 
 Acceptance oracle
 Oracle
@@ -116,6 +133,15 @@ Reference solution
 Change surface
   The union of `git diff` (tracked changes) plus untracked files after the
   agent runs. Represents everything the model touched.
+
+Cost-equivalence
+  The claim shape Section III is permitted under Amendment 1 decision 4:
+  adopting the {term}`orchestrator`\+{term}`implementer` mechanism did not cost
+  materially more (turns, packet size, hang incidence) without degrading
+  below the {term}`solved-line floor`. Explicitly not an improvement claim —
+  {term}`evidence policy` Rule 7 forecloses that framing regardless of which
+  way the numbers lean, because there is nothing left to improve on a
+  workload already scoring 15–16/16 {term}`unsteered <steered run>`.
 
 Drift
   When a steered agent narrows its work to pass the test at the cost of
@@ -165,6 +191,14 @@ Tier line
   {term}`YELLOW` (real but noisy — small *n*, confounded, high-variance),
   or {term}`RED` (estimated/illustrative, never presented as results).
   The tier line in each report explicitly assesses which tier applies and why.
+
+Grader
+  The isolated process that runs the {term}`suite` against the agent's
+  output, outside the {term}`workspace`, with none of the agent's own
+  configuration able to reach it. The grader confirms a positive, expected
+  count of tests actually ran — "exited 0" is never sufficient. Distinct
+  from the suite itself and from the {term}`oracle` (the suite acting as
+  verdict-giver).
 
 GREEN
   Deterministic and artifact-backed. A GREEN claim names the report file and
@@ -219,6 +253,15 @@ Ditch
   target. "Locate the ditch" means scout phases in order until one drops
   below the threshold. All improvement chapters measure against the ditch.
 
+Degradation budget
+  The pre-registered thresholds a {term}`steered <steered run>` batch must
+  clear to claim {term}`cost-equivalence`: {term}`solved-line floor` ≥15/16,
+  mean turns less than 3× the matching {term}`unsteered <steered run>`
+  baseline, and hang incidence no more than +2 above the unsteered baseline.
+  Pre-registered in
+  [`docs/superpowers/specs/2026-07-28-section3-cost-equivalence-metrics.md`](superpowers/specs/2026-07-28-section3-cost-equivalence-metrics.md)
+  before any steered batch ran, so the bar cannot be set after seeing the data.
+
 Escalation
   Two meanings in this course:
 
@@ -271,7 +314,16 @@ Child
 
 Specialist
   A `.md` file in `.pi/agents/` with YAML frontmatter defining a callable
-  subagent. The frontmatter declares the agent's name, description, allowed
+  subagent.
+
+Steered run
+Unsteered run
+  A run with versus without the {term}`orchestrator`\+{term}`implementer`
+  delegation mechanism. An unsteered run is a bare agent working directly
+  against the phase prompt. A steered run has the orchestrator parent
+  decompose the phase into a {term}`packet` and dispatch it to an implementer
+  child {term}`specialist`. The core distinction Section III's Claim 2
+  comparison table hangs on. The frontmatter declares the agent's name, description, allowed
   tools, and model; the body is the system prompt. The {term}`implementer` and
   scout are both specialists.
 
@@ -342,6 +394,12 @@ Telemetry gap
   (2) harness pytest output discarded on failure, (3) {term}`packet fidelity`
   not measured, (4) {term}`validation command drift` not detected,
   (5) self-report vs harness verdict agreement not measured.
+
+Solved-line floor
+  Amendment 2's rule: a phase scoring ≥15/16 at n=16 is "solved." A
+  {term}`steered <steered run>` arm dropping below this floor while its
+  {term}`unsteered <steered run>` baseline is above it is a degradation
+  regardless of cost — report and stop, per Decision 1's precedent.
 
 SLM
 Small language model

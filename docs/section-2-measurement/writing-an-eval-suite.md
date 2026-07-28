@@ -40,9 +40,9 @@ An eval suite isn't one file — it's a handful of distinct parts, each with its
 
 - **The workspace** — a disposable, git-tracked directory the agent actually builds in. Fresh per run, torn down after. Nothing about grading lives here.
 - **The reference solution** — a known-good, human-authored implementation of a phase. Used two ways: seeded into the workspace as the starting state for the next phase, and as the "must pass" side of the suite's own self-check.
-- **The suite** — the literal test file(s) making the assertions (`examples/acceptance/phase-N/`). This is what most people mean when they say "the tests."
+- **The {term}`suite`** — the literal test file(s) making the assertions (`examples/acceptance/phase-N/`). This is what most people mean when they say "the tests."
 - **The oracle** — the suite acting as *verdict-giver*. Same file as "the suite," different word for a different concern: whether its verdicts can be trusted at all. An oracle has to be validated (shown to accept the reference solution and reject a broken one) before its pass/fail means anything.
-- **The grader** — the isolated process that actually runs the suite against the agent's output, outside the workspace, with none of the agent's own configuration able to reach it.
+- **The {term}`grader`** — the isolated process that actually runs the suite against the agent's output, outside the workspace, with none of the agent's own configuration able to reach it.
 - **Telemetry** — the harness's own instrumentation reading the agent's session: turns, tool calls, delegations. This tells you *what happened*; the grader tells you *whether it passed*. Don't confuse the two — a detailed telemetry trace of a failing run is not itself evidence of success.
 
 A suite that actually grades has four properties. Skip any one and you get a mirror that looks like a grader.

@@ -21,98 +21,36 @@ a later phase is not queued just because an earlier one landed.
 **Current phase: GRADING-PATH REBOOT** — see
 [`plans/2026-07-24-grading-path-reboot.md`](plans/2026-07-24-grading-path-reboot.md).
 
-> ## ▶ Next action — Sections II and III prose are rewritten; Section IV is
-> ## blocked on an editorial decision, not on execution
+> ## ▶ Next action — Section 3 editorial pass (the "Section 2 treatment")
 >
-> **Task 9's Section II and III prose rewrite is DONE, 2026-07-28.** Both
-> sections' chapter prose was rewritten against the final Task 8 numbers,
-> reviewed at task level and again as a whole-branch pass, all findings
-> fixed, tests green. This closes the Section II/III half of Task 9; Task
-> 10 (consolidate entry points, this file included) is still open.
+> **Sections I–III merged to `main`, 2026-07-28** (commit `e1e12d3`).
+> Tasks 1–10 of the grading-path reboot are all done. Section II's
+> eval-suite chapter and the user-story roadmap shipped in final form;
+> Section III's cost-equivalence evidence (all three pre-registered phases,
+> n=16 each) cleared every degradation gate and is written up as Claim 2
+> in [`docs/section-3-sdd/index.md`](../section-3-sdd/index.md). Section
+> IV's placeholder page also shipped — honest about being unwritten, not
+> blocking Sections I–III.
 >
-> **Section IV: framing only, nothing decided (revised 2026-07-28, decided by
-> the project owner).** Its old catalog (Terminal Validation, Path Guard,
-> Turn Cap, Repeat Breaker) targeted the extinct SP2 5/8 baseline and is
-> retired — not resurrected, not blended in. An earlier version of this
-> banner (same date) called the subject "decided." That overstated it:
-> **nothing in Section IV is true until the new orchestrator machinery
-> actually surfaces these issues live, not just when raw counts cite them.**
-> Two preconditions gate any real Section IV work, neither satisfied yet:
-> (a) Section III's final baseline (the steered batches, in progress below),
-> and (b) knowing which mechanism — bare unsteered, the Section III
-> orchestrator+implementer flow, or both — Section IV's guardrails need to
-> sit on top of. A guardrail built against the wrong base has to be rebuilt,
-> so this isn't decidable yet either.
+> **What proceeds now: a prose/structure editing pass on Section 3**
+> (`docs/section-3-sdd/index.md`) to give it the same treatment Section 2
+> received — restructuring, trimming (~30% word cut on dense paragraphs),
+> fact-checking every number against its source report, voice consistency.
+> Claim 2 ("cost-equivalence, measured") is the section most in need: it
+> was written in one pass and committed straight through without the
+> multi-round review Section 2 got. The rest of the chapter ("Measuring the
+> mechanism" and "When your metrics are fiction") gets the same scrutiny
+> but is lower priority.
 >
-> [`docs/section-4-keeping-on-track/index.md`](../section-4-keeping-on-track/index.md)
-> is rewritten to say exactly this — a framing placeholder, not a chapter
-> catalog. It names two evidence-backed **candidates**, not chapters, from
-> Section II's current n=16 data (independent of Section III, so these don't
-> need to wait): speed/reliability (hang incidence, turn count — e.g. Phase 3
-> rewritten spec 6/16 timeouts, mean turns 10.8→24.2) and preservation
-> breakage (replace-vs-extend — e.g. Phase 2 replace=5/16, Phase 3
-> replace=4–6/16). *False self-report* was also considered and dropped: the
-> current n=16 data doesn't support it at the weight the pre-repair narrative
-> claimed (0/16 in Phase 2/3, 1/16 in Phase 1) — kept as a watched metric,
-> not a candidate.
->
-> **Merge strategy (decided 2026-07-28):** the branch merges to `main` once
-> Sections I–III are ready, **without waiting for Section IV.** Section IV's
-> placeholder page ships as-is (honest about being unwritten) rather than
-> holding up Sections I–III, which are unrelated to it.
->
-> **Task 8's unsteered half is DONE, 2026-07-27.** n=16 per phase, under the
-> fully rebuilt grading path — no ditch found anywhere, per Amendment 2's
-> rule: [Phase 1](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase1.md)
-> 15/16, [Phase 2](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md)
-> 15/16, [Phase 3](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md)
-> 16/16. First trustworthy numbers this project has produced; every earlier
-> count is superseded. See the grading-path reboot plan's Task 8 addendum
-> for the run details, including two live batch interruptions recovered via
-> checkpoint and a real subprocess-hang fix found and Rule-8-reviewed
-> mid-batch.
->
-> **This triggered Amendment 1's pre-registered no-ditch contingency**
-> (`plans/2026-07-24-oracle-repair.md`) — now dispositioned. The contingency
-> (move to the higher-level user-story roadmap) governs *workload
-> complexity*; Section III's orchestrator+implementer work is a
-> *mechanism-teaching* sequence on a different axis, and both proceed
-> rather than one superseding the other — see the full reasoning at the
-> contingency's own definition. Section III makes **no improvement claim**
-> (there is nothing left to improve on this workload); its only empirical
-> claim is continuous-cost equivalence (turns, packet/token size — wall
-> time is context only) without dropping below Amendment 2's solved line.
-> That scoping is why it does not re-trip the contingency: it is admitted
-> building-block instructional content for Section IV/SP3 (keeping the SLM
-> on track), not a search for evidence of improvement. The move to the
-> user-story roadmap stays open for later, not retired by this decision.
->
-> **Task 10 is done, 2026-07-28** — KICKOFF.md, the read-this-first list, and
-> archive folding all landed. **Section III's cost-equivalence evidence is
-> also done, 2026-07-28** — all three pre-registered phases (n=16 each)
-> measured and clear every degradation gate; see Claim 2 in
-> [`docs/section-3-sdd/index.md`](../section-3-sdd/index.md), "Claim 2 —
-> cost-equivalence, measured," for the disposition, including an unplanned
-> finding (near-zero destructive
-> replace of inherited files, corroborated on two of three phases) worth
-> carrying into Section IV.
->
-> **What proceeds now:** the writing-an-eval-suite chapter
-> (`docs/section-2-measurement/writing-an-eval-suite.md`) and the
-> restructured `roadmap-user-story.md` have several rounds of uncommitted
-> edits still in progress — commit those before calling Sections I–III
-> merge-ready. Then the merge to `main`, once that lands. Section IV stays a
-> framing placeholder until its two preconditions land — it is explicitly not on
-> this list.
->
-> **Scheduled, added 2026-07-28:** Task 9's suite-authoring sub-arc gains a
-> hands-on case study — deriving the acceptance contract from a new
-> higher-level, business/user-story rewrite of Phases 1–3
-> (`examples/agentclinic/specs/roadmap-user-story.md`, not yet written),
-> targeting the identical app the existing detailed roadmap targets. This
-> shipped — `examples/agentclinic/specs/roadmap-user-story.md` exists and
-> Task 9's Section 2 rewrite includes the case study. See
-> [`archive/specs/2026-07-28-eval-suite-chapter-design.md`](archive/specs/2026-07-28-eval-suite-chapter-design.md).
+> **Section IV remains a framing placeholder** until its two preconditions
+> land: (a) Section III's final baseline and (b) knowing which mechanism —
+> bare unsteered, the orchestrator+implementer flow, or both — Section IV's
+> guardrails need to sit on top of. Its two evidence-backed candidates —
+> speed/reliability (hang incidence, turn count) and preservation breakage
+> (replace-vs-extend) — are named but not adopted. *False self-report* was
+> considered and dropped: current n=16 data doesn't support it at the weight
+> the pre-repair narrative claimed (0/16 in Phase 2/3, 1/16 in Phase 1) —
+> kept as a watched metric, not a candidate.
 
 A deep review (Fable, 2026-07-24) found five further integrity failures, two of
 which **defeat the hardened oracle** (a model-written `pytest.ini` with
@@ -138,7 +76,7 @@ module's docstring for the distinction).
 | SP0 | Scaffold + Section I (repo skeleton, docs toolchain, roadmap, LESSONS, example spec triple, hello-world extension) | **Done** | [spec](../section-1-hello-agent/spec.md) | [plan](../section-1-hello-agent/plan.md) | — |
 | SP1 | Section II — Measurement *(harness kept; prose discarded, numbers superseded)* (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | **Done** | [spec](../section-2-measurement/spec.md) | [plan](../section-2-measurement/plan.md) | [0/8 baseline](../section-2-measurement/research/2026-07-23-baseline-phase-1.md) |
 | SP2 | Section III — SDD on Pi *(mechanism kept; prose discarded, numbers superseded)* (roadmap/packet method, parent-as-orchestrator + implementer specialist) | **Done** | [spec](../section-3-sdd/spec.md) | [plan](../section-3-sdd/plan.md) | [3/8 pre](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1.md), [5/8 post](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1-post-tuning.md), [deep-dive](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md) |
-| SPR | **Grading-path reboot** — rebuild the grader so model-controlled input cannot reach it, restore honest reporting, then re-run the evidence chain | **Tasks 1–8 (unsteered) done; Task 9 (Section II + III prose rewrite) done, reviewed, tests green; Task 10 (entry-point consolidation) open; Section III proceeding, reframed as cost-equivalence teaching content** | — | [plan](plans/2026-07-24-grading-path-reboot.md) | [Phase 1](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase1.md), [Phase 2](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md), [Phase 3](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md) |
+| SPR | **Grading-path reboot** — rebuild the grader so model-controlled input cannot reach it, restore honest reporting, then re-run the evidence chain | **Tasks 1–10 done; Sections I–III merged to `main` (2026-07-28). Section III now receiving editorial pass (the "Section 2 treatment").** | — | [plan](plans/2026-07-24-grading-path-reboot.md) | [Phase 1](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase1.md), [Phase 2](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md), [Phase 3](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md) |
 | SP3 | Section IV — Keeping the SLM on track *(old catalog — orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting — retired)* | **Framing placeholder only (revised 2026-07-28) — gated on (a) Section III's final baseline and (b) which mechanism to build atop. Two evidence-backed candidates named, not decided: speed/reliability, preservation breakage. Merges to `main` *after* Sections I–III, not blocking them.** | — | — | [Phase 2](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md), [Phase 3 rewritten spec](../section-2-measurement/research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md) |
 
 

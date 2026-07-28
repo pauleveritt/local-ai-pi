@@ -51,6 +51,13 @@ Two claims are in scope. One has evidence and a correction attached to it. The
 other has an apparatus, a pre-registration requirement, and no data at all —
 and saying so is the point.
 
+**What steered and unsteered mean.** Every claim below distinguishes between
+an {term}`unsteered run` — a bare agent working directly against the phase
+prompt, the shape Section 2 measured — and a {term}`steered run`, where the
+orchestrator decomposes the phase into a {term}`packet` and dispatches it to
+an implementer {term}`specialist`. Claim 2 compares the two arms and asks
+whether adopting the mechanism costs materially more.
+
 ### Claim 1 — replace-vs-extend on inherited files
 
 **The apparatus, first.** `harness/telemetry.py` parses the JSONL that
@@ -133,16 +140,17 @@ unsteered n=16 report carries the counter:
 Read that honestly. In the 2026-07-27 Phase 3 batch all sixteen runs passed, so
 all four replace-classified runs passed. In the 2026-07-28 batch all sixteen
 passed with six replace-classified runs. The same gap reaches back a step
-further, too: the 2026-07-27 Phase 2 batch's one failing run (run 7) is not
-separable from its five replace-classified runs in the published aggregate
-either — the table's replace=5/extend=11 split is not broken out by pass/fail,
-so which bucket the failure landed in is not recoverable from the report as
-published. Whatever the run-level counter is
-measuring on this workload, it is **not** currently separating passing runs
-from failing ones — there are almost no failing runs left to separate. The
-signal is alive as a countable behavior and dead as a predictor here, and the
-place it is expected to matter again is Section IV, where a mechanism tries to
-make the whole-file rewrite structurally impossible rather than merely rarer.
+further: the 2026-07-27 Phase 2 batch's one failing run (run 7) is not
+separable from its five replace-classified runs in the published aggregate —
+the table's replace=5/extend=11 split is not broken out by pass/fail, so which
+bucket the failure landed in is not recoverable from the report as published.
+
+Whatever the run-level counter is measuring on this workload, it is **not**
+currently separating passing runs from failing ones — there are almost no
+failing runs left to separate. The signal is alive as a countable behavior and
+dead as a predictor here. The place it is expected to matter again is Section
+IV, where a mechanism tries to make the whole-file rewrite structurally
+impossible rather than merely rarer.
 
 **What Section III may claim from it: nothing yet.** No steered
 orchestrator+implementer batch has been run under the rebuilt grading path.
@@ -151,46 +159,50 @@ anything would require a steered arm that does not exist.
 
 ### Claim 2 — cost-equivalence, measured
 
-**The apparatus.** For a delegating run, `subagent_stats_from()` walks the same
-artifact for `tool_execution_start` events whose `toolName` is `subagent`,
-counting invocations and summing the `task` argument's length in bytes. That is
-what fills the "Subagent delegation metrics" section of every report: per-run
-subagent calls and packet size, plus a mean over the runs that delegated. Turn
-counts come from the same reader. Amendment 1 of the
-[oracle-repair plan](../superpowers/plans/2026-07-24-oracle-repair.md) makes
-the sourcing a rule, not a habit: "Delegation counts in any status or report
-derive from `subagent_stats_from` only." The reason it had to be written down
-is in the next section.
+Claim 2 tests for {term}`cost-equivalence`: does the
+{term}`orchestrator`\+{term}`implementer` mechanism cost materially more than a
+bare agent, on the same workload, without dropping below the
+{term}`solved-line floor`? The three independent gates — solved-line floor,
+turns, hang incidence — were pre-registered before any steered batch ran, so
+the bar cannot have been set after seeing the data.
 
-Timing is deliberately split into two differently-named numbers.
-`task_duration_s` is the artifact's own first-to-terminal timestamp delta;
-`mean_process_wall_time_s` is the harness's subprocess clock. The docstring
-says why they are never merged: "Unlike `task_duration_s` this includes any
-dead time from a killed-then-retried attempt, so it is reported separately and
-labeled, never silently substituted."
+**The apparatus.** For a delegating run, `subagent_stats_from()` walks the
+parent's JSONL for `tool_execution_start` events whose `toolName` is
+`subagent`, counting invocations and summing the `task` argument's length in
+bytes. That fills the "Subagent delegation metrics" section of every report:
+per-run subagent calls and packet size, plus a mean over runs that delegated.
+Turn counts come from the same reader. Amendment 1 of the
+[oracle-repair plan](../superpowers/plans/2026-07-24-oracle-repair.md) made the
+sourcing a rule: "Delegation counts in any status or report derive from
+`subagent_stats_from` only." The reason it had to be written down is in the
+next section.
 
-**The claim this apparatus is for, and its ceiling.** Amendment 1's
-pre-registered no-ditch contingency fired on 2026-07-27 — seeded Phase 2 scored
-15/16 and Phase 3 scored 16/16 under Amendment 2's ≥15/16 rule — and its
-disposition sets what Section III is allowed to say:
+Timing is deliberately split into two numbers. `task_duration_s` is the
+artifact's own first-to-terminal timestamp delta; `mean_process_wall_time_s`
+is the harness's subprocess clock. The docstring says why they are never
+merged: "Unlike `task_duration_s` this includes any dead time from a
+killed-then-retried attempt, so it is reported separately and labeled, never
+silently substituted."
+
+**The ceiling.** Amendment 1's pre-registered no-ditch contingency fired on
+2026-07-27 — Phase 2 scored 15/16 and Phase 3 scored 16/16 under Amendment 2's
+≥15/16 rule — and its disposition sets what Section III is allowed to say:
 
 > Section III makes no improvement claim (there is nothing left to improve on
 > this workload, per this contingency's own trigger): its only empirical claim
-> is continuous-cost equivalence — does adopting the mechanism cost materially
+> is {term}`cost-equivalence` — does adopting the mechanism cost materially
 > more (turns, packet/token size; wall time is context only […]) without
 > degrading below Amendment 2's solved line.
 
-The [roadmap](../superpowers/roadmap.md) attaches one precondition to that, in
-its own words: "Before any Section III evidence batch: pre-register the
-cost-equivalence metric set and degradation budget […] so the claim can't be
-set after seeing the data."
+The [roadmap](../superpowers/roadmap.md) attaches a precondition: pre-register
+the metric set and {term}`degradation budget` before any steered batch, "so the
+claim can't be set after seeing the data."
 
-**The precondition was met before the data existed.** The metric set and
-degradation budget are pre-registered —
+**The precondition was met before the data existed.** The budget is
+pre-registered in
 [`2026-07-28-section3-cost-equivalence-metrics.md`](../superpowers/specs/2026-07-28-section3-cost-equivalence-metrics.md),
-approved 2026-07-28, before any steered batch ran — so the disposition below
-can't be accused of setting the bar after seeing the number. All three
-pre-registered phases (n=16 each) are now measured against it.
+approved 2026-07-28, before any steered batch ran. All three pre-registered
+phases (n=16 each) are now measured against it.
 
 | Phase | Steered success | Steered turns | Steered hangs | Unsteered success | Unsteered turns | Unsteered hangs |
 |---|---|---|---|---|---|---|
@@ -198,61 +210,62 @@ pre-registered phases (n=16 each) are now measured against it.
 | 2 | 16/16 | 8.1 | 0/16 | 15/16 | 8.6 | 0/16 |
 | 3 (rewritten spec) | 16/16 | 8.1 | 4/16 | 16/16 | 24.2 | 6/16 |
 
-**Disposition: clears every gate, on all three phases.** Per the
-pre-registered budget: the solved-line floor (≥15/16) holds on all three;
-turns stay nowhere near the 3x-unsteered threshold on any phase; hang
-incidence never exceeds the unsteered arm's own count by more than 2 (phase 3
-is actually *lower*, 4/16 vs 6/16). **This is not an improvement claim** —
-Amendment 1 decision 4 forecloses that framing regardless of which way the
-numbers lean, because there is nothing left to improve on a workload that
-already scores 15–16/16 unsteered. The claim is narrower and holds regardless
-of direction: adopting the mechanism did not cost more, on this workload, by
-this budget.
+**Disposition: clears every gate.** Per the pre-registered
+{term}`degradation budget`: the {term}`solved-line floor` (≥15/16) holds on
+all three phases; turns stay nowhere near the 3×-unsteered threshold on any
+phase; hang incidence never exceeds the unsteered arm's own count by more than
+2 — Phase 3 is actually *lower*, 4/16 vs 6/16.
 
-**A second, unplanned finding, not part of the pre-registered budget.**
-Phases 2 and 3 both show the steered implementer almost never touching
-inherited files destructively: Phase 2's replace-vs-extend was
-replace=0/extend=0/untouched=16 (16 for 16 runs); Phase 3's was
-replace=0/extend=1/untouched=15. The unsteered arm's own replace rate on the
-same phases was 5/16 and 4–6/16. Two phases corroborating the same pattern is
-suggestive, not conclusive, but it's a specific, countable behavioral signal
-(Rule 7's incidence framing) worth naming plainly: the packet's Allowed-Files
-restriction may be structurally preventing the preservation-breakage failure
-mode Section IV had named as a candidate pillar — which, if it holds up, is a
-finding about what Section IV needs to build, not just about Section III's
-cost.
+**This is not an improvement claim.** Amendment 1 decision 4 forecloses that
+framing regardless of which way the numbers lean — there is nothing left to
+improve on a workload already scoring 15–16/16 unsteered. The claim is
+narrower and holds regardless of direction: adopting the mechanism did not
+cost more, on this workload, by this budget.
 
-All four steered hangs were traced in full detail rather than left as a bare
-count, and — this is the finding —
+**An unplanned finding, not part of the pre-registered budget.** Phases 2 and
+3 both show the steered implementer almost never touching inherited files
+destructively: Phase 2's replace-vs-extend was
+replace=0/extend=0/untouched=16; Phase 3's was replace=0/extend=1/untouched=15.
+The unsteered arm's replace rate on the same phases was 5/16 and 4–6/16.
+
+Two phases corroborating the same pattern is suggestive, not conclusive. But
+it is a specific, countable behavioral signal worth naming: the packet's
+Allowed-Files restriction may be structurally preventing the
+preservation-breakage failure mode Section IV had named as a candidate —
+which, if it holds up, is a finding about what Section IV needs to build, not
+just about Section III's cost.
+
+**The repeat-spiral incident.** All four steered Phase 3 hangs were traced in
+full detail rather than left as a bare count, and
 [**all four share the identical root cause**](research/2026-07-28-phase3-run4-repeat-spiral-incident.md):
 a delegated implementer writes correct code, verifies it with a
-`follow_redirects`-vulnerable check (`lessons.md` #13's exact trap), reads
-the false negative as its own code being wrong, and loops — rewriting
-near-identical code, sometimes abandoning the packet's specified
-`uv run pytest -q` for its own ad-hoc check (validation-command drift, gap
-#2/#4 below), sometimes not (one run even self-diagnosed the trap in its own
-reasoning and still couldn't escape it, because its own test file inherited
-the same unguarded assertion). This is not four different bugs; it's one
-specific, well-understood trap accounting for 100% of this batch's hangs —
-which sharpens the mechanism candidate considerably. A guardrail targeting
-this pattern specifically (or, more generally, an unguarded redirect-status
-assertion) is a sharper candidate than a generic turn cap, since the
-implementer isn't malfunctioning — it's confidently, repeatedly correct about
-code its own test methodology can't observe.
+`follow_redirects`-vulnerable check (`lessons.md` #13's exact trap), reads the
+false negative as its own code being wrong, and loops — rewriting
+near-identical code, sometimes abandoning the packet's `uv run pytest -q` for
+an ad-hoc probe, sometimes not.
 
-Two apparatus gaps are still open, both standing items in the roadmap's
-backlog, and both applied to every batch above. **Child session JSONL is not
-captured** — the parent artifact shows the subagent tool call and its summary
-result, but not the child's own event stream, so a steered run is measured at
-lower resolution than an unsteered one. (The repeat-spiral incident above was
-only reconstructable because the parent's `tool_execution_update` stream
-happened to carry periodic snapshots of the child's messages — a workaround,
-not a substitute for this gap being fixed.) And the **packet fidelity metric**
-(mechanically checking that the packet's acceptance strings and allowed-files
-list match the roadmap verbatim) is still open; the report writer prints that
-it is deferred, and that line stays until it ships.
+One run even self-diagnosed the trap in its own reasoning and still could not
+escape it, because its own test file inherited the same unguarded assertion.
+This is not four different bugs; it is one specific, well-understood trap
+accounting for 100% of this batch's hangs. A guardrail targeting the
+`follow_redirects` pattern would plausibly eliminate the entire incidence —
+the implementer is not malfunctioning, it is confidently correct about code
+its test methodology cannot observe.
 
-A second future measurement is named the same way, and is equally unrun:
+**Open gaps.** Two apparatus gaps from the roadmap's backlog apply to every
+batch above. **Child session JSONL is not captured** — the parent artifact
+shows the subagent tool call and its summary result, but not the child's own
+event stream, so a steered run is measured at lower resolution than an
+unsteered one. (The repeat-spiral incident was only reconstructable because
+the parent's `tool_execution_update` stream happened to carry periodic
+snapshots of the child's messages — a workaround, not a fix.)
+
+The **packet fidelity metric** — mechanically checking that a packet's
+acceptance strings and allowed-files list match the roadmap verbatim — is
+still open; the report writer prints that it is deferred, and that line stays
+until it ships.
+
+**A future measurement, equally unrun.**
 `examples/agentclinic/specs/roadmap-user-story.md` — a higher-level
 business/user-story rewrite of the same three phases, targeting the identical
 app — is designated Section III's later packet source, so the mechanism can be
@@ -298,7 +311,7 @@ ran. This project's did not, four times, and it is worth being specific about
 each one, because none of them look like fraud from the inside. They look like
 working code.
 
-Read this next to Section 2's material on the *acceptance contract*. That was
+Read this next to Section 2's material on the {term}`acceptance contract`. That was
 about whether the grader can be trusted. This is about whether the thing
 *watching the grader* can be trusted — the same apparatus this section owns.
 
