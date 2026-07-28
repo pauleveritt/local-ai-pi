@@ -149,7 +149,7 @@ orchestrator+implementer batch has been run under the rebuilt grading path.
 The replace-vs-extend numbers above are all unsteered. Comparing them to
 anything would require a steered arm that does not exist.
 
-### Claim 2 — cost-equivalence, which has not been measured
+### Claim 2 — cost-equivalence, measured
 
 **The apparatus.** For a delegating run, `subagent_stats_from()` walks the same
 artifact for `tool_execution_start` events whose `toolName` is `subagent`,
@@ -185,23 +185,63 @@ its own words: "Before any Section III evidence batch: pre-register the
 cost-equivalence metric set and degradation budget […] so the claim can't be
 set after seeing the data."
 
-**That precondition is met; the batch itself is still running.** The metric
-set and degradation budget are pre-registered —
+**The precondition was met before the data existed.** The metric set and
+degradation budget are pre-registered —
 [`2026-07-28-section3-cost-equivalence-metrics.md`](../superpowers/specs/2026-07-28-section3-cost-equivalence-metrics.md),
-approved before any steered run — so the claim below, once all three phases
-are in, can't be accused of being set after seeing the data. There is still no
-cost-equivalence number in this course yet — not a favourable one, not an
-unfavourable one. Treating the orchestrator+implementer shape as *better* than
-an unsteered run on this workload would be inventing a result: on a workload
-that already scores 15/16, 15/16 and 16/16 unsteered, there is nothing to
-improve, which is precisely why the surviving question is what the mechanism
-*costs*.
+approved 2026-07-28, before any steered batch ran — so the disposition below
+can't be accused of setting the bar after seeing the number. All three
+pre-registered phases (n=16 each) are now measured against it.
 
-Two apparatus gaps are worth naming before anyone runs that batch, both
-standing items in the roadmap's backlog. **Child session JSONL is not
+| Phase | Steered success | Steered turns | Steered hangs | Unsteered success | Unsteered turns | Unsteered hangs |
+|---|---|---|---|---|---|---|
+| 1 | 15/16 | 8.8 | 0/16 | 15/16 | 12.8 | 0/16 |
+| 2 | 16/16 | 8.1 | 0/16 | 15/16 | 8.6 | 0/16 |
+| 3 (rewritten spec) | 16/16 | 8.1 | 4/16 | 16/16 | 24.2 | 6/16 |
+
+**Disposition: clears every gate, on all three phases.** Per the
+pre-registered budget: the solved-line floor (≥15/16) holds on all three;
+turns stay nowhere near the 3x-unsteered threshold on any phase; hang
+incidence never exceeds the unsteered arm's own count by more than 2 (phase 3
+is actually *lower*, 4/16 vs 6/16). **This is not an improvement claim** —
+Amendment 1 decision 4 forecloses that framing regardless of which way the
+numbers lean, because there is nothing left to improve on a workload that
+already scores 15–16/16 unsteered. The claim is narrower and holds regardless
+of direction: adopting the mechanism did not cost more, on this workload, by
+this budget.
+
+**A second, unplanned finding, not part of the pre-registered budget.**
+Phases 2 and 3 both show the steered implementer almost never touching
+inherited files destructively: Phase 2's replace-vs-extend was
+replace=0/extend=0/untouched=16 (16 for 16 runs); Phase 3's was
+replace=0/extend=1/untouched=15. The unsteered arm's own replace rate on the
+same phases was 5/16 and 4–6/16. Two phases corroborating the same pattern is
+suggestive, not conclusive, but it's a specific, countable behavioral signal
+(Rule 7's incidence framing) worth naming plainly: the packet's Allowed-Files
+restriction may be structurally preventing the preservation-breakage failure
+mode Section IV had named as a candidate pillar — which, if it holds up, is a
+finding about what Section IV needs to build, not just about Section III's
+cost.
+
+One steered hang was traced in full detail rather than left as a bare count:
+[`2026-07-28-phase3-run4-repeat-spiral-incident.md`](research/2026-07-28-phase3-run4-repeat-spiral-incident.md)
+shows a delegated implementer writing correct code, verifying it with a
+`follow_redirects`-vulnerable check (`lessons.md` #13's exact trap), reading
+the false negative as its own code being wrong, and rewriting
+byte-identical code roughly fifteen times before the timeout — compounded by
+abandoning the packet's specified `uv run pytest -q` for its own ad-hoc
+check partway through (validation-command drift, gap #2/#4 below). One traced
+incident doesn't characterize all 4 of phase 3's hangs, but it's a concrete
+existence proof of what "hang" actually looks like mechanically, not just a
+number in a table.
+
+Two apparatus gaps are still open, both standing items in the roadmap's
+backlog, and both applied to every batch above. **Child session JSONL is not
 captured** — the parent artifact shows the subagent tool call and its summary
 result, but not the child's own event stream, so a steered run is measured at
-lower resolution than an unsteered one. And the **packet fidelity metric**
+lower resolution than an unsteered one. (The repeat-spiral incident above was
+only reconstructable because the parent's `tool_execution_update` stream
+happened to carry periodic snapshots of the child's messages — a workaround,
+not a substitute for this gap being fixed.) And the **packet fidelity metric**
 (mechanically checking that the packet's acceptance strings and allowed-files
 list match the roadmap verbatim) is still open; the report writer prints that
 it is deferred, and that line stays until it ships.

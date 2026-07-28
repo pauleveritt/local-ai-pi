@@ -87,12 +87,22 @@ a later phase is not queued just because an earlier one landed.
 > on track), not a search for evidence of improvement. The move to the
 > user-story roadmap stays open for later, not retired by this decision.
 >
-> **What proceeds now:** Task 10 (consolidate entry points — KICKOFF.md done
-> 2026-07-28, roadmap read-this-first ordering and archive folding still
-> open); Section III's reframed orchestrator work (metrics pre-registered
-> and approved 2026-07-28, Phase 1 scout n=4 in progress); then the merge to
-> `main` once Sections I–III are ready. Section IV stays a framing
-> placeholder until its two preconditions land — it is explicitly not on
+> **Task 10 is done, 2026-07-28** — KICKOFF.md, the read-this-first list, and
+> archive folding all landed. **Section III's cost-equivalence evidence is
+> also done, 2026-07-28** — all three pre-registered phases (n=16 each)
+> measured and clear every degradation gate; see Claim 2 in
+> [`docs/section-3-sdd/index.md`](../section-3-sdd/index.md), "Claim 2 —
+> cost-equivalence, measured," for the disposition, including an unplanned
+> finding (near-zero destructive
+> replace of inherited files, corroborated on two of three phases) worth
+> carrying into Section IV.
+>
+> **What proceeds now:** the writing-an-eval-suite chapter
+> (`docs/section-2-measurement/writing-an-eval-suite.md`) and the
+> restructured `roadmap-user-story.md` have several rounds of uncommitted
+> edits still in progress — commit those before calling Sections I–III
+> merge-ready. Then the merge to `main`, once that lands. Section IV stays a
+> framing placeholder until its two preconditions land — it is explicitly not on
 > this list.
 >
 > **Scheduled, added 2026-07-28:** Task 9's suite-authoring sub-arc gains a
