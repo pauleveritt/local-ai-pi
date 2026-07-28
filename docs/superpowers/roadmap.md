@@ -8,8 +8,27 @@ a later phase is not queued just because an earlier one landed.
 **Current phase: GRADING-PATH REBOOT** — see
 [`plans/2026-07-24-grading-path-reboot.md`](plans/2026-07-24-grading-path-reboot.md).
 
-> ## ▶ Next action — Section II is finished; Section III proceeds as a
-> ## teaching building block, cost-equivalence only
+> ## ▶ Next action — Sections II and III prose are rewritten; Section IV is
+> ## blocked on an editorial decision, not on execution
+>
+> **Task 9's Section II and III prose rewrite is DONE, 2026-07-28.** Both
+> sections' chapter prose was rewritten against the final Task 8 numbers,
+> reviewed at task level and again as a whole-branch pass, all findings
+> fixed, tests green. This closes the Section II/III half of Task 9; Task
+> 10 (consolidate entry points, this file included) is still open.
+>
+> **Section IV prose is explicitly NOT part of that close-out.** It is not
+> a rewrite-in-progress — it needs a decision first. Its entire chapter
+> catalog (Terminal Validation, Path Guard, Turn Cap, Repeat Breaker) was
+> built against the old SP2 5/8 baseline and specific failure modes that no
+> longer exist under the rebuilt oracle (unsteered now goes 15–16/16, no
+> ditch — see Task 8 below). Rewriting Section IV's prose without first
+> deciding what, if anything, it teaches now would just be guessing at a new
+> chapter lineup. **Open decision, needs a human call:** what does Section
+> IV teach given there is no live ditch for these four chapters to fix?
+> Candidates already named in the backlog below (the write-vs-edit
+> mechanism, preservation breakage, putting git to work) are inputs to that
+> decision, not a pre-made replacement lineup.
 >
 > **Task 8's unsteered half is DONE, 2026-07-27.** n=16 per phase, under the
 > fully rebuilt grading path — no ditch found anywhere, per Amendment 2's
@@ -37,14 +56,12 @@ a later phase is not queued just because an earlier one landed.
 > on track), not a search for evidence of improvement. The move to the
 > user-story roadmap stays open for later, not retired by this decision.
 >
-> **What proceeds now:** Section II's close-out — Task 9's rewrite of
-> Section II prose (the oracle-validation / workload / "when your metrics
-> are fiction" arc) against these final numbers, Task 10 (consolidate entry
-> points, this file included) — and Section III's reframed orchestrator
-> work, scoped as above. Before any Section III evidence batch: pre-register
-> the cost-equivalence metric set and degradation budget (see the Fable
-> review of the Task 8 results for a draft), so the claim can't be set
-> after seeing the data.
+> **What proceeds now:** Task 10 (consolidate entry points, this file
+> included); Section IV's chapter-catalog decision (above); and Section
+> III's reframed orchestrator work, scoped as above. Before any Section III
+> evidence batch: pre-register the cost-equivalence metric set and
+> degradation budget (see the Fable review of the Task 8 results for a
+> draft), so the claim can't be set after seeing the data.
 >
 > **Scheduled, added 2026-07-28:** Task 9's suite-authoring sub-arc gains a
 > hands-on case study — deriving the acceptance contract from a new
@@ -77,8 +94,8 @@ module's docstring for the distinction).
 | SP0 | Scaffold + Section I (repo skeleton, docs toolchain, roadmap, LESSONS, example spec triple, hello-world extension) | **Done** | [spec](../section-1-hello-agent/spec.md) | [plan](../section-1-hello-agent/plan.md) | — |
 | SP1 | Section II — Measurement *(harness kept; prose discarded, numbers superseded)* (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | **Done** | [spec](../section-2-measurement/spec.md) | [plan](../section-2-measurement/plan.md) | [0/8 baseline](../section-2-measurement/research/2026-07-23-baseline-phase-1.md) |
 | SP2 | Section III — SDD on Pi *(mechanism kept; prose discarded, numbers superseded)* (roadmap/packet method, parent-as-orchestrator + implementer specialist) | **Done** | [spec](../section-3-sdd/spec.md) | [plan](../section-3-sdd/plan.md) | [3/8 pre](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1.md), [5/8 post](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1-post-tuning.md), [deep-dive](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md) |
-| SPR | **Grading-path reboot** — rebuild the grader so model-controlled input cannot reach it, restore honest reporting, then re-run the evidence chain | **Tasks 1–8 (unsteered) done; Tasks 9–10 (Section II) in progress; Section III proceeding, reframed as cost-equivalence teaching content** | — | [plan](plans/2026-07-24-grading-path-reboot.md) | [Phase 1](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase1.md), [Phase 2](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md), [Phase 3](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md) |
-| SP3 | Section IV — Keeping the SLM on track (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | **Blocked on SPR** | — | — | — |
+| SPR | **Grading-path reboot** — rebuild the grader so model-controlled input cannot reach it, restore honest reporting, then re-run the evidence chain | **Tasks 1–8 (unsteered) done; Task 9 (Section II + III prose rewrite) done, reviewed, tests green; Task 10 (entry-point consolidation) open; Section III proceeding, reframed as cost-equivalence teaching content** | — | [plan](plans/2026-07-24-grading-path-reboot.md) | [Phase 1](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase1.md), [Phase 2](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md), [Phase 3](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md) |
+| SP3 | Section IV — Keeping the SLM on track (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | **Blocked — old chapter catalog assumed the extinct 5/8 baseline; needs an editorial decision on what Section IV teaches now that unsteered goes 15–16/16 (no ditch), not merely "blocked on SPR"** | — | — | — |
 
 
 ## Narrative reframe (adopted 2026-07-24)
@@ -106,8 +123,11 @@ impossible — rather than by prompt wording, which `lessons.md` #16 already
 recorded as insufficient. Expect a long tail of places where the model still
 needs help at generation time; the mechanisms are the floor, not the ceiling.
 
-This reframe governs the Section 2-4 rewrite pass and has not yet been
-propagated into chapter prose.
+This reframe governs the Section 2-4 rewrite pass. It has been propagated
+into Section II and III chapter prose (Task 9, done 2026-07-28). Section IV
+is unwritten against it — and stays that way until the chapter-catalog
+decision above is made, since the reframe alone doesn't say which of the
+old guardrail chapters (if any) survive contact with a no-ditch baseline.
 
 ## Backlog (evidence-gated, not queued)
 
