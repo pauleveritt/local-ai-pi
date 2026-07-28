@@ -252,6 +252,10 @@ neighbor shipped:
   if a measured run shows it helps the SLM on the example workload. (Installing
   it is a normal package install for the reader; it does not touch the pinned
   global `pi` runtime.)
+- **Roadmap explainer doc** (docs). A new top-level Sphinx doc file explaining
+  this roadmap and its contents — what the phase table and backlog mean, the
+  evidence-gated convention, and how to navigate to per-phase specs/plans —
+  for readers landing on the docs site without prior context.
 
 - **Investigate putting git to work: change visibility, pseudo-transactions,
   and an atomic-overlay equivalent.** Both predecessor efforts converged on git

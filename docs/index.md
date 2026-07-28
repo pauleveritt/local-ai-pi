@@ -50,6 +50,7 @@ section-4-keeping-on-track/index
 
 how-this-was-built
 lessons
+glossary
 ```
 
 ## Development record

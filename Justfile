@@ -45,6 +45,10 @@ docs-live-browser := "sh -c 'sleep 1; open -a Firefox \\$0' %s &"
 # Run all quality checks
 @quality: lint fmt-check
 
+# Start ds4-server with the current ds4flash.gguf model at 80K context
+@serve-ds4:
+    cd /Users/pauleveritt/projects/ds4 && ./ds4-server -c 80000 --kv-disk-dir ~/.ds4/server-kv --kv-disk-space-mb 16384
+
 # Clean build artifacts
 @clean:
     rm -rf dist/ build/ *.egg-info .pytest_cache .ruff_cache htmlcov/ .coverage
