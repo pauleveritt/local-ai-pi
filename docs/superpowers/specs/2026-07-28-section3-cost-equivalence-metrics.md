@@ -1,10 +1,10 @@
 # Section III Cost-Equivalence — Pre-Registered Metrics and Degradation Budget
 
 **Date:** 2026-07-28
-**Status:** draft — the metric set and data sources are fixed; the specific
-numeric thresholds are a recommendation pending project-owner sign-off (see
-"Open decision" below), matching how Amendment 1, Amendment 2, and Decision 1
-were each explicitly owner-decided in this project.
+**Status:** approved by the project owner, 2026-07-28 — metric set, data
+sources, and the 3x-turns / +2-hangs degradation thresholds are all locked.
+Pre-registration is closed; no threshold in this document may change after a
+steered batch has been seen, per the point of pre-registering at all.
 **Context:** [`plans/2026-07-24-oracle-repair.md`](../plans/2026-07-24-oracle-repair.md)
 Amendment 1 decision 4 (dispositioned 2026-07-27) commits Section III to a
 single empirical claim — **continuous-cost equivalence**: does adopting the
@@ -107,16 +107,15 @@ shipped 50KB cap as a structural ceiling check — flagged only if any single
 packet approaches that cap, not compared against an unsteered number that
 doesn't exist.
 
-## Open decision (owner sign-off needed)
+## Decision (approved 2026-07-28)
 
-The **3x-turns / +2-hangs** thresholds above are a first-cut recommendation
-derived from the observed baseline variance (the 2.2x, 0→6 swing), not a
-number handed down from an existing project decision the way Amendment 2's
-15/16 floor was. Flagging this explicitly rather than treating it as settled,
-consistent with how Amendment 1, Amendment 2, and Decision 1 were each
-recorded as decided by the project owner. If a different multiplier or a
-different behavioral signal is preferred, this section is the place to change
-it — before any steered batch runs, per the point of pre-registering at all.
+The **3x-turns / +2-hangs** thresholds above are approved by the project
+owner as pre-registered, before any steered batch has run. They were derived
+from the observed baseline variance (the 2.2x, 0→6 swing seen from a
+spec-wording change alone) rather than handed down from an existing project
+decision the way Amendment 2's 15/16 floor was — recorded here for the same
+reason Amendment 1, Amendment 2, and Decision 1 each record who decided and
+when.
 
 ## What this does not decide
 
