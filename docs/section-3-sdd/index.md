@@ -222,17 +222,23 @@ mode Section IV had named as a candidate pillar — which, if it holds up, is a
 finding about what Section IV needs to build, not just about Section III's
 cost.
 
-One steered hang was traced in full detail rather than left as a bare count:
-[`2026-07-28-phase3-run4-repeat-spiral-incident.md`](research/2026-07-28-phase3-run4-repeat-spiral-incident.md)
-shows a delegated implementer writing correct code, verifying it with a
-`follow_redirects`-vulnerable check (`lessons.md` #13's exact trap), reading
-the false negative as its own code being wrong, and rewriting
-byte-identical code roughly fifteen times before the timeout — compounded by
-abandoning the packet's specified `uv run pytest -q` for its own ad-hoc
-check partway through (validation-command drift, gap #2/#4 below). One traced
-incident doesn't characterize all 4 of phase 3's hangs, but it's a concrete
-existence proof of what "hang" actually looks like mechanically, not just a
-number in a table.
+All four steered hangs were traced in full detail rather than left as a bare
+count, and — this is the finding —
+[**all four share the identical root cause**](research/2026-07-28-phase3-run4-repeat-spiral-incident.md):
+a delegated implementer writes correct code, verifies it with a
+`follow_redirects`-vulnerable check (`lessons.md` #13's exact trap), reads
+the false negative as its own code being wrong, and loops — rewriting
+near-identical code, sometimes abandoning the packet's specified
+`uv run pytest -q` for its own ad-hoc check (validation-command drift, gap
+#2/#4 below), sometimes not (one run even self-diagnosed the trap in its own
+reasoning and still couldn't escape it, because its own test file inherited
+the same unguarded assertion). This is not four different bugs; it's one
+specific, well-understood trap accounting for 100% of this batch's hangs —
+which sharpens the mechanism candidate considerably. A guardrail targeting
+this pattern specifically (or, more generally, an unguarded redirect-status
+assertion) is a sharper candidate than a generic turn cap, since the
+implementer isn't malfunctioning — it's confidently, repeatedly correct about
+code its own test methodology can't observe.
 
 Two apparatus gaps are still open, both standing items in the roadmap's
 backlog, and both applied to every batch above. **Child session JSONL is not
