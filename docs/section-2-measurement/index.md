@@ -4,15 +4,14 @@ The evaluation harness: it drives Pi headless via `subprocess`, provisions
 disposable git-tracked workspaces, captures diffs, and runs pytest as the
 acceptance oracle.
 
-**Status:** evidence finalized 2026-07-27, chapter prose still pending
-(Task 9). Every earlier number below (the n=4 0/8 baseline, the pre-repair
-post-repair reports) was measured under an invalid or self-graded oracle
-and is superseded — kept as historical record, bannered where applicable.
-The grading path was rebuilt under the grading-path reboot (see
+**Status:** evidence finalized 2026-07-27, chapter prose below is written
+against it (Task 9). Every earlier number below (the n=4 0/8 baseline, the
+pre-repair post-repair reports) was measured under an invalid or self-graded
+oracle and is superseded — kept as historical record, bannered where
+applicable. The grading path was rebuilt under the grading-path reboot (see
 [`docs/superpowers/plans/2026-07-24-grading-path-reboot.md`](../superpowers/plans/2026-07-24-grading-path-reboot.md)),
 and the 2026-07-27 unsteered n=16 reports below are the first trustworthy
-numbers this project has produced. New chapter prose is written against
-these final numbers next (Task 9's rewrite half).
+numbers this project has produced.
 
 **Evidence:** unsteered n=16 per phase, no ditch —
 [Phase 1](research/2026-07-27-post-repair-sp1-phase1.md) 15/16,
@@ -80,7 +79,9 @@ escalation decision operates on pooled results only*.
 The number that forced this is small and unpleasant. Two independent n=4
 samples of the *identical* seeded-Phase-2 unsteered configuration returned
 **4/4 and 2/4** — pooled, 6/8. Same workload, same model, same prompt, same
-start state. Under the decision rule in force at the time ("4/4 → escalate"),
+start state — this is the D1-seeded measurement, a different quantity from
+the empty-start "Phase 2: 0/8" incident above, and the two numbers are not
+directly comparable. Under the decision rule in force at the time ("4/4 → escalate"),
 the first sample would have declared the phase solved and the second would have
 declared it a candidate ditch. The Wilson 95% interval on 6/8 is roughly
 **41–93%**, which is another way of saying eight runs cannot tell you much of
@@ -114,10 +115,11 @@ pooled unsteered results were 15/16, 15/16, and 16/16 for Phases 1, 2 and 3
 (linked at the top of this page). All three clear the ≥15/16 line, so by D2
 the decision is "solved, escalate" — and, there being no fourth phase, "no
 ditch on this workload for this model." That is a decision made by a
-pre-registered rule, not a success-rate claim. Per
+pre-registered rule, not a success-rate claim: the 15/16, 15/16, and 16/16
+counts above feed Amendment 2's pooled escalation rule as decision-rule
+inputs, not as reported effects. Per
 [Rule 7](../superpowers/policies/evidence.md), no chapter in this course claims
-a success-rate delta at all; success rate appears as context, never as an
-effect.
+a success-rate delta at all.
 
 ## How to write an eval suite
 
@@ -224,8 +226,10 @@ asserts a final 200 passes the broken fixture and gets caught by the matrix.
 The break matrix is not a one-time gate, either. `examples/acceptance/phase-3/`
 carries its carried-forward obligations as a checklist in the file itself,
 naming each break by id — `p1-tagline`, `p2-seed-count`, `p3-303`,
-`p3-wrong-location`, `p3-no-append` — with which are already caught and which
-are open. One entry records a trap the suite set for itself: this suite's own
+`p3-wrong-location`, `p3-no-append` — so that as new breaks are identified
+they have a place to be tracked until the suite is shown to catch them; every
+entry currently on the list is already checked off as caught. One entry
+records a trap the suite set for itself: this suite's own
 POST tests append to `models.complaints`, so a "3 to 5 seed complaints" length
 check placed *after* them would false-fail the reference solution. Direction 1
 of the gate catches that, so it cannot ship silently — but it costs a cycle.
@@ -276,8 +280,10 @@ reach the grader at all.
 
 ### Rule 8: a gate is not passed until a different model has tried to break it
 
-Everything above was found by someone other than its author. That is not a
-coincidence, and the evidence policy promotes it from habit to **Rule 8**: for
+Almost everything above was found by someone other than its author — the
+empty-start incident is the exception, surfaced by routine execution rather
+than a review round. The pattern otherwise is not a coincidence, and the
+evidence policy promotes it from habit to **Rule 8**: for
 any change to the grading path, the acceptance suites, or the harness's
 measurement code, the gate requires review by a model other than the one that
 wrote it, with findings recorded alongside the change.
@@ -319,7 +325,12 @@ Start with Phase 3's core sentence:
 
 > Submitting a complaint is a one-way action: it registers the complaint —
 > under the exact name and exact text the agent provided, neither dropped nor
-> altered — and then sends the agent's browser back to the complaints board.
+> altered — and then sends the agent's browser back to the complaints board so
+> they can see their own words now sitting alongside everyone else's. Because
+> this is a form submission that changes what's on the board, not just a page
+> fetch, the response must be a redirect that re-fetches the board with a
+> fresh `GET` rather than resubmitting the form if the agent reloads or goes
+> back — concretely, an HTTP 303 status pointing back at `/complaints`.
 
 What does that require *observably*? Work it clause by clause:
 

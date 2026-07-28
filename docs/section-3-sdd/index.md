@@ -4,8 +4,8 @@ Installs Pi's shipped subagent extension, authors an implementer specialist
 and an orchestrator parent prompt, then measures and tunes the
 parent+implementer shape.
 
-**Status:** the chapter prose that narrated the SP1→SP2 structural-baseline arc
-is discarded — see
+**Status:** SP1 and SP2 status is withdrawn (see the roadmap). The chapter
+prose that narrated the SP1→SP2 structural-baseline arc is discarded — see
 [`docs/superpowers/plans/2026-07-24-grading-path-reboot.md`](../superpowers/plans/2026-07-24-grading-path-reboot.md),
 Task 9. Spec and plan are kept as historical record; the SP2 numbers below
 predate the grading-path reboot and are superseded. The prose on this page is
@@ -69,9 +69,9 @@ that were already in the workspace when it started — the seed from phases
 > succeeded. `'extend'` if inherited files were touched only via `edit`.
 
 That is a per-run, mechanically countable signal derived from the artifact, not
-from anything the model says about itself. Which is exactly what
-[Rule 7](../superpowers/policies/evidence.md) requires a mechanism to claim:
-a *behavioral-incidence change*, evidenced at n=16 with counts.
+from anything the model says about itself. Which is exactly one of the three
+things [Rule 7](../superpowers/policies/evidence.md) permits a mechanism to
+claim: a *behavioral-incidence change*, evidenced at n=16 with counts.
 
 **The finding.** The
 [self-grade forensics report](../section-2-measurement/research/2026-07-24-selfgrade-forensics.md)
@@ -80,7 +80,7 @@ onto the seeded phase-1 test file and reconstructed what each run did to
 `tests/test_app.py`. Six runs edited it incrementally, keeping the phase-1
 tagline assertion, and all six passed. Two runs (`aa7a0ac8980b`,
 `c1acd1f2b533`) rewrote it from scratch, dropped the phase-1 assertion, and
-both failed. The same two runs were also the only false self-reporters in the
+both failed. The same two runs were also the false self-reporters in the
 sample, and one of them — `aa7a0ac8980b` — is the run that rewrote
 `templates/base.html`, a Phase 1 file, which is the preservation-breakage
 failure the seeded workload exists to expose.
@@ -132,7 +132,12 @@ unsteered n=16 report carries the counter:
 
 Read that honestly. In the 2026-07-27 Phase 3 batch all sixteen runs passed, so
 all four replace-classified runs passed. In the 2026-07-28 batch all sixteen
-passed with six replace-classified runs. Whatever the run-level counter is
+passed with six replace-classified runs. The same gap reaches back a step
+further, too: the 2026-07-27 Phase 2 batch's one failing run (run 7) is not
+separable from its five replace-classified runs in the published aggregate
+either — the table's replace=5/extend=11 split is not broken out by pass/fail,
+so which bucket the failure landed in is not recoverable from the report as
+published. Whatever the run-level counter is
 measuring on this workload, it is **not** currently separating passing runs
 from failing ones — there are almost no failing runs left to separate. The
 signal is alive as a countable behavior and dead as a predictor here, and the
