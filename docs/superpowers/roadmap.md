@@ -17,18 +17,45 @@ a later phase is not queued just because an earlier one landed.
 > fixed, tests green. This closes the Section II/III half of Task 9; Task
 > 10 (consolidate entry points, this file included) is still open.
 >
-> **Section IV prose is explicitly NOT part of that close-out.** It is not
-> a rewrite-in-progress — it needs a decision first. Its entire chapter
-> catalog (Terminal Validation, Path Guard, Turn Cap, Repeat Breaker) was
-> built against the old SP2 5/8 baseline and specific failure modes that no
-> longer exist under the rebuilt oracle (unsteered now goes 15–16/16, no
-> ditch — see Task 8 below). Rewriting Section IV's prose without first
-> deciding what, if anything, it teaches now would just be guessing at a new
-> chapter lineup. **Open decision, needs a human call:** what does Section
-> IV teach given there is no live ditch for these four chapters to fix?
-> Candidates already named in the backlog below (the write-vs-edit
-> mechanism, preservation breakage, putting git to work) are inputs to that
-> decision, not a pre-made replacement lineup.
+> **Section IV's chapter-catalog decision is made, 2026-07-28 (decided by
+> the project owner).** Its old catalog (Terminal Validation, Path Guard,
+> Turn Cap, Repeat Breaker) targeted the extinct SP2 5/8 baseline and is
+> retired — not resurrected, not blended in. Section IV is rebuilt on the
+> two failure modes Section II's current, valid, n=16 unsteered data still
+> shows live, orthogonal to the pass/fail gate that closed:
+>
+> 1. **Speed/reliability.** Hang incidence and turn count are real and
+>    current — [Phase 3 rewritten spec: 6/16 runs (37.5%) hit the
+>    timeout](../section-2-measurement/research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md),
+>    mean turns 10.8→24.2 from a spec-wording change alone. The model
+>    finishes, but it thrashes.
+> 2. **Preservation breakage (replace-vs-extend).** Destructive rewrites of
+>    shared/inherited files at a real rate even while acceptance still
+>    passes — [Phase 2: replace=5/16](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md),
+>    [Phase 3: replace=4/16 (original spec) → 6/16 (rewritten
+>    spec)](../section-2-measurement/research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md).
+>    A run can pass the contract while silently damaging prior work,
+>    because the acceptance suite checks the contract, not preservation.
+>
+> **Demoted, not adopted:** *false self-report* was named as a third pillar
+> in the narrative reframe below, citing pre-repair, since-superseded
+> (2/8-scale) data. The current clean n=16 data does not support it at that
+> weight — [0/16 in Phase 2 and Phase
+> 3](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md),
+> [1/16 in Phase 1](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase1.md).
+> It stays in the backlog as a metric worth continuing to watch, not as
+> live Section IV evidence.
+>
+> **Mechanism candidates for these two pillars** (inputs, not a decided
+> lineup — still need a spec/plan pass): "putting git to work" (backlog,
+> below) directly mechanizes preservation breakage — a per-turn diff as
+> evidence, then checkpoint/rollback; the write-vs-edit mechanism chapter
+> (an earlier, pre-no-ditch sketch in `plans/2026-07-28-task9-sections-2-3-rewrite.md`)
+> is a candidate for the speed/reliability pillar but was not evaluated
+> against this evidence and needs a fresh look before being adopted as-is.
+> **Still open:** which mechanism(s) actually get built, and the Section IV
+> spec/plan pass to scope them — this banner records the *subject*
+> decision, not the implementation.
 >
 > **Task 8's unsteered half is DONE, 2026-07-27.** n=16 per phase, under the
 > fully rebuilt grading path — no ditch found anywhere, per Amendment 2's
@@ -95,7 +122,7 @@ module's docstring for the distinction).
 | SP1 | Section II — Measurement *(harness kept; prose discarded, numbers superseded)* (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | **Done** | [spec](../section-2-measurement/spec.md) | [plan](../section-2-measurement/plan.md) | [0/8 baseline](../section-2-measurement/research/2026-07-23-baseline-phase-1.md) |
 | SP2 | Section III — SDD on Pi *(mechanism kept; prose discarded, numbers superseded)* (roadmap/packet method, parent-as-orchestrator + implementer specialist) | **Done** | [spec](../section-3-sdd/spec.md) | [plan](../section-3-sdd/plan.md) | [3/8 pre](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1.md), [5/8 post](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1-post-tuning.md), [deep-dive](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md) |
 | SPR | **Grading-path reboot** — rebuild the grader so model-controlled input cannot reach it, restore honest reporting, then re-run the evidence chain | **Tasks 1–8 (unsteered) done; Task 9 (Section II + III prose rewrite) done, reviewed, tests green; Task 10 (entry-point consolidation) open; Section III proceeding, reframed as cost-equivalence teaching content** | — | [plan](plans/2026-07-24-grading-path-reboot.md) | [Phase 1](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase1.md), [Phase 2](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md), [Phase 3](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md) |
-| SP3 | Section IV — Keeping the SLM on track (orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting) | **Blocked — old chapter catalog assumed the extinct 5/8 baseline; needs an editorial decision on what Section IV teaches now that unsteered goes 15–16/16 (no ditch), not merely "blocked on SPR"** | — | — | — |
+| SP3 | Section IV — Keeping the SLM on track *(old catalog — orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting — retired)*, rebuilt on speed/reliability + preservation-breakage evidence | **Subject decided 2026-07-28 (owner); mechanism/spec/plan not yet written** | — | — | [Phase 2](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md), [Phase 3 rewritten spec](../section-2-measurement/research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md) |
 
 
 ## Narrative reframe (adopted 2026-07-24)
@@ -105,16 +132,27 @@ is dead. That 0/8 was an oracle artifact (see the oracle-invalid incident), and
 under a valid oracle the model clears seeded Phase 1 and Phase 2 comfortably.
 
 **The course is now about a different and more interesting failure: the model
-succeeds at the task and damages the repository.** Every element of this is
-artifact-backed as of 2026-07-24:
+succeeds at the task and damages the repository.** As originally adopted
+2026-07-24, three elements were cited, at 2/8-scale, pre-repair evidence.
+**Reconciled against the current, valid, n=16 data (2026-07-28) — two hold,
+one is demoted:**
 
 - it silently destroys inherited work when files are shared (preservation
   breakage; `lessons.md` #12 clause 2, reachable for the first time under the
-  seeded incremental workload);
+  seeded incremental workload) — **holds**, and at a similar rate under
+  clean n=16 data (Phase 2 replace=5/16, Phase 3 replace=4–6/16, see Section
+  IV's decision above);
 - it rewrites its own grader (2/8 seeded runs replaced the inherited test
-  suite wholesale);
-- it reports success while the contract is broken (false self-report in both
-  observed failures).
+  suite wholesale) — **folds into preservation breakage** above; the current
+  harness's replace-vs-extend metric classifies all shared-file rewrites
+  together and does not currently break out the test suite specifically at
+  n=16 (the 8/8-predictive, test-suite-specific figure two paragraphs up is
+  itself from the earlier, smaller sample);
+- ~~it reports success while the contract is broken (false self-report in
+  both observed failures)~~ — **demoted.** Current n=16 unsteered data does
+  not support this at the cited weight: 0/16 in Phase 2 and Phase 3, 1/16 in
+  Phase 1. Kept as a metric worth continuing to watch, not treated as live
+  evidence for Section IV.
 
 The thesis this serves: **determinism, not persuasion.** The move from OpenCode
 to Pi is worth making precisely because Pi's extension points let these be
@@ -124,10 +162,10 @@ recorded as insufficient. Expect a long tail of places where the model still
 needs help at generation time; the mechanisms are the floor, not the ceiling.
 
 This reframe governs the Section 2-4 rewrite pass. It has been propagated
-into Section II and III chapter prose (Task 9, done 2026-07-28). Section IV
-is unwritten against it — and stays that way until the chapter-catalog
-decision above is made, since the reframe alone doesn't say which of the
-old guardrail chapters (if any) survive contact with a no-ditch baseline.
+into Section II and III chapter prose (Task 9, done 2026-07-28). Section IV's
+*subject* decision is made (above, 2026-07-28) — built on the two surviving
+pillars, preservation breakage and speed/reliability. Its prose is still
+unwritten: the mechanism(s) to teach and a spec/plan pass remain open.
 
 ## Backlog (evidence-gated, not queued)
 
