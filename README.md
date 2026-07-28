@@ -83,7 +83,8 @@ model tiers did which work.
 
 ## Reading the course
 
-The chapters live under [`docs/chapters/`](docs/chapters/) and are built with
+The chapters live under [`docs/`](docs/), one directory per section
+(`section-1-hello-agent/`, `section-2-measurement/`, etc.), and are built with
 Sphinx + MyST. The [evidence policy](docs/superpowers/policies/evidence.md) — the
 GREEN/YELLOW/RED tiers every measured claim in the course must satisfy — governs
 what the course is allowed to assert.

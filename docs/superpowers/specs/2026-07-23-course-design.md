@@ -286,7 +286,10 @@ local-ai-pi/
       research/                  # dated EVIDENCE reports (the smoking gun, before/afters)
       archive/{specs,plans}/     # shipped / superseded
       policies/                  # durable rules (evidence tiers, etc.)
-    chapters/                    # the COURSE CONTENT the reader consumes (Sphinx + MyST)
+    section-N-*/                 # the COURSE CONTENT the reader consumes (Sphinx + MyST),
+                                  # one directory per section, spec/plan/research co-located
+                                  # (superseded this layout diagram's original
+                                  # docs/chapters/ split — see reorg commit b780ae0)
     conf.py  index.md            # Sphinx config and root document
   examples/
     agentclinic/                 # the example workload (spec triple + app as it is built)
@@ -294,9 +297,11 @@ local-ai-pi/
 ```
 
 `docs/superpowers/` is the development record (how the course is built);
-`docs/chapters/` is the product (what the reader reads). Keeping them separate is
-deliberate: the evidence behind a chapter's claims lives in
-`docs/superpowers/research/`, auditable and apart from the prose.
+each `docs/section-N-*/` is the product (what the reader reads), with its own
+research evidence co-located under `research/` rather than centralized. Keeping
+development record and product separate is still deliberate — the evidence
+behind a chapter's claims stays auditable and apart from the prose — the
+mechanism is just per-section now, not one shared `docs/chapters/` tree.
 
 Docs toolchain matches Tainie: Sphinx 9 + `myst_parser` + `furo`, built to
 `docs/_build/`.

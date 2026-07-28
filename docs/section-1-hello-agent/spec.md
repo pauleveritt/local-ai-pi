@@ -18,7 +18,7 @@ engine run.
 ## Deliverables
 
 1. `.pi/extensions/hello-world.ts` — a single-file TypeScript extension
-2. `docs/chapters/part1-hello-agent.md` — a MyST chapter
+2. `docs/section-1-hello-agent/hello-agent.md` — a MyST chapter
 
 ## Extension: `.pi/extensions/hello-world.ts`
 
@@ -69,7 +69,7 @@ The reader loads it with `pi -e .pi/extensions/hello-world.ts`. The chapter does
 not teach auto-discovery (`.pi/extensions/` project-local loading) — that's a
 later note when the guardrails are built in Part IV and are auto-loaded.
 
-## Chapter: `docs/chapters/part1-hello-agent.md`
+## Chapter: `docs/section-1-hello-agent/hello-agent.md`
 
 ### Tone and structure
 
@@ -145,7 +145,7 @@ chapter does not teach TypeScript; it assumes the reader can follow the code.
 
 ## Non-functional
 
-- **Chapter format:** MyST (`docs/chapters/part1-hello-agent.md`), rendered by
+- **Chapter format:** MyST (`docs/section-1-hello-agent/hello-agent.md`), rendered by
   Sphinx + Furo.
 - **Images:** Notification screenshots or terminal output examples where helpful,
   but the chapter should work without them (text descriptions suffice).
