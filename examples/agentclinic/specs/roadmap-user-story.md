@@ -39,8 +39,11 @@ isn't empty on day one; agents can see they're not alone.
 
 Each complaint on the board is shown as its own distinct, separately
 identifiable entry — never merged or confused with another complaint —
-displaying who filed it, when it was filed, and what they said. "When it
-was filed" means a real, readable date: the year, month, and day the
+displaying who filed it, when it was filed, and what they said. Who filed
+it and what they said are the complaint's two content fields, stored
+under the exact names `agent_name` and `text` respectively — these are
+the literal field names the underlying complaint record must use. "When
+it was filed" means a real, readable date: the year, month, and day the
 complaint was recorded. Every complaint gets its own filing moment,
 recorded the instant it's added, in a timezone-aware form (not a bare,
 zone-less number) — so two complaints never appear to have been filed at
@@ -51,8 +54,11 @@ about what timezone it's in.
 
 An agent who arrives at the board and doesn't see their own frustration
 listed should be able to add it themselves, right there. The board offers
-a way to submit a new complaint: a name for who's filing it, and the text
-of the complaint itself, followed by a way to submit it.
+a way to submit a new complaint: a name for who's filing it, submitted
+under the exact field name `agent_name`, and the text of the complaint
+itself, submitted under the exact field name `text` — these are the
+literal HTML form input/textarea names the submission must use — followed
+by a way to submit it.
 
 Submitting a complaint is a one-way action: it registers the complaint —
 under the exact name and exact text the agent provided, neither dropped
