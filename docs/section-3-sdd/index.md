@@ -185,14 +185,17 @@ its own words: "Before any Section III evidence batch: pre-register the
 cost-equivalence metric set and degradation budget […] so the claim can't be
 set after seeing the data."
 
-**That batch has not been run.** There is no cost-equivalence number in this
-course yet — not a favourable one, not an unfavourable one. The metric set and
-degradation budget are not yet pre-registered either; that is the next step,
-and it comes before the data, not after. Treating the orchestrator+implementer
-shape as *better* than an unsteered run on this workload would be inventing a
-result: on a workload that already scores 15/16, 15/16 and 16/16 unsteered,
-there is nothing to improve, which is precisely why the surviving question is
-what the mechanism *costs*.
+**That precondition is met; the batch itself is still running.** The metric
+set and degradation budget are pre-registered —
+[`2026-07-28-section3-cost-equivalence-metrics.md`](../superpowers/specs/2026-07-28-section3-cost-equivalence-metrics.md),
+approved before any steered run — so the claim below, once all three phases
+are in, can't be accused of being set after seeing the data. There is still no
+cost-equivalence number in this course yet — not a favourable one, not an
+unfavourable one. Treating the orchestrator+implementer shape as *better* than
+an unsteered run on this workload would be inventing a result: on a workload
+that already scores 15/16, 15/16 and 16/16 unsteered, there is nothing to
+improve, which is precisely why the surviving question is what the mechanism
+*costs*.
 
 Two apparatus gaps are worth naming before anyone runs that batch, both
 standing items in the roadmap's backlog. **Child session JSONL is not
