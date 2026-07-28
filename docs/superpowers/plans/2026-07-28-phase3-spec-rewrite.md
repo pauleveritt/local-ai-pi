@@ -68,7 +68,7 @@ Decision 1 rationale 2, **no Rule 8 review is required.**
 - Produces: nothing consumed by later tasks — this is a standing regression
   gate, exercised again in Task 2.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 """Regression: the phase-3 model-facing spec must state the behavioral
@@ -131,7 +131,7 @@ def test_phase3_spec_still_states_the_303_behavioral_contract():
     )
 ```
 
-- [ ] **Step 2: Run tests to verify the first two pass and the third fails**
+- [x] **Step 2: Run tests to verify the first two pass and the third fails**
 
 Run: `uv run pytest tests/test_spec_prescriptiveness.py -v`
 
@@ -142,7 +142,7 @@ FAILS (current spec contains `follow_redirects`);
 spec already contains `303`). This confirms the tests actually exercise the
 current, unrewritten spec text before Task 2 changes it.
 
-- [ ] **Step 3: Commit the test on its own**
+- [x] **Step 3: Commit the test on its own**
 
 ```bash
 git add tests/test_spec_prescriptiveness.py
@@ -162,7 +162,7 @@ git commit -m "test: regression guard — phase-3 spec must not leak its own tra
   `extract_phase_prompt(3)` will read at batch time (Task 4) — no code
   change needed there since it reads the file at runtime.
 
-- [ ] **Step 1: Replace the Phase 3 section**
+- [x] **Step 1: Replace the Phase 3 section**
 
 Current text (`examples/agentclinic/specs/roadmap.md`, the `## Phase 3 —
 Add Complaint` section):
@@ -218,13 +218,13 @@ What changed and why, matching Task 1's assertions:
   new route's behavior," matching Phase 1/2's own level of detail for their
   test-writing bullets.
 
-- [ ] **Step 2: Run the regression tests to verify they now all pass**
+- [x] **Step 2: Run the regression tests to verify they now all pass**
 
 Run: `uv run pytest tests/test_spec_prescriptiveness.py -v`
 
 Expected: all three tests PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add examples/agentclinic/specs/roadmap.md
@@ -251,7 +251,7 @@ git commit -m "docs(spec): stop pre-defusing the phase-3 redirect trap in the mo
   unchanged; Rule 6 requires re-running it anyway because the workload
   changed.
 
-- [ ] **Step 1: Re-validate the oracle**
+- [x] **Step 1: Re-validate the oracle**
 
 Run: `uv run pytest tests/test_oracle.py -v`
 
@@ -261,7 +261,7 @@ unmodified phase-3 reference solution still satisfies the unmodified
 acceptance suite — confirms the spec rewrite did not silently change what
 "correct" means).
 
-- [ ] **Step 2: Run the full test suite**
+- [x] **Step 2: Run the full test suite**
 
 Run: `uv run pytest -q`
 
@@ -270,7 +270,7 @@ Expected: fully green, no new failures relative to the pre-rewrite baseline
 differ slightly with Task 1's three new tests added; the delta should be
 exactly `+3 passed`, nothing else changed).
 
-- [ ] **Step 3: If either check fails, stop and report**
+- [x] **Step 3: If either check fails, stop and report**
 
 Do not proceed to Task 4. A Rule 6 failure here means the spec rewrite
 somehow changed what the acceptance suite or reference solution require —
@@ -313,7 +313,7 @@ anything else.
   a same-date collision would occur, copy the existing file aside before
   running and diff after, rather than lose it.
 
-- [ ] **Step 1: Check for filename collision**
+- [x] **Step 1: Check for filename collision**
 
 ```bash
 ls docs/section-2-measurement/research/*post-repair-sp1-phase3*.md
@@ -322,7 +322,7 @@ ls docs/section-2-measurement/research/*post-repair-sp1-phase3*.md
 Expected: only the standing `2026-07-27-post-repair-sp1-phase3.md`. If
 today's date matches, see the precondition note above before continuing.
 
-- [ ] **Step 2: Run the batch**
+- [x] **Step 2: Run the batch**
 
 ```bash
 uv run python scripts/scout.py 3
@@ -339,7 +339,7 @@ added. Checkpointing is already in place (`_append_checkpoint` in
 `harness/runner.py`), so a kill is now resumable, but avoiding the kill is
 still cheaper than resuming.
 
-- [ ] **Step 3: Record the raw outcome before doing anything else**
+- [x] **Step 3: Record the raw outcome before doing anything else**
 
 Note the printed success count, the report path, and today's date. Do not
 proceed to Task 5's interpretation until this raw result is written down
@@ -362,14 +362,14 @@ project's own evidence policy exists to prevent.
 - Consumes: Task 4's report and raw success count.
 - Produces: the final disposition this plan exists to produce.
 
-- [ ] **Step 1: Rename the report to self-document as the rewritten-spec variant**
+- [x] **Step 1: Rename the report to self-document as the rewritten-spec variant**
 
 ```bash
 git mv docs/section-2-measurement/research/<run-date>-post-repair-sp1-phase3.md \
        docs/section-2-measurement/research/<run-date>-post-repair-sp1-phase3-less-prescriptive-spec.md
 ```
 
-- [ ] **Step 2: Add the provenance header**
+- [x] **Step 2: Add the provenance header**
 
 Insert directly under the report's H1 (`# Baseline: Phase 3 — Add
 Complaint`):
@@ -382,7 +382,7 @@ traps (`lessons.md` #13). See
 Decision 1.
 ```
 
-- [ ] **Step 3: Apply the pre-registered decision rule and write the disposition**
+- [x] **Step 3: Apply the pre-registered decision rule and write the disposition**
 
 At the end of the report, add a `## Disposition` section. Choose the branch
 matching Task 4's actual result — do not blend or hedge between them:
@@ -427,7 +427,7 @@ rather than treating this sub-batch as final. Do not proceed to Section
 III's cost-equivalence batches until pooled.
 ```
 
-- [ ] **Step 4: If the ditch reopened or the result is ambiguous, update the roadmap banner**
+- [x] **Step 4: If the ditch reopened or the result is ambiguous, update the roadmap banner**
 
 Only for the ≤14/16 branches: edit `docs/superpowers/roadmap.md`'s "Next
 action" banner to point at this report and state plainly that Section III's
@@ -438,7 +438,7 @@ anywhere" claim standing next to a report that contradicts it.
 For the ≥15/16 branch, no roadmap change is needed — the existing banner's
 claim is corroborated, not altered.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/section-2-measurement/research/ docs/superpowers/roadmap.md
@@ -465,3 +465,15 @@ git commit -m "evidence: post-repair phase-3 baseline, rewritten spec (n=16)"
 - **Type consistency:** N/A — no new functions or shared interfaces beyond
   the one helper (`_phase_section`) introduced and used entirely within
   Task 1's single test file.
+
+## Known follow-up
+
+Task 2's rewrite dropped the "Location: /complaints" detail along with the
+implementation and test-technique hints it was bundled with in the same
+bullet, even though the acceptance suite still asserts that exact
+relative-path redirect target. Task 1's regression test does not guard
+this (it only checks for `"303"`, `"RedirectResponse"`, and
+`"follow_redirects"`). The n=16 batch passed 16/16 regardless, so this was
+not load-bearing this time, but it is a standing known gap — see the
+"Known gap" section of
+[the resulting report](../../section-2-measurement/research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md).

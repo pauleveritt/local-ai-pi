@@ -6,6 +6,9 @@ the answer to the redirect-status and `follow_redirects` traps
 [`docs/superpowers/specs/2026-07-27-next-phase-decision-design.md`](../../superpowers/specs/2026-07-27-next-phase-decision-design.md)
 Decision 1.
 
+**Oracle re-validated (Rule 6):** `tests/test_oracle.py` green, 71 passed,
+before this batch ran.
+
 **Date:** 2026-07-28
 **Model:** omlx/gemma-4-12B-it-MLX-8bit
 **Start state:** seeded: examples/reference/phase-2
@@ -77,6 +80,8 @@ changed:
 | Hang incidence | 0/16 | 6/16 |
 | Mean turns | 10.8 | 24.2 |
 | Mean wall time | 91s | 205s |
+| Inherited-file write attempts | 4/16 | 6/16 |
+| Drift incidence (overreach) | 0/16 | 1/16 |
 
 Removing the answer to the two traps did not cost the model the phase — it
 cost it roughly 2.2x the turns and a 6/16 hang rate that was previously
@@ -86,3 +91,32 @@ report can distinguish from noise at n=16 (Rule 7). Whether this specific
 delta is worth a Section 2 or Section 3 chapter — "what disappears when you
 stop stating the answer to the trap" — is a call for whoever drafts Task 9's
 prose, not decided here.
+
+Caveat: the six `exited-with-hang` rows are all pinned at the 300s timeout
+ceiling, so the 205s mean wall time is a censored statistic, not a true
+mean duration. Hang incidence and elevated turn count are not independent
+signals here — a hang is largely a restatement of "this run needed more
+than 300s," the same underlying effect the turn-count delta already
+reports.
+
+## Known gap: redirect target path is no longer spec-stated
+
+The acceptance suite
+(`examples/acceptance/phase-3/test_acceptance.py`) requires an exact
+relative-path `Location` header (`response.headers["location"] ==
+"/complaints"`) on the POST `/complaints` redirect. The spec rewrite
+(Task 2 of the implementation plan) dropped the "Location: /complaints"
+mention along with the implementation and test-technique hints it was
+bundled with in the same bullet — this detail was graded contract, not
+implementation technique, and its removal was incidental to de-prescribing
+the surrounding text, not a deliberate decision. Task 1's regression test
+(`tests/test_spec_prescriptiveness.py`) does not catch this: it only checks
+for the presence of `"303"` and the absence of `"RedirectResponse"` and
+`"follow_redirects"` — it does not check for `"Location"` or the literal
+path `/complaints`. All 16 runs in this batch passed against the exact-match
+oracle regardless, so this gap was empirically not load-bearing at this
+n — but it remains an unstated-oracle-vs-workload gap in principle, exactly
+the category this project's evidence policy exists to catch. A future
+revision of this spec should either restore "...redirect to the path
+`/complaints`" as an explicit behavioral clause, or accept this as a
+standing known gap.

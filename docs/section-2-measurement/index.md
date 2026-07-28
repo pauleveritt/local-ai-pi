@@ -17,7 +17,8 @@ these final numbers next (Task 9's rewrite half).
 **Evidence:** unsteered n=16 per phase, no ditch —
 [Phase 1](research/2026-07-27-post-repair-sp1-phase1.md) 15/16,
 [Phase 2](research/2026-07-27-post-repair-sp1-phase2.md) 15/16,
-[Phase 3](research/2026-07-27-post-repair-sp1-phase3.md) 16/16.
+[Phase 3](research/2026-07-27-post-repair-sp1-phase3.md) 16/16,
+[Phase 3, less-prescriptive spec](research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md) 16/16.
 
 ```{toctree}
 :hidden:
@@ -34,4 +35,5 @@ research/2026-07-24-write-vs-edit-experiment
 research/2026-07-27-post-repair-sp1-phase1
 research/2026-07-27-post-repair-sp1-phase2
 research/2026-07-27-post-repair-sp1-phase3
+research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec
 ```
