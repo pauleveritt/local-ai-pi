@@ -3,7 +3,7 @@
 **Spec variant:** rewritten phase-3 spec, commit `9cb73f0` — no longer states
 the answer to the redirect-status and `follow_redirects` traps
 (`lessons.md` #13). See
-[`docs/superpowers/specs/2026-07-27-next-phase-decision-design.md`](../../superpowers/specs/2026-07-27-next-phase-decision-design.md)
+[`docs/superpowers/archive/specs/2026-07-27-next-phase-decision-design.md`](../../superpowers/archive/specs/2026-07-27-next-phase-decision-design.md)
 Decision 1.
 
 **Oracle re-validated (Rule 6):** `tests/test_oracle.py` green, 71 passed,

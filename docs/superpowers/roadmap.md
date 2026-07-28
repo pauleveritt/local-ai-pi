@@ -5,6 +5,19 @@ Per-phase specs and plans are co-located in `docs/section-*/` directories.
 This file is the cross-phase index: sequence, status, and links. It is built the way the course teaches — each phase is evidence-gated, and
 a later phase is not queued just because an earlier one landed.
 
+## Read this first, in order
+
+1. [Evidence policy](policies/evidence.md) — the rules and doctrine every
+   measured claim must satisfy. Read this before trusting any number below.
+2. **This file's "Next action" banner, immediately below** — the current
+   plan and where it stands. If you only read one section, read this one.
+3. Everything else is either current supporting material (linked from the
+   "Next action" banner or the [Phases](#phases) table) or superseded —
+   see the [Archive](#archive) section near the bottom before assuming a
+   `specs/` or `plans/` file still describes live work. A doc's existence in
+   `docs/superpowers/specs/` or `plans/` does not by itself mean it's current
+   — check the Archive list first.
+
 **Current phase: GRADING-PATH REBOOT** — see
 [`plans/2026-07-24-grading-path-reboot.md`](plans/2026-07-24-grading-path-reboot.md).
 
@@ -86,8 +99,10 @@ a later phase is not queued just because an earlier one landed.
 > hands-on case study — deriving the acceptance contract from a new
 > higher-level, business/user-story rewrite of Phases 1–3
 > (`examples/agentclinic/specs/roadmap-user-story.md`, not yet written),
-> targeting the identical app the existing detailed roadmap targets. See
-> [`specs/2026-07-28-eval-suite-chapter-design.md`](specs/2026-07-28-eval-suite-chapter-design.md).
+> targeting the identical app the existing detailed roadmap targets. This
+> shipped — `examples/agentclinic/specs/roadmap-user-story.md` exists and
+> Task 9's Section 2 rewrite includes the case study. See
+> [`archive/specs/2026-07-28-eval-suite-chapter-design.md`](archive/specs/2026-07-28-eval-suite-chapter-design.md).
 
 A deep review (Fable, 2026-07-24) found five further integrity failures, two of
 which **defeat the hardened oracle** (a model-written `pytest.ini` with
@@ -154,10 +169,11 @@ recorded as insufficient. Expect a long tail of places where the model still
 needs help at generation time; the mechanisms are the floor, not the ceiling.
 
 This reframe governs the Section 2-4 rewrite pass. It has been propagated
-into Section II and III chapter prose (Task 9, done 2026-07-28). Section IV's
-*subject* decision is made (above, 2026-07-28) — built on the two surviving
-pillars, preservation breakage and speed/reliability. Its prose is still
-unwritten: the mechanism(s) to teach and a spec/plan pass remain open.
+into Section II and III chapter prose (Task 9, done 2026-07-28). Section IV
+is a framing placeholder only (revised 2026-07-28, see "Next action" above) —
+the two surviving pillars are named as candidates, not adopted, pending
+Section III's final baseline and a decision on which mechanism they build
+atop.
 
 ## Backlog (evidence-gated, not queued)
 
@@ -344,8 +360,32 @@ neighbor shipped:
   emerges from measured runs rather than speculating now; the honest course
   ends by naming what mechanism cannot fix.
 
+## Archive
+
+Specs and plans whose work is fully executed, moved to
+`docs/superpowers/archive/{specs,plans}/` so their status is visible without
+opening them. Kept as historical record — cited from chapter prose and other
+docs where their content is still relevant, but not describing live work.
+
+| Doc | What it decided/built | Executed as |
+|-----|------------------------|-------------|
+| [archive/specs/2026-07-27-next-phase-decision-design.md](archive/specs/2026-07-27-next-phase-decision-design.md) | Decision 1 (Phase 3 spec rewrite, re-validate) + Decision 2 (Section renumbering: 2→suite-authoring, 3→orchestrator+measurement) | Decision 1: [16/16 report](../section-2-measurement/research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md). Decision 2: Task 9 (below) |
+| [archive/specs/2026-07-28-eval-suite-chapter-design.md](archive/specs/2026-07-28-eval-suite-chapter-design.md) | The user-story roadmap case study design for Section 2's suite-authoring arc | `examples/agentclinic/specs/roadmap-user-story.md` + Task 9's Section 2 rewrite |
+| [archive/plans/2026-07-28-phase3-spec-rewrite.md](archive/plans/2026-07-28-phase3-spec-rewrite.md) | Task-by-task plan for the Phase 3 spec rewrite + re-validation | Commit `122d46d`, all steps checked |
+| [archive/plans/2026-07-28-task9-sections-2-3-rewrite.md](archive/plans/2026-07-28-task9-sections-2-3-rewrite.md) | Task-by-task plan for Section 2 and Section 3 chapter prose (Section 4 explicitly out of scope of this plan) | Section 2/3 prose commits, `78ece8f`/`22a923f` review fixes |
+
+**Not archived, still current** (do not archive without re-checking this
+table first): `plans/2026-07-24-grading-path-reboot.md` (the active master
+plan — Task 10, this consolidation, is still open), `plans/2026-07-24-oracle-repair.md`
+(Amendments 1–2 are standing decisions actively cited above, not a completed
+one-shot plan), `specs/2026-07-23-course-design.md` (the master spec, never
+archived), `specs/2026-07-28-section3-cost-equivalence-metrics.md` (actively
+governing the in-progress steered batches).
+
 ## Conventions
 
 - Specs and plans are co-located with section content in `docs/section-*/`.
 - Every "this helps" claim links to a dated report in `research/`.
 - Status vocabulary: Queued, In progress, Blocked on <ID>, Done, Backlog.
+- Cross-phase specs/plans that are fully executed move to `archive/` (see
+  above) — don't leave a completed plan sitting alongside live ones.

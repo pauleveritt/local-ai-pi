@@ -47,7 +47,7 @@ Decision 1 rationale 2, **no Rule 8 review is required.**
   this plan.
 - **Report provenance:** the new report's filename and header must make its
   relationship to the standing
-  [`docs/section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md`](../../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md)
+  [`docs/section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md`](../../../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md)
   (16/16) explicit — corroborates or supersedes, decided by the outcome, per
   the design doc's "What this design does not decide."
 
@@ -476,4 +476,4 @@ this (it only checks for `"303"`, `"RedirectResponse"`, and
 `"follow_redirects"`). The n=16 batch passed 16/16 regardless, so this was
 not load-bearing this time, but it is a standing known gap — see the
 "Known gap" section of
-[the resulting report](../../section-2-measurement/research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md).
+[the resulting report](../../../section-2-measurement/research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md).

@@ -339,7 +339,7 @@ a higher-level business/user-story rewrite of Phases 1–3 targeting the
 identical, functionally-equivalent app as the existing detailed roadmap. No
 new suite, reference solution, or batch — the existing cumulative phase-3
 suite already grades it. See
-[`docs/superpowers/specs/2026-07-28-eval-suite-chapter-design.md`](../specs/2026-07-28-eval-suite-chapter-design.md)
+[`docs/superpowers/archive/specs/2026-07-28-eval-suite-chapter-design.md`](../archive/specs/2026-07-28-eval-suite-chapter-design.md)
 for the full design, including the Rule 6 deferral to whoever later runs a
 batch against this roadmap (named as Section 3's future packet source, not
 built under this task).

@@ -15,7 +15,7 @@ in conversation the same day as this document's date.
 A new higher-level, business/user-story version of the AgentClinic roadmap,
 targeting the identical app the existing detailed roadmap targets — per the
 master spec's own framing
-([`docs/superpowers/specs/2026-07-23-course-design.md`](2026-07-23-course-design.md),
+([`docs/superpowers/specs/2026-07-23-course-design.md`](../../specs/2026-07-23-course-design.md),
 line 38-41): "the shift from detailed to higher-level framing is itself a
 late-course subject, not a change of workload." The master spec named
 oracle-derivation-from-a-vague-story as Part III's "central open question,"
@@ -90,10 +90,10 @@ Per the project owner's explicit request: this needs to be a **scheduled**
 task, not just a design left implicit in a spec file. Two edits, made
 alongside this document:
 
-1. [`docs/superpowers/plans/2026-07-24-grading-path-reboot.md`](../plans/2026-07-24-grading-path-reboot.md)
+1. [`docs/superpowers/plans/2026-07-24-grading-path-reboot.md`](../../plans/2026-07-24-grading-path-reboot.md)
    Task 9's Section 2 description now names this chapter and its case study
    explicitly, alongside the pre-existing three-arc description.
-2. [`docs/superpowers/roadmap.md`](../roadmap.md)'s "Next action" banner now
+2. [`docs/superpowers/roadmap.md`](../../roadmap.md)'s "Next action" banner now
    names this chapter in its "what proceeds now" paragraph, so it's visible
    without opening the plan — matching the project's own convention that the
    roadmap header is where a fresh reader reaches every live constraint.

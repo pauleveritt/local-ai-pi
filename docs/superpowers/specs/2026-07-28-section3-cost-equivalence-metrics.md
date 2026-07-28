@@ -15,7 +15,7 @@ batch runs — per the same discipline the roadmap's banner already states
 ("so the claim can't be set after seeing the data").
 
 **Precondition satisfied:** this pre-registration was gated on
-[Decision 1](2026-07-27-next-phase-decision-design.md)'s Phase 3 spec-rewrite
+[Decision 1](../archive/specs/2026-07-27-next-phase-decision-design.md)'s Phase 3 spec-rewrite
 result. That result is in — 16/16, corroborating, no ditch reopened
 (`evidence: post-repair phase-3 baseline, rewritten spec (n=16)`,
 [report](../../section-2-measurement/research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md)) —

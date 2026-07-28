@@ -3,7 +3,7 @@
 **Date:** 2026-07-27
 **Status:** approved by project owner, pending write-up as an implementation plan
 **Context:** Task 8's unsteered half is done (n=16 per phase, no ditch — see
-[`plans/2026-07-24-grading-path-reboot.md`](../plans/2026-07-24-grading-path-reboot.md)
+[`plans/2026-07-24-grading-path-reboot.md`](../../plans/2026-07-24-grading-path-reboot.md)
 Task 8 addendum). This decides what happens next, resolving two threads that
 surfaced in the same conversation but were not yet turned into a plan.
 
@@ -30,7 +30,7 @@ report-provenance gap. See the affected subsections for what changed.
 - **(B) Section III's cost-equivalence work** — pre-register a degradation
   budget (metric set + thresholds), then run the steered batches, per the
   disposition already recorded in
-  [`plans/2026-07-24-oracle-repair.md`](../plans/2026-07-24-oracle-repair.md)
+  [`plans/2026-07-24-oracle-repair.md`](../../plans/2026-07-24-oracle-repair.md)
   Amendment 1's "triggered and dispositioned" note.
 
 **Decision: (A) first, then (B). Not parallel.**
@@ -89,7 +89,7 @@ existing "every report header states the starting state" requirement plus
 one addition this design adds: which version of the Phase 3 spec produced
 the reference solution and the batch (commit hash), and its explicit
 relationship to the standing
-[Phase 3 15/16 → 16/16 report](../../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md)
+[Phase 3 15/16 → 16/16 report](../../../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md)
 — supersede it, or stand alongside it as a distinct workload variant. This
 is not yet decided; it depends on the result (see "What this design does not
 decide").

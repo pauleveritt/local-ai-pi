@@ -60,7 +60,7 @@ plan is prose execution against decisions already made.
 - Produces: the text Task 2's suite-authoring case-study chapter narrates
   deriving a suite from.
 
-- [ ] **Step 1: Read the source material**
+- [x] **Step 1: Read the source material**
 
 Read, in this order:
 1. `examples/agentclinic/specs/roadmap.md` — the existing detailed spec.
@@ -82,7 +82,7 @@ Read, in this order:
    roadmap" means for this project (quoted quotes should not be copied
    verbatim beyond a short phrase; paraphrase the framing).
 
-- [ ] **Step 2: Write the file**
+- [x] **Step 2: Write the file**
 
 Structure: one heading per phase (three phases, matching the existing
 spec's three phases — do not add a fourth; that was explicitly ruled out).
@@ -103,7 +103,7 @@ this session handled the identical tension for the 303 status, in
 Do not describe implementation details (no file names, no class names, no
 "use FastAPI's X"). Do describe outcomes precisely enough to be gradeable.
 
-- [ ] **Step 3: Verify against the acceptance suite by hand**
+- [x] **Step 3: Verify against the acceptance suite by hand**
 
 For each of the three phases, write one sentence (can be a code comment or
 just verified mentally and noted in your report) tracing each acceptance
@@ -112,14 +112,14 @@ states or clearly implies. If any assertion has NO textual basis in your
 draft, revise the draft — this is the actual check this whole exercise
 teaches, so do it for real, not just claim it.
 
-- [ ] **Step 4: Sphinx build check**
+- [x] **Step 4: Sphinx build check**
 
 Run: `uv run --group docs sphinx-build -b html docs docs/_build/html`
 
 Expected: no new warnings. (This file isn't referenced by any toctree yet —
 Task 2 wires it in.)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add examples/agentclinic/specs/roadmap-user-story.md
@@ -142,7 +142,7 @@ git commit -m "docs(spec): higher-level business/user-story roadmap variant (Pha
   prose, cross-reference each other only where the existing content already
   does (e.g., links to the roadmap and to shared policy docs).
 
-- [ ] **Step 1: Read the source material**
+- [x] **Step 1: Read the source material**
 
 Read, in this order:
 1. `docs/section-2-measurement/index.md` (current file — the header/status
@@ -166,7 +166,7 @@ Read, in this order:
 7. `examples/acceptance/phase-3/test_acceptance.py` lines near the
    non-vacuity break matrix comments, for the break-matrix worked example.
 
-- [ ] **Step 2: Write the prose**
+- [x] **Step 2: Write the prose**
 
 Required structure (as MyST headings under the existing H1 — do not change
 the H1 or the status/evidence block above the `{toctree}`, only what comes
@@ -206,20 +206,20 @@ Decision 2 to live inside the suite-authoring arc's D3/D4 material, not as
 its own section. If you find yourself wanting a fourth top-level heading,
 stop and fold it into one of the three above.
 
-- [ ] **Step 3: Self-check every number and quote**
+- [x] **Step 3: Self-check every number and quote**
 
 Grep your draft for digits and quoted strings. For each, confirm it appears
 in one of the seven source files from Step 1, verbatim or as an accurate
 paraphrase of a non-numeric claim. List this check in your report (what you
 checked, not just "I checked it").
 
-- [ ] **Step 4: Sphinx build check**
+- [x] **Step 4: Sphinx build check**
 
 Run: `uv run --group docs sphinx-build -b html docs docs/_build/html`
 
 Expected: no new warnings.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/section-2-measurement/index.md
@@ -241,7 +241,7 @@ git commit -m "docs(section-2): chapter prose -- workload definition, suite auth
   this plan executes tasks in order.
 - Produces: nothing consumed elsewhere in this plan.
 
-- [ ] **Step 1: Read the source material**
+- [x] **Step 1: Read the source material**
 
 Read, in this order:
 1. `docs/section-3-sdd/index.md` (current file — status/evidence block at
@@ -274,7 +274,7 @@ Read, in this order:
    incidence in action, if a worked example of "incidence, not success
    rate" is needed beyond replace-vs-extend.
 
-- [ ] **Step 2: Write the prose**
+- [x] **Step 2: Write the prose**
 
 Required structure (new headings after the existing "About SDD" section,
 before the `{toctree}`):
@@ -308,17 +308,17 @@ claim available is cost-equivalence, and that measurement hasn't run yet
 (it's future work, same as Section 3's use of `roadmap-user-story.md`) —
 say so plainly rather than implying a result that doesn't exist yet.
 
-- [ ] **Step 3: Self-check every number and quote**
+- [x] **Step 3: Self-check every number and quote**
 
 Same method as Task 2 Step 3, against this task's six source files.
 
-- [ ] **Step 4: Sphinx build check**
+- [x] **Step 4: Sphinx build check**
 
 Run: `uv run --group docs sphinx-build -b html docs docs/_build/html`
 
 Expected: no new warnings.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/section-3-sdd/index.md
