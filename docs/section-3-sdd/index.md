@@ -174,8 +174,8 @@ per-run subagent calls and packet size, plus a mean over runs that delegated.
 Turn counts come from the same reader. Amendment 1 of the
 [oracle-repair plan](../superpowers/plans/2026-07-24-oracle-repair.md) made the
 sourcing a rule: "Delegation counts in any status or report derive from
-`subagent_stats_from` only." The reason it had to be written down is in the
-next section.
+`subagent_stats_from` only." The reason it had to be written down is below,
+in "When your metrics are fiction."
 
 Timing is deliberately split into two numbers. `task_duration_s` is the
 artifact's own first-to-terminal timestamp delta; `mean_process_wall_time_s`
@@ -337,8 +337,8 @@ def test_compute_task_duration_s_single_event(tmp_path: Path):
 
 The fix required at least two distinct timestamped events and returns `None`
 otherwise; both tests were corrected to assert `None`. The current test's
-docstring now carries the reasoning rather than the assumption: a single
-timestamped event "cannot yield a real duration, so this must be `None`, not a
+docstring now carries the reasoning rather than the assumption: "A single
+timestamped event cannot yield a real duration — must be `None`, not a
 fabricated 0.0." A passing suite is evidence that the code does what the tests
 say. It is not evidence that the tests say the right thing.
 
