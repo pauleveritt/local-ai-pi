@@ -1,139 +1,79 @@
 # Section IV — Keeping the SLM on Track
 
-Part II showed the ditch: an unsteered SLM goes 0/8 on Phase 1. Part III gave
-it an implementer specialist and a parent taught to make packets — that took
-the baseline to 5/8 (62%). The remaining failures are the target of this
-Section.
+**Status: not yet written.** This page is a framing placeholder, not a chapter
+catalog — read it as "here's what we know and what we're waiting on," not "here's
+what Section IV teaches." Current status always lives in
+[the roadmap](../superpowers/roadmap.md); this page will be rewritten once that
+status changes.
 
-Every chapter in this Section picks one failure mode from the measured evidence,
-applies one or more built-in Pi mechanisms, and measures whether they helped. No
-technique is adopted on faith. Each chapter maps to a numbered lesson from
-[LESSONS.md](../lessons.md) and is measured against the Section III 5/8 (62%)
-baseline.
+## Why there's no chapter catalog yet
 
-```{note}
-Several mechanisms in this Section (output cap, path guard, repeat breaker,
-turn cap) were previously designed and implemented in a reference repo
-(`local-ai-gemma`, branch `slm-guardrails`, 75 passing tests). That work is
-**read-only reference material** — each chapter rebuilds the mechanism live so
-the reader constructs it. The design decisions, adversarial-review findings
-(path-traversal bypass, bash false-positive), and live-verification evidence
-are raw material, not a transplant.
-```
+An earlier version of this page named four chapters (Terminal Validation, Path
+Guard, Turn Cap, Repeat Breaker), each measured against a Section III baseline
+of 5/8 (62%) success on Phase 1. That baseline no longer exists: a grading-path
+rebuild found the acceptance oracle was accepting broken solutions, and under
+the rebuilt, validated oracle the unsteered model clears Phases 1–3 at
+15–16/16 — see the roadmap's "Consequences" note. The four chapters' motivating
+failures don't reproduce against the current baseline, so they're retired, not
+rewritten in place. Building them anyway would mean teaching guardrails against
+a ditch that no longer exists.
 
-## The method
+Their original design docs (`terminal-validation/spec.md`,
+`terminal-validation/plan.md`) are left in the repo as historical record but
+pulled from this page's navigation — they describe a chapter that isn't being
+built as specified.
 
-Every chapter follows the pattern established in Part II and Part III:
+## What we're waiting on before deciding a new catalog
 
-1. **Show the failure** with recorded telemetry from the Section III baseline
-2. **Apply one Pi mechanism** — a single hook into Pi's event lifecycle or
-   configuration
-3. **Measure** whether it improved the baseline
-4. **Record evidence** in a dated research report
+Two preconditions, neither satisfied yet:
 
-No mechanism ships without measured evidence that it helps.
+1. **Section III's final baseline.** Section III's cost-equivalence batches
+   (does the orchestrator+implementer mechanism cost materially more than
+   unsteered, without dropping below the current solved line) are running now
+   — see the roadmap for progress. Until that's in, there's no settled
+   "current mechanism" to build Section IV's guardrails on top of.
+2. **The mechanism to develop against.** Section IV's guardrails need to sit
+   somewhere structurally — on the bare unsteered flow, on the Section III
+   orchestrator+implementer flow, or both. Which one (or both) isn't decidable
+   until Section III's shape is final, since a guardrail built against the
+   wrong base is a guardrail that has to be rebuilt.
 
-```{note}
-Chapter 1 is the exception to the "one mechanism" pattern: it teaches
-escalation — a cheap prompt/packet fix first, then a mechanism-level fix if
-residual drift remains. This is the course's thesis ("structure beats strings")
-landing with the escalation visible rather than asserted.
-```
+Until both land, nothing below should be read as decided.
 
-## The chapter catalog
+## Candidate subject (evidence-backed, not yet a chapter plan)
 
-Chapters are ordered by the frequency of their motivating failure in the SP2
-post-tuning baseline. Each is a single, focused lesson — one failure, one
-mechanism, one before/after measurement.
+Section II's current, valid, n=16 unsteered data shows two failure modes still
+live, independent of Section III's outcome:
 
-### Evidence-backed chapters
+- **Speed/reliability.** Hang incidence and turn count are real — e.g. the
+  rewritten Phase 3 spec: 6/16 runs (37.5%) hit the timeout, mean turns
+  10.8→24.2 from a spec-wording change alone. The model finishes, but it
+  thrashes.
+- **Preservation breakage (replace-vs-extend).** Destructive rewrites of
+  shared/inherited files at a real rate even while acceptance still passes —
+  e.g. Phase 2: replace=5/16, Phase 3: replace=4–6/16 depending on spec
+  variant. A run can pass the contract while silently damaging prior work.
 
-These chapters address failure modes that actually appear in the SP2 deep-dive:
+These are named here as the leading candidates for what Section IV ends up
+about, backed by evidence that already exists and doesn't depend on Section
+III. But per the precondition above, no mechanism, chapter, or measurement
+plan is committed against them yet — that requires the new orchestrator
+machinery Section III is establishing to actually surface these issues live,
+not just cite the raw counts. Treat this section as "what we'd start from,"
+not "what we'll build."
 
-| # | Chapter | Failure (post-tuning) | Lesson | Pi mechanism |
-|---|---------|----------------------|--------|--------------|
-| 1 | Terminal validation | Validation command drift (2/8) | #16 | Escalating: first `./validate.sh` wrapper (prompt/packet fix), then a `validate` tool with empty parameter schema + drop bash from child `--tools` (mechanism-level fix). The wrapper is the cheap first line; the tool makes drift structurally impossible. |
-| 2 | Path guard | Overreach (1/8) | #8, #12 | `tool_call` hook — reject writes outside the Allowed Files list |
-| 3 | Turn cap | Child hang (1/8) | #11 | `turn_end` hook — abort session after N turns |
-| 4 | Repeat breaker | Repair spirals (2/8 pre-tuning, reduced by tuning) | #1, #11 | `tool_execution_start`/`tool_execution_end` — count repeats, abort on threshold |
+## Reference material, not a plan
 
-### Backlog
+Several mechanisms (output cap, path guard, repeat breaker, turn cap) were
+previously designed and implemented in a reference repo (`local-ai-gemma`,
+branch `slm-guardrails`, 75 passing tests). That work remains available as raw
+material — design decisions, adversarial-review findings, live-verification
+evidence — but it targeted the retired catalog above, and nothing about it is
+assumed to carry forward. Whatever Section IV becomes should be evaluated
+against the current evidence, not backfilled from what was built once before.
 
-These chapters are queued only if their motivating failure appears in a future
-measured run. A failure that never reproduces on this model is demoted to a
-note rather than taught as if it were live.
-
-| # | Chapter | Lesson | Pi mechanism |
-|---|---------|--------|--------------|
-| 5 | Output cap | #8 | `tool_execution_end` — truncate tool output to a context-scaled limit |
-| 6 | Structural orientation (LSP) | #5 | `before_agent_start` — inject symbols via `@spences10/pi-lsp` |
-| 7 | Per-phase tool sets | #6, #8 | `setActiveTools` — restrict the tool set per phase (Chapter 1 already restricts the child to `validate` + `read` + `write`; this chapter generalizes to phase-specific tool surfaces) |
-| 8 | Context budgeting | #9 | `compaction` settings — reserveTokens, keepRecentTokens |
-
-```{note}
-**Model tuning** (Lesson #10) is not a Section IV chapter — SP2's post-tuning
-run already covered sampling entropy, context window, and token budget
-selection. The 3/8 → 4/8 delta from tuning is within noise, but the structural
-direction (tuning helps) is the SP2 evidence Section IV builds on.
-```
-
-## The starting baseline
-
-Every chapter measures against the same before-picture: the Section III
-parent+implementer shape running Phase 1 of the AgentClinic app.
-
-| Metric | Value |
-|--------|-------|
-| Success rate | 5/8 (62%) |
-| Mean wall time | 261s |
-| Mean turns | 6.6 |
-| Mean subagent calls | 1.2 |
-| Remaining failure modes | Child hang (1/8 exited-with-hang), test failures on well-scoped builds (2/8) |
-
-The [post-tuning baseline](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1-post-tuning.md)
-and the [deep-dive telemetry analysis](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md)
-are the evidence this Section's chapters cite.
-
-```{note}
-The before-picture (5/8 at 62%) was collected at n=8 by SP2. Going forward,
-guardrail chapters default to n=4 — sufficient to surface the primary failure
-modes while keeping measurement cycles practical. The shared re-run batch (the
-one measurement every Section IV chapter compares against) overrides this
-default and runs at n=8. The SP2 historical record stays at n=8.
-```
-
-## What the telemetry gaps mean for this Section
-
-The [SP2 deep-dive](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md)
-identified five harness improvements that make guardrail measurement sharper.
-Before building the first mechanism, consider fixing the highest-value ones:
-
-1. **Capture child session JSONL** — without the child's detailed event stream,
-   the mechanism's effect on the implementer is inferred from the parent's
-   summary.
-2. **Capture harness pytest output on failure** — shows why a run that "looks
-   correct" actually failed.
-3. **Packet fidelity metric** — distinguishes "good packet, implementer failed"
-   from "bad packet, mechanism never had a chance."
-4. **Validation command drift detection** — catches the specific bug found in
-   the deep-dive (implementer narrows the pytest command).
-5. **Self-report vs harness verdict agreement** — quantifies the
-   dishonesty-vs-command-drift distinction.
-
-These are not prerequisites — the mechanisms can be built and measured without
-them — but they make the before/after comparison sharper and the evidence
-stronger.
-
-```{note}
-**Exception:** Gap #4 (validation command drift detection) is a hard
-prerequisite for the shared re-run batch. Child session JSONL is not captured,
-so drift cannot be reliably recomputed after the fact — if the batch runs
-before drift detection lands, Chapter 1's primary metric is lost.
-```
-
-```{toctree}
-:hidden:
-terminal-validation/spec
-terminal-validation/plan
-
-```
+The method that governed the retired catalog is still expected to govern
+whatever replaces it: show the failure with recorded telemetry, apply one Pi
+mechanism, measure whether it helped, record evidence in a dated report. No
+technique adopted on faith. That much doesn't need to be redecided — only the
+subject and the mechanism do.

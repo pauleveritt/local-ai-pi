@@ -17,45 +17,36 @@ a later phase is not queued just because an earlier one landed.
 > fixed, tests green. This closes the Section II/III half of Task 9; Task
 > 10 (consolidate entry points, this file included) is still open.
 >
-> **Section IV's chapter-catalog decision is made, 2026-07-28 (decided by
+> **Section IV: framing only, nothing decided (revised 2026-07-28, decided by
 > the project owner).** Its old catalog (Terminal Validation, Path Guard,
 > Turn Cap, Repeat Breaker) targeted the extinct SP2 5/8 baseline and is
-> retired — not resurrected, not blended in. Section IV is rebuilt on the
-> two failure modes Section II's current, valid, n=16 unsteered data still
-> shows live, orthogonal to the pass/fail gate that closed:
+> retired — not resurrected, not blended in. An earlier version of this
+> banner (same date) called the subject "decided." That overstated it:
+> **nothing in Section IV is true until the new orchestrator machinery
+> actually surfaces these issues live, not just when raw counts cite them.**
+> Two preconditions gate any real Section IV work, neither satisfied yet:
+> (a) Section III's final baseline (the steered batches, in progress below),
+> and (b) knowing which mechanism — bare unsteered, the Section III
+> orchestrator+implementer flow, or both — Section IV's guardrails need to
+> sit on top of. A guardrail built against the wrong base has to be rebuilt,
+> so this isn't decidable yet either.
 >
-> 1. **Speed/reliability.** Hang incidence and turn count are real and
->    current — [Phase 3 rewritten spec: 6/16 runs (37.5%) hit the
->    timeout](../section-2-measurement/research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md),
->    mean turns 10.8→24.2 from a spec-wording change alone. The model
->    finishes, but it thrashes.
-> 2. **Preservation breakage (replace-vs-extend).** Destructive rewrites of
->    shared/inherited files at a real rate even while acceptance still
->    passes — [Phase 2: replace=5/16](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md),
->    [Phase 3: replace=4/16 (original spec) → 6/16 (rewritten
->    spec)](../section-2-measurement/research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md).
->    A run can pass the contract while silently damaging prior work,
->    because the acceptance suite checks the contract, not preservation.
+> [`docs/section-4-keeping-on-track/index.md`](../section-4-keeping-on-track/index.md)
+> is rewritten to say exactly this — a framing placeholder, not a chapter
+> catalog. It names two evidence-backed **candidates**, not chapters, from
+> Section II's current n=16 data (independent of Section III, so these don't
+> need to wait): speed/reliability (hang incidence, turn count — e.g. Phase 3
+> rewritten spec 6/16 timeouts, mean turns 10.8→24.2) and preservation
+> breakage (replace-vs-extend — e.g. Phase 2 replace=5/16, Phase 3
+> replace=4–6/16). *False self-report* was also considered and dropped: the
+> current n=16 data doesn't support it at the weight the pre-repair narrative
+> claimed (0/16 in Phase 2/3, 1/16 in Phase 1) — kept as a watched metric,
+> not a candidate.
 >
-> **Demoted, not adopted:** *false self-report* was named as a third pillar
-> in the narrative reframe below, citing pre-repair, since-superseded
-> (2/8-scale) data. The current clean n=16 data does not support it at that
-> weight — [0/16 in Phase 2 and Phase
-> 3](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md),
-> [1/16 in Phase 1](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase1.md).
-> It stays in the backlog as a metric worth continuing to watch, not as
-> live Section IV evidence.
->
-> **Mechanism candidates for these two pillars** (inputs, not a decided
-> lineup — still need a spec/plan pass): "putting git to work" (backlog,
-> below) directly mechanizes preservation breakage — a per-turn diff as
-> evidence, then checkpoint/rollback; the write-vs-edit mechanism chapter
-> (an earlier, pre-no-ditch sketch in `plans/2026-07-28-task9-sections-2-3-rewrite.md`)
-> is a candidate for the speed/reliability pillar but was not evaluated
-> against this evidence and needs a fresh look before being adopted as-is.
-> **Still open:** which mechanism(s) actually get built, and the Section IV
-> spec/plan pass to scope them — this banner records the *subject*
-> decision, not the implementation.
+> **Merge strategy (decided 2026-07-28):** the branch merges to `main` once
+> Sections I–III are ready, **without waiting for Section IV.** Section IV's
+> placeholder page ships as-is (honest about being unwritten) rather than
+> holding up Sections I–III, which are unrelated to it.
 >
 > **Task 8's unsteered half is DONE, 2026-07-27.** n=16 per phase, under the
 > fully rebuilt grading path — no ditch found anywhere, per Amendment 2's
@@ -83,12 +74,13 @@ a later phase is not queued just because an earlier one landed.
 > on track), not a search for evidence of improvement. The move to the
 > user-story roadmap stays open for later, not retired by this decision.
 >
-> **What proceeds now:** Task 10 (consolidate entry points, this file
-> included); Section IV's chapter-catalog decision (above); and Section
-> III's reframed orchestrator work, scoped as above. Before any Section III
-> evidence batch: pre-register the cost-equivalence metric set and
-> degradation budget (see the Fable review of the Task 8 results for a
-> draft), so the claim can't be set after seeing the data.
+> **What proceeds now:** Task 10 (consolidate entry points — KICKOFF.md done
+> 2026-07-28, roadmap read-this-first ordering and archive folding still
+> open); Section III's reframed orchestrator work (metrics pre-registered
+> and approved 2026-07-28, Phase 1 scout n=4 in progress); then the merge to
+> `main` once Sections I–III are ready. Section IV stays a framing
+> placeholder until its two preconditions land — it is explicitly not on
+> this list.
 >
 > **Scheduled, added 2026-07-28:** Task 9's suite-authoring sub-arc gains a
 > hands-on case study — deriving the acceptance contract from a new
@@ -122,7 +114,7 @@ module's docstring for the distinction).
 | SP1 | Section II — Measurement *(harness kept; prose discarded, numbers superseded)* (telemetry reader, minimal eval harness, evidence ledger, the smoking-gun baseline) | **Done** | [spec](../section-2-measurement/spec.md) | [plan](../section-2-measurement/plan.md) | [0/8 baseline](../section-2-measurement/research/2026-07-23-baseline-phase-1.md) |
 | SP2 | Section III — SDD on Pi *(mechanism kept; prose discarded, numbers superseded)* (roadmap/packet method, parent-as-orchestrator + implementer specialist) | **Done** | [spec](../section-3-sdd/spec.md) | [plan](../section-3-sdd/plan.md) | [3/8 pre](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1.md), [5/8 post](../section-3-sdd/research/2026-07-24-sp2-baseline-phase-1-post-tuning.md), [deep-dive](../section-3-sdd/research/2026-07-24-sp2-deep-dive.md) |
 | SPR | **Grading-path reboot** — rebuild the grader so model-controlled input cannot reach it, restore honest reporting, then re-run the evidence chain | **Tasks 1–8 (unsteered) done; Task 9 (Section II + III prose rewrite) done, reviewed, tests green; Task 10 (entry-point consolidation) open; Section III proceeding, reframed as cost-equivalence teaching content** | — | [plan](plans/2026-07-24-grading-path-reboot.md) | [Phase 1](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase1.md), [Phase 2](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md), [Phase 3](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md) |
-| SP3 | Section IV — Keeping the SLM on track *(old catalog — orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting — retired)*, rebuilt on speed/reliability + preservation-breakage evidence | **Subject decided 2026-07-28 (owner); mechanism/spec/plan not yet written** | — | — | [Phase 2](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md), [Phase 3 rewritten spec](../section-2-measurement/research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md) |
+| SP3 | Section IV — Keeping the SLM on track *(old catalog — orientation, tool restriction, output cap, path guard, repeat breaker, turn cap, model tuning, context budgeting — retired)* | **Framing placeholder only (revised 2026-07-28) — gated on (a) Section III's final baseline and (b) which mechanism to build atop. Two evidence-backed candidates named, not decided: speed/reliability, preservation breakage. Merges to `main` *after* Sections I–III, not blocking them.** | — | — | [Phase 2](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md), [Phase 3 rewritten spec](../section-2-measurement/research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md) |
 
 
 ## Narrative reframe (adopted 2026-07-24)
