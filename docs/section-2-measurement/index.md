@@ -14,10 +14,10 @@ and the 2026-07-27 unsteered n=16 reports below are the first trustworthy
 numbers this project has produced.
 
 **Evidence:** unsteered n=16 per phase, no ditch —
-[Phase 1](research/2026-07-27-post-repair-sp1-phase1.md) 15/16,
-[Phase 2](research/2026-07-27-post-repair-sp1-phase2.md) 15/16,
-[Phase 3](research/2026-07-27-post-repair-sp1-phase3.md) 16/16,
-[Phase 3, less-prescriptive spec](research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md) 16/16.
+[Phase 1](research/2026-07-27-post-repair-sp1-phase1.md) 15/16 (Wilson 95%: 72–99%),
+[Phase 2](research/2026-07-27-post-repair-sp1-phase2.md) 15/16 (Wilson 95%: 72–99%),
+[Phase 3](research/2026-07-27-post-repair-sp1-phase3.md) 16/16 (Wilson 95%: 81–100%),
+[Phase 3, less-prescriptive spec](research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md) 16/16 (Wilson 95%: 81–100%).
 
 ## What the workload actually is
 
@@ -140,7 +140,7 @@ Each clause is load-bearing:
   original oracle ran `uv run pytest -q` inside the workspace, which executed
   `tests/test_app.py` — *a file the model writes*. Every phase-2 row lists
   `tests/test_app.py` in its changed files: the model inherits the seeded
-  prior-phase test file and rewrites it. A model that rewrites the suite with
+  prior-phase test file and modifies it. A model that rewrites the suite with
   only the current phase's assertions passes green while prior-phase behavior
   goes unverified. That is exactly the `lessons.md` #7 failure — passing a
   smoke test while silently changing branding, the favicon, navigation,
@@ -189,6 +189,20 @@ nothing. The precedent here comes from outside this project: the Tainie
 project's generalization campaign found its repo-pytest oracle collected zero
 tests on all **34** targets and was silently vacuous the entire time — every
 verdict it issued was green, and none of them meant anything.
+
+This project has its own worked example of direction 1, and it is worse than a
+seed-count trap because the oracle did not just under-grade — it rejected a
+textbook-correct solution outright. A Phase 1 reference solution, placed in a
+freshly stamped workspace, failed pytest *collection* with
+`ModuleNotFoundError: No module named 'app'`, because the stamped
+`pyproject.toml` carried no pythonpath configuration and `uv run pytest`,
+unlike the prior course's `python -m pytest`, does not put the workspace root
+on `sys.path`. The identical solution passed once a single empty
+`tests/__init__.py` was added — a file the spec never mentions. Every
+pre-repair batch had been measuring whether a model stumbled onto that
+unstated workaround, not whether it delivered a correct solution. See
+[the oracle-invalid incident report](research/2026-07-24-oracle-invalid-incident.md)
+for the full reproduction and the six reports it invalidated.
 
 The gate (`tests/test_oracle.py`) therefore asserts **both** directions:
 

@@ -126,9 +126,9 @@ unsteered n=16 report carries the counter:
 
 | Batch | replace | extend | untouched | Success |
 |---|---|---|---|---|
-| [Phase 2, 2026-07-27](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md) | 5 | 11 | 0 | 15/16 |
-| [Phase 3, 2026-07-27](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md) | 4 | 12 | 0 | 16/16 |
-| [Phase 3, less-prescriptive spec, 2026-07-28](../section-2-measurement/research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md) | 6 | 10 | 0 | 16/16 |
+| [Phase 2, 2026-07-27](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase2.md) | 5 | 11 | 0 | 15/16 (Wilson 95%: 72–99%) |
+| [Phase 3, 2026-07-27](../section-2-measurement/research/2026-07-27-post-repair-sp1-phase3.md) | 4 | 12 | 0 | 16/16 (Wilson 95%: 81–100%) |
+| [Phase 3, less-prescriptive spec, 2026-07-28](../section-2-measurement/research/2026-07-28-post-repair-sp1-phase3-less-prescriptive-spec.md) | 6 | 10 | 0 | 16/16 (Wilson 95%: 81–100%) |
 
 Read that honestly. In the 2026-07-27 Phase 3 batch all sixteen runs passed, so
 all four replace-classified runs passed. In the 2026-07-28 batch all sixteen
@@ -223,7 +223,7 @@ own comparison table:
 
 | Metric | Prescriptive spec (2026-07-27) | Less-prescriptive spec (2026-07-28) |
 |---|---|---|
-| Success rate | 16/16 | 16/16 |
+| Success rate | 16/16 (Wilson 95%: 81–100%) | 16/16 (Wilson 95%: 81–100%) |
 | Hang incidence | 0/16 | 6/16 |
 | Mean turns | 10.8 | 24.2 |
 | Mean wall time | 91s | 205s |
@@ -355,22 +355,15 @@ supposed to summarize, or a fresh adversarial pass over the measurement code.
 F4, F5 and F6 are recorded in the reboot plan's verified-findings table, and
 the roadmap attributes the review round behind that plan to a different model —
 "a deep review (Fable, 2026-07-24) found five further integrity failures, two
-of which **defeat the hardened oracle**."
+of which **defeat the hardened oracle**." The correction to this section's own
+"8/8" claim (above) came from that same process.
 
-That is what
-[Rule 8](../superpowers/policies/evidence.md) is built on, and its own record
-states the pattern plainly: "Every adversarial review round in this project's
-history was run by a different model than the one that produced the work, and
-every round found a defect the author had missed and self-review had cleared."
-So for any change to the grading path, the acceptance suites, or the harness's
-measurement code, the gate is not passed until a model other than the one that
-wrote it has reviewed it, with the findings recorded alongside the change. The
-correction to this section's own "8/8" claim came from exactly that process.
-
-The rule's justification is one sentence, and it applies to a person writing a
-metric by hand every bit as much as to a model: **an author's confidence
-carries no information about whether the work is correct.** Self-review cannot
-be the last step, because the thing being reviewed is the reviewer.
+Rule 8 itself — the policy, its full record across this project, and why
+self-review cannot be the last step — belongs to Section 2, where Decision 2
+assigns it; see {doc}`/section-2-measurement/index` for the complete argument.
+What is specific here is only that all four of this section's fictions were
+self-review passes, and all four were caught by someone other than their
+author.
 
 
 ```{toctree}
