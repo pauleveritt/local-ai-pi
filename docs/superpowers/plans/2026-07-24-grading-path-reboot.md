@@ -331,6 +331,19 @@ Against the reframe and the final numbers. The Section 2 second arc:
 *validating the oracle* · *what the workload actually is* · *when your metrics
 are fiction*. Section 4 leads with the write-vs-edit mechanism chapter.
 
+**Suite-authoring case study, added 2026-07-28.** The suite-authoring
+sub-arc gains a hands-on case study alongside its retrospective material
+(the reboot's own Task 1–2 history, the oracle-invalid incident): deriving
+the acceptance contract from `examples/agentclinic/specs/roadmap-user-story.md`,
+a higher-level business/user-story rewrite of Phases 1–3 targeting the
+identical, functionally-equivalent app as the existing detailed roadmap. No
+new suite, reference solution, or batch — the existing cumulative phase-3
+suite already grades it. See
+[`docs/superpowers/specs/2026-07-28-eval-suite-chapter-design.md`](../specs/2026-07-28-eval-suite-chapter-design.md)
+for the full design, including the Rule 6 deferral to whoever later runs a
+batch against this roadmap (named as Section 3's future packet source, not
+built under this task).
+
 ### Task 10 — Consolidate the entry points
 
 Doctrine was consolidated in Task 6. This closes the other half: what a fresh

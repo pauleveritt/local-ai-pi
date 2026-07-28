@@ -45,6 +45,13 @@ a later phase is not queued just because an earlier one landed.
 > the cost-equivalence metric set and degradation budget (see the Fable
 > review of the Task 8 results for a draft), so the claim can't be set
 > after seeing the data.
+>
+> **Scheduled, added 2026-07-28:** Task 9's suite-authoring sub-arc gains a
+> hands-on case study — deriving the acceptance contract from a new
+> higher-level, business/user-story rewrite of Phases 1–3
+> (`examples/agentclinic/specs/roadmap-user-story.md`, not yet written),
+> targeting the identical app the existing detailed roadmap targets. See
+> [`specs/2026-07-28-eval-suite-chapter-design.md`](specs/2026-07-28-eval-suite-chapter-design.md).
 
 A deep review (Fable, 2026-07-24) found five further integrity failures, two of
 which **defeat the hardened oracle** (a model-written `pytest.ini` with
