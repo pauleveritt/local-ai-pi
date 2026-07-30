@@ -205,7 +205,7 @@ git commit -m "test(subversion): the two attacks that defeat an exit-code grader
 
 ---
 
-### Task 2: Record the results-file forge in the Backlog
+### Task 2: Record the deferred attack in the Backlog
 
 **Files:**
 - Modify: `ROADMAP.md` (the `## Backlog` section)
@@ -248,5 +248,5 @@ changes, and no disruption to the `## Prior work` heading that follows.
 
 ```bash
 git add ROADMAP.md
-git commit -m "docs(roadmap): backlog the results-file forge scoped out of cycle 4"
+git commit -m "docs(roadmap): backlog the forgeable-results-file gap scoped out of cycle 4"
 ```

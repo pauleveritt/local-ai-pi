@@ -125,16 +125,15 @@ refusal will catch it again at a different layer. That is acceptable, not
 redundancy to remove.
 
 Any attack beyond the two `BRIEF.md` names. In particular, and by
-explicit decision rather than oversight: **the results-file forge.** A
-model-authored `app.py` can read the results-file path from the
-environment it shares with the plugin and write forged
-`nodeid<TAB>outcome` lines and a completion marker directly into the
-results file. It is cheap, and cycle 3's design does not close it — no
-in-process secret can, since anything the plugin can read, model code
-sharing its process can read too. The real fix is running the suite
-out-of-process against a live app subprocess instead of in-process
-`TestClient`, which is materially larger than this cycle. Recorded in
-`ROADMAP.md`'s Backlog at the end of this cycle.
+explicit decision rather than oversight: the attack in which a
+model-authored `app.py` reads the results-file path from the environment
+it shares with the plugin and writes forged `nodeid<TAB>outcome` lines and
+a completion marker directly into the results file. It is cheap, and cycle
+3's design does not close it — no in-process secret can, since anything
+the plugin can read, model code sharing its process can read too. The real
+fix is running the suite out-of-process against a live app subprocess
+instead of in-process `TestClient`, which is materially larger than this
+cycle. Recorded in `ROADMAP.md`'s Backlog at the end of this cycle.
 
 Also out of scope: any change to cycle 1's fixtures or acceptance suite,
 to `harness/workspace.py`, or to `harness/grading.py` and
@@ -149,3 +148,9 @@ to `harness/workspace.py`, or to `harness/grading.py` and
 "Subversion" stays `ROADMAP.md`'s existing label rather than gaining a
 synonym ("adversarial", "attack fixture"). The helpers are named
 `_attack_with_*` as plain description, not as a new concept.
+
+The deferred attack in "Out of scope" is *described* rather than named,
+deliberately. A backlogged problem should not cost a term: naming it would
+put a word into circulation that every later reader has to learn, for
+something no current code or doc refers to. It gets a name if and when a
+cycle takes it on.
