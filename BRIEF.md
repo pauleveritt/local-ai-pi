@@ -122,8 +122,37 @@ decision.
 - Prior work: branch `user-story-batch` (untouched). This branch (`restructure`)
   is an orphan — air-gapped, nothing imported except by explicit decision.
 
+## What kind of effort this is
+
+**A clean slate that gets gardened — not a clean-room rewrite.**
+
+The branch begins with nothing in it. Things move over one at a time, each by
+deliberate decision, and nothing gets in that hasn't been thought about. That
+is different from clean-room (reimplementing without looking at the original),
+and the difference is intentional: the grader exists *because* two specific
+attacks defeated its predecessors. Rewriting it blind would mean re-earning
+those defeats through incidents. So we read the old work, argue about each
+piece, and transplant what earns its place.
+
+The gardening metaphor is the operative one. The candidate list above is what
+we've already thought about, with the reasoning attached — not a manifest of
+things scheduled to arrive.
+
+## First decision for the new session
+
+**`ROADMAP.md` currently names Phase 1 "the restructure spec." That wording is
+probably wrong and should be challenged first.**
+
+The spec is the *output*; the milestone is the *direction*. Phase 1's direction
+is closer to *"reproduce AgentClinic Phase 1 with a trustworthy engine"* — and
+its first deliverable is the spec for how. Getting this right matters because
+the phase name is what everyone reads to know what they're working on, and a
+phase named after a document invites producing a document rather than a
+working engine.
+
+Decide the wording before anything else. Do not inherit it by default.
+
 ## Starting point for the new session
 
-Begin with brainstorming, owner-driven, on **Phase 1's spec**. Produce a spec
-for the restructure — do not restructure anything yet. Keep answers brief; go
-slow.
+Begin with brainstorming, owner-driven, on Phase 1. Produce a **spec** — do not
+build anything yet. Keep answers brief; go slow; one small thing at a time.
