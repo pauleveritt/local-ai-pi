@@ -26,7 +26,7 @@ working engine and real suites to write about; it isn't Phase 1's job. See
 
 | Cycle | Summary | Spec | Plan | State |
 |-------|---------|------|------|-------|
-| 1 | Accept/reject fixture pair — known-good and known-broken AgentClinic Phase 1 solutions, proven by plain pytest | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle1-fixture-pair-design.md) | — | Spec drafted |
+| 1 | Accept/reject fixture pair — known-good and known-broken AgentClinic Phase 1 solutions, proven by plain pytest | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle1-fixture-pair-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle1-fixture-pair.md) | Done |
 
 ## Backlog
 
