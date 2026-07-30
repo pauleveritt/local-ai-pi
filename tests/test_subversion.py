@@ -40,7 +40,7 @@ def _attack_with_exit_at_import(tmp_path: Path) -> Path:
     return source
 
 
-def test_collect_only_attack_defeats_the_exit_code_but_not_the_verdict(tmp_path):
+def test_collect_only_attack_is_refused_before_any_exit_code_exists(tmp_path):
     """Cycle 5's config refusal now intercepts this attack before pytest
     ever runs (it writes a root-level pytest.ini), so the process never
     launches -- returncode is None, not a naive grader's exit 0. This

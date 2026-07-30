@@ -12,6 +12,7 @@ from harness.grading_plugin import DONE_MARKER, RESULTS_ENV_VAR
 _REFUSED_CONFIG = (
     "pyproject.toml",
     "pytest.ini",
+    ".pytest.ini",
     "tox.ini",
     "setup.cfg",
     "conftest.py",
@@ -66,7 +67,8 @@ def _verdict(
 def grade(workspace: Path, suite: Path, timeout: int = 30) -> GradeResult:
     """Copy suite into workspace, run pytest there with the grading
     plugin loaded, and return the verdict read from the results file the
-    plugin's hooks wrote."""
+    plugin's hooks wrote. Refuses before doing either, when the workspace
+    carries model-written config."""
     tests_expected = _test_count(suite)
     refused = _refused_config(workspace)
     if refused:
@@ -125,12 +127,30 @@ def _refused_config(workspace: Path) -> tuple[str, ...]:
     """Model-written config present in the workspace, as sorted
     workspace-relative paths.
 
-    Root-level for all six names, plus a recursive sweep for conftest.py
-    only: a nested conftest.py affects collection in its own subtree,
-    while a nested pytest.ini or sitecustomize.py is inert -- pytest reads
-    ini files at the rootdir, and sitecustomize is imported from sys.path.
+    Root-level for all names in _REFUSED_CONFIG, plus a recursive sweep for
+    conftest.py only: a nested conftest.py affects collection in its own
+    subtree, while a nested pytest.ini/.pytest.ini or sitecustomize.py is
+    inert -- pytest reads ini files at the rootdir, and sitecustomize is
+    imported from sys.path. Of these, conftest.py is the one that genuinely
+    executes at collection time under this module's invocation of pytest
+    (cwd=workspace, python -m pytest); sitecustomize.py and the others are
+    refused as defense-in-depth against how that invocation might change
+    (e.g. if the workspace directory ever ends up on PYTHONPATH or
+    sys.path earlier), not because they currently execute.
+
+    _REFUSED_CONFIG should track pytest's own config-discovery order
+    rather than being independently re-derived by hand -- see
+    _pytest/config/findpaths.py's locate_config() (checked against pytest
+    8.3.4), whose config_names list is exactly this set of root-level
+    names. A hand-enumerated list is how .pytest.ini was missed here.
     """
     found = {name for name in _REFUSED_CONFIG if (workspace / name).is_file()}
+    # rglob's `**` defaults to recurse_symlinks=False since Python 3.13, so
+    # a conftest.py reachable only via a symlinked directory is invisible
+    # here. Safe today only because callers are expected to pass a
+    # prepare_workspace-provisioned directory: shutil.copytree's default
+    # symlinks=False resolves symlinks into real files during the copy, so
+    # such a workspace cannot contain one. Not safe for an arbitrary Path.
     found.update(
         str(path.relative_to(workspace))
         for path in workspace.rglob("conftest.py")

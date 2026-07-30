@@ -40,28 +40,34 @@ reads, so this cycle deliberately does not.
 
 ```python
 _REFUSED_CONFIG = (
-    "pyproject.toml", "pytest.ini", "tox.ini",
+    "pyproject.toml", "pytest.ini", ".pytest.ini", "tox.ini",
     "setup.cfg", "conftest.py", "sitecustomize.py",
 )
 ```
 
-All six are live vectors for changing how pytest runs — `pytest.ini`,
-`tox.ini`'s `[pytest]`, `setup.cfg`'s `[tool:pytest]`, and
-`pyproject.toml`'s `[tool.pytest.ini_options]` all configure the runner;
-`conftest.py` supplies hooks and fixtures; `sitecustomize.py` executes at
-interpreter startup. Unlike most of the old branch's inventory this list
-is not speculative padding, and a partial list would be a hole rather than
-a smaller design.
+All seven are live vectors for changing how pytest runs — `pytest.ini` and
+its hidden-dotfile variant `.pytest.ini`, `tox.ini`'s `[pytest]`,
+`setup.cfg`'s `[tool:pytest]`, and `pyproject.toml`'s
+`[tool.pytest.ini_options]` all configure the runner; `conftest.py`
+supplies hooks and fixtures; `sitecustomize.py` executes at interpreter
+startup. Unlike most of the old branch's inventory this list is not
+speculative padding, and a partial list would be a hole rather than a
+smaller design. The list is derived from pytest's own config-source
+order rather than hand-enumerated — see `_pytest/config/findpaths.py`'s
+`locate_config()`, whose `config_names` is exactly this set of root-level
+names — because a hand-enumerated list is exactly how `.pytest.ini` was
+missed in this cycle's first pass.
 
-Matching is root-level for all six, plus a recursive sweep for
+Matching is root-level for all seven, plus a recursive sweep for
 `conftest.py` **only**. The asymmetry is deliberate: a nested
 `conftest.py` genuinely affects collection in its own subtree, while a
-nested `pytest.ini` or `sitecustomize.py` is inert — pytest reads ini
-files at the rootdir, and `sitecustomize` is imported from `sys.path`.
-Sweeping all six recursively would refuse files that cannot do anything.
+nested `pytest.ini`/`.pytest.ini` or `sitecustomize.py` is inert — pytest
+reads ini files at the rootdir, and `sitecustomize` is imported from
+`sys.path`. Sweeping all seven recursively would refuse files that cannot
+do anything.
 
 **`pyproject.toml` is the arguable entry**, and it is included with a
-recorded reservation. It is the only one of the six a model might write
+recorded reservation. It is the only one of the seven a model might write
 for a legitimate reason — declaring dependencies for the app it was asked
 to build. AgentClinic Phase 1's reference solution is `app.py` plus
 `templates/`, so a packaging file is out-of-task regardless of intent, and
@@ -90,12 +96,19 @@ branch's classifier layer rejected outright.
 
 Before pytest runs, and before the suite is copied in.
 
-This is a security property, not an optimization. `sitecustomize.py`
-executes at interpreter startup and `conftest.py` at collection, so
-running the suite anyway would execute precisely the files that triggered
-the refusal — including, potentially, the results-file attack recorded in
-`ROADMAP.md`'s Backlog. Having decided a run cannot be trusted, the
-grader does not then execute it.
+This is a security property, not an optimization. Under this module's
+actual invocation of pytest (`cwd=workspace`, `python -m pytest`),
+`conftest.py` genuinely executes at collection time — Python's `site`
+module processes `sitecustomize` during interpreter init, before `-m`
+puts the workspace directory on `sys.path`, so a workspace-root
+`sitecustomize.py` does not in fact execute under this invocation shape.
+`sitecustomize.py` stays in the refused list as defense-in-depth against
+how the invocation might change (e.g. if the workspace directory ever
+ends up on `PYTHONPATH` or `sys.path` earlier), not because it currently
+runs. Running the suite anyway would execute precisely the config that
+triggered the refusal — including, potentially, the results-file attack
+recorded in `ROADMAP.md`'s Backlog. Having decided a run cannot be
+trusted, the grader does not then execute it.
 
 ### Consequences for the verdict type
 
