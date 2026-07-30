@@ -93,6 +93,12 @@ about your human."*, and the backticks are all part of the source text —
 preserve them exactly. The tagline in particular is a contract literal
 that `test_acceptance.py` asserts on verbatim.
 
+The file must end with exactly one trailing newline after the last bullet
+(`  - Response body contains the tagline text`) — no blank line, no
+missing newline. Step 2's `diff` compares against `sed -n '1,23p'` of the
+source, which emits precisely that, so any deviation shows up as a diff
+hunk.
+
 - [ ] **Step 2: Confirm it is byte-identical to the source's Phase 1 section**
 
 Run:

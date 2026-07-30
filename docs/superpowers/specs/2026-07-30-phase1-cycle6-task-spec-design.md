@@ -144,6 +144,9 @@ cycle 8's, when a model builds from it.
   nothing else.
 - `harness/grading.py`'s `grade()` passes `suite.name` to pytest.
 - `tests/test_grading.py` has the model-written-tests case above.
+- `ROADMAP.md`'s "live collision cycle 6 must resolve" note is updated to
+  record the resolution, and to stop listing the rejected spec-edit fix
+  first among three options.
 - The full suite passes: 31 existing tests plus this cycle's one new test.
 
 ## Out of scope for this cycle
@@ -158,16 +161,24 @@ pre-empt that design. Any actual model run (cycle 8). Any change to cycle
 
 ## Concept budget
 
-**No new terms.** This cycle spends only what cycles 1–5 already bought:
-`feature cycle`, `phase`, `roadmap`, `suite`, `fixture`, `workspace`,
-`hermetic`, `harness`, `verdict`, `hook`, `accept-check`, `reject-check`,
-`vacuous`, `refusal`.
+**One new term**, forced by a naming collision rather than chosen. Cycles
+1–5 bought: `feature cycle`, `phase`, `roadmap`, `suite`, `fixture`,
+`workspace`, `hermetic`, `harness`, `verdict`, `hook`, `accept-check`,
+`reject-check`, `vacuous`, `refusal`.
 
 Note that `roadmap` now names two distinct documents — this project's
 `ROADMAP.md` and the transplanted `examples/agentclinic/specs/roadmap.md`
 that the model builds from. That collision is inherited from the old
 branch's filename, and it is load-bearing: `test_acceptance.py` cites that
 exact path. Renaming it would be a gratuitous divergence from the
-conditions the trusted number was produced under. Prose in this project
-should say "the AgentClinic roadmap" or "the task spec" when it means the
-model-facing one.
+conditions the trusted number was produced under.
+
+The disambiguation costs one term: **`task spec`** — the AgentClinic
+document a model builds from, as distinct from `ROADMAP.md`, which plans
+this project's own work. Prose should use it (or the longer "the
+AgentClinic roadmap") wherever "roadmap" alone would be ambiguous. Counted
+here rather than used silently, since this cycle's own title relies on it.
+
+The running list, carried forward: `feature cycle`, `phase`, `roadmap`,
+`suite`, `fixture`, `workspace`, `hermetic`, `harness`, `verdict`, `hook`,
+`accept-check`, `reject-check`, `vacuous`, `refusal`, `task spec`.
