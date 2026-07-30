@@ -5,13 +5,16 @@ Backlog, not into the current phase.*
 
 ## Now
 
-*(no phase active — Phase 1 is being brainstormed)*
+**Phase 1 — The restructure spec.** One document: who the volunteer is, what
+they must understand in their first 30 minutes, and the section structure
+that serves that reader — challenged from scratch. Everything else waits;
+this is the yardstick.
 
 ## Phases
 
 | # | Phase | Direction (one sentence) | Status |
 |---|-------|--------------------------|--------|
-| 1 | — | — | brainstorming |
+| 1 | Restructure spec | Define the reader, then derive the structure that serves them | active |
 
 ## Backlog
 
