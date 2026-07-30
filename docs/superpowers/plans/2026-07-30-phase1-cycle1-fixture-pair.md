@@ -41,9 +41,13 @@ dependencies = [
 ]
 
 [tool.pytest.ini_options]
-pythonpath = ["."]
 norecursedirs = ["examples/agentclinic", "docs/_build"]
 ```
+
+`norecursedirs` keeps a future repo-root `pytest` run from wandering into the
+fixtures. No `pythonpath` setting is needed: each fixture's own `app.py`
+resolves via pytest's normal import-mode path insertion when `pytest` runs
+with that directory as `cwd` (Tasks 4 and 6), not via a project-wide path.
 
 - [ ] **Step 2: Sync dependencies**
 
