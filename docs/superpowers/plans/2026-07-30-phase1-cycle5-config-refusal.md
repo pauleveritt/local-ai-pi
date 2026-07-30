@@ -16,25 +16,45 @@ attack helpers.
 **Tech Stack:** Python 3.14, pytest 8.3.4, standard library only
 (`pathlib`, `dataclasses`).
 
+## Amendment (post-implementation)
+
+The final whole-branch review found that the seven-name constant below
+was originally planned with only six entries, omitting `.pytest.ini`
+(pytest's hidden-dotfile config variant) — and confirmed that omission
+was exploitable: a workspace `.pytest.ini` with `addopts = -p evil` loaded
+and ran a plugin before collection, bypassing refusal entirely. This plan
+is corrected in place to the seven-name list actually shipped (commit
+`78cdb97`), so it no longer reproduces the bug if followed literally. See
+`docs/superpowers/specs/2026-07-30-phase1-cycle5-config-refusal-design.md`
+for the full account.
+
 ## Global Constraints
 
 - Python `>=3.14,<3.15` (from `pyproject.toml`).
 - `pytest==8.3.4`, `fastapi[standard]==0.115.10`, `turbohtml==1.5.0` are
   the pinned dependencies already declared in `pyproject.toml` — do not
   add new dependencies for this cycle.
-- The six refused filenames, exactly: `pyproject.toml`, `pytest.ini`,
-  `tox.ini`, `setup.cfg`, `conftest.py`, `sitecustomize.py`.
-- Matching is root-level for all six, plus a recursive sweep for
+- The seven refused filenames, exactly: `pyproject.toml`, `pytest.ini`,
+  `.pytest.ini`, `tox.ini`, `setup.cfg`, `conftest.py`, `sitecustomize.py`.
+  The five ini-style names track pytest's own config-source order
+  (`_pytest/config/findpaths.py`'s `locate_config()`, checked against
+  pytest 8.3.4); `conftest.py` and `sitecustomize.py` are separate
+  additions with their own rationale, not part of that pytest list.
+- Matching is root-level for all seven, plus a recursive sweep for
   `conftest.py` **only**. Do not sweep the others recursively — a nested
-  `pytest.ini` or `sitecustomize.py` is inert, and refusing it would
-  refuse a file that cannot affect the run.
+  `pytest.ini`/`.pytest.ini` or `sitecustomize.py` is inert, and refusing
+  it would refuse a file that cannot affect the run.
 - Refusal **rejects**: `accepted` is `False` whenever any config is found,
   regardless of test outcomes. It does not neutralize, delete, or override
   the config and grade anyway.
 - Refusal happens **before** the suite is copied in and before pytest
-  launches. This is a security property: `sitecustomize.py` executes at
-  interpreter startup and `conftest.py` at collection, so running anyway
-  would execute the very files that triggered refusal.
+  launches. This is a security property: `conftest.py` genuinely executes
+  at collection time, and any ini-style file's `addopts` can load and run
+  a plugin before collection even starts (confirmed exploit, see
+  Amendment above). `sitecustomize.py` does not execute under this
+  module's actual invocation shape and is refused only as defense-in-depth
+  against how that invocation might change. Running the suite anyway
+  despite any of this would execute the very files that triggered refusal.
 - `returncode` becomes `int | None`. `None` means no process ran. Do not
   substitute `0` — that is indistinguishable from a genuine clean exit.
 - **No existing test may be modified.** `GradeResult` has exactly one
@@ -54,7 +74,7 @@ attack helpers.
 
 **Interfaces:**
 - Consumes: nothing from earlier tasks.
-- Produces: `_REFUSED_CONFIG: tuple[str, ...]` (the six filenames) and
+- Produces: `_REFUSED_CONFIG: tuple[str, ...]` (the seven filenames) and
   `_refused_config(workspace: Path) -> tuple[str, ...]`, returning sorted
   workspace-relative paths of config files found. Task 2 calls it from
   `grade()`.
@@ -97,6 +117,17 @@ def test_refused_config_ignores_a_nested_pytest_ini(tmp_path):
     assert _refused_config(tmp_path) == ()
 
 
+def test_refused_config_finds_a_root_level_dot_pytest_ini(tmp_path):
+    """.pytest.ini is pytest's hidden-dotfile config variant, same
+    precedence as pytest.ini -- omitting it is a live bypass (a workspace
+    .pytest.ini with `addopts = -p some_plugin` loads and runs that
+    plugin before collection), not merely an incomplete list."""
+    (tmp_path / "app.py").write_text("x = 1\n")
+    (tmp_path / ".pytest.ini").write_text("[pytest]\n")
+
+    assert _refused_config(tmp_path) == (".pytest.ini",)
+
+
 def test_refused_config_is_empty_for_a_clean_workspace(tmp_path):
     (tmp_path / "app.py").write_text("x = 1\n")
 
@@ -105,13 +136,13 @@ def test_refused_config_is_empty_for_a_clean_workspace(tmp_path):
 
 def test_refused_config_finds_every_root_level_name(tmp_path):
     for name in (
-        "pyproject.toml", "pytest.ini", "tox.ini",
+        "pyproject.toml", "pytest.ini", ".pytest.ini", "tox.ini",
         "setup.cfg", "conftest.py", "sitecustomize.py",
     ):
         (tmp_path / name).write_text("")
 
     assert _refused_config(tmp_path) == (
-        "conftest.py", "pyproject.toml", "pytest.ini",
+        ".pytest.ini", "conftest.py", "pyproject.toml", "pytest.ini",
         "setup.cfg", "sitecustomize.py", "tox.ini",
     )
 ```
@@ -130,6 +161,7 @@ In `harness/grading.py`, add the constant immediately after the
 _REFUSED_CONFIG = (
     "pyproject.toml",
     "pytest.ini",
+    ".pytest.ini",
     "tox.ini",
     "setup.cfg",
     "conftest.py",
@@ -144,10 +176,27 @@ def _refused_config(workspace: Path) -> tuple[str, ...]:
     """Model-written config present in the workspace, as sorted
     workspace-relative paths.
 
-    Root-level for all six names, plus a recursive sweep for conftest.py
-    only: a nested conftest.py affects collection in its own subtree,
-    while a nested pytest.ini or sitecustomize.py is inert -- pytest reads
-    ini files at the rootdir, and sitecustomize is imported from sys.path.
+    Root-level for all names in _REFUSED_CONFIG, plus a recursive sweep for
+    conftest.py only: a nested conftest.py affects collection in its own
+    subtree, while a nested pytest.ini/.pytest.ini or sitecustomize.py is
+    inert -- pytest reads ini files at the rootdir, and sitecustomize is
+    imported from sys.path.
+
+    Two of these currently execute code, not just configure the run:
+    conftest.py at collection time, and any ini-style file (pytest.ini,
+    .pytest.ini, pyproject.toml, tox.ini, setup.cfg) whose addopts loads a
+    plugin. sitecustomize.py is refused purely as defense-in-depth: it
+    does not execute under this module's invocation of pytest
+    (cwd=workspace, python -m pytest), only against how that invocation
+    might change.
+
+    The five ini-style names above track pytest's own config-discovery
+    order -- see _pytest/config/findpaths.py's locate_config() (checked
+    against pytest 8.3.4), whose config_names is exactly that five-name
+    set. conftest.py and sitecustomize.py are separate additions with
+    their own rationale, not part of pytest's own config_names -- do not
+    "correct" this list to match config_names exactly, or those two
+    entries would be lost.
     """
     found = {name for name in _REFUSED_CONFIG if (workspace / name).is_file()}
     found.update(
@@ -161,12 +210,12 @@ def _refused_config(workspace: Path) -> tuple[str, ...]:
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest tests/test_config_refusal.py -v`
-Expected: 5 passed
+Expected: 6 passed
 
 - [ ] **Step 5: Confirm nothing else broke**
 
 Run: `uv run pytest -q`
-Expected: 26 passed (21 pre-existing + 5 new)
+Expected: 27 passed (21 pre-existing + 6 new)
 
 - [ ] **Step 6: Commit**
 
@@ -329,15 +378,19 @@ Leave the rest of `grade()` unchanged.
 - [ ] **Step 6: Run tests to verify they pass**
 
 Run: `uv run pytest tests/test_config_refusal.py -v`
-Expected: 9 passed
+Expected: 10 passed
 
 - [ ] **Step 7: Run the full test suite**
 
 Run: `uv run pytest -q`
-Expected: 30 passed (21 pre-existing + 9 new)
+Expected: 31 passed (21 pre-existing + 10 new)
 
 If any pre-existing test fails, stop and report rather than editing it —
-see the Global Constraints.
+see the Global Constraints. (The one authorized exception on this branch —
+`tests/test_subversion.py`'s assertion needing an update because refusal
+now intercepts an existing attack fixture before pytest ever runs — was
+a human decision made mid-implementation, not something to infer from
+this plan. See the design spec's account of it.)
 
 - [ ] **Step 8: Commit**
 

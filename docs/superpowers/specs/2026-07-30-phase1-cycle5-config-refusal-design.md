@@ -52,11 +52,15 @@ its hidden-dotfile variant `.pytest.ini`, `tox.ini`'s `[pytest]`,
 supplies hooks and fixtures; `sitecustomize.py` executes at interpreter
 startup. Unlike most of the old branch's inventory this list is not
 speculative padding, and a partial list would be a hole rather than a
-smaller design. The list is derived from pytest's own config-source
-order rather than hand-enumerated — see `_pytest/config/findpaths.py`'s
-`locate_config()`, whose `config_names` is exactly this set of root-level
-names — because a hand-enumerated list is exactly how `.pytest.ini` was
-missed in this cycle's first pass.
+smaller design. The five ini-style names (`pytest.ini`, `.pytest.ini`,
+`pyproject.toml`, `tox.ini`, `setup.cfg`) are derived from pytest's own
+config-source order rather than hand-enumerated — see
+`_pytest/config/findpaths.py`'s `locate_config()`, whose `config_names` is
+exactly that five-name set — because a hand-enumerated list is exactly
+how `.pytest.ini` was missed in this cycle's first pass. `conftest.py` and
+`sitecustomize.py` are separate additions with their own rationale below;
+they are not part of pytest's own `config_names`, and syncing this
+constant against that list in the future must not drop them.
 
 Matching is root-level for all seven, plus a recursive sweep for
 `conftest.py` **only**. The asymmetry is deliberate: a nested
@@ -134,46 +138,60 @@ not a default.
 The trap this cycle must avoid: cycle 3's verdict **already** rejects
 cycle 4's `--collect-only` attack, on the count mismatch. A test asserting
 `accepted is False` would therefore pass whether or not refusal works at
-all. Three of the four tests below exist to make the proof load-bearing.
+all. Tests 1 and 2 are pure-function tests over `_refused_config` and
+don't touch `grade()` at all; tests 3–5 exist specifically to make the
+proof load-bearing at the `grade()` level.
 
 `tests/test_config_refusal.py`:
 
 1. **Pure `_refused_config`** — a workspace containing `pytest.ini`
    returns `("pytest.ini",)`; one containing a nested `sub/conftest.py`
-   returns `("sub/conftest.py",)`; a clean one returns `()`.
-2. **Refusal fires** — `grade()` against cycle 4's
+   returns `("sub/conftest.py",)`; a clean one returns `()`; one
+   containing every root-level name returns all seven, sorted.
+2. **`.pytest.ini` specifically** — added after the final whole-branch
+   review found it missing from the original four-case list and confirmed
+   the omission was exploitable (see "What gets refused" above): a
+   workspace containing only `.pytest.ini` returns `(".pytest.ini",)`.
+3. **Refusal fires** — `grade()` against cycle 4's
    `_attack_with_collect_only` asserts `refused_config == ("pytest.ini",)`
    **and `returncode is None`**. The second assertion is the load-bearing
    one: it is the only observable proving pytest never ran, which is the
    entire point of refusing early. `accepted is False` is asserted too,
    but proves nothing on its own and is not relied upon.
-3. **Control, clean fixture** — `grade()` against `reference` asserts
+4. **Control, clean fixture** — `grade()` against `reference` asserts
    `refused_config == ()` and `accepted is True`. Proves the list is not
    simply always populated.
-4. **Control, attack carrying no config** — `grade()` against cycle 4's
+5. **Control, attack carrying no config** — `grade()` against cycle 4's
    `_attack_with_exit_at_import` asserts `refused_config == ()` and
    `accepted is False`. Proves refusal is specific rather than blanket:
    that attack writes no config file, so it must still be caught by cycle
    3's completion-marker logic rather than by refusal.
 
-Tests 2 and 4 import cycle 4's `_attack_with_collect_only` and
+Tests 3 and 5 import cycle 4's `_attack_with_collect_only` and
 `_attack_with_exit_at_import` from `tests/test_subversion.py` — the reuse
-cycle 4 shaped its helpers for. Test 1 builds its own directories by hand,
-and test 3 uses cycle 1's `reference` fixture.
+cycle 4 shaped its helpers for. Tests 1 and 2 build their own directories
+by hand, and test 4 uses cycle 1's `reference` fixture.
 
 ## Definition of Done
 
 - `harness/grading.py` has `_REFUSED_CONFIG`, `_refused_config()`, the
   early-refusal branch in `grade()`, and `GradeResult` carrying
   `refused_config: tuple[str, ...]` with `returncode: int | None`.
-- `tests/test_config_refusal.py` exists and passes, covering all four
-  cases above.
-- The full suite passes: 21 existing tests plus this cycle's, with **no
-  existing test modified**. `GradeResult` has exactly one construction
-  site (`_verdict`, in `harness/grading.py`); no test builds one directly,
-  so adding a field breaks nothing. If an existing test does need editing,
-  that is a signal the change is larger than this spec describes — stop
-  and re-brainstorm rather than adjusting the test.
+- `tests/test_config_refusal.py` exists and passes, covering all cases
+  above.
+- The full suite passes: 21 existing tests plus this cycle's. **One
+  authorized exception** to the original "no existing test may be
+  modified" constraint: implementing the early-refusal branch made
+  `tests/test_subversion.py`'s `_attack_with_collect_only` test assert a
+  return code that could no longer occur (that attack writes a
+  `pytest.ini`, which refusal now intercepts before pytest ever launches).
+  The implementer stopped and reported rather than editing it unilaterally
+  — the constraint did its job — and the plan owner explicitly authorized
+  a one-off fix to that one assertion and its docstring; see commit
+  `c5560f3`'s message for the full exchange. No other existing test was
+  touched. `GradeResult` has exactly one construction site (`_verdict`, in
+  `harness/grading.py`) plus the refusal branch added by this cycle; no
+  test builds one directly, so adding a field otherwise broke nothing.
 
 ## Out of scope for this cycle
 
@@ -184,6 +202,20 @@ handling in `grade()` (`subprocess.TimeoutExpired` is still uncaught;
 recorded as a Deferred candidate for cycle 9 or 10). Any change to cycle
 1's fixtures, the acceptance suite, `harness/workspace.py`, or
 `harness/grading_plugin.py`.
+
+**Also out of scope, surfaced by the final whole-branch review and worth
+recording rather than losing:** `python -m pytest` with `cwd=workspace`
+puts the workspace first on `sys.path`. A model-written module that
+shadows a real import name — e.g. a workspace-root `harness/` package, or
+a `pytest.py`/`pytest/` — could be imported instead of the genuine one,
+including standing in for `harness/grading_plugin.py` itself and writing
+a forged results file. No filename-based refusal catches this, since the
+threat isn't a config file at all. This is the same process-sharing
+surface as the results-file attack already in `ROADMAP.md`'s Backlog, and
+the same fix (running the suite out-of-process) would close both. Not
+this cycle's contract — refusal here is scoped to model-written *files*
+that configure the run, not import-path manipulation — but it belongs
+next to that Backlog entry so cycle 8's brainstorming sees it.
 
 ## Concept budget
 

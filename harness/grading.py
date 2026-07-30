@@ -145,11 +145,15 @@ def _refused_config(workspace: Path) -> tuple[str, ...]:
     sys.path), only against how that invocation might change (e.g. if the
     workspace directory ever ends up on PYTHONPATH or sys.path earlier).
 
-    _REFUSED_CONFIG should track pytest's own config-discovery order
+    The five ini-style names above (pytest.ini, .pytest.ini, pyproject.toml,
+    tox.ini, setup.cfg) should track pytest's own config-discovery order
     rather than being independently re-derived by hand -- see
     _pytest/config/findpaths.py's locate_config() (checked against pytest
-    8.3.4), whose config_names list is exactly this set of root-level
-    names. A hand-enumerated list is how .pytest.ini was missed here.
+    8.3.4), whose config_names is exactly that five-name set. A
+    hand-enumerated list is how .pytest.ini was missed here. conftest.py
+    and sitecustomize.py are separate additions with their own rationale
+    above -- they are not part of pytest's own config_names, and syncing
+    this constant against that list must not drop them.
     """
     found = {name for name in _REFUSED_CONFIG if (workspace / name).is_file()}
     # rglob's `**` defaults to recurse_symlinks=False since Python 3.13, so
