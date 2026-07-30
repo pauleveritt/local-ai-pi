@@ -1,6 +1,12 @@
+import shutil
 import subprocess
+import sys
+from pathlib import Path
 
 from harness.workspace import prepare_workspace
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+PHASE_1 = REPO_ROOT / "examples" / "agentclinic" / "phase-1"
 
 
 def test_prepare_workspace_copies_files_into_a_new_directory(tmp_path):
@@ -39,3 +45,20 @@ def test_prepare_workspace_git_inits_with_a_commit(tmp_path):
             text=True,
         )
         assert log.stdout.strip() != ""
+
+
+def test_prepare_workspace_accepts_the_reference_solution():
+    with prepare_workspace(PHASE_1 / "reference") as workspace:
+        shutil.copy(
+            PHASE_1 / "acceptance" / "test_acceptance.py",
+            workspace / "test_acceptance.py",
+        )
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest", "-q"],
+            cwd=workspace,
+            capture_output=True,
+            text=True,
+        )
+
+    assert result.returncode == 0
+    assert "4 passed" in result.stdout
