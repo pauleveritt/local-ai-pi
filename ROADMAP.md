@@ -113,40 +113,39 @@ batch — surfaced by cycle 5's brainstorming, not a specific single cycle):
 uncaught. Immaterial for a single run, but a batch needs one hung run to
 record a rejection and continue, not abort the whole batch.
 
-**A live collision cycle 6 must resolve, surfaced by cycle 6's
-brainstorming and confirmed empirically.** `grade()` invokes
-`pytest -q` with `cwd=workspace` and *no path argument*, so pytest
-collects every test file in the workspace — not just the acceptance suite
-the harness copied in. The detailed roadmap's Phase 1 section ends by
-instructing the model to "Write a smoke test in `tests/test_app.py`". So a
-model that follows the spec **correctly** produces extra test files, and
+**A collision surfaced by cycle 6's brainstorming, confirmed empirically,
+and resolved by cycle 6.** `grade()` invoked `pytest -q` with
+`cwd=workspace` and *no path argument*, so pytest collected every test
+file in the workspace — not just the acceptance suite the harness copied
+in. The AgentClinic roadmap's Phase 1 section ends by instructing the
+model to "Write a smoke test in `tests/test_app.py`". So a model that
+followed the spec **correctly** produced extra test files, and
 `tests_executed == tests_expected` (cycle 3's condition, cycle 4's proof)
-fails on a perfect solution.
+failed on a perfect solution.
 
 Measured, not predicted: cycle 1's `reference` solution plus a two-test
-`tests/test_app.py` grades as `accepted=False, executed=6, expected=4,
-returncode=0`. Left unresolved, cycle 8's first real run would reject a
-correct solution and the failure would look like a model problem rather
-than an engine problem — precisely the confusion Phase 1 was chosen to
-make impossible.
+`tests/test_app.py` graded as `accepted=False, executed=6, expected=4,
+returncode=0`. Had it gone unresolved, cycle 8's first real run would have
+rejected a correct solution and the failure would have looked like a model
+problem rather than an engine problem — precisely the confusion Phase 1
+was chosen to make impossible.
 
-Three ways out, for cycle 6 to decide (the first is a spec change, the
-others are grader changes and would need their own argument):
+**Resolved by cycle 6.** `grade()` now passes the acceptance suite's
+filename to pytest, so only the suite is collected — restoring what the
+old harness got from `tests/test_acceptance.py` in its argv, and what the
+trusted number was produced under. Pinned by
+`tests/test_grading.py::test_grade_ignores_model_written_tests_and_grades_the_suite_alone`.
 
-1. Drop the smoke-test bullet from the transplanted Phase 1 section. The
-   acceptance suite is harness-owned and the model cannot edit it, so a
-   model-written smoke test grades nothing — but note this edits the
-   document the trusted number was produced against, which is exactly what
-   the transplant is meant to preserve verbatim.
-2. Pass the acceptance suite's path (or `--ignore`) to pytest so only the
-   harness's own tests are collected.
-3. Derive `tests_expected` from what pytest actually collected rather than
-   from the suite file — weakest, since it discards the count check that
-   catches `--collect-only`.
+Two alternatives were considered and rejected. Editing the smoke-test
+bullet out of the transplanted spec would work, and is the wrong
+direction: the 16/16 runs included that bullet, so removing it moves our
+conditions away from the ones being reproduced. Deriving `tests_expected`
+from what pytest collected would discard the count check that catches
+`--collect-only`.
 
-Related: cycle 9's allowlist, if it takes the copy-only-allowlisted-files
-shape, would close this as a side effect by never copying model-written
-test files into the graded directory at all.
+Cycle 9's allowlist, if it takes the copy-only-allowlisted-files shape,
+would close this a second way by never copying model-written tests into a
+graded directory — independent of this fix, not superseded by it.
 
 Nothing else is currently deferred. Add to this list as later cycles pass
 things over.

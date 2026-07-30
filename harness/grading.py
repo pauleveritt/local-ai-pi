@@ -96,7 +96,18 @@ def grade(workspace: Path, suite: Path, timeout: int = 30) -> GradeResult:
         env["PYTHONPATH"] = str(repo_root)
 
         proc = subprocess.run(
-            [sys.executable, "-m", "pytest", "-q", "-p", "harness.grading_plugin"],
+            [
+                sys.executable, "-m", "pytest", "-q",
+                "-p", "harness.grading_plugin",
+                # Collect the acceptance suite and nothing else. The
+                # AgentClinic roadmap instructs the model to write its own
+                # tests/test_app.py, so a workspace legitimately contains
+                # test files the verdict must ignore -- without this path,
+                # they inflate tests_executed past tests_expected and a
+                # correct solution is rejected. The old harness passed
+                # tests/test_acceptance.py here for the same reason.
+                suite.name,
+            ],
             cwd=workspace,
             capture_output=True,
             text=True,

@@ -148,6 +148,7 @@ def test_verdict_rejects_on_nonzero_returncode_even_if_everything_else_passed():
     assert result.accepted is False
 
 
+import shutil
 from pathlib import Path
 
 from harness.grading import grade
@@ -174,3 +175,36 @@ def test_grade_rejects_the_broken_solution():
     # solution exits nonzero, so a naive exit-code grader rejects it too.
     # Attacked, it exits 0 -- which is what those attacks buy.
     assert result.returncode != 0
+
+
+def test_grade_ignores_model_written_tests_and_grades_the_suite_alone(tmp_path):
+    """The AgentClinic roadmap tells the model to write its own smoke test
+    in tests/test_app.py, so a correct solution ships extra test files.
+    Those must not count toward the verdict: pytest is given the
+    acceptance suite's path explicitly, as the old harness did with
+    `tests/test_acceptance.py` in its argv. Without that, a correct
+    solution grades as executed=6 against expected=4 and is rejected."""
+    source = tmp_path / "with-model-tests"
+    shutil.copytree(PHASE_1 / "reference", source)
+    model_tests = source / "tests"
+    model_tests.mkdir()
+    (model_tests / "test_app.py").write_text(
+        "from starlette.testclient import TestClient\n"
+        "from app import app\n"
+        "\n"
+        "client = TestClient(app)\n"
+        "\n"
+        "\n"
+        "def test_home_ok():\n"
+        "    assert client.get('/').status_code == 200\n"
+        "\n"
+        "\n"
+        "def test_home_has_tagline():\n"
+        "    assert 'Come in. Sit down.' in client.get('/').text\n"
+    )
+
+    with prepare_workspace(source) as workspace:
+        result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")
+
+    assert result.accepted is True
+    assert result.tests_executed == result.tests_expected == 4
