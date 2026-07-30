@@ -211,7 +211,12 @@ def prepare_workspace(source_dir: Path) -> Iterator[Path]:
     """
     workspace = Path(tempfile.mkdtemp(prefix="satyrn-workspace-"))
     try:
-        shutil.copytree(source_dir, workspace, dirs_exist_ok=True)
+        shutil.copytree(
+            source_dir,
+            workspace,
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns("__pycache__", ".pytest_cache"),
+        )
         subprocess.run(
             ["git", "init", "-q"], cwd=workspace, check=True, capture_output=True
         )
