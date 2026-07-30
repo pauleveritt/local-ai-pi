@@ -96,19 +96,22 @@ branch's classifier layer rejected outright.
 
 Before pytest runs, and before the suite is copied in.
 
-This is a security property, not an optimization. Under this module's
-actual invocation of pytest (`cwd=workspace`, `python -m pytest`),
-`conftest.py` genuinely executes at collection time — Python's `site`
-module processes `sitecustomize` during interpreter init, before `-m`
-puts the workspace directory on `sys.path`, so a workspace-root
-`sitecustomize.py` does not in fact execute under this invocation shape.
-`sitecustomize.py` stays in the refused list as defense-in-depth against
-how the invocation might change (e.g. if the workspace directory ever
-ends up on `PYTHONPATH` or `sys.path` earlier), not because it currently
-runs. Running the suite anyway would execute precisely the config that
-triggered the refusal — including, potentially, the results-file attack
-recorded in `ROADMAP.md`'s Backlog. Having decided a run cannot be
-trusted, the grader does not then execute it.
+This is a security property, not an optimization. `conftest.py` genuinely
+executes at collection time, and under this module's actual invocation of
+pytest (`cwd=workspace`, `python -m pytest`) a workspace-root
+`.pytest.ini`'s `addopts` can load and run a plugin before collection even
+starts — both confirmed directly, the second by reproducing it end to end.
+`sitecustomize.py` is a different case: Python's `site` module processes
+it during interpreter init, before `-m` puts the workspace directory on
+`sys.path`, so a workspace-root `sitecustomize.py` does not in fact
+execute under this invocation shape. It stays in the refused list as
+defense-in-depth against how the invocation might change (e.g. if the
+workspace directory ever ends up on `PYTHONPATH` or `sys.path` earlier),
+not because it currently runs. Running the suite anyway despite any of
+this would execute precisely the config that triggered the refusal —
+including, potentially, the results-file attack recorded in
+`ROADMAP.md`'s Backlog. Having decided a run cannot be trusted, the
+grader does not then execute it.
 
 ### Consequences for the verdict type
 

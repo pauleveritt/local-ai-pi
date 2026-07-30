@@ -131,12 +131,19 @@ def _refused_config(workspace: Path) -> tuple[str, ...]:
     conftest.py only: a nested conftest.py affects collection in its own
     subtree, while a nested pytest.ini/.pytest.ini or sitecustomize.py is
     inert -- pytest reads ini files at the rootdir, and sitecustomize is
-    imported from sys.path. Of these, conftest.py is the one that genuinely
-    executes at collection time under this module's invocation of pytest
-    (cwd=workspace, python -m pytest); sitecustomize.py and the others are
-    refused as defense-in-depth against how that invocation might change
-    (e.g. if the workspace directory ever ends up on PYTHONPATH or
-    sys.path earlier), not because they currently execute.
+    imported from sys.path.
+
+    Two of these currently execute code, not just configure the run:
+    conftest.py at collection time, and any ini-style file (pytest.ini,
+    .pytest.ini, pyproject.toml, tox.ini, setup.cfg) whose addopts loads a
+    plugin -- confirmed directly: a workspace-root .pytest.ini with
+    `addopts = -p evil` runs evil.py's pytest_configure() before
+    collection, under this module's invocation of pytest (cwd=workspace,
+    python -m pytest). sitecustomize.py is the one entry refused purely as
+    defense-in-depth: it does not execute under the current invocation
+    shape (site processes it before -m puts the workspace directory on
+    sys.path), only against how that invocation might change (e.g. if the
+    workspace directory ever ends up on PYTHONPATH or sys.path earlier).
 
     _REFUSED_CONFIG should track pytest's own config-discovery order
     rather than being independently re-derived by hand -- see
