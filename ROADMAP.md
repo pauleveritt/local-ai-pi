@@ -31,7 +31,7 @@ working engine and real suites to write about; it isn't Phase 1's job. See
 | 3 | Verdict from a hook-written results file — grade by reading a file a pytest hook wrote, not pytest's exit code. Names the verdict type. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle3-verdict-file-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle3-verdict-file.md) | Done |
 | 4 | Subversion fixtures — fixtures that attack grading (`addopts = --collect-only`; import-time `os._exit(0)`), confirmed to defeat a naive exit-code grader | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle4-subversion-fixtures-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle4-subversion-fixtures.md) | Done |
 | 5 | Refusal of model-written config — the grader refuses to certify a run whose workspace carries model-written `pytest.ini`/`.pytest.ini`/`pyproject.toml`/`tox.ini`/`setup.cfg`/`conftest.py`/`sitecustomize.py`, before pytest ever runs. Split from the original combined row (below) — the allowlist half needed evidence this half didn't. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle5-config-refusal-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle5-config-refusal.md) | Done |
-| 6 | AgentClinic task spec — transplant and choose the roadmap variant the model builds from | | | Next |
+| 6 | AgentClinic task spec — transplant **Phase 1's section only** of the detailed roadmap (`examples/agentclinic/specs/roadmap.md`), the document the trusted number was produced against. Deliberately *not* a variant choice: see the Backlog note on why that comparison was withdrawn from this phase. | | | Next |
 | 7 | Model-server liveness check — server up passes; server stopped is caught, not recorded as data | | | Planned |
 | 8 | First real run — `pi` against a fresh workspace, graded hermetically. Exercises the workspace's initial commit as a diff base. | | | Planned |
 | 9 | Source allowlist — which model-written *files* get graded at all, as distinct from cycle 5's config refusal. Split out of cycle 5's original row because it needs evidence of what a model actually scatters into a workspace, which doesn't exist until cycle 8 produces a real run to look at. | | | Planned |
@@ -113,6 +113,41 @@ batch — surfaced by cycle 5's brainstorming, not a specific single cycle):
 uncaught. Immaterial for a single run, but a batch needs one hung run to
 record a rejection and continue, not abort the whole batch.
 
+**A live collision cycle 6 must resolve, surfaced by cycle 6's
+brainstorming and confirmed empirically.** `grade()` invokes
+`pytest -q` with `cwd=workspace` and *no path argument*, so pytest
+collects every test file in the workspace — not just the acceptance suite
+the harness copied in. The detailed roadmap's Phase 1 section ends by
+instructing the model to "Write a smoke test in `tests/test_app.py`". So a
+model that follows the spec **correctly** produces extra test files, and
+`tests_executed == tests_expected` (cycle 3's condition, cycle 4's proof)
+fails on a perfect solution.
+
+Measured, not predicted: cycle 1's `reference` solution plus a two-test
+`tests/test_app.py` grades as `accepted=False, executed=6, expected=4,
+returncode=0`. Left unresolved, cycle 8's first real run would reject a
+correct solution and the failure would look like a model problem rather
+than an engine problem — precisely the confusion Phase 1 was chosen to
+make impossible.
+
+Three ways out, for cycle 6 to decide (the first is a spec change, the
+others are grader changes and would need their own argument):
+
+1. Drop the smoke-test bullet from the transplanted Phase 1 section. The
+   acceptance suite is harness-owned and the model cannot edit it, so a
+   model-written smoke test grades nothing — but note this edits the
+   document the trusted number was produced against, which is exactly what
+   the transplant is meant to preserve verbatim.
+2. Pass the acceptance suite's path (or `--ignore`) to pytest so only the
+   harness's own tests are collected.
+3. Derive `tests_expected` from what pytest actually collected rather than
+   from the suite file — weakest, since it discards the count check that
+   catches `--collect-only`.
+
+Related: cycle 9's allowlist, if it takes the copy-only-allowlisted-files
+shape, would close this as a side effect by never copying model-written
+test files into the graded directory at all.
+
 Nothing else is currently deferred. Add to this list as later cycles pass
 things over.
 
@@ -125,11 +160,38 @@ things over.
   bodies, a model fills in from owner-dictated bullets, owner reviews by
   tracing each assertion back to its bullet. Not needed for phase 1 (its
   suite already exists, human-authored).
-- ~~Which AgentClinic roadmap variant (implementation-detail vs. user-story)
-  a future model-builds-from-spec cycle should use.~~ **Promoted to cycle
-  6** by the 2026-07-30 re-plan — no longer hypothetical, since cycle 8's
-  run needs the document and `test_acceptance.py` already cites
-  `examples/agentclinic/specs/roadmap.md`, which is not on this branch.
+- Which AgentClinic roadmap variant (implementation-detail vs. user-story)
+  a model should build from — i.e. *does a spec's abstraction level change
+  what a small model can build?* **Promoted to cycle 6 by the 2026-07-30
+  re-plan; that promotion is withdrawn.** It is a discovery question, and
+  Phase 1 is explicitly a reproduction milestone — `BRIEF.md`: "reproduce a
+  number we already trust, not to discover one." With that framing there is
+  no choice to make: reproduction uses the document the trusted number was
+  produced against, which is the detailed variant. Cycle 6 transplants;
+  it does not choose.
+
+  Evidence gathered while the question was (wrongly) live, worth keeping so
+  the experiment starts from it rather than re-deriving it — all from
+  `user-story-batch`'s
+  `docs/section-3-sdd/research/2026-07-29-user-story-workload-is-not-substitutable.md`,
+  which carries a PENDING RULE 8 REVIEW banner and is not citable prose:
+  - Phase 1, n=16, same model and Pi version this reboot uses: detailed
+    spec 16/16 (reproducing the published 15/16); user-story spec 1/16
+    bare.
+  - The cause is narrow, not a general property of user-story framing. The
+    Phase 1 suite's only structural coupling is `from app import app`; the
+    detailed spec states it ("Create `app.py` with the FastAPI application
+    instance"), the user-story variant never names `app.py`, FastAPI, or
+    even that this is Python. Supplying that one fact separately recovered
+    the arm to 15/16 — but that recovery is flagged post-hoc in the source,
+    "a lead for a pre-registered replication, not a confirmed result," and
+    the replication was never run.
+  - The generalizable hazard, worth applying to any future suite: **grep a
+    spec for the facts its acceptance suite imports.** Anything the suite
+    reaches for that the spec never states is a silent dependency.
+
+  Revisit as a deliberate experiment once a trusted number is in hand —
+  not during Phase 1.
 - Acceptance-suite rules beyond human-authorship (cumulative,
   contract-vs-implementation, non-vacuous, naming convention) — untouched,
   each needs its own argument when it becomes relevant.
