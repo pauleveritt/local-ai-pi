@@ -100,6 +100,17 @@ things over.
 - Acceptance-suite rules beyond human-authorship (cumulative,
   contract-vs-implementation, non-vacuous, naming convention) — untouched,
   each needs its own argument when it becomes relevant.
+- Acceptance grading still trusts a same-process signal a model can forge.
+  A model-authored `app.py` can read the results-file path from the
+  environment it shares with `harness/grading_plugin.py` and write forged
+  `nodeid<TAB>outcome` lines and a completion marker straight into the
+  results file. Cheap to do, and no in-process secret closes it — anything
+  the plugin can read, model code sharing its process can read too. The
+  real fix is running the suite out-of-process against a live app
+  subprocess instead of in-process `TestClient(app)`, which is materially
+  larger than the cycle that surfaced it. Scoped out of cycle 4 by
+  explicit decision, not oversight — see that cycle's design doc, "Out of
+  scope for this cycle".
 
 ## Prior work
 
