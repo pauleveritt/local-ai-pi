@@ -72,3 +72,77 @@ def test_plugin_appends_done_marker_on_session_finish(tmp_path, monkeypatch):
     pytest_sessionfinish(session=None, exitstatus=0)
 
     assert results.read_text() == f"{DONE_MARKER}\n"
+
+
+from harness.grading import _verdict
+
+
+def test_verdict_accepts_when_all_conjuncts_hold():
+    results_text = (
+        "test_acceptance.py::test_a\tpassed\n"
+        "test_acceptance.py::test_b\tpassed\n"
+        "test_acceptance.py::test_c\tpassed\n"
+        "test_acceptance.py::test_d\tpassed\n"
+        "__DONE__\n"
+    )
+
+    result = _verdict(results_text, tests_expected=4, returncode=0, stdout="", stderr="")
+
+    assert result.accepted is True
+    assert result.tests_executed == 4
+    assert result.tests_expected == 4
+
+
+def test_verdict_rejects_when_done_marker_missing():
+    results_text = (
+        "test_acceptance.py::test_a\tpassed\n"
+        "test_acceptance.py::test_b\tpassed\n"
+        "test_acceptance.py::test_c\tpassed\n"
+        "test_acceptance.py::test_d\tpassed\n"
+    )
+
+    result = _verdict(results_text, tests_expected=4, returncode=0, stdout="", stderr="")
+
+    assert result.accepted is False
+
+
+def test_verdict_rejects_a_partial_run():
+    results_text = (
+        "test_acceptance.py::test_a\tpassed\n"
+        "test_acceptance.py::test_b\tpassed\n"
+        "__DONE__\n"
+    )
+
+    result = _verdict(results_text, tests_expected=4, returncode=0, stdout="", stderr="")
+
+    assert result.accepted is False
+    assert result.tests_executed == 2
+    assert result.tests_expected == 4
+
+
+def test_verdict_rejects_when_an_outcome_failed():
+    results_text = (
+        "test_acceptance.py::test_a\tpassed\n"
+        "test_acceptance.py::test_b\tfailed\n"
+        "test_acceptance.py::test_c\tpassed\n"
+        "test_acceptance.py::test_d\tpassed\n"
+        "__DONE__\n"
+    )
+
+    result = _verdict(results_text, tests_expected=4, returncode=0, stdout="", stderr="")
+
+    assert result.accepted is False
+
+
+def test_verdict_rejects_on_nonzero_returncode_even_if_everything_else_passed():
+    results_text = (
+        "test_acceptance.py::test_a\tpassed\n"
+        "test_acceptance.py::test_b\tpassed\n"
+        "test_acceptance.py::test_c\tpassed\n"
+        "test_acceptance.py::test_d\tpassed\n"
+        "__DONE__\n"
+    )
+
+    result = _verdict(results_text, tests_expected=4, returncode=1, stdout="", stderr="")
+
+    assert result.accepted is False
