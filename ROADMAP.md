@@ -28,8 +28,8 @@ working engine and real suites to write about; it isn't Phase 1's job. See
 |-------|---------|------|------|-------|
 | 1 | Accept/reject fixture pair — known-good and known-broken AgentClinic Phase 1 solutions, proven by plain pytest | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle1-fixture-pair-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle1-fixture-pair.md) | Done |
 | 2 | Workspace provisioning — `prepare_workspace` context manager copies a fixture into a fresh, git-initialized, disposable workspace; proven by an automated pytest test re-running cycle 1's accept/reject procedure through it | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle2-workspace-provisioning-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle2-workspace-provisioning.md) | Done |
-| 3 | Verdict from a hook-written results file — grade by reading a file a pytest hook wrote, not pytest's exit code. Names the verdict type. | | | Next |
-| 4 | Subversion fixtures — fixtures that attack grading (`addopts = --collect-only`; import-time `os._exit(0)`), confirmed to defeat a naive exit-code grader | | | Planned |
+| 3 | Verdict from a hook-written results file — grade by reading a file a pytest hook wrote, not pytest's exit code. Names the verdict type. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle3-verdict-file-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle3-verdict-file.md) | Done |
+| 4 | Subversion fixtures — fixtures that attack grading (`addopts = --collect-only`; import-time `os._exit(0)`), confirmed to defeat a naive exit-code grader | | | Next |
 | 5 | Source allowlist + refusal of model-written config — proven by rejecting cycle 4's attacks | | | Planned |
 | 6 | AgentClinic task spec — transplant and choose the roadmap variant the model builds from | | | Planned |
 | 7 | Model-server liveness check — server up passes; server stopped is caught, not recorded as data | | | Planned |
@@ -69,6 +69,16 @@ both in config-refusal's problem domain): a global `core.hooksPath`
 pre-commit hook would make `prepare_workspace`'s commit fail, and
 `prepare_workspace` raises `CalledProcessError` on an empty source
 directory because `git commit` finds nothing staged.
+
+Carried forward as a note for cycle 5 (surfaced by cycle 3's brainstorming):
+the workspace `prepare_workspace` provisions is already a git repository
+with an initial commit (cycle 2). Isolation or variation should come from
+git — a branch, a diff against that commit, a reset — rather than a second
+directory. The old branch's separate grader directory existed only to
+support the allowlist and pinned dependencies; cycle 3 graded directly in
+the workspace instead, and cycle 5 should treat "does the allowlist still
+need its own directory at all" as an open question, not inherit the old
+answer.
 
 Nothing else is currently deferred. Add to this list as later cycles pass
 things over.
