@@ -170,3 +170,7 @@ def test_grade_rejects_the_broken_solution():
         result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")
 
     assert result.accepted is False
+    # Pins the contrast tests/test_subversion.py cites: unattacked, this
+    # solution exits nonzero, so a naive exit-code grader rejects it too.
+    # Attacked, it exits 0 -- which is what those attacks buy.
+    assert result.returncode != 0
