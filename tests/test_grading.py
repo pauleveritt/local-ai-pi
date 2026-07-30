@@ -77,7 +77,7 @@ def test_plugin_appends_done_marker_on_session_finish(tmp_path, monkeypatch):
 from harness.grading import _verdict
 
 
-def test_verdict_accepts_when_all_conjuncts_hold():
+def test_verdict_accepts_when_all_conditions_hold():
     results_text = (
         "test_acceptance.py::test_a\tpassed\n"
         "test_acceptance.py::test_b\tpassed\n"

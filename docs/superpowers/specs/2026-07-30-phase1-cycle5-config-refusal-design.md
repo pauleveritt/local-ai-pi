@@ -199,7 +199,8 @@ The source allowlist, split out as described above. Neutralizing config
 rather than refusing it. The results-file attack in `ROADMAP.md`'s Backlog
 — unchanged by this cycle, and explicitly not closed by it. Timeout
 handling in `grade()` (`subprocess.TimeoutExpired` is still uncaught;
-recorded as a Deferred candidate for cycle 9 or 10). Any change to cycle
+recorded as a Deferred candidate for whichever of the checkpoint-recording
+or n=16-batch cycles first runs a real batch). Any change to cycle
 1's fixtures, the acceptance suite, `harness/workspace.py`, or
 `harness/grading_plugin.py`.
 
@@ -215,7 +216,9 @@ surface as the results-file attack already in `ROADMAP.md`'s Backlog, and
 the same fix (running the suite out-of-process) would close both. Not
 this cycle's contract — refusal here is scoped to model-written *files*
 that configure the run, not import-path manipulation — but it belongs
-next to that Backlog entry so cycle 8's brainstorming sees it.
+next to that Backlog entry so the source allowlist's brainstorming sees
+it — a copy-only-allowlisted-files grading directory would close this
+specifically, as a side effect of its own design.
 
 ## Concept budget
 
