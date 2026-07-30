@@ -146,3 +146,27 @@ def test_verdict_rejects_on_nonzero_returncode_even_if_everything_else_passed():
     result = _verdict(results_text, tests_expected=4, returncode=1, stdout="", stderr="")
 
     assert result.accepted is False
+
+
+from pathlib import Path
+
+from harness.grading import grade
+from harness.workspace import prepare_workspace
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+PHASE_1 = REPO_ROOT / "examples" / "agentclinic" / "phase-1"
+
+
+def test_grade_accepts_the_reference_solution():
+    with prepare_workspace(PHASE_1 / "reference") as workspace:
+        result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")
+
+    assert result.accepted is True
+    assert result.tests_executed == result.tests_expected == 4
+
+
+def test_grade_rejects_the_broken_solution():
+    with prepare_workspace(PHASE_1 / "broken") as workspace:
+        result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")
+
+    assert result.accepted is False
