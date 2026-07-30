@@ -30,23 +30,27 @@ working engine and real suites to write about; it isn't Phase 1's job. See
 | 2 | Workspace provisioning — `prepare_workspace` context manager copies a fixture into a fresh, git-initialized, disposable workspace; proven by an automated pytest test re-running cycle 1's accept/reject procedure through it | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle2-workspace-provisioning-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle2-workspace-provisioning.md) | Done |
 | 3 | Verdict from a hook-written results file — grade by reading a file a pytest hook wrote, not pytest's exit code. Names the verdict type. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle3-verdict-file-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle3-verdict-file.md) | Done |
 | 4 | Subversion fixtures — fixtures that attack grading (`addopts = --collect-only`; import-time `os._exit(0)`), confirmed to defeat a naive exit-code grader | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle4-subversion-fixtures-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle4-subversion-fixtures.md) | Done |
-| 5 | Source allowlist + refusal of model-written config — proven by rejecting cycle 4's attacks | | | Next |
-| 6 | AgentClinic task spec — transplant and choose the roadmap variant the model builds from | | | Planned |
+| 5 | Refusal of model-written config — the grader refuses to certify a run whose workspace carries model-written `pytest.ini`/`.pytest.ini`/`pyproject.toml`/`tox.ini`/`setup.cfg`/`conftest.py`/`sitecustomize.py`, before pytest ever runs. Split from the original combined row (below) — the allowlist half needed evidence this half didn't. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle5-config-refusal-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle5-config-refusal.md) | Done |
+| 6 | AgentClinic task spec — transplant and choose the roadmap variant the model builds from | | | Next |
 | 7 | Model-server liveness check — server up passes; server stopped is caught, not recorded as data | | | Planned |
 | 8 | First real run — `pi` against a fresh workspace, graded hermetically. Exercises the workspace's initial commit as a diff base. | | | Planned |
-| 9 | Checkpoint recording — append per completed run, tolerate a truncated final line | | | Planned |
-| 10 | n=16 batch, sequential and resumable — target ~15/16 | | | Planned |
+| 9 | Source allowlist — which model-written *files* get graded at all, as distinct from cycle 5's config refusal. Split out of cycle 5's original row because it needs evidence of what a model actually scatters into a workspace, which doesn't exist until cycle 8 produces a real run to look at. | | | Planned |
+| 10 | Checkpoint recording — append per completed run, tolerate a truncated final line | | | Planned |
+| 11 | n=16 batch, sequential and resumable — target ~15/16 | | | Planned |
 
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus
 *before* a model runs once — every one of them is provable against fixtures
 with no model in the loop. That is deliberate: it means the ~15/16 at cycle
-10 measures the model rather than the engine, which is the whole reason
+11 measures the model rather than the engine, which is the whole reason
 Phase 1 was chosen for being boring (see `BRIEF.md`). Building the grader
 after the first run would produce output with no trusted way to judge it.
+Cycle 9 (the allowlist) is the one deliberate exception — it is judging
+apparatus built *after* a model has run, because it is the one piece that
+needs a model's actual output to be anything more than a guess.
 
-Cycles 4-before-5 and 6-before-8 follow cycle 1's precedent: the artifacts
-that make a proof possible get their own cycle, ahead of the machinery that
-consumes them.
+Cycles 4-before-5, 6-before-8, and 8-before-9 follow cycle 1's precedent:
+the artifacts that make a proof possible get their own cycle, ahead of the
+machinery that consumes them.
 
 ### Deferred candidates
 
@@ -55,45 +59,59 @@ consumes them.
 end of each cycle, so the next brainstorming session starts from this list
 instead of re-deriving it from old specs.*
 
-The 2026-07-30 re-plan absorbed this list into cycles 3–10 above: the
-hermetic grader split into cycles 3 and 5, the typed verdict into cycle 3
-(so the grader names the concept rather than inheriting a name it never
-argued for), the git-diff exercise into cycle 8 (the first time a model
-writes changes worth diffing), checkpoint/resume into cycle 9, and n=16
-into cycle 10. That re-plan also found three things the list had never
-named — a model actually being invoked, a liveness check, and the
-AgentClinic spec the model builds from — which are now cycles 8, 7, and 6.
+The 2026-07-30 re-plan absorbed this list into cycles 3–10 above (numbers
+as they stood then): the hermetic grader split into cycles 3 and 5, the
+typed verdict into cycle 3 (so the grader names the concept rather than
+inheriting a name it never argued for), the git-diff exercise into cycle 8
+(the first time a model writes changes worth diffing), checkpoint/resume
+into cycle 9, and n=16 into cycle 10. That re-plan also found three things
+the list had never named — a model actually being invoked, a liveness
+check, and the AgentClinic spec the model builds from — which are now
+cycles 8, 7, and 6. Cycle 5's own close then split its combined row and
+inserted the allowlist as a new cycle 9, pushing checkpoint/resume and
+n=16 to 10 and 11 — the numbers above reflect that; this paragraph is
+historical record of the numbering as it stood before that split.
 
-Carried forward as notes for cycle 5 (both surfaced by cycle 2's review,
-both in config-refusal's problem domain): a global `core.hooksPath`
-pre-commit hook would make `prepare_workspace`'s commit fail, and
-`prepare_workspace` raises `CalledProcessError` on an empty source
-directory because `git commit` finds nothing staged.
+**Resolved by cycle 5, kept for the record.** The two notes above from
+cycle 2's review (`core.hooksPath` breaking `prepare_workspace`'s commit;
+`CalledProcessError` on an empty source directory) were about
+`harness/workspace.py`, which cycle 5 correctly never touched — they carry
+forward again below, still open. Cycle 3's git-isolation note and cycle
+4's two notes (reusable attack helpers; the vacuity trap in "proven by
+rejecting cycle 4's attacks") were all directly addressed by cycle 5: it
+graded in the workspace with no second directory, consumed cycle 4's
+helpers as planned, and its non-vacuous tests assert on `refused_config`
+and `returncode is None` rather than `accepted is False` alone.
 
-Carried forward as a note for cycle 5 (surfaced by cycle 3's brainstorming):
-the workspace `prepare_workspace` provisions is already a git repository
-with an initial commit (cycle 2). Isolation or variation should come from
-git — a branch, a diff against that commit, a reset — rather than a second
-directory. The old branch's separate grader directory existed only to
-support the allowlist and pinned dependencies; cycle 3 graded directly in
-the workspace instead, and cycle 5 should treat "does the allowlist still
-need its own directory at all" as an open question, not inherit the old
-answer.
+Carried forward as notes for cycle 9, the allowlist (both still open,
+originally surfaced by cycle 2's review, both in the allowlist's problem
+domain now that config refusal has shipped separately): a global
+`core.hooksPath` pre-commit hook would make `prepare_workspace`'s commit
+fail, and `prepare_workspace` raises `CalledProcessError` on an empty
+source directory because `git commit` finds nothing staged.
 
-Carried forward as notes for cycle 5 (surfaced by cycle 4):
+Carried forward as notes for cycle 9, the allowlist (surfaced by cycle 5):
 
-- Cycle 4's attacks are reusable: `_attack_with_collect_only` and
-  `_attack_with_exit_at_import` in `tests/test_subversion.py` each return
-  a source directory ready for `prepare_workspace`. Cycle 5 consumes them
-  rather than rebuilding the attacks.
-- **A vacuity trap in cycle 5's own row.** "Proven by rejecting cycle 4's
-  attacks" cannot be proven by asserting `accepted is False` — cycle 3's
-  verdict already rejects both attacks, so such a test passes whether or
-  not config refusal works at all. Cycle 5 must assert on the refusal
-  itself (which config files were refused), not on the verdict. Cycle 4
-  hit the same shape twice: its `returncode == 0` assertion is what makes
-  its own tests non-vacuous, and a pre-merge review caught a claim its
-  docstrings made that no assertion pinned.
+- **The `pyproject.toml` reservation.** Cycle 5 refuses a model-written
+  `pyproject.toml` outright, on the grounds that AgentClinic Phase 1 never
+  needs one and `[tool.pytest.ini_options]` inside it is a live attack
+  path — but it's the one refused name a model might write for a
+  legitimate reason (declaring dependencies). If cycle 8's first real run
+  produces a legitimate `pyproject.toml`, this is the entry to revisit —
+  not by loosening refusal, but as evidence for how the allowlist should
+  treat it.
+- **Module shadowing via `sys.path`** — see the Backlog entry below, next
+  to the forged-results-file gap it shares a root cause with. Worth
+  cycle 9's attention too: if the allowlist ends up copying only allowed
+  files into an isolated directory (an open question per cycle 3's note
+  above), that shape would also close this off as a side effect, without
+  needing the out-of-process fix the Backlog entry names.
+
+Carried forward as a note for cycle 10 or 11 (checkpoint recording / n=16
+batch — surfaced by cycle 5's brainstorming, not a specific single cycle):
+`grade()` never catches `subprocess.TimeoutExpired`; it propagates
+uncaught. Immaterial for a single run, but a batch needs one hung run to
+record a rejection and continue, not abort the whole batch.
 
 Nothing else is currently deferred. Add to this list as later cycles pass
 things over.
@@ -126,6 +144,18 @@ things over.
   larger than the cycle that surfaced it. Scoped out of cycle 4 by
   explicit decision, not oversight — see that cycle's design doc, "Out of
   scope for this cycle".
+- Same root cause, different shape: `python -m pytest` with
+  `cwd=workspace` puts the workspace first on `sys.path`. A model-written
+  module that shadows a real import name — a workspace-root `harness/`
+  package, or `pytest.py`/`pytest/` — could be imported instead of the
+  genuine one, including standing in for `harness/grading_plugin.py`
+  itself and writing a forged results file exactly as above. No
+  filename-based refusal catches this, since the threat isn't a config
+  file at all. The out-of-process fix above closes both; a copy-only-
+  allowlisted-files grading directory (cycle 9, if it takes that shape)
+  would also close this one specifically. Surfaced by cycle 5's final
+  review; scoped out of cycle 5 because refusal there is about files that
+  *configure* the run, not import-path manipulation.
 
 ## Prior work
 
