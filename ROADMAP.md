@@ -27,7 +27,7 @@ working engine and real suites to write about; it isn't Phase 1's job. See
 | Cycle | Summary | Spec | Plan | State |
 |-------|---------|------|------|-------|
 | 1 | Accept/reject fixture pair — known-good and known-broken AgentClinic Phase 1 solutions, proven by plain pytest | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle1-fixture-pair-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle1-fixture-pair.md) | Done |
-| 2 | Workspace provisioning — `prepare_workspace` context manager copies a fixture into a fresh, git-initialized, disposable workspace; proven by an automated pytest test re-running cycle 1's accept/reject procedure through it | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle2-workspace-provisioning-design.md) | | Spec approved |
+| 2 | Workspace provisioning — `prepare_workspace` context manager copies a fixture into a fresh, git-initialized, disposable workspace; proven by an automated pytest test re-running cycle 1's accept/reject procedure through it | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle2-workspace-provisioning-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle2-workspace-provisioning.md) | Done |
 
 ### Deferred candidates
 
@@ -38,8 +38,13 @@ instead of re-deriving it from old specs.*
 
 - **Hermetic grader** (source allowlist, refusal of model-written config,
   verdict from a hook-written results file) — deferred at cycle 2 in favor
-  of building its workspace-provisioning precursor first. Natural next
-  cycle once provisioning is done.
+  of building its workspace-provisioning precursor first. **Provisioning
+  now exists, so this is the natural cycle 3.** Two notes cycle 2's review
+  surfaced for it: a global `core.hooksPath` pre-commit hook would make
+  `prepare_workspace`'s commit fail (the same class of machine-config
+  interference config-refusal exists to handle), and `prepare_workspace`
+  raises `CalledProcessError` on an empty source directory, since `git
+  commit` finds nothing staged.
 - **Checkpoint/resume pair** (`_append_checkpoint` / `_load_checkpoint`) —
   the other "read-once-then-write-fresh" candidate from `BRIEF.md`, not
   taken at cycle 2. Relevant once something runs repeatedly or resumes.
