@@ -22,10 +22,26 @@ working engine and real suites to write about; it isn't Phase 1's job. See
 |---|-------|--------------------------|--------|
 | 1 | Reproduce AgentClinic Phase 1 | One trustworthy, hermetically-graded run; n=16 reproducing ~15/16 | active |
 
+### Phase 1 feature cycles
+
+| Cycle | Summary | Spec | Plan | State |
+|-------|---------|------|------|-------|
+| 1 | Accept/reject fixture pair — known-good and known-broken AgentClinic Phase 1 solutions, proven by plain pytest | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle1-fixture-pair-design.md) | — | Spec drafted |
+
 ## Backlog
 
 - Volunteer-reader / section-structure design (superseded Phase 1 framing;
   revisit once an engine and real suites exist to write about)
+- Authoring scaffold for future acceptance suites (phase 2+): stub test
+  functions named for the fact they prove, `raise NotImplementedError`
+  bodies, a model fills in from owner-dictated bullets, owner reviews by
+  tracing each assertion back to its bullet. Not needed for phase 1 (its
+  suite already exists, human-authored).
+- Which AgentClinic roadmap variant (implementation-detail vs. user-story)
+  a future model-builds-from-spec cycle should use.
+- Acceptance-suite rules beyond human-authorship (cumulative,
+  contract-vs-implementation, non-vacuous, naming convention) — untouched,
+  each needs its own argument when it becomes relevant.
 
 ## Prior work
 
