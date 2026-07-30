@@ -14,11 +14,13 @@ precursor to the hermetic grader: the grader's "fresh project dir" step
 needs a workspace to exist before allowlist, config-refusal, and
 verdict-file logic can be layered on top of it.
 
-Proven the same way cycle 1 proved the fixtures: manually, by re-running
-the accept/reject procedure through a provisioned workspace instead of
-in-place, and writing the result down. No automated test, no allowlist, no
-config refusal, no hook-written verdict, no checkpointing, and no diff
-exercised — all deferred. This cycle provisions; it does not judge.
+Proven by an automated pytest test that re-runs cycle 1's accept/reject
+procedure through a provisioned workspace instead of in-place — unlike
+cycle 1's fixtures, this cycle introduces actual code, and code needs a
+re-checkable, automated proof rather than a one-time manual note. No
+allowlist, no config refusal, no hook-written verdict, no checkpointing,
+and no diff exercised — all deferred. This cycle provisions; it does not
+judge.
 
 ## Background
 
@@ -59,42 +61,37 @@ def prepare_workspace(source_dir: Path) -> Iterator[Path]:
 
 ## Verification method
 
-Mirrors cycle 1's procedure, run through the new context manager instead
-of in place:
+`tests/test_workspace.py` mirrors cycle 1's procedure, run through the new
+context manager instead of in place:
 
-1. `with prepare_workspace(examples/agentclinic/phase-1/reference) as ws:`
-   — copy `acceptance/test_acceptance.py` into `ws`, run `uv run pytest -q`
-   from inside `ws`. Confirm exit code 0 and the same nonzero pass count
-   cycle 1 recorded.
-2. Same for `broken`: confirm a nonzero exit code and the same failing
-   assertion (`assert 404 == 200`) cycle 1 recorded.
-3. After each `with` block exits, confirm the workspace directory no
-   longer exists — cleanup actually happened, not just claimed.
-4. Write both results down in a new note under `docs/superpowers/research/`,
-   in the same style as cycle 1's results note.
+1. A test that calls
+   `with prepare_workspace(examples/agentclinic/phase-1/reference) as ws:`,
+   copies `acceptance/test_acceptance.py` into `ws`, runs `uv run pytest -q`
+   (or pytest's in-process runner) from inside `ws`, and asserts exit code
+   0 and the same nonzero pass count cycle 1 recorded.
+2. A test that does the same against `broken`, and asserts a nonzero exit
+   code with the same failing assertion (`assert 404 == 200`) cycle 1
+   recorded.
+3. A test that asserts the workspace directory no longer exists once the
+   `with` block exits — cleanup actually happens, not just claimed.
 
-No automated pytest test is added for `prepare_workspace` itself this
-cycle — the manual procedure plus a written results note is the proof,
-matching cycle 1's style.
+These tests are the proof; no separate manual procedure or results note
+is required for this cycle (unlike cycle 1, where the fixtures being
+proven were static files, not code).
 
 ## Definition of Done
 
 - `harness/workspace.py` exists with `prepare_workspace` as a context
   manager, parameterized on `source_dir` (no hardcoded fixture path).
-- Manually re-running cycle 1's accept/reject procedure through a
-  provisioned workspace produces the same results cycle 1 recorded (same
-  exit codes, same pass count / same failing assertion).
-- Confirmed the workspace directory is removed after the context manager
-  exits.
-- Results written to a new `docs/superpowers/research/` note.
+- `tests/test_workspace.py` exists and passes, covering the accept-check,
+  reject-check, and cleanup-on-exit assertions above.
 
 ## Out of scope for this cycle
 
 The hermetic grader (source allowlist, refusal of model-written config,
 verdict from a hook-written results file); the checkpoint/resume pair;
 exercising or testing the initial git commit as a diff base; n=16 batch
-running; an automated pytest test for `prepare_workspace` itself; any
-change to the fixtures or acceptance suite from cycle 1.
+running; any change to the fixtures or acceptance suite from cycle 1.
 
 ## Concept budget
 
