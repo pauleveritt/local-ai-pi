@@ -9,6 +9,15 @@ from pathlib import Path
 
 from harness.grading_plugin import DONE_MARKER, RESULTS_ENV_VAR
 
+_REFUSED_CONFIG = (
+    "pyproject.toml",
+    "pytest.ini",
+    "tox.ini",
+    "setup.cfg",
+    "conftest.py",
+    "sitecustomize.py",
+)
+
 
 @dataclass(frozen=True)
 class GradeResult:
@@ -96,3 +105,21 @@ def _test_count(suite: Path) -> int:
         isinstance(node, ast.FunctionDef) and node.name.startswith("test_")
         for node in tree.body
     )
+
+
+def _refused_config(workspace: Path) -> tuple[str, ...]:
+    """Model-written config present in the workspace, as sorted
+    workspace-relative paths.
+
+    Root-level for all six names, plus a recursive sweep for conftest.py
+    only: a nested conftest.py affects collection in its own subtree,
+    while a nested pytest.ini or sitecustomize.py is inert -- pytest reads
+    ini files at the rootdir, and sitecustomize is imported from sys.path.
+    """
+    found = {name for name in _REFUSED_CONFIG if (workspace / name).is_file()}
+    found.update(
+        str(path.relative_to(workspace))
+        for path in workspace.rglob("conftest.py")
+        if path.is_file()
+    )
+    return tuple(sorted(found))
