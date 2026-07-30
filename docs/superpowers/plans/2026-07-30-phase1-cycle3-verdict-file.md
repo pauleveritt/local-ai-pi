@@ -58,12 +58,12 @@ matching these three pieces.
 
 **Interfaces:**
 - Produces: `RESULTS_ENV_VAR: str` (the environment variable name whose
-  value is the results-file path), `DONE_SENTINEL: str` (the completion
+  value is the results-file path), `DONE_MARKER: str` (the completion
   marker line, without its trailing newline), and two pytest hook
   functions, `pytest_runtest_logreport(report)` and
   `pytest_sessionfinish(session, exitstatus)`, registered as a pytest
   plugin when loaded via `-p harness.grading_plugin`. Task 2 imports
-  `DONE_SENTINEL`; Task 3 imports both `DONE_SENTINEL` and
+  `DONE_MARKER`; Task 3 imports both `DONE_MARKER` and
   `RESULTS_ENV_VAR`, and loads the module as a pytest plugin by name.
 
 - [ ] **Step 1: Write the failing tests**
@@ -73,7 +73,7 @@ matching these three pieces.
 from types import SimpleNamespace
 
 from harness.grading_plugin import (
-    DONE_SENTINEL,
+    DONE_MARKER,
     RESULTS_ENV_VAR,
     pytest_runtest_logreport,
     pytest_sessionfinish,
@@ -122,13 +122,28 @@ def test_plugin_records_a_setup_failure(tmp_path, monkeypatch):
     assert results.read_text() == "test_setup_fail.py::test_delta\tfailed\n"
 
 
-def test_plugin_appends_done_sentinel_on_session_finish(tmp_path, monkeypatch):
+def test_plugin_records_a_teardown_failure_after_a_passed_call(tmp_path, monkeypatch):
+    results = tmp_path / "results.txt"
+    monkeypatch.setenv(RESULTS_ENV_VAR, str(results))
+
+    call_report = SimpleNamespace(when="call", outcome="passed", nodeid="test_teardown.py::test_epsilon")
+    teardown_report = SimpleNamespace(when="teardown", outcome="failed", nodeid="test_teardown.py::test_epsilon")
+    pytest_runtest_logreport(call_report)
+    pytest_runtest_logreport(teardown_report)
+
+    assert results.read_text() == (
+        "test_teardown.py::test_epsilon\tpassed\n"
+        "test_teardown.py::test_epsilon\tfailed\n"
+    )
+
+
+def test_plugin_appends_done_marker_on_session_finish(tmp_path, monkeypatch):
     results = tmp_path / "results.txt"
     monkeypatch.setenv(RESULTS_ENV_VAR, str(results))
 
     pytest_sessionfinish(session=None, exitstatus=0)
 
-    assert results.read_text() == f"{DONE_SENTINEL}\n"
+    assert results.read_text() == f"{DONE_MARKER}\n"
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -148,27 +163,31 @@ Reads real per-test hook events -- which only fire when pytest's own
 runner actually executes a test -- rather than trusting captured
 stdout/stderr text, which a model-imported module sharing this process
 could write into directly.
+
+Each phase appends its own current outcome, never a previously recorded
+one -- a test whose call phase passes but whose teardown phase then fails
+must append a second, later line saying `failed` for the same nodeid, so
+that a genuine teardown failure is visible to a reader who dedups by
+nodeid and keeps the last line (see harness/grading.py's verdict logic).
 """
 import os
 
 RESULTS_ENV_VAR = "SATYRN_GRADE_RESULTS_PATH"
-DONE_SENTINEL = "__DONE__"
-
-_outcomes: dict[str, str] = {}
+DONE_MARKER = "__DONE__"
 
 
 def pytest_runtest_logreport(report):
     if report.when == "call":
-        _outcomes[report.nodeid] = report.outcome
-    elif report.when in ("setup", "teardown") and report.outcome in ("failed", "error"):
-        _outcomes.setdefault(report.nodeid, report.outcome)
+        outcome = report.outcome
+    elif report.when in ("setup", "teardown") and report.outcome == "failed":
+        outcome = report.outcome
     else:
         return
-    _append(f"{report.nodeid}\t{_outcomes[report.nodeid]}\n")
+    _append(f"{report.nodeid}\t{outcome}\n")
 
 
 def pytest_sessionfinish(session, exitstatus):
-    _append(f"{DONE_SENTINEL}\n")
+    _append(f"{DONE_MARKER}\n")
 
 
 def _append(line: str) -> None:
@@ -184,7 +203,7 @@ def _append(line: str) -> None:
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest tests/test_grading.py -v`
-Expected: 5 passed
+Expected: 6 passed
 
 - [ ] **Step 5: Commit**
 
@@ -202,7 +221,7 @@ git commit -m "feat(grading): pytest plugin writes outcomes and a completion mar
 - Modify: `tests/test_grading.py`
 
 **Interfaces:**
-- Consumes: `DONE_SENTINEL` from `harness.grading_plugin` (Task 1).
+- Consumes: `DONE_MARKER` from `harness.grading_plugin` (Task 1).
 - Produces: `GradeResult` (frozen dataclass: `accepted: bool`,
   `tests_executed: int`, `tests_expected: int`, `returncode: int`,
   `stdout: str`, `stderr: str`) and
@@ -234,7 +253,7 @@ def test_verdict_accepts_when_all_conjuncts_hold():
     assert result.tests_expected == 4
 
 
-def test_verdict_rejects_when_done_sentinel_missing():
+def test_verdict_rejects_when_done_marker_missing():
     results_text = (
         "test_acceptance.py::test_a\tpassed\n"
         "test_acceptance.py::test_b\tpassed\n"
@@ -300,7 +319,7 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'harness.grading'`
 # harness/grading.py
 from dataclasses import dataclass
 
-from harness.grading_plugin import DONE_SENTINEL
+from harness.grading_plugin import DONE_MARKER
 
 
 @dataclass(frozen=True)
@@ -317,7 +336,7 @@ def _verdict(
     results_text: str, tests_expected: int, returncode: int, stdout: str, stderr: str
 ) -> GradeResult:
     lines = results_text.splitlines()
-    done = DONE_SENTINEL in lines
+    done = DONE_MARKER in lines
 
     outcomes: dict[str, str] = {}
     for line in lines:
@@ -348,7 +367,7 @@ def _verdict(
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest tests/test_grading.py -v`
-Expected: 10 passed
+Expected: 11 passed
 
 - [ ] **Step 5: Commit**
 
@@ -419,10 +438,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-from harness.grading_plugin import DONE_SENTINEL, RESULTS_ENV_VAR
+from harness.grading_plugin import DONE_MARKER, RESULTS_ENV_VAR
 ```
 
-(`DONE_SENTINEL` import already exists from Task 2 — extend that same
+(`DONE_MARKER` import already exists from Task 2 — extend that same
 import line with `RESULTS_ENV_VAR` rather than duplicating it.)
 
 ```python
@@ -475,12 +494,12 @@ def _test_count(suite: Path) -> int:
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest tests/test_grading.py -v`
-Expected: 12 passed
+Expected: 13 passed
 
 - [ ] **Step 5: Run the full test suite**
 
 Run: `uv run pytest -q`
-Expected: 18 passed (6 pre-existing + 12 new)
+Expected: 19 passed (6 pre-existing + 13 new)
 
 - [ ] **Step 6: Commit**
 
