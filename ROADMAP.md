@@ -49,6 +49,14 @@ instead of re-deriving it from old specs.*
   it.
 - **n=16 batch running** — Phase 1's eventual target, not yet any single
   cycle's scope.
+- **A typed verdict for a suite run** (e.g. a `SuiteRun` value with an
+  `accepted` property, and a helper that provisions + overlays the suite +
+  runs it, wrapping `prepare_workspace`) — considered at cycle 2 and
+  deferred. It would replace raw `returncode` assertions in two tests, but
+  that's three new names for two call sites, and "accepted" is a *verdict*
+  concept: deciding what it means belongs to the grader's contract, not to
+  provisioning's tests. Revisit with the hermetic grader, so the grader
+  names it rather than inheriting a name it never argued for.
 
 ## Backlog
 
