@@ -62,3 +62,21 @@ def test_prepare_workspace_accepts_the_reference_solution():
 
     assert result.returncode == 0
     assert "4 passed" in result.stdout
+
+
+def test_prepare_workspace_rejects_the_broken_solution():
+    with prepare_workspace(PHASE_1 / "broken") as workspace:
+        shutil.copy(
+            PHASE_1 / "acceptance" / "test_acceptance.py",
+            workspace / "test_acceptance.py",
+        )
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest", "-q"],
+            cwd=workspace,
+            capture_output=True,
+            text=True,
+        )
+
+    assert result.returncode != 0
+    assert "4 failed" in result.stdout
+    assert "assert 404 == 200" in result.stdout
