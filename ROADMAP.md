@@ -47,3 +47,10 @@ working engine and real suites to write about; it isn't Phase 1's job. See
 
 The pre-restructure project lives on the `user-story-batch` branch, untouched.
 Nothing there is imported here except by an explicit phase decision.
+
+## Workflow
+
+`restructure` is this reboot's trunk — `main` stays untouched until the whole
+reboot is ready to replace the old project. Starting with cycle 2, each
+feature cycle branches from `restructure` and merges back to it, never to
+`main`.
