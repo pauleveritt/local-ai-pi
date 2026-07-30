@@ -3,6 +3,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from harness.workspace import prepare_workspace
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +30,20 @@ def test_prepare_workspace_cleans_up_on_exit(tmp_path):
         created = workspace
 
     assert not created.exists()
+
+
+def test_prepare_workspace_cleans_up_when_the_body_raises(tmp_path):
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / "app.py").write_text("x = 1\n")
+
+    leaked = None
+    with pytest.raises(RuntimeError):
+        with prepare_workspace(source) as workspace:
+            leaked = workspace
+            raise RuntimeError("boom")
+
+    assert not leaked.exists()
 
 
 def test_prepare_workspace_git_inits_with_a_commit(tmp_path):
