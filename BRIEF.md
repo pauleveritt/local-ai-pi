@@ -58,9 +58,16 @@ job is to *reproduce a number we trust*, not to discover one. ~15/16 means the
 engine works; 3/16 means the engine is broken, not the model. That inference is
 unavailable on any phase whose answer is unknown.
 
-## The slice to carry forward
+## Candidates for transplant — nothing has crossed over yet
 
-**Import ~unchanged (187 lines, the crown jewel):**
+**This branch starts empty and stays empty except by deliberate decision.**
+Nothing below has been imported. Each item is a candidate to be argued when
+the need for it actually arises, on its merits at that moment — and may be
+rejected, or rewritten from scratch instead. What follows is the *reasoning*
+about each, so the decision is informed rather than re-derived.
+
+
+**Strongest candidate (187 lines):**
 `harness/grading.py` + `harness/grading_plugin.py` from the old branch. A
 hermetic grader: fresh project dir with pinned deps, an allowlist of source
 files, refusal of model-written config (`pyproject.toml`, `pytest.ini`,
@@ -69,16 +76,16 @@ results file rather than pytest's exit code. It exists because earlier versions
 were defeated by `addopts = --collect-only` and an import-time `os._exit(0)`.
 Two independent adversarial reviews probed it and found nothing.
 
-**Port the shape, rewrite the specifics:** `prepare_workspace` (disposable temp
+**Candidate, read-once-then-write-fresh (don't keep the original open):** `prepare_workspace` (disposable temp
 workspace, git-init for clean diffs) and the checkpoint/resume pair
 (`_append_checkpoint` / `_load_checkpoint` — append per completed run, tolerate
 a truncated final line, resume the remainder). Both sound; both tangled with
 old specifics.
 
-**Rewrite small and deliberate:** the orchestration layer (old `session.py` +
+**Not a candidate — rewrite from scratch:** the orchestration layer (old `session.py` +
 `runner.py`, 856 lines of accumulated fixes). Every hang and timeout lived here.
 
-**Leave behind:** the classifier/interpretation layer (4 of 8 recent defects
+**Rejected outright:** the classifier/interpretation layer (4 of 8 recent defects
 lived in it — it infers meaning from pytest text formatting), `telemetry.py`,
 `packet_context.py`, both workloads, all six arms, the section/chapter docs
 structure, and the eight numbered evidence rules.
