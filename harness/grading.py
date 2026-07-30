@@ -24,9 +24,10 @@ class GradeResult:
     accepted: bool
     tests_executed: int
     tests_expected: int
-    returncode: int
+    returncode: int | None
     stdout: str
     stderr: str
+    refused_config: tuple[str, ...]
 
 
 def _verdict(
@@ -58,6 +59,7 @@ def _verdict(
         returncode=returncode,
         stdout=stdout,
         stderr=stderr,
+        refused_config=(),
     )
 
 
@@ -65,8 +67,20 @@ def grade(workspace: Path, suite: Path, timeout: int = 30) -> GradeResult:
     """Copy suite into workspace, run pytest there with the grading
     plugin loaded, and return the verdict read from the results file the
     plugin's hooks wrote."""
-    shutil.copy2(suite, workspace / suite.name)
     tests_expected = _test_count(suite)
+    refused = _refused_config(workspace)
+    if refused:
+        return GradeResult(
+            accepted=False,
+            tests_executed=0,
+            tests_expected=tests_expected,
+            returncode=None,
+            stdout="",
+            stderr="",
+            refused_config=refused,
+        )
+
+    shutil.copy2(suite, workspace / suite.name)
 
     results_fd, results_path = tempfile.mkstemp(
         prefix="satyrn-grade-results-", suffix=".txt"

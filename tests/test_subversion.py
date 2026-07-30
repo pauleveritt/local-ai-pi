@@ -41,8 +41,12 @@ def _attack_with_exit_at_import(tmp_path: Path) -> Path:
 
 
 def test_collect_only_attack_defeats_the_exit_code_but_not_the_verdict(tmp_path):
-    """A naive grader reading only the exit code would call this broken
-    solution accepted; cycle 3's verdict rejects it because no test ran.
+    """Cycle 5's config refusal now intercepts this attack before pytest
+    ever runs (it writes a root-level pytest.ini), so the process never
+    launches -- returncode is None, not a naive grader's exit 0. This
+    attack no longer demonstrates the count-mismatch path (see
+    test_config_refusal.py's refusal tests for that); it now demonstrates
+    that refusal closes the same hole even earlier.
 
     Compare tests/test_grading.py::test_grade_rejects_the_broken_solution,
     where the same unattacked solution exits nonzero.
@@ -50,7 +54,7 @@ def test_collect_only_attack_defeats_the_exit_code_but_not_the_verdict(tmp_path)
     with prepare_workspace(_attack_with_collect_only(tmp_path)) as workspace:
         result = grade(workspace, SUITE)
 
-    assert result.returncode == 0
+    assert result.returncode is None
     assert result.accepted is False
     assert result.tests_executed == 0
 
