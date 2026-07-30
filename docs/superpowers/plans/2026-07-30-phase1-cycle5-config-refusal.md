@@ -261,7 +261,11 @@ def test_grade_refuses_before_copying_the_suite_into_the_workspace(tmp_path):
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `uv run pytest tests/test_config_refusal.py -v`
-Expected: FAIL with `AttributeError: 'GradeResult' object has no attribute 'refused_config'`
+Expected: the three tests asserting on `refused_config` FAIL with
+`AttributeError: 'GradeResult' object has no attribute 'refused_config'`,
+and `test_grade_refuses_before_copying_the_suite_into_the_workspace` FAILS
+with a plain `AssertionError` — it never touches the new field, and today
+`grade()` copies the suite in unconditionally.
 
 - [ ] **Step 3: Extend `GradeResult`**
 

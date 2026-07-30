@@ -140,9 +140,10 @@ all. Three of the four tests below exist to make the proof load-bearing.
    that attack writes no config file, so it must still be caught by cycle
    3's completion-marker logic rather than by refusal.
 
-Tests 1 and 2 import cycle 4's `_attack_with_collect_only` and
+Tests 2 and 4 import cycle 4's `_attack_with_collect_only` and
 `_attack_with_exit_at_import` from `tests/test_subversion.py` — the reuse
-cycle 4 shaped its helpers for.
+cycle 4 shaped its helpers for. Test 1 builds its own directories by hand,
+and test 3 uses cycle 1's `reference` fixture.
 
 ## Definition of Done
 
@@ -177,10 +178,14 @@ refused run was never judged.
 
 **Corrections to the running list**, from an audit of cycles 1–4:
 
-- **`oracle` is dropped.** It has appeared in all four concept-budget
-  lists and nowhere else — no spec, plan, code file, or roadmap entry ever
-  used it. A term carried at cost with no use is exactly what this budget
-  exists to catch.
+- **`oracle` is dropped.** Outside the four concept-budget lists
+  themselves, it appears exactly once on this branch: `BRIEF.md` line 119,
+  "the old oracle suite is 71 tests, green" — a passing reference to prior
+  work on the `user-story-batch` branch, not a term any spec, plan, test,
+  or module here uses. Carrying a term across four cycles to support one
+  backward-looking sentence is exactly the cost this budget exists to
+  catch. `BRIEF.md`'s sentence stands as written; it just doesn't need the
+  word kept in circulation for the current design.
 - **`accept-check` and `reject-check` are restored.** Cycle 1 introduced
   them (retiring the old branch's "direction"), but cycles 2–4 dropped
   them from the carried list despite their being used in five files.
