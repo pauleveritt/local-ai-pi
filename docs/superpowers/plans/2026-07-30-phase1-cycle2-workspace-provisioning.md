@@ -100,8 +100,6 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'harness.workspace'`
 
 ```python
 # harness/workspace.py
-from __future__ import annotations
-
 import shutil
 import tempfile
 from collections.abc import Iterator
@@ -183,8 +181,6 @@ Expected: FAIL — `assert (workspace / ".git").is_dir()` is false (no git repo 
 
 ```python
 # harness/workspace.py
-from __future__ import annotations
-
 import os
 import shutil
 import subprocess
