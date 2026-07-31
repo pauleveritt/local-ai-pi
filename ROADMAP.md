@@ -114,12 +114,14 @@ graded in the workspace with no second directory, consumed cycle 4's
 helpers as planned, and its non-vacuous tests assert on `refused_config`
 and `returncode is None` rather than `accepted is False` alone.
 
-Carried forward as notes for cycle 9, the allowlist (both still open,
-originally surfaced by cycle 2's review, both in the allowlist's problem
-domain now that config refusal has shipped separately): a global
-`core.hooksPath` pre-commit hook would make `prepare_workspace`'s commit
-fail, and `prepare_workspace` raises `CalledProcessError` on an empty
-source directory because `git commit` finds nothing staged.
+Still open, no specific owning cycle (originally surfaced by cycle 2's
+review; carried through cycle 9 on the assumption the allowlist's
+problem domain would touch `harness/workspace.py`, but cycle 9 shipped
+as a `grade()`-only change and never did): a global `core.hooksPath`
+pre-commit hook would make `prepare_workspace`'s commit fail, and
+`prepare_workspace` raises `CalledProcessError` on an empty source
+directory because `git commit` finds nothing staged. Revisit whenever
+`harness/workspace.py` is next touched.
 
 These two notes from cycle 5 were carried to cycle 9. One is resolved,
 one is still open and has nowhere else to go:
@@ -129,7 +131,8 @@ one is still open and has nowhere else to go:
   Phase 1 never needs one and `[tool.pytest.ini_options]` inside it is a
   live attack path — but it's the one refused name a model might write
   for a legitimate reason (declaring dependencies). Cycle 8's real run
-  didn't produce one (the model wrote only `app.py` and `templates/`), so
+  didn't produce one (the model wrote `app.py`, `templates/`, and its
+  own `tests/test_app.py`), so
   this note's trigger condition never fired and the question is still
   exactly where cycle 5 left it. Not cycle 9's to resolve — the allowlist
   is additive (what gets copied in), not a change to what refusal blocks.
@@ -252,12 +255,15 @@ timeout handling doesn't offer partial capture without switching to
 `Popen` directly, which is more machinery than a single unconfirmed need
 justifies.
 
-**Still open, not this cycle's job.** `prepare_workspace`'s
+**Still open, no specific owning cycle.** `prepare_workspace`'s
 `CalledProcessError` on a literally-empty source directory (cycle 2's
-review, carried to cycle 9 above) was *sidestepped*, not fixed: cycle 8's
-`empty/` fixture contains a `.gitkeep` placeholder specifically so
-`git add -A` has something to stage. The underlying bug in
-`harness/workspace.py` is untouched and still cycle 9's to decide on.
+review, carried through cycle 9 above) was *sidestepped*, not fixed:
+cycle 8's `empty/` fixture contains a `.gitkeep` placeholder specifically
+so `git add -A` has something to stage. The underlying bug in
+`harness/workspace.py` is untouched — cycle 9 shipped as a
+`grade()`-only change and never reached it. Same homeless status as the
+`core.hooksPath` note above; revisit together whenever
+`harness/workspace.py` is next touched.
 
 Nothing else is currently deferred. Add to this list as later cycles pass
 things over.

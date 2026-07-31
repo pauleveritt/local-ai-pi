@@ -214,9 +214,9 @@ def test_grade_is_not_shadowed_by_a_workspace_root_harness_package(tmp_path):
     """Before this fix, `cwd=workspace` put a model-written harness/
     package ahead of the real one on sys.path, so `-p
     harness.grading_plugin` could import the model's copy instead of the
-    real plugin. Verified directly: a rogue harness/grading_plugin.py
-    that raises on import crashes collection (tests_executed == 0) and
-    its exception text reaches stderr, under today's implementation."""
+    real plugin. Verified directly against the pre-fix code: a rogue
+    harness/grading_plugin.py that raises on import crashed collection
+    (tests_executed == 0) and its exception text reached stderr."""
     source = tmp_path / "shadow-attempt"
     shutil.copytree(PHASE_1 / "broken", source)
     rogue_pkg = source / "harness"
