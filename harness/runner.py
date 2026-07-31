@@ -16,6 +16,8 @@ EXTENSION = REPO_ROOT / ".pi" / "extensions" / "hello-world.ts"
 class RunResult:
     diff: str
     grade: GradeResult
+    pi_stdout: str
+    pi_stderr: str
 
 
 def run_agentclinic_phase1(
@@ -34,9 +36,10 @@ def run_agentclinic_phase1(
         ).stdout.strip()
 
         prompt = TASK_SPEC.read_text()
-        subprocess.run(
+        pi_proc = subprocess.run(
             [
                 "pi",
+                "--print",
                 "--model", model,
                 "--no-extensions",
                 "--extension", str(EXTENSION),
@@ -45,12 +48,13 @@ def run_agentclinic_phase1(
                 "--no-themes",
                 "--no-context-files",
                 "--approve",
-                "--",
                 prompt,
             ],
             cwd=workspace,
             timeout=timeout,
             check=False,
+            capture_output=True,
+            text=True,
         )
 
         # Stage everything before diffing: plain `git diff <commit>` never
@@ -70,4 +74,9 @@ def run_agentclinic_phase1(
 
         grade_result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")
 
-    return RunResult(diff=diff, grade=grade_result)
+    return RunResult(
+        diff=diff,
+        grade=grade_result,
+        pi_stdout=pi_proc.stdout,
+        pi_stderr=pi_proc.stderr,
+    )

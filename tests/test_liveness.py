@@ -37,6 +37,35 @@ def _stub_server(status: int, body: bytes):
         server.server_close()
 
 
+@contextlib.contextmanager
+def _auth_requiring_stub_server():
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.headers.get("Authorization"):
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"data": []}')
+            else:
+                self.send_response(401)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(b'{"error": "API key required"}')
+
+        def log_message(self, *args):
+            pass
+
+    server = HTTPServer(("localhost", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://localhost:{server.server_port}"
+    finally:
+        server.shutdown()
+        thread.join()
+        server.server_close()
+
+
 def test_check_model_server_alive_returns_none_when_server_responds_ok():
     with _stub_server(200, b'{"data": []}') as base_url:
         assert check_model_server_alive(base_url) is None
@@ -52,3 +81,8 @@ def test_check_model_server_alive_raises_when_server_returns_non_200():
     with _stub_server(500, b"") as base_url:
         with pytest.raises(ModelServerDown):
             check_model_server_alive(base_url)
+
+
+def test_check_model_server_alive_sends_an_authorization_header():
+    with _auth_requiring_stub_server() as base_url:
+        assert check_model_server_alive(base_url) is None
