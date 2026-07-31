@@ -230,6 +230,26 @@ task. With all three fixed, `run_agentclinic_phase1()` completed
 successfully: `accepted=True, tests_executed=tests_expected=4,
 returncode=0`.
 
+Fable's light review of these fixes (below the fixes themselves) caught a
+fourth instance of the same leak: `.pytest_cache/` wasn't in the `empty/`
+fixture's `.gitignore` either, and the task spec has the model write its
+own smoke test — so `pi` running pytest inside the workspace would create
+one, showing up in the diff exactly like the `.pyc` files did. Fixed the
+same way, verified the same way (no full model run needed).
+
+**Carried forward as a note for cycle 10/11 (batch execution), surfaced
+by that same review.** `pi_stdout`/`pi_stderr` are captured, but only on
+the path where `subprocess.run` returns normally. On a timeout,
+`subprocess.TimeoutExpired` propagates uncaught (as designed — cycle 8's
+spec explicitly allows this) and whatever `pi` had printed up to that
+point is lost, since `subprocess.run` doesn't expose partial output from
+a killed process. Immaterial for a single supervised run; a batch that
+needs to diagnose *why* one run out of sixteen hung will want it. Not
+fixed now — no evidence yet that it's needed, and `subprocess.run`'s
+timeout handling doesn't offer partial capture without switching to
+`Popen` directly, which is more machinery than a single unconfirmed need
+justifies.
+
 **Still open, not this cycle's job.** `prepare_workspace`'s
 `CalledProcessError` on a literally-empty source directory (cycle 2's
 review, carried to cycle 9 above) was *sidestepped*, not fixed: cycle 8's
