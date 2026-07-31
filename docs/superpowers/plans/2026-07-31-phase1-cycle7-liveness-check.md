@@ -21,15 +21,16 @@ discipline cycles 1–6 used for grading.
 
 - No new dependency. `urllib.request` and `http.server` are stdlib; nothing
   is added to `pyproject.toml`.
-- `check_model_server_alive(base_url: str = "http://localhost:1234") -> None`
-  is the exact signature — a seam (parameter), not a hardcode, per
-  `BRIEF.md`.
+- `check_model_server_alive(base_url: str = "http://127.0.0.1:8001") -> None`
+  is the exact signature — the default matches `BRIEF.md`'s recorded `omlx`
+  server address, as a seam (parameter), not a hardcode.
 - Liveness means the server responds at all. Do not inspect which models are
   listed — that is out of scope for this cycle per the design doc.
 - No retry/backoff logic — a single attempt, single timeout (2 seconds).
 - `ModelServerDown` is the only exception type callers ever need to catch;
-  every failure path (connection refused, timeout, non-200, unparseable
-  body) is wrapped into it with `from` to preserve the original cause.
+  every failure path (connection refused, timeout, a non-2xx status raised
+  by `urlopen` as `HTTPError`, unparseable body) is wrapped into it with
+  `from` to preserve the original cause.
 
 ---
 
@@ -54,7 +55,7 @@ tests/
 - Produces: `harness.liveness.ModelServerDown` (exception class, no
   constructor arguments beyond the standard `Exception` message);
   `harness.liveness.check_model_server_alive(base_url: str =
-  "http://localhost:1234") -> None`.
+  "http://127.0.0.1:8001") -> None`.
 
 - [ ] **Step 1: Write the failing test, with its stub-server helper**
 
@@ -123,16 +124,19 @@ class ModelServerDown(Exception):
     """Raised when the model server does not respond at the expected endpoint."""
 
 
-def check_model_server_alive(base_url: str = "http://localhost:1234") -> None:
+def check_model_server_alive(base_url: str = "http://127.0.0.1:8001") -> None:
     url = f"{base_url}/v1/models"
     try:
         with urllib.request.urlopen(url, timeout=TIMEOUT_SECONDS) as response:
-            if response.status != 200:
-                raise ValueError(f"unexpected status {response.status}")
             json.loads(response.read())
     except Exception as exc:
         raise ModelServerDown(f"model server not reachable at {url}") from exc
 ```
+
+No explicit status check: `urllib.request.urlopen` already raises
+`HTTPError` for any non-2xx response before the `with` body runs, so a
+second check here would be untested dead code for the one case (200) the
+`with` body ever actually sees.
 
 - [ ] **Step 4: Run test to verify it passes**
 
@@ -206,13 +210,13 @@ git commit -m "test(liveness): prove ModelServerDown when nothing is listening"
 - Consumes: `_stub_server` from Task 1, `ModelServerDown`/
   `check_model_server_alive` from Task 1 — no signature changes.
 
-**Purpose:** Task 2 proves the check reacts to "nothing there at all." On
-its own, that's compatible with a check that treats *any* exception as
-`ModelServerDown` without regard to what actually happened — including,
-say, an exception raised before ever attempting a connection. This task
-proves the second, independent path: a real HTTP exchange happens, the
-response is simply the wrong shape, and it is still classified correctly.
-Both tests passing together is the actual proof; either alone is not.
+**Purpose:** Task 2 proves the check reacts to "nothing there at all" — but
+that alone can't distinguish a real check from one that swallows a bad
+response and returns `None` anyway, since "nothing listening" never
+reaches far enough to expose that bug. This task proves the check
+completes a real HTTP exchange, gets back an actual (bad) response, and
+still classifies it as down. Both tests passing together is the proof;
+either alone is not.
 
 - [ ] **Step 1: Write the failing test... expected to already pass**
 
@@ -260,7 +264,10 @@ git commit -m "test(liveness): prove ModelServerDown on a malformed response, no
   model-name check, runner wiring) — none implemented, per Global
   Constraints; nothing in this plan touches them.
 - **Type consistency:** `check_model_server_alive(base_url: str =
-  "http://localhost:1234") -> None` and `ModelServerDown` are identical
-  across Tasks 1–3; no drift.
+  "http://127.0.0.1:8001") -> None` and `ModelServerDown` are identical
+  across Tasks 1–3; no drift. Fixed during review: the default was
+  originally `localhost:1234` (LM Studio's port, from a different branch);
+  `BRIEF.md` records this environment's server as `omlx` on
+  `127.0.0.1:8001`, so both spec and plan now use that.
 - **No placeholders:** every step shows complete, runnable code and an
   exact command with an expected result.

@@ -5,9 +5,9 @@
 
 ## Why this cycle
 
-Cycle 8 is the first cycle that invokes `pi` against a real model. The model
-is served by a local OpenAI-compatible server (LM Studio or `omlx`) on
-`localhost:1234`. If that server is not running when `pi` is invoked, the
+Cycle 8 is the first cycle that invokes `pi` against a real model. Per
+`BRIEF.md`, the model is served locally by `omlx` on `127.0.0.1:8001`. If
+that server is not running when `pi` is invoked, the
 failure that comes back — a hang, a connection error surfacing through `pi`,
 or a garbled response — has no obvious relationship to "the server is down."
 It would look like a model problem, or an engine problem, and cycles 1–6
@@ -37,14 +37,15 @@ cycles 3–6, it is provable with no model in the loop.
 class ModelServerDown(Exception):
     """Raised when the model server does not respond at the expected endpoint."""
 
-def check_model_server_alive(base_url: str = "http://localhost:1234") -> None:
+def check_model_server_alive(base_url: str = "http://127.0.0.1:8001") -> None:
     ...
 ```
 
-- `base_url` is a parameter with a `localhost:1234` default — a seam, not a
-  hardcode, per `BRIEF.md`'s stated principle. Nothing calls it with a
-  different value today; the parameter exists so nothing has to change if
-  that ever stops being true.
+- `base_url` is a parameter with a `127.0.0.1:8001` default — matching
+  `BRIEF.md`'s recorded `omlx` server address — as a seam, not a hardcode,
+  per `BRIEF.md`'s stated principle. Nothing calls it with a different
+  value today; the parameter exists so nothing has to change if that ever
+  stops being true.
 - Returns `None` on success. Raises `ModelServerDown` on any failure to
   confirm liveness. There is no third outcome — this is a precondition
   check, not a graded result. A stopped server is an environment failure,
@@ -58,10 +59,11 @@ def check_model_server_alive(base_url: str = "http://localhost:1234") -> None:
    run).
 2. A response with HTTP status 200 and a parseable JSON body: liveness
    confirmed, function returns.
-3. Anything else — connection refused, timeout, non-200 status, a body that
-   isn't parseable JSON — raises `ModelServerDown`, chaining the underlying
-   exception (`raise ModelServerDown(...) from original`) so the real cause
-   is never lost, but every caller only ever needs to catch the one type.
+3. Anything else — connection refused, timeout, a non-2xx status (which
+   `urlopen` itself raises `HTTPError` for), a body that isn't parseable
+   JSON — raises `ModelServerDown`, chaining the underlying exception
+   (`raise ModelServerDown(...) from original`) so the real cause is never
+   lost, but every caller only ever needs to catch the one type.
 
 ## Testing
 
@@ -79,12 +81,13 @@ behavior against it.
   a non-200 status (e.g. 500). Raises `ModelServerDown`.
 
 Two distinct down-modes, not one, on purpose: this is this cycle's
-non-vacuity check. A single "nothing listening" test could pass for a
-check that treats *any* exception as `ModelServerDown` without regard to
-what actually went wrong — including, say, a typo'd URL scheme that raises
-before ever attempting a connection. Testing a second down-mode that
-*does* reach a real HTTP exchange, and still gets classified correctly,
-rules that out.
+non-vacuity check. A single "nothing listening" test proves the check
+reacts to *something*, but it can't distinguish a real check from one that
+swallows any non-200 response and returns `None` anyway — that mistake
+would still fail the "nothing listening" case correctly, since that case
+never gets far enough to reach such a bug. Testing a second down-mode that
+completes a real HTTP exchange, gets back an actual (bad) response, and is
+still classified as down — rules that out.
 
 ## Non-goals recap
 
