@@ -4,7 +4,10 @@
 
 **Goal:** Build `append_checkpoint`/`load_checkpoint`, a pair of standalone
 functions that persist completed `RunResult`s to a JSONL file, one line
-per run, tolerant of a truncated final line.
+per run, tolerant of a truncated final line on both the read side
+(`load_checkpoint` skips it) and the write side (`append_checkpoint`
+cleans it up before writing its own record, so resuming more than once
+stays safe).
 
 **Architecture:** One new module, `harness/checkpoint.py`, with two
 functions and no state of its own — every call takes an explicit `path`.
@@ -27,6 +30,10 @@ pytest 8.3.4.
 - Truncation tolerance is scoped precisely: only the **last** line of the
   file may fail to parse without raising. Any other line failing to
   parse is a raise, not a silent drop.
+- `append_checkpoint` must leave the file well-formed even when the file
+  it's appending to already ends in a dangling, truncated final line
+  (from a prior interrupted write) — it truncates that fragment away
+  before writing its own record, rather than concatenating onto it.
 
 ---
 
@@ -36,7 +43,8 @@ pytest 8.3.4.
 harness/
   checkpoint.py          # CREATE: append_checkpoint(), load_checkpoint()
 tests/
-  test_checkpoint.py      # CREATE: round-trip, order, and truncation tests
+  test_checkpoint.py      # CREATE: round-trip, order, truncation, and
+                          #   resume-safety tests
 ```
 
 ---
@@ -310,19 +318,120 @@ git commit -m "feat(checkpoint): tolerate a truncated final line, raise on any o
 
 ---
 
+### Task 3: `append_checkpoint` survives resuming after a truncated write
+
+**Files:**
+- Modify: `harness/checkpoint.py`
+- Modify: `tests/test_checkpoint.py`
+
+**Interfaces:**
+- Consumes: `_sample_result()`, `append_checkpoint`, `load_checkpoint`
+  from Tasks 1–2 — no signature changes.
+- Produces: no new public names; `append_checkpoint`'s behavior when the
+  target file already ends in a dangling truncated line changes.
+
+**Why this task exists.** Found in Fable's light review of the spec and
+this plan: `load_checkpoint` tolerating a truncated final line only means
+it skips that line *on read* — the fragment is still sitting on disk
+afterward. The resume flow this whole cycle exists for is: load, discover
+N runs done, run N+1, append it. Task 1's naive `append_checkpoint` opens
+in append mode and writes straight to the end, so that next append would
+concatenate the new record directly onto the dangling fragment,
+corrupting the file — either making every future read raise, or silently
+discarding the run that was just completed. Cycle 11's very first resume
+would hit this.
+
+- [ ] **Step 1: Write the failing test**
+
+Add to `tests/test_checkpoint.py`:
+
+```python
+def test_append_checkpoint_cleans_up_a_dangling_truncated_line_first(tmp_path):
+    path = tmp_path / "checkpoint.jsonl"
+    complete = _sample_result()
+    append_checkpoint(path, complete)
+
+    with path.open("a") as f:
+        f.write('{"diff": "partial, process died mid-writ')
+
+    new_result = _sample_result(accepted=False)
+    append_checkpoint(path, new_result)
+
+    loaded = load_checkpoint(path)
+
+    assert loaded == [complete, new_result]
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `uv run pytest tests/test_checkpoint.py::test_append_checkpoint_cleans_up_a_dangling_truncated_line_first -v`
+Expected: FAIL — `loaded` is `[complete]`, not `[complete, new_result]`.
+Trace why: the naive append writes
+`...mid-writ` immediately followed by `new_result`'s JSON and a trailing
+newline, producing one merged, malformed final line. Task 2's
+`load_checkpoint` treats a malformed *final* line as tolerable and drops
+it silently — so the merged garbage disappears entirely, along with the
+run it represented.
+
+- [ ] **Step 3: Implement the fix**
+
+Replace `append_checkpoint` in `harness/checkpoint.py`:
+
+```python
+def append_checkpoint(path: Path, result: RunResult) -> None:
+    if path.is_file():
+        content = path.read_text()
+        if content and not content.endswith("\n"):
+            # A prior write was interrupted mid-line. Drop the dangling
+            # fragment before appending, so this write starts clean
+            # instead of concatenating onto it.
+            path.write_text(content[: content.rfind("\n") + 1])
+
+    with path.open("a") as f:
+        f.write(json.dumps(asdict(result)) + "\n")
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `uv run pytest tests/test_checkpoint.py::test_append_checkpoint_cleans_up_a_dangling_truncated_line_first -v`
+Expected: PASS
+
+- [ ] **Step 5: Run the whole checkpoint test file to confirm no regressions**
+
+Run: `uv run pytest tests/test_checkpoint.py -v`
+Expected: PASS, 5 passed (all tests from Tasks 1–3).
+
+- [ ] **Step 6: Run the whole suite to confirm no regressions**
+
+Run: `uv run pytest -q`
+Expected: all previously-passing tests still pass, plus 5 new ones —
+`test_runner.py`'s live-model test runs for real or skips cleanly
+depending on the machine, as in every prior cycle.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add harness/checkpoint.py tests/test_checkpoint.py
+git commit -m "fix(checkpoint): append_checkpoint no longer corrupts a dangling truncated line"
+```
+
+---
+
 ## Plan Self-Review Notes
 
 - **Spec coverage:** module location and function signatures — Task 1
   Step 3. JSONL format, `asdict`/keyword-unpacking round-trip, tuple
   cast on `refused_config` — Task 1 Step 3. Resume-by-position semantics
   (no run-index field) — implicit in the round-trip and ordering tests,
-  Task 1 Step 1; nothing in either task adds an index field. Truncation
+  Task 1 Step 1; nothing in any task adds an index field. Truncation
   tolerance scoped to the last line only, with its non-vacuity control —
-  Task 2. Non-goals (batch loop, telemetry, configurability) — untouched
-  by both tasks.
+  Task 2. `append_checkpoint`'s own resume-safety (the spec's "Resuming
+  after a truncated write" section, added after Fable's review) — Task 3.
+  Non-goals (batch loop, telemetry, configurability) — untouched by all
+  three tasks.
 - **Type consistency:** `append_checkpoint(path: Path, result: RunResult)
   -> None` and `load_checkpoint(path: Path) -> list[RunResult]` match the
-  spec's Interface section exactly across both tasks; `RunResult` and
+  spec's Interface section exactly across all three tasks; `RunResult` and
   `GradeResult` field names used in `_sample_result()` and the
   implementation match `harness/runner.py` and `harness/grading.py`'s
   actual dataclasses (verified against both files directly while writing
