@@ -15,9 +15,15 @@ def load_checkpoint(path: Path) -> list[RunResult]:
     if not path.is_file():
         return []
 
+    lines = path.read_text().splitlines()
     results = []
-    for line in path.read_text().splitlines():
-        data = json.loads(line)
+    for i, line in enumerate(lines):
+        try:
+            data = json.loads(line)
+        except json.JSONDecodeError:
+            if i == len(lines) - 1:
+                break
+            raise
         grade_data = data["grade"]
         grade_data["refused_config"] = tuple(grade_data["refused_config"])
         results.append(
