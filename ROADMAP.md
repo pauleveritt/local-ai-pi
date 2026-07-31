@@ -31,8 +31,8 @@ working engine and real suites to write about; it isn't Phase 1's job. See
 | 3 | Verdict from a hook-written results file — grade by reading a file a pytest hook wrote, not pytest's exit code. Names the verdict type. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle3-verdict-file-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle3-verdict-file.md) | Done |
 | 4 | Subversion fixtures — fixtures that attack grading (`addopts = --collect-only`; import-time `os._exit(0)`), confirmed to defeat a naive exit-code grader | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle4-subversion-fixtures-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle4-subversion-fixtures.md) | Done |
 | 5 | Refusal of model-written config — the grader refuses to certify a run whose workspace carries model-written `pytest.ini`/`.pytest.ini`/`pyproject.toml`/`tox.ini`/`setup.cfg`/`conftest.py`/`sitecustomize.py`, before pytest ever runs. Split from the original combined row (below) — the allowlist half needed evidence this half didn't. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle5-config-refusal-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle5-config-refusal.md) | Done |
-| 6 | AgentClinic task spec — transplant **Phase 1's section only** of the detailed roadmap (`examples/agentclinic/specs/roadmap.md`), the document the trusted number was produced against. Deliberately *not* a variant choice: see the Backlog note on why that comparison was withdrawn from this phase. | | | Next |
-| 7 | Model-server liveness check — server up passes; server stopped is caught, not recorded as data | | | Planned |
+| 6 | AgentClinic task spec — transplanted **Phase 1's section only** of the detailed roadmap to `examples/agentclinic/specs/roadmap.md`, the document the trusted number was produced against, resolving a citation cycle 1's suite had carried since. Deliberately *not* a variant choice: see the Backlog note. Also fixed the grading regression the transplant made reachable. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle6-task-spec-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle6-task-spec.md) | Done |
+| 7 | Model-server liveness check — server up passes; server stopped is caught, not recorded as data | | | Next |
 | 8 | First real run — `pi` against a fresh workspace, graded hermetically. Exercises the workspace's initial commit as a diff base. | | | Planned |
 | 9 | Source allowlist — which model-written *files* get graded at all, as distinct from cycle 5's config refusal. Split out of cycle 5's original row because it needs evidence of what a model actually scatters into a workspace, which doesn't exist until cycle 8 produces a real run to look at. | | | Planned |
 | 10 | Checkpoint recording — append per completed run, tolerate a truncated final line | | | Planned |
@@ -146,6 +146,24 @@ from what pytest collected would discard the count check that catches
 Cycle 9's allowlist, if it takes the copy-only-allowlisted-files shape,
 would close this a second way by never copying model-written tests into a
 graded directory — independent of this fix, not superseded by it.
+
+Carried forward as notes from cycle 6:
+
+- **For cycle 8 (first real run).** The transplanted task spec is Phase 1
+  only. If cycle 8's run shows the model needs surrounding context the
+  omitted phases supplied — a sense of where Phase 1 sits in a larger
+  build — that is evidence for how much of the document to transplant,
+  not a reason to add commentary to it. The file is model-facing input;
+  anything added is a difference from the conditions the trusted number
+  was produced under.
+- **The load-bearing-facts check, worth applying before any future
+  cycle's first run.** From the old branch's research: grep a spec for the
+  facts its acceptance suite imports. Anything the suite reaches for that
+  the spec never states is a silent dependency on whatever prose happens
+  to surround it. Phase 1's suite does `from app import app`; the
+  transplanted spec states `app.py` and FastAPI explicitly, so this one
+  checks out — but phases 2 and 3, whose suites import `models` and
+  `Complaint` by name, are where it would bite.
 
 Nothing else is currently deferred. Add to this list as later cycles pass
 things over.
