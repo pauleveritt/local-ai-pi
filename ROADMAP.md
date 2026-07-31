@@ -64,8 +64,8 @@ every test name).
 | 5 | Refusal of model-written config — the grader refuses to certify a run whose workspace carries model-written `pytest.ini`/`.pytest.ini`/`pyproject.toml`/`tox.ini`/`setup.cfg`/`conftest.py`/`sitecustomize.py`, before pytest ever runs. Split from the original combined row (below) — the allowlist half needed evidence this half didn't. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle5-config-refusal-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle5-config-refusal.md) | Done |
 | 6 | AgentClinic task spec — transplanted **Phase 1's section only** of the detailed roadmap to `examples/agentclinic/specs/roadmap.md`, the document the trusted number was produced against, resolving a citation cycle 1's suite had carried since. Deliberately *not* a variant choice: see the Backlog note. Also fixed the grading regression the transplant made reachable. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle6-task-spec-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle6-task-spec.md) | Done |
 | 7 | Model-server liveness check — `check_model_server_alive` GETs `/v1/models` on the `omlx` server (`127.0.0.1:8001` default, a seam) and raises `ModelServerDown` on anything but a 200; proven against a stub HTTP server, not a real model, with two distinct down-modes (nothing listening; a completed exchange with a bad status) so the raise isn't just "catch anything." | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle7-liveness-check-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle7-liveness-check.md) | Done |
-| 8 | First real run — `pi` against a fresh workspace, graded hermetically. Exercises the workspace's initial commit as a diff base. | | | Next |
-| 9 | Source allowlist — which model-written *files* get graded at all, as distinct from cycle 5's config refusal. Split out of cycle 5's original row because it needs evidence of what a model actually scatters into a workspace, which doesn't exist until cycle 8 produces a real run to look at. | | | Planned |
+| 8 | First real run — `run_agentclinic_phase1()` invokes `pi` against a fresh, literally-empty workspace (a `.gitkeep` fixture, to sidestep `prepare_workspace`'s empty-directory commit bug rather than fix it), captures a diff against the workspace's initial commit, and grades hermetically via cycles 3–6's grader. The task spec is passed as `pi`'s prompt text, never placed in the workspace. **The harness code is done and proven by a skip-gated test; no live run has actually executed yet** — the integration test was skipped this session because the `omlx` server wasn't running, not because anything failed. | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle8-first-real-run-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle8-first-real-run.md) | Done |
+| 9 | Source allowlist — which model-written *files* get graded at all, as distinct from cycle 5's config refusal. Split out of cycle 5's original row because it needs evidence of what a model actually scatters into a workspace — **still doesn't exist**: cycle 8 built the capability to produce that evidence, but no one has started the `omlx` server and actually run `run_agentclinic_phase1()` yet. That live run is a prerequisite for this cycle to be more than a guess, separate from and prior to this cycle's own brainstorming. | | | Next |
 | 10 | Checkpoint recording — append per completed run, tolerate a truncated final line | | | Planned |
 | 11 | n=16 batch, sequential and resumable — target ~15/16 | | | Planned |
 
@@ -196,21 +196,28 @@ Carried forward as notes from cycle 6:
   checks out — but phases 2 and 3, whose suites import `models` and
   `Complaint` by name, are where it would bite.
 
-**Carried forward as a note for cycle 8, surfaced by cycle 7's review.**
-The first draft of `check_model_server_alive`'s default address was
-`localhost:1234` — LM Studio's port, copied from a different branch's
-environment. `BRIEF.md` records this environment's actual server as `omlx`
-on `127.0.0.1:8001`; the default was corrected before implementation, but
-it's worth cycle 8 double-checking against `BRIEF.md` directly rather than
-trusting the default silently, in case the served address ever changes
-again.
+**Resolved by cycle 8, kept for the record.** Cycle 7's two carried-forward
+notes are both closed: the `127.0.0.1:8001` default was re-confirmed
+against `BRIEF.md` while writing cycle 8's spec (no drift found), and
+`run_agentclinic_phase1()` calls `check_model_server_alive()` first,
+letting `ModelServerDown` propagate as an environment failure rather than
+a graded verdict — exactly as cycle 7 required.
 
-**Carried forward as a task for cycle 8, not yet done.** Cycle 7
-deliberately built and proved `check_model_server_alive` in isolation —
-calling it before `pi` runs is explicitly cycle 8's job, not cycle 7's.
-Cycle 8 must call it (and let `ModelServerDown` propagate as an
-environment failure, not a graded verdict) before invoking `pi` for the
-first real run.
+**Carried forward as a note for cycle 9 (or whenever the first live run
+actually happens), surfaced by cycle 8's review.** `pi`'s stdout/stderr is
+currently discarded (`subprocess.run(..., check=False)`, no
+`capture_output`). If the first live run comes back confusing — a
+low/zero score with no visible cause — that's the first place to look,
+and capturing it into `RunResult` is a cheap, well-scoped addition at that
+point. Not built now because the spec doesn't promise it and there's no
+evidence yet that it's needed.
+
+**Still open, not this cycle's job.** `prepare_workspace`'s
+`CalledProcessError` on a literally-empty source directory (cycle 2's
+review, carried to cycle 9 above) was *sidestepped*, not fixed: cycle 8's
+`empty/` fixture contains a `.gitkeep` placeholder specifically so
+`git add -A` has something to stage. The underlying bug in
+`harness/workspace.py` is untouched and still cycle 9's to decide on.
 
 Nothing else is currently deferred. Add to this list as later cycles pass
 things over.
