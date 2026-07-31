@@ -39,7 +39,7 @@ not by being convenient shorthand.*
 | task spec | the AgentClinic roadmap document a model builds a solution from | cycle 6 |
 | seam | a parameter standing in for a value that could change, so nothing has to change if it does — not a hardcode | `BRIEF.md`, reused cycle 7 |
 | liveness (check) | confirming the model server responds before a run is even attempted | cycle 7 |
-| allowlist | which model-written files get graded at all (planned, cycle 9) | cycle 5's close |
+| allowlist | which model-written paths (`app.py`, `templates`) get copied into a fresh directory and graded at all | cycle 5's close, implemented cycle 9 |
 | checkpoint | an append-only record of completed runs, tolerant of a truncated last line (planned, cycle 10) | cycle 2's deferrals |
 
 **Retired, not currently spent:** `oracle` (dropped — "grader"/"verdict" cover
@@ -65,8 +65,8 @@ every test name).
 | 6 | AgentClinic task spec — transplanted **Phase 1's section only** of the detailed roadmap to `examples/agentclinic/specs/roadmap.md`, the document the trusted number was produced against, resolving a citation cycle 1's suite had carried since. Deliberately *not* a variant choice: see the Backlog note. Also fixed the grading regression the transplant made reachable. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle6-task-spec-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle6-task-spec.md) | Done |
 | 7 | Model-server liveness check — `check_model_server_alive` GETs `/v1/models` on the `omlx` server (`127.0.0.1:8001` default, a seam) and raises `ModelServerDown` on anything but a 200; proven against a stub HTTP server, not a real model, with two distinct down-modes (nothing listening; a completed exchange with a bad status) so the raise isn't just "catch anything." | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle7-liveness-check-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle7-liveness-check.md) | Done |
 | 8 | First real run — `run_agentclinic_phase1()` invokes `pi` against a fresh, literally-empty workspace (a `.gitkeep` fixture, to sidestep `prepare_workspace`'s empty-directory commit bug rather than fix it), captures a diff against the workspace's initial commit, and grades hermetically via cycles 3–6's grader. The task spec is passed as `pi`'s prompt text, never placed in the workspace. **Actually run, live, against the real `omlx` server, once the harness code and three bugs invisible to fixture-only testing were fixed** (see below): the model built a working AgentClinic Phase 1 app and it graded `accepted=True, tests_executed=tests_expected=4, returncode=0`. | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle8-first-real-run-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle8-first-real-run.md) | Done |
-| 9 | Source allowlist — which model-written *files* get graded at all, as distinct from cycle 5's config refusal. Split out of cycle 5's original row because it needs evidence of what a model actually scatters into a workspace — **that evidence now exists**: the real run's diff shows `app.py`, `templates/base.html`, `templates/home.html`, and a self-written `tests/test_app.py`, exactly as the task spec's smoke-test instruction predicted. | | | Next |
-| 10 | Checkpoint recording — append per completed run, tolerate a truncated final line | | | Planned |
+| 9 | Source allowlist — `grade()` now copies only allowlisted paths (`app.py`, `templates`, default) plus the suite into a fresh grading directory and runs pytest there, instead of `cwd=workspace`. Closes the sys.path-shadowing threat by construction: a model-written `harness/` package or `pytest.py` is never copied in, so it can never be imported in place of the real thing. Proven with a verified-first exploit — a rogue `harness/grading_plugin.py` that crashed collection and leaked into `stderr` under the old code, confirmed inert after the fix. | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle9-source-allowlist-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle9-source-allowlist.md) | Done |
+| 10 | Checkpoint recording — append per completed run, tolerate a truncated final line | | | Next |
 | 11 | n=16 batch, sequential and resumable — target ~15/16 | | | Planned |
 
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus
@@ -121,22 +121,23 @@ domain now that config refusal has shipped separately): a global
 fail, and `prepare_workspace` raises `CalledProcessError` on an empty
 source directory because `git commit` finds nothing staged.
 
-Carried forward as notes for cycle 9, the allowlist (surfaced by cycle 5):
+These two notes from cycle 5 were carried to cycle 9. One is resolved,
+one is still open and has nowhere else to go:
 
-- **The `pyproject.toml` reservation.** Cycle 5 refuses a model-written
-  `pyproject.toml` outright, on the grounds that AgentClinic Phase 1 never
-  needs one and `[tool.pytest.ini_options]` inside it is a live attack
-  path — but it's the one refused name a model might write for a
-  legitimate reason (declaring dependencies). If cycle 8's first real run
-  produces a legitimate `pyproject.toml`, this is the entry to revisit —
-  not by loosening refusal, but as evidence for how the allowlist should
-  treat it.
-- **Module shadowing via `sys.path`** — see the Backlog entry below, next
-  to the forged-results-file gap it shares a root cause with. Worth
-  cycle 9's attention too: if the allowlist ends up copying only allowed
-  files into an isolated directory (an open question per cycle 3's note
-  above), that shape would also close this off as a side effect, without
-  needing the out-of-process fix the Backlog entry names.
+- **Still open — the `pyproject.toml` reservation.** Cycle 5 refuses a
+  model-written `pyproject.toml` outright, on the grounds that AgentClinic
+  Phase 1 never needs one and `[tool.pytest.ini_options]` inside it is a
+  live attack path — but it's the one refused name a model might write
+  for a legitimate reason (declaring dependencies). Cycle 8's real run
+  didn't produce one (the model wrote only `app.py` and `templates/`), so
+  this note's trigger condition never fired and the question is still
+  exactly where cycle 5 left it. Not cycle 9's to resolve — the allowlist
+  is additive (what gets copied in), not a change to what refusal blocks.
+  Carried forward with no specific owning cycle; revisit if a future run
+  ever does produce one.
+- **Resolved by cycle 9.** Module shadowing via `sys.path` — see the
+  Backlog entry (below) for the full resolution. Cycle 9 took exactly the
+  copy-only-allowlisted-files shape this note speculated about.
 
 Carried forward as a note for cycle 10 or 11 (checkpoint recording / n=16
 batch — surfaced by cycle 5's brainstorming, not a specific single cycle):
@@ -174,9 +175,10 @@ conditions away from the ones being reproduced. Deriving `tests_expected`
 from what pytest collected would discard the count check that catches
 `--collect-only`.
 
-Cycle 9's allowlist, if it takes the copy-only-allowlisted-files shape,
-would close this a second way by never copying model-written tests into a
-graded directory — independent of this fix, not superseded by it.
+**Resolved a second way by cycle 9.** Cycle 9's allowlist took the
+copy-only-allowlisted-files shape this note anticipated, so model-written
+tests are now never even copied into the grading directory — independent
+of this fix, not superseded by it.
 
 Carried forward as notes from cycle 6:
 
@@ -315,18 +317,25 @@ things over.
   larger than the cycle that surfaced it. Scoped out of cycle 4 by
   explicit decision, not oversight — see that cycle's design doc, "Out of
   scope for this cycle".
-- Same root cause, different shape: `python -m pytest` with
-  `cwd=workspace` puts the workspace first on `sys.path`. A model-written
-  module that shadows a real import name — a workspace-root `harness/`
-  package, or `pytest.py`/`pytest/` — could be imported instead of the
-  genuine one, including standing in for `harness/grading_plugin.py`
-  itself and writing a forged results file exactly as above. No
-  filename-based refusal catches this, since the threat isn't a config
-  file at all. The out-of-process fix above closes both; a copy-only-
-  allowlisted-files grading directory (cycle 9, if it takes that shape)
-  would also close this one specifically. Surfaced by cycle 5's final
-  review; scoped out of cycle 5 because refusal there is about files that
-  *configure* the run, not import-path manipulation.
+- **Resolved by cycle 9, kept for the record.** Same root cause,
+  different shape from the entry above: `python -m pytest` with
+  `cwd=workspace` used to put the workspace first on `sys.path`. A
+  model-written module that shadowed a real import name — a
+  workspace-root `harness/` package, or `pytest.py`/`pytest/` — could be
+  imported instead of the genuine one, including standing in for
+  `harness/grading_plugin.py` itself and writing a forged results file
+  exactly as the entry above describes. No filename-based refusal caught
+  this, since the threat was never a config file. Cycle 9 took the
+  copy-only-allowlisted-files shape this entry named as one closing
+  option: `grade()` now runs pytest against a fresh directory containing
+  only `source_allowlist`-named paths, so a rogue `harness/` package is
+  never copied in and never reachable to shadow anything. Verified
+  directly, not assumed: a rogue `harness/grading_plugin.py` that raises
+  on import crashed collection and leaked its message into `stderr`
+  under the pre-cycle-9 code; confirmed inert after the fix. The
+  out-of-process fix in the entry above remains the one thing this
+  doesn't close — it defends the import path, not the shared-process
+  results-file secret, which is a different attack surface entirely.
 
 ## Prior work
 
