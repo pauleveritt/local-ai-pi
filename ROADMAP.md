@@ -16,6 +16,37 @@ structure for them. That's a real question, but it's downstream of having a
 working engine and real suites to write about; it isn't Phase 1's job. See
 `BRIEF.md`, "First decision for the new session.")*
 
+## Concept budget
+
+*Every term below is a cost against a 5–10 h/wk volunteer's ability to hold
+the design in mind — see `BRIEF.md`. Checked and updated at the end of each
+cycle; a term earns its place by naming something the design actually needs,
+not by being convenient shorthand.*
+
+| Term | Means | Introduced |
+|---|---|---|
+| feature cycle | the unit of work within a phase — one small, provable thing | kickoff |
+| phase | groups feature cycles; one direction at a time | kickoff |
+| suite | the acceptance test suite a solution is graded against | cycle 1 |
+| fixture | a known-good or known-broken example solution, used to prove the grader itself | cycle 1 |
+| workspace | a disposable, git-initialized copy of a fixture that actually gets graded | cycle 2 |
+| hermetic | graded in isolation — nothing outside the workspace can affect the verdict | cycle 2 |
+| harness | the eval harness as a whole (`harness/` package) | kickoff |
+| verdict | the accept/reject/refuse outcome of grading one workspace (`GradeResult`) | cycle 3 |
+| hook | the pytest hook that writes the real per-test outcomes to a results file | cycle 3 |
+| vacuous / non-vacuity | a test that passes without testing what it claims to — this project's recurring hazard | cycle 3 |
+| refusal | the grader declines to certify a run before pytest ever executes | cycle 5 |
+| task spec | the AgentClinic roadmap document a model builds a solution from | cycle 6 |
+| seam | a parameter standing in for a value that could change, so nothing has to change if it does — not a hardcode | `BRIEF.md`, reused cycle 7 |
+| liveness (check) | confirming the model server responds before a run is even attempted | cycle 7 |
+| allowlist | which model-written files get graded at all (planned, cycle 9) | cycle 5's close |
+| checkpoint | an append-only record of completed runs, tolerant of a truncated last line (planned, cycle 10) | cycle 2's deferrals |
+
+**Retired, not currently spent:** `oracle` (dropped — "grader"/"verdict" cover
+the same ground without a term borrowed from testing theory); `conjunct`
+(renamed to `condition` — cycle 5's audit caught the rename hadn't reached
+every test name).
+
 ## Phases
 
 | # | Phase | Direction (one sentence) | Status |
@@ -32,8 +63,8 @@ working engine and real suites to write about; it isn't Phase 1's job. See
 | 4 | Subversion fixtures — fixtures that attack grading (`addopts = --collect-only`; import-time `os._exit(0)`), confirmed to defeat a naive exit-code grader | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle4-subversion-fixtures-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle4-subversion-fixtures.md) | Done |
 | 5 | Refusal of model-written config — the grader refuses to certify a run whose workspace carries model-written `pytest.ini`/`.pytest.ini`/`pyproject.toml`/`tox.ini`/`setup.cfg`/`conftest.py`/`sitecustomize.py`, before pytest ever runs. Split from the original combined row (below) — the allowlist half needed evidence this half didn't. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle5-config-refusal-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle5-config-refusal.md) | Done |
 | 6 | AgentClinic task spec — transplanted **Phase 1's section only** of the detailed roadmap to `examples/agentclinic/specs/roadmap.md`, the document the trusted number was produced against, resolving a citation cycle 1's suite had carried since. Deliberately *not* a variant choice: see the Backlog note. Also fixed the grading regression the transplant made reachable. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle6-task-spec-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle6-task-spec.md) | Done |
-| 7 | Model-server liveness check — server up passes; server stopped is caught, not recorded as data | | | Next |
-| 8 | First real run — `pi` against a fresh workspace, graded hermetically. Exercises the workspace's initial commit as a diff base. | | | Planned |
+| 7 | Model-server liveness check — `check_model_server_alive` GETs `/v1/models` on the `omlx` server (`127.0.0.1:8001` default, a seam) and raises `ModelServerDown` on anything but a 200; proven against a stub HTTP server, not a real model, with two distinct down-modes (nothing listening; a completed exchange with a bad status) so the raise isn't just "catch anything." | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle7-liveness-check-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle7-liveness-check.md) | Done |
+| 8 | First real run — `pi` against a fresh workspace, graded hermetically. Exercises the workspace's initial commit as a diff base. | | | Next |
 | 9 | Source allowlist — which model-written *files* get graded at all, as distinct from cycle 5's config refusal. Split out of cycle 5's original row because it needs evidence of what a model actually scatters into a workspace, which doesn't exist until cycle 8 produces a real run to look at. | | | Planned |
 | 10 | Checkpoint recording — append per completed run, tolerate a truncated final line | | | Planned |
 | 11 | n=16 batch, sequential and resumable — target ~15/16 | | | Planned |
@@ -164,6 +195,22 @@ Carried forward as notes from cycle 6:
   transplanted spec states `app.py` and FastAPI explicitly, so this one
   checks out — but phases 2 and 3, whose suites import `models` and
   `Complaint` by name, are where it would bite.
+
+**Carried forward as a note for cycle 8, surfaced by cycle 7's review.**
+The first draft of `check_model_server_alive`'s default address was
+`localhost:1234` — LM Studio's port, copied from a different branch's
+environment. `BRIEF.md` records this environment's actual server as `omlx`
+on `127.0.0.1:8001`; the default was corrected before implementation, but
+it's worth cycle 8 double-checking against `BRIEF.md` directly rather than
+trusting the default silently, in case the served address ever changes
+again.
+
+**Carried forward as a task for cycle 8, not yet done.** Cycle 7
+deliberately built and proved `check_model_server_alive` in isolation —
+calling it before `pi` runs is explicitly cycle 8's job, not cycle 7's.
+Cycle 8 must call it (and let `ModelServerDown` propagate as an
+environment failure, not a graded verdict) before invoking `pi` for the
+first real run.
 
 Nothing else is currently deferred. Add to this list as later cycles pass
 things over.
