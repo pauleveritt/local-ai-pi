@@ -40,7 +40,7 @@ not by being convenient shorthand.*
 | seam | a parameter standing in for a value that could change, so nothing has to change if it does — not a hardcode | `BRIEF.md`, reused cycle 7 |
 | liveness (check) | confirming the model server responds before a run is even attempted | cycle 7 |
 | allowlist | which model-written paths (`app.py`, `templates`) get copied into a fresh directory and graded at all | cycle 5's close, implemented cycle 9 |
-| checkpoint | an append-only record of completed runs, tolerant of a truncated last line (planned, cycle 10) | cycle 2's deferrals |
+| checkpoint | an append-only JSONL record of completed runs; resumes by counting valid lines, tolerant of a truncated last line on both read and write | cycle 2's deferrals, implemented cycle 10 |
 
 **Retired, not currently spent:** `oracle` (dropped — "grader"/"verdict" cover
 the same ground without a term borrowed from testing theory); `conjunct`
@@ -66,8 +66,8 @@ every test name).
 | 7 | Model-server liveness check — `check_model_server_alive` GETs `/v1/models` on the `omlx` server (`127.0.0.1:8001` default, a seam) and raises `ModelServerDown` on anything but a 200; proven against a stub HTTP server, not a real model, with two distinct down-modes (nothing listening; a completed exchange with a bad status) so the raise isn't just "catch anything." | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle7-liveness-check-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle7-liveness-check.md) | Done |
 | 8 | First real run — `run_agentclinic_phase1()` invokes `pi` against a fresh, literally-empty workspace (a `.gitkeep` fixture, to sidestep `prepare_workspace`'s empty-directory commit bug rather than fix it), captures a diff against the workspace's initial commit, and grades hermetically via cycles 3–6's grader. The task spec is passed as `pi`'s prompt text, never placed in the workspace. **Actually run, live, against the real `omlx` server, once the harness code and three bugs invisible to fixture-only testing were fixed** (see below): the model built a working AgentClinic Phase 1 app and it graded `accepted=True, tests_executed=tests_expected=4, returncode=0`. | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle8-first-real-run-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle8-first-real-run.md) | Done |
 | 9 | Source allowlist — `grade()` now copies only allowlisted paths (`app.py`, `templates`, default) plus the suite into a fresh grading directory and runs pytest there, instead of `cwd=workspace`. Closes the sys.path-shadowing threat by construction: a model-written `harness/` package or `pytest.py` is never copied in, so it can never be imported in place of the real thing. Proven with a verified-first exploit — a rogue `harness/grading_plugin.py` that crashed collection and leaked into `stderr` under the old code, confirmed inert after the fix. | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle9-source-allowlist-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle9-source-allowlist.md) | Done |
-| 10 | Checkpoint recording — append per completed run, tolerate a truncated final line | | | Next |
-| 11 | n=16 batch, sequential and resumable — target ~15/16 | | | Planned |
+| 10 | Checkpoint recording — `harness/checkpoint.py`'s `append_checkpoint`/`load_checkpoint` persist a `RunResult` per completed run as JSONL, resuming by position (the Nth valid line is run N). `load_checkpoint` tolerates a truncated final line (a process that died mid-write); `append_checkpoint` cleans up that same dangling fragment before writing its own record, so resuming more than once stays safe — a real corruption bug Fable's review caught before implementation, where the naive version would have concatenated onto the fragment instead. | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle10-checkpoint-recording-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle10-checkpoint-recording.md) | Done |
+| 11 | n=16 batch, sequential and resumable — target ~15/16 | | | Next |
 
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus
 *before* a model runs once — every one of them is provable against fixtures
@@ -77,7 +77,10 @@ Phase 1 was chosen for being boring (see `BRIEF.md`). Building the grader
 after the first run would produce output with no trusted way to judge it.
 Cycle 9 (the allowlist) is the one deliberate exception — it is judging
 apparatus built *after* a model has run, because it is the one piece that
-needs a model's actual output to be anything more than a guess.
+needs a model's actual output to be anything more than a guess. Cycle 10
+(checkpoint recording) returns to the fixture-only pattern: its tests
+construct a `RunResult` by hand and never invoke `pi` or the model
+server, exactly like cycles 3–7.
 
 Cycles 4-before-5, 6-before-8, and 8-before-9 follow cycle 1's precedent:
 the artifacts that make a proof possible get their own cycle, ahead of the
