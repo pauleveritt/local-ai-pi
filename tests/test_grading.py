@@ -208,3 +208,27 @@ def test_grade_ignores_model_written_tests_and_grades_the_suite_alone(tmp_path):
 
     assert result.accepted is True
     assert result.tests_executed == result.tests_expected == 4
+
+
+def test_grade_is_not_shadowed_by_a_workspace_root_harness_package(tmp_path):
+    """Before this fix, `cwd=workspace` put a model-written harness/
+    package ahead of the real one on sys.path, so `-p
+    harness.grading_plugin` could import the model's copy instead of the
+    real plugin. Verified directly: a rogue harness/grading_plugin.py
+    that raises on import crashes collection (tests_executed == 0) and
+    its exception text reaches stderr, under today's implementation."""
+    source = tmp_path / "shadow-attempt"
+    shutil.copytree(PHASE_1 / "broken", source)
+    rogue_pkg = source / "harness"
+    rogue_pkg.mkdir()
+    (rogue_pkg / "__init__.py").write_text("")
+    (rogue_pkg / "grading_plugin.py").write_text(
+        "raise RuntimeError('SHADOW_MARKER')\n"
+    )
+
+    with prepare_workspace(source) as workspace:
+        result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")
+
+    assert "SHADOW_MARKER" not in result.stderr
+    assert result.tests_executed == 4
+    assert result.accepted is False

@@ -64,11 +64,23 @@ def _verdict(
     )
 
 
-def grade(workspace: Path, suite: Path, timeout: int = 30) -> GradeResult:
-    """Copy suite into workspace, run pytest there with the grading
-    plugin loaded, and return the verdict read from the results file the
-    plugin's hooks wrote. Refuses before doing either, when the workspace
-    carries model-written config."""
+def grade(
+    workspace: Path,
+    suite: Path,
+    timeout: int = 30,
+    source_allowlist: tuple[str, ...] = ("app.py", "templates"),
+) -> GradeResult:
+    """Copy source_allowlist paths (and the suite) from workspace into a
+    fresh grading directory, run pytest there with the grading plugin
+    loaded, and return the verdict read from the results file the
+    plugin's hooks wrote. Refuses before doing any of that, when the
+    workspace carries model-written config.
+
+    Grading a fresh, allowlist-copied directory instead of workspace
+    itself means a model-written module can never shadow anything on
+    sys.path -- including harness.grading_plugin -- since only
+    allowlisted paths are ever present for pytest's cwd to see.
+    """
     tests_expected = _test_count(suite)
     refused = _refused_config(workspace)
     if refused:
@@ -82,14 +94,25 @@ def grade(workspace: Path, suite: Path, timeout: int = 30) -> GradeResult:
             refused_config=refused,
         )
 
-    shutil.copy2(suite, workspace / suite.name)
-
+    grading_dir = Path(tempfile.mkdtemp(prefix="satyrn-grading-"))
     results_fd, results_path = tempfile.mkstemp(
         prefix="satyrn-grade-results-", suffix=".txt"
     )
     os.close(results_fd)
     results_path = Path(results_path)
     try:
+        for name in source_allowlist:
+            source_path = workspace / name
+            if not source_path.exists():
+                continue
+            dest_path = grading_dir / name
+            if source_path.is_dir():
+                shutil.copytree(source_path, dest_path)
+            else:
+                shutil.copy2(source_path, dest_path)
+
+        shutil.copy2(suite, grading_dir / suite.name)
+
         repo_root = Path(__file__).resolve().parents[1]
         env = dict(os.environ)
         env[RESULTS_ENV_VAR] = str(results_path)
@@ -99,16 +122,13 @@ def grade(workspace: Path, suite: Path, timeout: int = 30) -> GradeResult:
             [
                 sys.executable, "-m", "pytest", "-q",
                 "-p", "harness.grading_plugin",
-                # Collect the acceptance suite and nothing else. The
-                # AgentClinic roadmap instructs the model to write its own
-                # tests/test_app.py, so a workspace legitimately contains
-                # test files the verdict must ignore -- without this path,
-                # they inflate tests_executed past tests_expected and a
-                # correct solution is rejected. The old harness passed
-                # tests/test_acceptance.py here for the same reason.
+                # Collect the acceptance suite and nothing else. See
+                # module-level notes: the allowlist copy already keeps
+                # model-written test files out of the grading directory,
+                # but this stays as a second, independent guard.
                 suite.name,
             ],
-            cwd=workspace,
+            cwd=grading_dir,
             capture_output=True,
             text=True,
             timeout=timeout,
@@ -124,6 +144,7 @@ def grade(workspace: Path, suite: Path, timeout: int = 30) -> GradeResult:
         )
     finally:
         results_path.unlink(missing_ok=True)
+        shutil.rmtree(grading_dir, ignore_errors=True)
 
 
 def _test_count(suite: Path) -> int:

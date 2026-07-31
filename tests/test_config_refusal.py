@@ -98,12 +98,3 @@ def test_grade_does_not_refuse_an_attack_that_writes_no_config(tmp_path):
     assert result.refused_config == ()
     assert result.returncode == 0
     assert result.accepted is False
-
-
-def test_grade_refuses_before_copying_the_suite_into_the_workspace(tmp_path):
-    """Refusal precedes every side effect, not just the subprocess."""
-    source = _attack_with_collect_only(tmp_path)
-    with prepare_workspace(source) as workspace:
-        grade(workspace, SUITE)
-
-        assert not (workspace / SUITE.name).exists()
