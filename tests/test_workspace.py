@@ -96,3 +96,15 @@ def test_prepare_workspace_rejects_the_broken_solution():
     assert result.returncode != 0
     assert "4 failed" in result.stdout
     assert "assert 404 == 200" in result.stdout
+
+
+def test_prepare_workspace_provisions_the_empty_fixture():
+    with prepare_workspace(PHASE_1 / "empty") as workspace:
+        log = subprocess.run(
+            ["git", "log", "--oneline"],
+            cwd=workspace,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        assert log.stdout.strip() != ""
