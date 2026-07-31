@@ -46,3 +46,9 @@ def test_check_model_server_alive_raises_when_nothing_is_listening():
     port = _free_port()
     with pytest.raises(ModelServerDown):
         check_model_server_alive(f"http://localhost:{port}")
+
+
+def test_check_model_server_alive_raises_when_server_returns_non_200():
+    with _stub_server(500, b"") as base_url:
+        with pytest.raises(ModelServerDown):
+            check_model_server_alive(base_url)
