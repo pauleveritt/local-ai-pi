@@ -79,6 +79,36 @@ files, but nothing has named that as a requirement yet.
   would hide real corruption rather than surviving an expected failure
   mode.
 
+Dropping a malformed final line means `len(load_checkpoint(path))` counts
+*completed* runs only — the interrupted run is intentionally re-run, not
+counted as done. That is the correct resume semantic ("the Nth valid line
+is run N" only holds for valid lines), not a gap.
+
+## Resuming after a truncated write
+
+`load_checkpoint` tolerating a truncated final line is not enough on its
+own — a caller who resumes after that (cycle 11: load, discover N runs
+done, run N+1, append it) writes into a file whose last physical line is
+still the dangling fragment `load_checkpoint` just skipped past, because
+skipping it during a read does not remove it from disk. `append_checkpoint`
+opening in append mode and writing straight to the end would then
+concatenate the new record directly onto that fragment — producing one
+merged malformed line, which either corrupts every future read (if a
+later append makes it a non-final line, which now raises) or silently
+discards the run that was just completed (if it stays final). This would
+make the resume flow that motivates this cycle actively unsafe to use
+more than once.
+
+So `append_checkpoint` is responsible for leaving the file well-formed
+before it writes, not just for writing correctly itself: before
+appending, if the file exists and doesn't end in a newline, it truncates
+the file back to the last complete line first, discarding the dangling
+fragment, then appends the new record cleanly. This makes
+`append_checkpoint` idempotent with respect to a prior interrupted write,
+and keeps every file `load_checkpoint` is ever asked to read in the
+"zero or more complete lines, optionally one incomplete final line" shape
+its truncation tolerance already assumes.
+
 ## Testing
 
 Fully hermetic — no model, no `pi`, no HTTP. Construct a `RunResult` (and
@@ -99,6 +129,14 @@ A separate, non-vacuous control: corrupt a **non-final** line instead
 couldn't distinguish "correctly tolerates only the last line" from "just
 skips anything that fails to parse" — the same category of proof cycles 4
 and 9 required for their own attack-resistance claims.
+
+A third test proves the resume flow actually survives more than one
+cycle: given a file left with a dangling truncated final line (the same
+shape the truncation test produces), calling `append_checkpoint` again
+must result in a file that reads back as the earlier complete record
+followed by the newly-appended one — not a merged, corrupted line. This
+is the test that would have caught this cycle's original gap: a naive
+`append_checkpoint` that just opens in append mode and writes.
 
 ## Non-goals recap
 
