@@ -79,9 +79,9 @@ suite in and run pytest with `cwd=workspace`) changes to:
    `source_allowlist`, if `workspace / name` exists, copy it into the
    grading directory (file or directory, recursively) under the same
    name. A missing allowlisted path is skipped, not an error — the
-   `broken` fixture has no `templates/`, and that absence is exactly what
-   its own existing test already depends on (a missing template producing
-   a 404).
+   `broken` fixture has no `templates/` at all (its `app.py` defines no
+   routes, which is what actually produces its test's 404), so the copy
+   loop must tolerate that absence rather than fail on it.
 4. Copy the acceptance suite into the grading directory (as today, just
    a different destination directory).
 5. Run pytest with `cwd=<grading directory>` instead of `cwd=workspace`.
