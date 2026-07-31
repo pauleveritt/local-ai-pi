@@ -7,6 +7,14 @@ from harness.runner import RunResult
 
 
 def append_checkpoint(path: Path, result: RunResult) -> None:
+    if path.is_file():
+        content = path.read_text()
+        if content and not content.endswith("\n"):
+            # A prior write was interrupted mid-line. Drop the dangling
+            # fragment before appending, so this write starts clean
+            # instead of concatenating onto it.
+            path.write_text(content[: content.rfind("\n") + 1])
+
     with path.open("a") as f:
         f.write(json.dumps(asdict(result)) + "\n")
 

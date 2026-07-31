@@ -84,3 +84,19 @@ def test_load_checkpoint_raises_on_a_corrupted_non_final_line(tmp_path):
 
     with pytest.raises(json.JSONDecodeError):
         load_checkpoint(path)
+
+
+def test_append_checkpoint_cleans_up_a_dangling_truncated_line_first(tmp_path):
+    path = tmp_path / "checkpoint.jsonl"
+    complete = _sample_result()
+    append_checkpoint(path, complete)
+
+    with path.open("a") as f:
+        f.write('{"diff": "partial, process died mid-writ')
+
+    new_result = _sample_result(accepted=False)
+    append_checkpoint(path, new_result)
+
+    loaded = load_checkpoint(path)
+
+    assert loaded == [complete, new_result]
