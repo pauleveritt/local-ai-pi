@@ -91,6 +91,12 @@ def run_agentclinic_phase1(
 5. Capture `git diff` of the workspace against its initial commit (the one
    `prepare_workspace` made in step 2) — the only record of what the model
    wrote, since the workspace is deleted when the context manager exits.
+   Plain `git diff <commit>` never shows untracked files, and every file
+   the model creates starts out untracked, so this requires `git add -A`
+   immediately before diffing (`git diff --cached <initial-commit>`), and
+   the initial commit's hash must be captured right after step 2, before
+   `pi` runs — in case the model itself commits during the run and moves
+   `HEAD`.
 6. Call `grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")`.
 7. Return `RunResult(diff=diff_text, grade=grade_result)`.
 

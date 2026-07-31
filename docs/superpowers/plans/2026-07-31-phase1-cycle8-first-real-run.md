@@ -268,6 +268,14 @@ def run_agentclinic_phase1(
     check_model_server_alive()
 
     with prepare_workspace(PHASE_1 / "empty") as workspace:
+        initial_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=workspace,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+
         prompt = TASK_SPEC.read_text()
         subprocess.run(
             [
@@ -288,8 +296,15 @@ def run_agentclinic_phase1(
             check=False,
         )
 
+        # Stage everything before diffing: plain `git diff <commit>` never
+        # shows untracked files, and the model's new files (app.py, etc.)
+        # start out untracked. `git add -A` first, then diff the initial
+        # commit against the index, so new files appear as additions.
+        subprocess.run(
+            ["git", "add", "-A"], cwd=workspace, check=True, capture_output=True
+        )
         diff = subprocess.run(
-            ["git", "diff", "HEAD"],
+            ["git", "diff", "--cached", initial_commit],
             cwd=workspace,
             check=True,
             capture_output=True,
@@ -339,3 +354,12 @@ git commit -m "feat(runner): run_agentclinic_phase1 invokes pi and grades the re
   match `harness/grading.py`'s actual dataclass.
 - **No placeholders:** every step shows complete, runnable code and an
   exact command with an expected result.
+- **Fixed during review (Fable, light review):** the original `git diff
+  HEAD` did not deliver the design's promise. Plain `git diff <commit>`
+  never shows untracked files, and every file the model writes starts out
+  untracked, so the naive version would have captured an empty diff in
+  the ordinary case, and the wrong one entirely if the model itself
+  committed during the run (moving `HEAD`). Fixed to capture the initial
+  commit's hash before `pi` runs, `git add -A` immediately before
+  diffing, and diff that hash against the index (`git diff --cached
+  <initial-commit>`). Spec's step 5 updated to match.
