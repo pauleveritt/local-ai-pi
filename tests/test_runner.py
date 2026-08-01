@@ -5,9 +5,11 @@ from types import SimpleNamespace
 import pytest
 
 import harness.runner as runner
+from harness.checkpoint import load_checkpoint
 from harness.grading import GradeResult
 from harness.processes import ProcessResult
 from harness.runner import (
+    RunConditions,
     RunResult,
     _pi_command,
     preflight_model,
@@ -144,6 +146,27 @@ def test_preflight_rejects_empty_assistant_content(monkeypatch):
 
     with pytest.raises(RuntimeError):
         preflight_model("model-name")
+
+
+def test_run_batch_runs_remaining_attempts_and_appends_each(tmp_path, monkeypatch):
+    checkpoint = tmp_path / "runs.jsonl"
+    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30)
+    calls = []
+
+    monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
+    monkeypatch.setattr(runner, "preflight_model", lambda model: calls.append("preflight"))
+
+    def fake_run(model):
+        calls.append("run")
+        return RunResult("diff", _grade_result(), "out", "", 0, conditions=conditions)
+
+    monkeypatch.setattr(runner, "run_agentclinic_phase1", fake_run)
+
+    records = runner.run_batch(checkpoint, target=2, model="model")
+
+    assert len(records) == 2
+    assert calls == ["preflight", "run", "run"]
+    assert len(load_checkpoint(checkpoint)) == 2
 
 
 @pytest.mark.skipif(

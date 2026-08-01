@@ -13,6 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PHASE_1 = REPO_ROOT / "examples" / "agentclinic" / "phase-1"
 TASK_SPEC = REPO_ROOT / "examples" / "agentclinic" / "specs" / "roadmap.md"
 EXTENSION = REPO_ROOT / ".pi" / "extensions" / "hello-world.ts"
+DEFAULT_MODEL = "omlx/gemma-4-12B-it-MLX-8bit"
 
 
 @dataclass(frozen=True)
@@ -42,7 +43,7 @@ class RunResult:
 
 
 def run_agentclinic_phase1(
-    model: str = "omlx/gemma-4-12B-it-MLX-8bit",
+    model: str = DEFAULT_MODEL,
     timeout: int = 600,
 ) -> RunResult:
     check_model_server_alive()
@@ -136,3 +137,33 @@ def _has_assistant_content(output: str) -> bool:
         if isinstance(content, str) and content.strip():
             return True
     return False
+
+
+def run_batch(
+    checkpoint_path: Path,
+    *,
+    target: int = 16,
+    model: str = DEFAULT_MODEL,
+) -> list[RunResult]:
+    """Run sequential attempts until the requested checkpoint length."""
+    from harness.checkpoint import append_checkpoint, load_checkpoint
+
+    if target < 0:
+        raise ValueError("target must not be negative")
+    records = load_checkpoint(checkpoint_path)
+    command = _pi_command(model, TASK_SPEC.read_text())
+    requested = _conditions(model, command, 600)
+    for record in records:
+        if record.conditions != requested:
+            raise ValueError("checkpoint conditions do not match this batch")
+    if len(records) >= target:
+        return records[:target]
+
+    preflight_model(model)
+    while len(records) < target:
+        result = run_agentclinic_phase1(model=model)
+        if result.conditions != requested:
+            raise RuntimeError("run conditions changed during batch")
+        append_checkpoint(checkpoint_path, result)
+        records.append(result)
+    return records
