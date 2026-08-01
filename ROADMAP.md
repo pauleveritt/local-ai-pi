@@ -70,13 +70,11 @@ every test name).
 | 11 | Hang tolerance — `grade()`'s pytest subprocess and `run_agentclinic_phase1()`'s `pi` subprocess both currently let `subprocess.TimeoutExpired` propagate uncaught, crashing the run instead of producing a rejection. A batch needs one hung run recorded and the rest to continue, not the whole batch aborted. The actual prerequisite for "resumable batch," not the batch loop itself. | | | Next |
 | 12 | n=16 batch, sequential and resumable — target ~15/16 | | | Planned |
 | 13 | `harness/workspace.py` hardening — a global `core.hooksPath` pre-commit hook breaking `prepare_workspace`'s commit, and `prepare_workspace` raising `CalledProcessError` on a literally-empty source directory. Both homeless since cycle 2's review; folded into their own small cycle rather than left dangling past Phase 1's end. | | | Planned |
-| 14 | Live-server suite execution (fidelity) — the acceptance suite stops importing `app` and `TestClient`, and talks HTTP to a real uvicorn subprocess instead. Splits the single grading directory into an `app_dir` (allowlisted model files only) and a `suite_dir` (suite only), so the pytest process becomes model-free by construction. Justified primarily by fidelity, not security: `TestClient` bypasses the real ASGI stack, so a solution passing it can still fail under uvicorn. | | | Planned |
-| 15 | Results-channel hardening (security) — closes the forged-results-file gap for real. **Verified empirically during cycle 14's brainstorm: process separation alone does NOT close it.** A subprocess with `SATYRN_GRADE_RESULTS_PATH` scrubbed still globs `$TMPDIR/satyrn-grade-results-*.txt` (the prefix is a literal in `grading.py`) and forges a pass — mode `0600` is worthless at the same UID. The fix, also verified: keep the results file's fd, unlink its path immediately, pass the fd only to the trusted pytest process. Split from cycle 14 so each half is independently provable, and so cycle 14's fidelity value doesn't depend on the security model being right. | | | Planned |
 
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus
 *before* a model runs once — every one of them is provable against fixtures
 with no model in the loop. That is deliberate: it means the ~15/16 at cycle
-11 measures the model rather than the engine, which is the whole reason
+12 measures the model rather than the engine, which is the whole reason
 Phase 1 was chosen for being boring (see `BRIEF.md`). Building the grader
 after the first run would produce output with no trusted way to judge it.
 Cycle 9 (the allowlist) is the one deliberate exception — it is judging
@@ -91,22 +89,40 @@ the artifacts that make a proof possible get their own cycle, ahead of the
 machinery that consumes them.
 
 **The 2026-07-31 harvest re-plan.** After cycle 10 closed, a stocktake of
-everything sitting in Deferred candidates and the Backlog turned four
+everything sitting in Deferred candidates and the Backlog turned three
 items into cycles rather than leaving them to fall off the end of Phase 1
 unaddressed: hang tolerance (new cycle 11, following the same
 before-the-machinery-that-needs-it logic as cycle 1's precedent — the
 n=16 batch is the machinery, hang tolerance is the artifact it depends
-on), the n=16 batch itself (pushed from 11 to 12), `harness/workspace.py`
-hardening (new cycle 13, closing two bugs homeless since cycle 2's
-review), and out-of-process suite execution (new cycle 14, promoted from
-the Backlog's largest known correctness gap). Three items were
-deliberately *not* promoted: the `pyproject.toml` reservation and
-`pi_stdout`/`pi_stderr`-on-timeout capture are both evidence-gated with
-no evidence yet — forcing them into a cycle now would be exactly the
-"machinery ahead of the contract it serves" `BRIEF.md` warns against; the
-roadmap-variant experiment, the phase-2+ authoring scaffold, and
-telemetry all stay in the Backlog because they're Phase 2's business, not
-Phase 1's — see the Backlog section.
+on), the n=16 batch itself (pushed from 11 to 12), and
+`harness/workspace.py` hardening (new cycle 13, closing two bugs homeless
+since cycle 2's review). Items deliberately *not* promoted: the
+`pyproject.toml` reservation and `pi_stdout`/`pi_stderr`-on-timeout
+capture are both evidence-gated with no evidence yet — forcing them into
+a cycle now would be exactly the "machinery ahead of the contract it
+serves" `BRIEF.md` warns against; the roadmap-variant experiment, the
+phase-2+ authoring scaffold, and telemetry all stay in the Backlog
+because they're Phase 2's business, not Phase 1's — see the Backlog
+section.
+
+**Correction, 2026-08-01: the harvest re-plan also promoted
+out-of-process suite execution as cycle 14, and that promotion is
+withdrawn.** It was ranked by severity-if-exploited rather than by
+expected value against the actual threat, and "largest known gap" quietly
+became "next thing to build." Three arguments against it, in ascending
+order of weight. The threat is not live: forging a verdict requires a 12B
+model to know a grader exists, know its filename prefix, and know its
+`nodeid<TAB>outcome` file format, none of which appears in the task spec
+it receives. The fidelity argument was overstated: `TestClient` diverges
+from a real server on lifespan events, streaming, and connection
+semantics, and Phase 1's suite exercises none of them — it asserts a 200,
+a substring, two links, and a doctype. And decisively, the acceptance
+suite *is* the measuring instrument that produced the trusted number;
+rewriting it at the end of a reproduction phase, and paying a sixteen-run
+re-baseline to get back to where we already are, is the same move cycle 6
+refused for one bullet of the task spec. Phase 1 now ends at cycle 13.
+The research survives in the Backlog entry — it is worth keeping and
+expensive to re-derive.
 
 ### Deferred candidates
 
@@ -340,32 +356,69 @@ things over.
 - Acceptance-suite rules beyond human-authorship (cumulative,
   contract-vs-implementation, non-vacuous, naming convention) — untouched,
   each needs its own argument when it becomes relevant.
-- **Promoted to Phase 1 cycle 14 by the 2026-07-31 harvest re-plan.**
-  Acceptance grading still trusts a same-process signal a model can
-  forge. A model-authored `app.py` can read the results-file path from
-  the environment it shares with `harness/grading_plugin.py` and write
-  forged `nodeid<TAB>outcome` lines and a completion marker straight into
-  the results file. Cheap to do, and no in-process secret closes it —
-  anything the plugin can read, model code sharing its process can read
-  too. The real fix is running the suite out-of-process against a live
-  app subprocess instead of in-process `TestClient(app)`, which is
-  materially larger than the cycle that surfaced it — scoped out of
-  cycle 4 by explicit decision, not oversight (see that cycle's design
-  doc, "Out of scope for this cycle"). Left in the Backlog for three
-  cycles as the largest known correctness gap; promoted once it was the
-  clear largest remaining item on a harvest pass, not because anything
-  new made it more urgent.
+- **Out-of-process suite execution. Still Backlog — promoted to a Phase 1
+  cycle on 2026-07-31 and withdrawn on 2026-08-01.** Acceptance grading
+  trusts a same-process signal a model can forge. A model-authored
+  `app.py` can read the results-file path from the environment it shares
+  with `harness/grading_plugin.py` and write forged `nodeid<TAB>outcome`
+  lines and a completion marker straight into the results file. No
+  in-process secret closes it — anything the plugin can read, model code
+  sharing its process can read too. Scoped out of cycle 4 by explicit
+  decision, not oversight (see that cycle's design doc, "Out of scope for
+  this cycle").
 
-  **Cycle 14's brainstorm then split it into cycles 14 and 15, and
-  disproved the obvious fix along the way.** Running the app in a
-  separate process with the env var scrubbed does *not* close this: the
-  app subprocess globs `$TMPDIR/satyrn-grade-results-*.txt` and forges a
-  pass, because it runs as the same UID that owns the `0600` file.
-  Demonstrated directly, not argued — a broken solution graded as
-  accepted. The working fix (also demonstrated): hold the results file's
-  fd, unlink its path so nothing is on disk to find, and pass the fd only
-  to the trusted pytest process. Cycle 14 does the fidelity half (live
-  server, model-free pytest process); cycle 15 does this.
+  **Research done during the brief promotion, worth keeping — it is
+  expensive to re-derive and one half of it is counter-intuitive.**
+
+  *The obvious fix does not work.* Running the app in a separate process
+  with `SATYRN_GRADE_RESULTS_PATH` scrubbed does **not** close this. The
+  app subprocess globs `$TMPDIR/satyrn-grade-results-*.txt` — the prefix
+  is a literal in `grading.py` — and forges a pass, because it runs as
+  the same UID that owns the `0600` file. Demonstrated directly, not
+  argued: a broken solution graded as `accepted`.
+
+  *What does work, also demonstrated.* Hold the results file's fd, unlink
+  its path immediately so nothing is on disk to find, and pass the fd
+  only to the trusted pytest process via `pass_fds`. The hostile
+  subprocess then found zero glob candidates, no `SATYRN_*` variables,
+  and no writable inherited fd, while the real outcome came through
+  intact.
+
+  *It is all-or-nothing.* The fd fix only works **after** out-of-process
+  execution — in-process, model code reads the fd from its own process
+  table or introspects `sys.modules` for the plugin. There is no cheap
+  partial version.
+
+  *Two further design findings.* Once the suite talks HTTP, the pytest
+  process needs nothing model-written, so the grading directory can split
+  into an `app_dir` (allowlisted files) and a `suite_dir` (suite only),
+  making the pytest process model-free by construction — and closing an
+  unnamed vector where `app.py` could read `test_acceptance.py` at import
+  time and craft responses against its literals. Feasibility confirmed
+  against real uvicorn subprocesses: `reference` serves 200 with the
+  tagline, `broken` serves 404 despite having no `templates/`, both from
+  a directory containing no acceptance suite.
+
+  **Why it was withdrawn.** Ranked by severity-if-exploited rather than
+  expected value. Forging requires a 12B model to know a grader exists,
+  its filename prefix, and its file format — none of which is in the task
+  spec it receives. The fidelity case was overstated for *this* suite,
+  which asserts a 200, a substring, two links, and a doctype, and touches
+  none of where `TestClient` actually diverges from a live server. And
+  the acceptance suite is the measuring instrument that produced the
+  trusted number: rewriting it during a reproduction phase, at the cost
+  of a sixteen-run re-baseline, is the move cycle 6 refused for a single
+  bullet of the task spec.
+
+  **What would make it worth building.** Contributors writing suites for
+  arbitrary workflows, where the grader's trustworthiness becomes
+  load-bearing for a claim someone acts on; a suite that genuinely needs
+  real-server semantics (lifespan, streaming, websockets, middleware
+  ordering); or models strong enough to reason about their own evaluation
+  environment. A natural Phase 2 candidate alongside telemetry. The
+  withdrawn cycle-14 design doc
+  (`docs/superpowers/specs/2026-08-01-phase1-cycle14-live-server-execution-design.md`)
+  is kept as the starting point.
 - **Resolved by cycle 9, kept for the record.** Same root cause,
   different shape from the entry above: `python -m pytest` with
   `cwd=workspace` used to put the workspace first on `sys.path`. A

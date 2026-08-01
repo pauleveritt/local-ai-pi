@@ -1,7 +1,35 @@
 # Cycle 14 — Live-server suite execution
 
 **Phase:** 1 — Reproduce AgentClinic Phase 1 with a trustworthy engine
-**Status:** design, awaiting plan
+**Status: WITHDRAWN 2026-08-01, never implemented.** Kept for its
+research, not as a plan of record. Phase 1 ends at cycle 13.
+
+> **Read this first.** This design was approved and then withdrawn the
+> same day, on the owner's challenge that it was a large jump in
+> complexity for a threat that isn't live. That challenge was correct.
+>
+> Three reasons it was withdrawn. **The threat is theoretical for Phase
+> 1**: forging a verdict requires a 12B model to know a grader exists,
+> know its filename prefix, and know its `nodeid<TAB>outcome` format,
+> none of which appears in the task spec it receives — it has no reason
+> to look. **The fidelity argument below is overstated for this suite**:
+> `TestClient` diverges from a live server on lifespan events,
+> streaming, and connection semantics, and Phase 1's suite exercises none
+> of them — it asserts a 200, a substring, two links, and a doctype.
+> **And decisively, the acceptance suite is the measuring instrument that
+> produced the trusted number** — rewriting it at the end of a
+> *reproduction* phase, then paying a sixteen-run re-baseline to return
+> to where we already were, is the same move cycle 6 refused for one
+> bullet of the task spec.
+>
+> What survives is the research: the empirical finding that process
+> separation alone does **not** close the gap (see "What this cycle is
+> not"), the `app_dir`/`suite_dir` split, and the uvicorn feasibility
+> results. See `ROADMAP.md`'s Backlog entry for the full record and for
+> what would make this worth building later — most likely Phase 2,
+> alongside telemetry.
+>
+> Everything below is the design as approved, unedited.
 
 ## Why this cycle
 
