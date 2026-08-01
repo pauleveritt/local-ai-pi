@@ -1,13 +1,13 @@
 import ast
 import os
 import shutil
-import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
 from harness.grading_plugin import DONE_MARKER, RESULTS_ENV_VAR
+from harness.processes import run_process
 
 _REFUSED_CONFIG = (
     "pyproject.toml",
@@ -29,10 +29,16 @@ class GradeResult:
     stdout: str
     stderr: str
     refused_config: tuple[str, ...]
+    timed_out: bool = False
 
 
 def _verdict(
-    results_text: str, tests_expected: int, returncode: int, stdout: str, stderr: str
+    results_text: str,
+    tests_expected: int,
+    returncode: int | None,
+    stdout: str,
+    stderr: str,
+    timed_out: bool = False,
 ) -> GradeResult:
     lines = results_text.splitlines()
     done = DONE_MARKER in lines
@@ -51,6 +57,7 @@ def _verdict(
         and tests_expected > 0
         and all(outcome == "passed" for outcome in outcomes.values())
         and returncode == 0
+        and not timed_out
     )
 
     return GradeResult(
@@ -61,13 +68,14 @@ def _verdict(
         stdout=stdout,
         stderr=stderr,
         refused_config=(),
+        timed_out=timed_out,
     )
 
 
 def grade(
     workspace: Path,
     suite: Path,
-    timeout: int = 30,
+    timeout: int | float = 30,
     source_allowlist: tuple[str, ...] = ("app.py", "templates"),
 ) -> GradeResult:
     """Copy source_allowlist paths (and the suite) from workspace into a
@@ -116,7 +124,7 @@ def grade(
         repo_root = Path(__file__).resolve().parents[1]
         env = _grading_environment(repo_root, grading_dir, results_path)
 
-        proc = subprocess.run(
+        proc = run_process(
             [
                 sys.executable, "-m", "pytest", "-q",
                 "-p", "harness.grading_plugin",
@@ -130,10 +138,8 @@ def grade(
                 # was rejected.
                 suite.name,
             ],
-            cwd=grading_dir,
-            capture_output=True,
-            text=True,
             timeout=timeout,
+            cwd=grading_dir,
             env=env,
         )
         results_text = results_path.read_text() if results_path.is_file() else ""
@@ -143,6 +149,7 @@ def grade(
             returncode=proc.returncode,
             stdout=proc.stdout,
             stderr=proc.stderr,
+            timed_out=proc.timed_out,
         )
     finally:
         results_path.unlink(missing_ok=True)

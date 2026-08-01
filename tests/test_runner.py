@@ -6,6 +6,7 @@ import pytest
 
 import harness.runner as runner
 from harness.grading import GradeResult
+from harness.processes import ProcessResult
 from harness.runner import RunResult, run_agentclinic_phase1
 
 
@@ -39,14 +40,6 @@ def test_run_agentclinic_phase1_calls_pi_and_returns_its_result(tmp_path, monkey
         if command[:2] == ["git", "rev-parse"]:
             events.append("initial-commit")
             return SimpleNamespace(stdout="initial\n")
-        if command[0] == "pi":
-            events.append("pi")
-            assert kwargs["cwd"] == workspace
-            assert kwargs["check"] is False
-            assert kwargs["capture_output"] is True
-            return SimpleNamespace(
-                stdout="model output", stderr="model diagnostics", returncode=0
-            )
         if command[:2] == ["git", "add"]:
             events.append("stage")
             return SimpleNamespace()
@@ -54,6 +47,12 @@ def test_run_agentclinic_phase1_calls_pi_and_returns_its_result(tmp_path, monkey
             events.append("diff")
             return SimpleNamespace(stdout="diff --cached")
         raise AssertionError(f"unexpected command: {command}")
+
+    def fake_process(command, **kwargs):
+        events.append("pi")
+        assert command[0] == "pi"
+        assert kwargs["cwd"] == workspace
+        return ProcessResult(0, "model output", "model diagnostics", timed_out=False)
 
     def fake_grade(actual_workspace, suite):
         events.append("grade")
@@ -64,6 +63,7 @@ def test_run_agentclinic_phase1_calls_pi_and_returns_its_result(tmp_path, monkey
     monkeypatch.setattr(runner, "check_model_server_alive", fake_liveness)
     monkeypatch.setattr(runner, "prepare_workspace", fake_workspace)
     monkeypatch.setattr(runner.subprocess, "run", fake_run)
+    monkeypatch.setattr(runner, "run_process", fake_process)
     monkeypatch.setattr(runner, "grade", fake_grade)
 
     result = run_agentclinic_phase1()
@@ -84,6 +84,20 @@ def test_run_agentclinic_phase1_calls_pi_and_returns_its_result(tmp_path, monkey
         pi_stderr="model diagnostics",
         pi_returncode=0,
     )
+    assert result.accepted is True
+
+
+def test_run_result_rejects_a_timed_out_pi_even_when_the_grade_accepted():
+    result = RunResult(
+        diff="partial diff",
+        grade=_grade_result(),
+        pi_stdout="partial output",
+        pi_stderr="",
+        pi_returncode=None,
+        pi_timed_out=True,
+    )
+
+    assert result.accepted is False
 
 
 @pytest.mark.skipif(

@@ -254,6 +254,18 @@ def test_grade_ignores_ambient_collect_only_option(monkeypatch):
     assert result.tests_executed == result.tests_expected == 4
 
 
+def test_grade_returns_a_timed_out_rejection(tmp_path):
+    suite = tmp_path / "test_timeout.py"
+    suite.write_text("import time\n\n\ndef test_blocks():\n    time.sleep(30)\n")
+
+    with prepare_workspace(PHASE_1 / "reference") as workspace:
+        result = grade(workspace, suite, timeout=0.1)
+
+    assert result.accepted is False
+    assert result.timed_out is True
+    assert result.returncode != 0
+
+
 def test_grade_rejects_the_broken_solution():
     with prepare_workspace(PHASE_1 / "broken") as workspace:
         result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")

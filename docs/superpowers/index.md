@@ -31,8 +31,9 @@ rather than the engine.
 | 9 | Source allowlist | [spec](specs/2026-07-31-phase1-cycle9-source-allowlist-design.md) | [plan](plans/2026-07-31-phase1-cycle9-source-allowlist.md) |
 | 10 | Checkpoint recording | [spec](specs/2026-07-31-phase1-cycle10-checkpoint-recording-design.md) | [plan](plans/2026-07-31-phase1-cycle10-checkpoint-recording.md) |
 | 11 | Corrective hardening | [spec](specs/2026-08-01-phase1-cycle11-corrective-hardening-design.md) | [plan](plans/2026-08-01-phase1-cycle11-corrective-hardening.md) |
+| 12 | Hang tolerance | [spec](specs/2026-08-01-phase1-cycle12-hang-tolerance-design.md) | [plan](plans/2026-08-01-phase1-cycle12-hang-tolerance.md) |
 
-Cycles 12–14 (hang tolerance, the batch contract, and the n=16 batch) are
+Cycles 13–14 (the batch contract and the n=16 batch) are
 planned but not yet built — see `ROADMAP.md` in this checkout.
 
 ## Withdrawn
@@ -68,6 +69,7 @@ specs/2026-07-31-phase1-cycle8-first-real-run-design
 specs/2026-07-31-phase1-cycle9-source-allowlist-design
 specs/2026-07-31-phase1-cycle10-checkpoint-recording-design
 specs/2026-08-01-phase1-cycle11-corrective-hardening-design
+specs/2026-08-01-phase1-cycle12-hang-tolerance-design
 specs/2026-08-01-phase1-cycle14-live-server-execution-design
 ```
 
@@ -87,6 +89,7 @@ plans/2026-07-31-phase1-cycle8-first-real-run
 plans/2026-07-31-phase1-cycle9-source-allowlist
 plans/2026-07-31-phase1-cycle10-checkpoint-recording
 plans/2026-08-01-phase1-cycle11-corrective-hardening
+plans/2026-08-01-phase1-cycle12-hang-tolerance
 ```
 
 ```{toctree}

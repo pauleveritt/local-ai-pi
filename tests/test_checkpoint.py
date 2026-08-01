@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 
 import pytest
 
@@ -183,4 +184,19 @@ def test_load_checkpoint_preserves_a_pre_returncode_record(tmp_path):
     loaded = load_checkpoint(path)
 
     assert loaded[0].pi_returncode is None
+    assert loaded[0].pi_timed_out is False
     assert loaded[0].diff == record.diff
+
+
+def test_checkpoint_round_trips_timeout_flags(tmp_path):
+    path = tmp_path / "checkpoint.jsonl"
+    result = replace(
+        _sample_result(),
+        grade=replace(_sample_result().grade, timed_out=True),
+        pi_returncode=None,
+        pi_timed_out=True,
+    )
+
+    append_checkpoint(path, result)
+
+    assert load_checkpoint(path) == [result]

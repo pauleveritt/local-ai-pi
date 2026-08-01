@@ -4,6 +4,7 @@ from pathlib import Path
 
 from harness.grading import GradeResult, grade
 from harness.liveness import check_model_server_alive
+from harness.processes import run_process
 from harness.workspace import prepare_workspace
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -19,6 +20,11 @@ class RunResult:
     pi_stdout: str
     pi_stderr: str
     pi_returncode: int | None
+    pi_timed_out: bool = False
+
+    @property
+    def accepted(self) -> bool:
+        return not self.pi_timed_out and self.grade.accepted
 
 
 def run_agentclinic_phase1(
@@ -37,7 +43,7 @@ def run_agentclinic_phase1(
         ).stdout.strip()
 
         prompt = TASK_SPEC.read_text()
-        pi_proc = subprocess.run(
+        pi_proc = run_process(
             [
                 "pi",
                 "--print",
@@ -51,11 +57,8 @@ def run_agentclinic_phase1(
                 "--approve",
                 prompt,
             ],
-            cwd=workspace,
             timeout=timeout,
-            check=False,
-            capture_output=True,
-            text=True,
+            cwd=workspace,
         )
 
         # Stage everything before diffing: plain `git diff <commit>` never
@@ -81,4 +84,5 @@ def run_agentclinic_phase1(
         pi_stdout=pi_proc.stdout,
         pi_stderr=pi_proc.stderr,
         pi_returncode=pi_proc.returncode,
+        pi_timed_out=pi_proc.timed_out,
     )

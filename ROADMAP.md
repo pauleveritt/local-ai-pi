@@ -46,6 +46,7 @@ not by being convenient shorthand.*
 | run | one invocation of Pi against one fresh workspace, followed by its grade | cycle 8 |
 | batch | a fixed, sequential set of runs under one declared set of conditions | cycle 11's re-plan |
 | extension | the fixed project-supplied Pi addition loaded for each run, distinct from Pi's ambient extensions | cycle 8 |
+| process group | one Pi or pytest child plus descendants, terminated together if that child times out | cycle 12 |
 
 **Retired, not currently spent:** `oracle` — dropped from the engine's
 vocabulary, since "grader"/"verdict" cover the same ground without a term
@@ -76,8 +77,8 @@ test name.
 | 9 | Source allowlist — `grade()` now copies only allowlisted paths (`app.py`, `templates`, default) plus the suite into a fresh grading directory and runs pytest there, instead of `cwd=workspace`. Closes the sys.path-shadowing threat by construction: a model-written `harness/` package or `pytest.py` is never copied in, so it can never be imported in place of the real thing. Proven with a verified-first exploit — a rogue `harness/grading_plugin.py` that crashed collection and leaked into `stderr` under the old code, confirmed inert after the fix. | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle9-source-allowlist-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle9-source-allowlist.md) | Done |
 | 10 | Checkpoint recording — `harness/checkpoint.py`'s `append_checkpoint`/`load_checkpoint` persist a `RunResult` per completed run as JSONL, resuming by position (the Nth valid line is run N). `load_checkpoint` tolerates a truncated final line (a process that died mid-write); `append_checkpoint` cleans up that same dangling fragment before writing its own record, so resuming more than once stays safe — a real corruption bug Fable's review caught before implementation, where the naive version would have concatenated onto the fragment instead. | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle10-checkpoint-recording-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle10-checkpoint-recording.md) | Done |
 | 11 | Corrective hardening — checkpoint append preserves complete final records and never rewrites valid prefixes; grading uses a controlled child environment; workspace setup is independent of hooks/global Git config and supports a literally empty workspace; missing proof regressions are added. | [spec](docs/superpowers/specs/2026-08-01-phase1-cycle11-corrective-hardening-design.md) | [plan](docs/superpowers/plans/2026-08-01-phase1-cycle11-corrective-hardening.md) | Done |
-| 12 | Hang tolerance — Pi and pytest timeouts must terminate their entire process groups, yield bounded rejected results, and let a later batch attempt continue. | | | Next |
-| 13 | Batch contract — restore the trusted Pi invocation shape, prove real model output before a batch, and record the conditions that make completed runs comparable. | | | Planned |
+| 12 | Hang tolerance — Pi and pytest timeouts terminate their entire process groups, yield bounded rejected results with partial output, and let a later batch attempt continue. | [spec](docs/superpowers/specs/2026-08-01-phase1-cycle12-hang-tolerance-design.md) | [plan](docs/superpowers/plans/2026-08-01-phase1-cycle12-hang-tolerance.md) | Done |
+| 13 | Batch contract — restore the trusted Pi invocation shape, prove real model output before a batch, and record the conditions that make completed runs comparable. | | | Next |
 | 14 | n=16 batch, sequential and resumable — target ~15/16 | | | Planned |
 
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus
@@ -199,13 +200,13 @@ one is still open and has nowhere else to go:
   Backlog entry (below) for the full resolution. Cycle 9 took exactly the
   copy-only-allowlisted-files shape this note speculated about.
 
-**Deferred to cycle 12.** Surfaced by cycle 5's brainstorming, not a
+**Resolved by cycle 12.** Surfaced by cycle 5's brainstorming, not a
 specific single cycle at the time:
 `grade()` never catches `subprocess.TimeoutExpired`; it propagates
 uncaught. Immaterial for a single run, but a batch needs one hung run to
 record a rejection and continue, not abort the whole batch. Cycle 10's
 checkpoint made resuming a batch possible; Cycle 12 makes surviving a
-hang inside one possible.
+hang inside one possible, with group teardown and a bounded returned result.
 
 **A collision surfaced by cycle 6's brainstorming, confirmed empirically,
 and resolved by cycle 6.** `grade()` invoked `pytest -q` with

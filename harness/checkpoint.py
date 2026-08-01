@@ -53,6 +53,7 @@ def load_checkpoint(path: Path) -> list[RunResult]:
                 pi_stdout=data["pi_stdout"],
                 pi_stderr=data["pi_stderr"],
                 pi_returncode=data.get("pi_returncode"),
+                pi_timed_out=data.get("pi_timed_out", False),
             )
         )
     return results
