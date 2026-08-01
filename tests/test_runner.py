@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 import harness.runner as runner
-from harness.checkpoint import load_checkpoint
+from harness.checkpoint import append_checkpoint, load_checkpoint
 from harness.grading import GradeResult
 from harness.processes import ProcessResult
 from harness.runner import (
@@ -205,6 +205,101 @@ def test_run_batch_runs_remaining_attempts_and_appends_each(tmp_path, monkeypatc
     assert len(records) == 2
     assert calls == ["preflight", "run", "run"]
     assert len(load_checkpoint(checkpoint)) == 2
+
+
+def test_run_batch_resumes_after_existing_records(tmp_path, monkeypatch):
+    checkpoint = tmp_path / "runs.jsonl"
+    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30)
+    first = RunResult("first", _grade_result(), "out", "", 0, conditions=conditions)
+    append_checkpoint(checkpoint, first)
+    calls = []
+
+    monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
+    monkeypatch.setattr(runner, "preflight_model", lambda model: calls.append("preflight"))
+    monkeypatch.setattr(
+        runner,
+        "run_agentclinic_phase1",
+        lambda model: (calls.append("run") or RunResult(
+            "second", _grade_result(), "out", "", 0, conditions=conditions
+        )),
+    )
+
+    records = runner.run_batch(checkpoint, target=2, model="model")
+
+    assert [record.diff for record in records] == ["first", "second"]
+    assert calls == ["preflight", "run"]
+
+
+def test_run_batch_refuses_a_record_without_matching_conditions(tmp_path, monkeypatch):
+    checkpoint = tmp_path / "runs.jsonl"
+    append_checkpoint(checkpoint, RunResult("old", _grade_result(), "", "", 0))
+    monkeypatch.setattr(
+        runner,
+        "_conditions",
+        lambda *args: RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30),
+    )
+    monkeypatch.setattr(runner, "preflight_model", lambda model: pytest.fail("preflight called"))
+    monkeypatch.setattr(runner, "run_agentclinic_phase1", lambda model: pytest.fail("run called"))
+
+    with pytest.raises(ValueError, match="conditions"):
+        runner.run_batch(checkpoint, target=2, model="model")
+
+
+def test_run_batch_preflight_failure_leaves_checkpoint_unchanged(tmp_path, monkeypatch):
+    checkpoint = tmp_path / "runs.jsonl"
+    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30)
+
+    def fail_preflight(model):
+        raise RuntimeError("down")
+
+    monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
+    monkeypatch.setattr(runner, "preflight_model", fail_preflight)
+    monkeypatch.setattr(runner, "run_agentclinic_phase1", lambda model: pytest.fail("run called"))
+
+    with pytest.raises(RuntimeError, match="down"):
+        runner.run_batch(checkpoint, target=1, model="model")
+
+    assert not checkpoint.exists()
+
+
+def test_run_batch_does_not_preflight_when_target_is_already_reached(tmp_path, monkeypatch):
+    checkpoint = tmp_path / "runs.jsonl"
+    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30)
+    for _ in range(2):
+        append_checkpoint(
+            checkpoint,
+            RunResult("diff", _grade_result(), "", "", 0, conditions=conditions),
+        )
+    monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
+    monkeypatch.setattr(runner, "preflight_model", lambda model: pytest.fail("preflight called"))
+    monkeypatch.setattr(runner, "run_agentclinic_phase1", lambda model: pytest.fail("run called"))
+
+    assert len(runner.run_batch(checkpoint, target=2, model="model")) == 2
+
+
+def test_run_batch_appends_rejected_attempt_before_continuing(tmp_path, monkeypatch):
+    checkpoint = tmp_path / "runs.jsonl"
+    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30)
+    calls = []
+    monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
+    monkeypatch.setattr(runner, "preflight_model", lambda model: None)
+
+    def fake_run(model):
+        calls.append(len(load_checkpoint(checkpoint)))
+        if len(calls) == 1:
+            return RunResult(
+                "timed out", _grade_result(), "partial", "", None,
+                pi_timed_out=True, conditions=conditions,
+            )
+        return RunResult("accepted", _grade_result(), "out", "", 0, conditions=conditions)
+
+    monkeypatch.setattr(runner, "run_agentclinic_phase1", fake_run)
+
+    records = runner.run_batch(checkpoint, target=2, model="model")
+
+    assert calls == [0, 1]
+    assert records[0].accepted is False
+    assert records[1].accepted is True
 
 
 @pytest.mark.skipif(
