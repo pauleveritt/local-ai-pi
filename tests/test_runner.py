@@ -127,7 +127,12 @@ def test_preflight_requires_real_assistant_content(monkeypatch):
         "run_process",
         lambda command, **kwargs: (
             events.append("pi")
-            or ProcessResult(0, '{"message": {"content": "SATYRN"}}\n', "", False)
+            or ProcessResult(
+                0,
+                '{"message": {"role": "assistant", "content": "SATYRN"}}\n',
+                "",
+                False,
+            )
         ),
     )
 
@@ -143,7 +148,7 @@ def test_preflight_accepts_pi_assistant_content_blocks(monkeypatch):
         "run_process",
         lambda command, **kwargs: ProcessResult(
             0,
-            '{"message": {"content": [{"type": "text", "text": "SATYRN"}]}}\n',
+            '{"message": {"role": "assistant", "content": [{"type": "text", "text": "SATYRN"}]}}\n',
             "",
             False,
         ),
@@ -158,6 +163,23 @@ def test_preflight_rejects_empty_assistant_content(monkeypatch):
         runner,
         "run_process",
         lambda command, **kwargs: ProcessResult(0, '{"message": {"content": ""}}\n', "", False),
+    )
+
+    with pytest.raises(RuntimeError):
+        preflight_model("model-name")
+
+
+def test_preflight_rejects_user_message_content_as_assistant_output(monkeypatch):
+    monkeypatch.setattr(runner, "check_model_server_alive", lambda: None)
+    monkeypatch.setattr(
+        runner,
+        "run_process",
+        lambda command, **kwargs: ProcessResult(
+            0,
+            '{"message": {"role": "user", "content": "SATYRN"}}\n',
+            "",
+            False,
+        ),
     )
 
     with pytest.raises(RuntimeError):

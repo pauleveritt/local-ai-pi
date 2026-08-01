@@ -2,7 +2,9 @@
 
 **Phase:** 1 — Reproduce AgentClinic Phase 1 with a trustworthy engine
 **Status: WITHDRAWN 2026-08-01, never implemented.** Kept for its
-research, not as a plan of record. Phase 1 ends at cycle 13.
+research, not as a plan of record. Phase 1's shipped work now ends at cycle
+14 (the sequential n=16 batch); this withdrawn design was drafted before that
+cycle was implemented.
 
 > **Read this first.** This design was approved and then withdrawn the
 > same day, on the owner's challenge that it was a large jump in

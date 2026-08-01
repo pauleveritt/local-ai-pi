@@ -12,7 +12,7 @@ bug in the engine's own trustworthiness.
 
 ## Phase 1 — Reproduce AgentClinic Phase 1
 
-Eleven cycles, building a grading engine that can decide hermetically whether
+Fourteen cycles, building a grading engine that can decide hermetically whether
 a small local model succeeded at a real task. The order is deliberate:
 cycles 3–7 build and prove the entire judging apparatus *before* a model
 runs once, so that when a number finally arrives it measures the model

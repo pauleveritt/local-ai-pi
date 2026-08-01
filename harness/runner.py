@@ -133,6 +133,8 @@ def _has_assistant_content(output: str) -> bool:
         except json.JSONDecodeError:
             continue
         message = event.get("message", event)
+        if not isinstance(message, dict) or message.get("role") != "assistant":
+            continue
         content = message.get("content") if isinstance(message, dict) else None
         if isinstance(content, str) and content.strip():
             return True
