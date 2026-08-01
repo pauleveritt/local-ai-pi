@@ -39,7 +39,7 @@ class RunResult:
 
     @property
     def accepted(self) -> bool:
-        return not self.pi_timed_out and self.grade.accepted
+        return not self.pi_timed_out and self.pi_returncode == 0 and self.grade.accepted
 
 
 def run_agentclinic_phase1(

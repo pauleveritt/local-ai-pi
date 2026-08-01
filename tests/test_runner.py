@@ -108,6 +108,18 @@ def test_run_result_rejects_a_timed_out_pi_even_when_the_grade_accepted():
     assert result.accepted is False
 
 
+def test_run_result_rejects_a_nonzero_pi_exit_even_when_the_grade_accepted():
+    result = RunResult(
+        diff="partial diff",
+        grade=_grade_result(),
+        pi_stdout="partial output",
+        pi_stderr="failure details",
+        pi_returncode=1,
+    )
+
+    assert result.accepted is False
+
+
 def test_pi_command_contains_trusted_session_and_isolation_flags():
     command = _pi_command("model-name", "task text")
 

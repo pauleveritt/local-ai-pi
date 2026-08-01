@@ -81,6 +81,12 @@ test name.
 | 13 | Batch contract — restore the trusted Pi invocation shape, prove real model output before a batch, and record the conditions that make completed runs comparable. | [spec](docs/superpowers/specs/2026-08-01-phase1-cycle13-batch-contract-design.md) | [plan](docs/superpowers/plans/2026-08-01-phase1-cycle13-batch-contract.md) | Done |
 | 14 | n=16 batch, sequential and resumable — target ~15/16; the supervised run completed 16/16 accepted with no rejected attempts. | [spec](docs/superpowers/specs/2026-08-01-phase1-cycle14-n16-batch-design.md) | [plan](docs/superpowers/plans/2026-08-01-phase1-cycle14-n16-batch.md) | Done |
 
+### Post-Phase 1 corrective cycles
+
+| Cycle | Summary | Spec | Plan | State |
+|-------|---------|------|------|-------|
+| 15 | Pi exit veto — a run remains diagnostically graded after Pi returns, but it is accepted only when Pi did not time out, Pi exited zero, and the grade is accepted. The recorded Phase 1 batch is unaffected: all sixteen Pi return codes were zero. | [spec](docs/superpowers/specs/2026-08-01-post-phase1-pi-exit-veto-design.md) | [plan](docs/superpowers/plans/2026-08-01-post-phase1-pi-exit-veto.md) | Done |
+
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus
 *before* a model runs once — every one of them is provable against fixtures
 with no model in the loop. That is deliberate: it means the ~15/16 at cycle
@@ -141,6 +147,16 @@ suite *is* the measuring instrument that produced the trusted number;
 rewriting it at the end of a reproduction phase, and paying a sixteen-run
 re-baseline to get back to where we already are, is the same move cycle 6
 refused for one bullet of the task spec. Phase 1 now ends at cycle 14.
+
+**Post-Phase 1 correction, 2026-08-01.** Reviewing the completed batch
+found one missing run-level condition: a nonzero Pi exit could coexist with
+an accepted grade. Cycle 15 closes that gap without changing the grading
+contract or discarding diagnostic evidence; the runner still diffs and grades
+the workspace after Pi returns. It is deliberately outside Phase 1's feature
+sequence because all sixteen historical records already have return code zero,
+so the correction does not alter the reproduced result. The concept budget is
+unchanged: it uses the existing terms *run* and *verdict* rather than naming a
+new mechanism.
 The research survives in the Backlog entry — it is worth keeping and
 expensive to re-derive.
 

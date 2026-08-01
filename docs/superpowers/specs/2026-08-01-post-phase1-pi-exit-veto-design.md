@@ -1,6 +1,6 @@
 # Post-Phase 1 corrective cycle — Pi exit veto
 
-**Status:** approved for implementation
+**Status:** implemented
 
 ## Why this correction exists
 

@@ -38,6 +38,17 @@ rather than the engine.
 Phase 1 is complete. The supervised n=16 run accepted all 16 attempts; see
 `ROADMAP.md` in this checkout for the Phase 2 backlog.
 
+## Post-Phase 1 corrective closure
+
+One small correction followed the completed Phase 1 feature sequence. It
+does not change the 16/16 result: every recorded Pi process exited zero. It
+makes that already-observed condition a requirement for future accepted runs,
+while retaining a failed invocation's diff and grade for diagnosis.
+
+| # | Cycle | Spec | Plan |
+|---|---|---|---|
+| 15 | Pi exit veto | [spec](specs/2026-08-01-post-phase1-pi-exit-veto-design.md) | [plan](plans/2026-08-01-post-phase1-pi-exit-veto.md) |
+
 ## Withdrawn
 
 Designs that were approved and then withdrawn are kept, headed with a
@@ -75,6 +86,7 @@ specs/2026-08-01-phase1-cycle12-hang-tolerance-design
 specs/2026-08-01-phase1-cycle13-batch-contract-design
 specs/2026-08-01-phase1-cycle14-n16-batch-design
 specs/2026-08-01-phase1-cycle14-live-server-execution-design
+specs/2026-08-01-post-phase1-pi-exit-veto-design
 ```
 
 ```{toctree}
@@ -96,6 +108,7 @@ plans/2026-08-01-phase1-cycle11-corrective-hardening
 plans/2026-08-01-phase1-cycle12-hang-tolerance
 plans/2026-08-01-phase1-cycle13-batch-contract
 plans/2026-08-01-phase1-cycle14-n16-batch
+plans/2026-08-01-post-phase1-pi-exit-veto
 ```
 
 ```{toctree}
