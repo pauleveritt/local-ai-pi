@@ -367,6 +367,11 @@ things over.
 
 ## Backlog
 
+- Formatting cleanup: `uv run ruff format --check .` currently reports 21
+  unformatted files across historical source, specs, and plans. This is
+  mechanical, non-behavioral debt, so it stays deferred rather than widening a
+  corrective cycle into a noisy rewrite. Revisit as one isolated mechanical
+  cycle when a clean repository-wide formatter check is worth the review cost.
 - Volunteer-reader / section-structure design (superseded Phase 1 framing;
   revisit once an engine and real suites exist to write about)
 - Telemetry (Phase 2): aggregate model/session measurements only after a
