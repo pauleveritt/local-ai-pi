@@ -66,6 +66,12 @@ def prepare_workspace(source_dir: Path | None = None) -> Iterator[Path]:
             capture_output=True,
             env=_GIT_ENV,
         )
+        (workspace / ".git" / "info" / "exclude").write_text(
+            "# Satyrn harness runtime artifacts\n"
+            "__pycache__/\n"
+            "*.pyc\n"
+            ".pytest_cache/\n"
+        )
         yield workspace
     finally:
         shutil.rmtree(workspace, ignore_errors=True)

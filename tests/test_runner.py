@@ -136,6 +136,22 @@ def test_preflight_requires_real_assistant_content(monkeypatch):
     assert events == ["liveness", "pi"]
 
 
+def test_preflight_accepts_pi_assistant_content_blocks(monkeypatch):
+    monkeypatch.setattr(runner, "check_model_server_alive", lambda: None)
+    monkeypatch.setattr(
+        runner,
+        "run_process",
+        lambda command, **kwargs: ProcessResult(
+            0,
+            '{"message": {"content": [{"type": "text", "text": "SATYRN"}]}}\n',
+            "",
+            False,
+        ),
+    )
+
+    preflight_model("model-name")
+
+
 def test_preflight_rejects_empty_assistant_content(monkeypatch):
     monkeypatch.setattr(runner, "check_model_server_alive", lambda: None)
     monkeypatch.setattr(

@@ -147,6 +147,7 @@ def test_prepare_workspace_can_create_an_empty_workspace_without_a_fixture():
 
         assert head.stdout.strip()
         assert [path.name for path in workspace.iterdir()] == [".git"]
+        assert "__pycache__/" in (workspace / ".git" / "info" / "exclude").read_text()
 
 
 def test_prepare_workspace_disables_a_global_pre_commit_hook(tmp_path, monkeypatch):

@@ -136,6 +136,13 @@ def _has_assistant_content(output: str) -> bool:
         content = message.get("content") if isinstance(message, dict) else None
         if isinstance(content, str) and content.strip():
             return True
+        if isinstance(content, list) and any(
+            isinstance(part, dict)
+            and isinstance(part.get("text"), str)
+            and part["text"].strip()
+            for part in content
+        ):
+            return True
     return False
 
 
