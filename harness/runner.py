@@ -1,3 +1,5 @@
+import hashlib
+import json
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,6 +16,17 @@ EXTENSION = REPO_ROOT / ".pi" / "extensions" / "hello-world.ts"
 
 
 @dataclass(frozen=True)
+class RunConditions:
+    model: str
+    pi_command: tuple[str, ...]
+    pi_version: str
+    task_spec_sha256: str
+    harness_revision: str
+    run_timeout: int
+    grade_timeout: int | float
+
+
+@dataclass(frozen=True)
 class RunResult:
     diff: str
     grade: GradeResult
@@ -21,6 +34,7 @@ class RunResult:
     pi_stderr: str
     pi_returncode: int | None
     pi_timed_out: bool = False
+    conditions: RunConditions | None = None
 
     @property
     def accepted(self) -> bool:
@@ -43,20 +57,9 @@ def run_agentclinic_phase1(
         ).stdout.strip()
 
         prompt = TASK_SPEC.read_text()
+        command = _pi_command(model, prompt)
         pi_proc = run_process(
-            [
-                "pi",
-                "--print",
-                "--model", model,
-                "--no-extensions",
-                "--extension", str(EXTENSION),
-                "--no-skills",
-                "--no-prompt-templates",
-                "--no-themes",
-                "--no-context-files",
-                "--approve",
-                prompt,
-            ],
+            command,
             timeout=timeout,
             cwd=workspace,
         )
@@ -85,4 +88,51 @@ def run_agentclinic_phase1(
         pi_stderr=pi_proc.stderr,
         pi_returncode=pi_proc.returncode,
         pi_timed_out=pi_proc.timed_out,
+        conditions=_conditions(model, command, timeout),
     )
+
+
+def _pi_command(model: str, prompt: str) -> list[str]:
+    return [
+        "pi", "--print", "--mode", "json", "--no-session", "--model", model,
+        "--no-extensions", "--extension", str(EXTENSION), "--no-skills",
+        "--no-prompt-templates", "--no-themes", "--no-context-files",
+        "--approve", prompt,
+    ]
+
+
+def _conditions(model: str, command: list[str], timeout: int) -> RunConditions:
+    revision = subprocess.run(
+        ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+    ).stdout.strip()
+    version = subprocess.run(
+        ["pi", "--version"], check=True, capture_output=True, text=True
+    ).stdout.strip()
+    normalized = tuple("<task-spec>" if item == command[-1] else item for item in command)
+    return RunConditions(
+        model=model, pi_command=normalized, pi_version=version,
+        task_spec_sha256=hashlib.sha256(TASK_SPEC.read_bytes()).hexdigest(),
+        harness_revision=revision, run_timeout=timeout, grade_timeout=30,
+    )
+
+
+def preflight_model(model: str = "omlx/gemma-4-12B-it-MLX-8bit") -> None:
+    """Require one real assistant message from the final Pi invocation."""
+    check_model_server_alive()
+    with prepare_workspace() as workspace:
+        result = run_process(_pi_command(model, "Reply with exactly SATYRN."), cwd=workspace, timeout=60)
+    if result.timed_out or result.returncode != 0 or not _has_assistant_content(result.stdout):
+        raise RuntimeError("model preflight produced no usable assistant output")
+
+
+def _has_assistant_content(output: str) -> bool:
+    for line in output.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        message = event.get("message", event)
+        content = message.get("content") if isinstance(message, dict) else None
+        if isinstance(content, str) and content.strip():
+            return True
+    return False

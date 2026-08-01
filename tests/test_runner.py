@@ -7,7 +7,12 @@ import pytest
 import harness.runner as runner
 from harness.grading import GradeResult
 from harness.processes import ProcessResult
-from harness.runner import RunResult, run_agentclinic_phase1
+from harness.runner import (
+    RunResult,
+    _pi_command,
+    preflight_model,
+    run_agentclinic_phase1,
+)
 
 
 def _grade_result() -> GradeResult:
@@ -65,6 +70,7 @@ def test_run_agentclinic_phase1_calls_pi_and_returns_its_result(tmp_path, monkey
     monkeypatch.setattr(runner.subprocess, "run", fake_run)
     monkeypatch.setattr(runner, "run_process", fake_process)
     monkeypatch.setattr(runner, "grade", fake_grade)
+    monkeypatch.setattr(runner, "_conditions", lambda model, command, timeout: None)
 
     result = run_agentclinic_phase1()
 
@@ -98,6 +104,46 @@ def test_run_result_rejects_a_timed_out_pi_even_when_the_grade_accepted():
     )
 
     assert result.accepted is False
+
+
+def test_pi_command_contains_trusted_session_and_isolation_flags():
+    command = _pi_command("model-name", "task text")
+
+    assert command[:8] == [
+        "pi", "--print", "--mode", "json", "--no-session", "--model",
+        "model-name", "--no-extensions",
+    ]
+    assert command[-1] == "task text"
+    assert "--extension" in command
+
+
+def test_preflight_requires_real_assistant_content(monkeypatch):
+    events = []
+    monkeypatch.setattr(runner, "check_model_server_alive", lambda: events.append("liveness"))
+    monkeypatch.setattr(
+        runner,
+        "run_process",
+        lambda command, **kwargs: (
+            events.append("pi")
+            or ProcessResult(0, '{"message": {"content": "SATYRN"}}\n', "", False)
+        ),
+    )
+
+    preflight_model("model-name")
+
+    assert events == ["liveness", "pi"]
+
+
+def test_preflight_rejects_empty_assistant_content(monkeypatch):
+    monkeypatch.setattr(runner, "check_model_server_alive", lambda: None)
+    monkeypatch.setattr(
+        runner,
+        "run_process",
+        lambda command, **kwargs: ProcessResult(0, '{"message": {"content": ""}}\n', "", False),
+    )
+
+    with pytest.raises(RuntimeError):
+        preflight_model("model-name")
 
 
 @pytest.mark.skipif(

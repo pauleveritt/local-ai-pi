@@ -5,7 +5,7 @@ import pytest
 
 from harness.checkpoint import append_checkpoint, load_checkpoint
 from harness.grading import GradeResult
-from harness.runner import RunResult
+from harness.runner import RunConditions, RunResult
 
 
 def _sample_result(accepted: bool = True) -> RunResult:
@@ -196,6 +196,24 @@ def test_checkpoint_round_trips_timeout_flags(tmp_path):
         pi_returncode=None,
         pi_timed_out=True,
     )
+
+    append_checkpoint(path, result)
+
+    assert load_checkpoint(path) == [result]
+
+
+def test_checkpoint_round_trips_run_conditions(tmp_path):
+    path = tmp_path / "checkpoint.jsonl"
+    conditions = RunConditions(
+        model="model",
+        pi_command=("pi", "--mode", "json", "<task-spec>"),
+        pi_version="0.82.0",
+        task_spec_sha256="abc",
+        harness_revision="def",
+        run_timeout=600,
+        grade_timeout=30,
+    )
+    result = replace(_sample_result(), conditions=conditions)
 
     append_checkpoint(path, result)
 

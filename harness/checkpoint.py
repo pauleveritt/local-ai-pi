@@ -4,7 +4,7 @@ from dataclasses import asdict
 from pathlib import Path
 
 from harness.grading import GradeResult
-from harness.runner import RunResult
+from harness.runner import RunConditions, RunResult
 
 
 def append_checkpoint(path: Path, result: RunResult) -> None:
@@ -54,6 +54,19 @@ def load_checkpoint(path: Path) -> list[RunResult]:
                 pi_stderr=data["pi_stderr"],
                 pi_returncode=data.get("pi_returncode"),
                 pi_timed_out=data.get("pi_timed_out", False),
+                conditions=(
+                    RunConditions(
+                        model=data["conditions"]["model"],
+                        pi_command=tuple(data["conditions"]["pi_command"]),
+                        pi_version=data["conditions"]["pi_version"],
+                        task_spec_sha256=data["conditions"]["task_spec_sha256"],
+                        harness_revision=data["conditions"]["harness_revision"],
+                        run_timeout=data["conditions"]["run_timeout"],
+                        grade_timeout=data["conditions"]["grade_timeout"],
+                    )
+                    if data.get("conditions") is not None
+                    else None
+                ),
             )
         )
     return results
