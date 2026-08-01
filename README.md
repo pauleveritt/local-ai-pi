@@ -16,14 +16,14 @@ over-designed, over-engineered, or too large to absorb.
 
 ## Status
 
-**Phase 1 is nearly complete.** Eleven feature cycles have built and proven a
+**Phase 1 is complete.** Fourteen feature cycles built and proved a
 grading engine that can run a small local model against a real task and
 decide, hermetically, whether it succeeded. The engine has survived
 deliberate attacks on its own grading, and one real end-to-end run has
-graded a live model's work as accepted.
+graded a live model's work as accepted. The supervised n=16 reproduction
+accepted all 16 attempts.
 
-Three cycles remain in Phase 1 (hang tolerance, the batch contract, and a
-sequential n=16 batch). **Phase 2 is where new collaborators come in** — see
+**Phase 2 is where new collaborators come in** — see
 [the roadmap](ROADMAP.md) for what's planned and what's deliberately
 parked.
 
