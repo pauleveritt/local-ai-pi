@@ -34,6 +34,9 @@ ignored location in the archive; keep every other historical file in place.
 - Move the exact session directory into the archive's matching path.
 - Compare the destination's manifest with the pre-move manifest, then confirm
   the root source is absent.
+- If strict Sphinx verification finds a configured static-assets directory
+  that does not exist and no custom assets are present, remove that stale
+  setting as part of the documentation close.
 
 ### 3. Close the cycle
 

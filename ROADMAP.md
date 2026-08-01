@@ -87,6 +87,7 @@ test name.
 |-------|---------|------|------|-------|
 | 15 | Pi exit veto — a run remains diagnostically graded after Pi returns, but it is accepted only when Pi did not time out, Pi exited zero, and the grade is accepted. The recorded Phase 1 batch is unaffected: all sixteen Pi return codes were zero. | [spec](docs/superpowers/specs/2026-08-01-post-phase1-pi-exit-veto-design.md) | [plan](docs/superpowers/plans/2026-08-01-post-phase1-pi-exit-veto.md) | Done |
 | 16 | n=16 batch evidence — a compact, committed [record](docs/superpowers/research/2026-08-01-phase1-n16-batch-evidence.md) identifies the raw checkpoint and its measured conditions/results without committing 4.5 MB of model output. | [spec](docs/superpowers/specs/2026-08-01-post-phase1-batch-evidence-record-design.md) | [plan](docs/superpowers/plans/2026-08-01-post-phase1-batch-evidence-record.md) | Done |
+| 17 | Local workspace hygiene — active linked worktrees and local agent state are ignored; nine old generated session files moved unchanged into the preserved old-project worktree after SHA-256 verification; the stale Sphinx static-path setting is removed so strict docs builds pass. | [spec](docs/superpowers/specs/2026-08-01-post-phase1-local-workspace-hygiene-design.md) | [plan](docs/superpowers/plans/2026-08-01-post-phase1-local-workspace-hygiene.md) | Done |
 
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus
 *before* a model runs once — every one of them is provable against fixtures
@@ -166,6 +167,17 @@ conditions, and aggregate result in a committed
 The 4.5 MB raw JSONL remains outside Git and has not been archived externally;
 the path is a reference, not durable storage. The concept budget is unchanged:
 this preserves existing checkpoint evidence rather than adding a mechanism.
+
+**Post-Phase 1 local workspace hygiene, 2026-08-01.** Publishing the orphan
+history as `main` exposed active worktrees, local agent state, and generated
+old-project session files in the root worktree. Cycle 17 adds only the two
+general local ignore rules (`.worktrees/`, `.superpowers/`) and moves the
+nine session files unchanged into the matching ignored path of the preserved
+old-project worktree, verified by SHA-256 before and after. The concept budget
+is unchanged: this is file placement and repository hygiene, not a new engine
+mechanism. Cycle 17 also removed the unused `html_static_path` setting from
+`docs/conf.py`; no custom static assets exist, and the strict Sphinx build now
+passes without warnings.
 The research survives in the Backlog entry — it is worth keeping and
 expensive to re-derive.
 

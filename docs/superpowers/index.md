@@ -40,14 +40,16 @@ Phase 1 is complete. The supervised n=16 run accepted all 16 attempts; see
 
 ## Post-Phase 1 corrective closure
 
-One small correction followed the completed Phase 1 feature sequence. It
-does not change the 16/16 result: every recorded Pi process exited zero. It
-makes that already-observed condition a requirement for future accepted runs,
-while retaining a failed invocation's diff and grade for diagnosis.
+Three small corrections followed the completed Phase 1 feature sequence. They
+preserve the 16/16 result, make future run acceptance stricter, retain a
+compact evidence record, and keep local historical artifacts out of the new
+repository.
 
 | # | Cycle | Spec | Plan |
 |---|---|---|---|
 | 15 | Pi exit veto | [spec](specs/2026-08-01-post-phase1-pi-exit-veto-design.md) | [plan](plans/2026-08-01-post-phase1-pi-exit-veto.md) |
+| 16 | n=16 batch evidence | [spec](specs/2026-08-01-post-phase1-batch-evidence-record-design.md) | [plan](plans/2026-08-01-post-phase1-batch-evidence-record.md) |
+| 17 | Local workspace hygiene | [spec](specs/2026-08-01-post-phase1-local-workspace-hygiene-design.md) | [plan](plans/2026-08-01-post-phase1-local-workspace-hygiene.md) |
 
 ## Withdrawn
 
@@ -89,6 +91,7 @@ specs/2026-08-01-phase1-cycle14-n16-batch-design
 specs/2026-08-01-phase1-cycle14-live-server-execution-design
 specs/2026-08-01-post-phase1-pi-exit-veto-design
 specs/2026-08-01-post-phase1-batch-evidence-record-design
+specs/2026-08-01-post-phase1-local-workspace-hygiene-design
 ```
 
 ```{toctree}
@@ -112,6 +115,7 @@ plans/2026-08-01-phase1-cycle13-batch-contract
 plans/2026-08-01-phase1-cycle14-n16-batch
 plans/2026-08-01-post-phase1-pi-exit-veto
 plans/2026-08-01-post-phase1-batch-evidence-record
+plans/2026-08-01-post-phase1-local-workspace-hygiene
 ```
 
 ```{toctree}

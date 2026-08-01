@@ -1,6 +1,6 @@
 # Post-Phase 1 corrective cycle — local workspace hygiene
 
-**Status:** approved for implementation
+**Status:** implemented
 
 ## Why this correction exists
 
@@ -23,6 +23,11 @@ matching directory of `.worktrees/pre-restructure`, the preserved old-project
 worktree. That worktree already ignores generated `docs/section-*/research/sessions/`
 artifacts. The new repository deliberately does **not** add a broad old-section
 ignore rule: the data belongs in the archive rather than being hidden here.
+
+During closure, strict Sphinx verification also exposed an unused
+`html_static_path` setting in `docs/conf.py`. Since this repository has no
+custom static assets, the setting is removed rather than backed by an empty
+directory.
 
 ## Evidence
 
