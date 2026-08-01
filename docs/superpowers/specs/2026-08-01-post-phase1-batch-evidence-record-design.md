@@ -1,6 +1,6 @@
 # Post-Phase 1 corrective cycle — batch evidence record
 
-**Status:** approved for implementation
+**Status:** implemented
 
 ## Why this correction exists
 

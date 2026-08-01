@@ -65,6 +65,7 @@ shipped.
 ## Research
 
 - [Cycle 1 fixture results](research/2026-07-30-phase1-cycle1-fixture-results.md)
+- [Phase 1 n=16 batch evidence](research/2026-08-01-phase1-n16-batch-evidence.md)
 
 ```{toctree}
 :hidden:
@@ -87,6 +88,7 @@ specs/2026-08-01-phase1-cycle13-batch-contract-design
 specs/2026-08-01-phase1-cycle14-n16-batch-design
 specs/2026-08-01-phase1-cycle14-live-server-execution-design
 specs/2026-08-01-post-phase1-pi-exit-veto-design
+specs/2026-08-01-post-phase1-batch-evidence-record-design
 ```
 
 ```{toctree}
@@ -109,6 +111,7 @@ plans/2026-08-01-phase1-cycle12-hang-tolerance
 plans/2026-08-01-phase1-cycle13-batch-contract
 plans/2026-08-01-phase1-cycle14-n16-batch
 plans/2026-08-01-post-phase1-pi-exit-veto
+plans/2026-08-01-post-phase1-batch-evidence-record
 ```
 
 ```{toctree}
@@ -117,4 +120,5 @@ plans/2026-08-01-post-phase1-pi-exit-veto
 :caption: Research
 
 research/2026-07-30-phase1-cycle1-fixture-results
+research/2026-08-01-phase1-n16-batch-evidence
 ```
