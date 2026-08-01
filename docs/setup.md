@@ -3,9 +3,9 @@
 Getting from a fresh machine to a green test run, then to a real model run.
 
 The good news: **most of this project's tests need nothing but Python.**
-Cycles 1–10 were deliberately built so the grading engine is provable
-against fixtures with no model in the loop. You can contribute
-meaningfully before you ever start a model server.
+Cycles 1–7 and 9–11 were deliberately built so their grading and harness
+behavior is provable against fixtures with no model in the loop. You can
+contribute meaningfully before you ever start a model server.
 
 So this guide is in two parts. Part 1 gets you running tests and reading
 code. Part 2 gets you running a real model, which you only need when you're
@@ -30,6 +30,10 @@ git clone <repo-url>
 cd local-ai-pi
 uv sync
 ```
+
+The reboot currently lives on the unpublished `restructure` branch/worktree;
+a fresh clone still opens the old `main` project. Coordinate with the owner
+for access to this worktree until `restructure` is published.
 
 `uv sync` reads `pyproject.toml` and `uv.lock`, fetches **Python 3.14**
 (pinned; the project uses 3.14-only syntax), and installs dependencies into
@@ -73,14 +77,15 @@ Install it however you prefer (we use [Volta](https://volta.sh/) for the
 Node toolchain); confirm with:
 
 ```bash
-pi --version    # 0.82.0 or later
+pi --version    # 0.82.0
 ```
 
 Two things to know about how we call it. We always run **non-interactive**
-(`--print`), and we always run with **extensions, skills, prompt templates,
-themes, and context files disabled** — the model gets the task spec and
-nothing else. That isolation is deliberate: it's what makes one run
-comparable to another. See `harness/runner.py` for the exact invocation.
+(`--print`), and we disable Pi's ambient extensions, skills, prompt templates,
+themes, and context files. We then load this repository's explicit
+`.pi/extensions/hello-world.ts` extension. That deliberate, fixed input is
+what makes one run comparable to another. See `harness/runner.py` for the
+exact invocation.
 
 ### A local model server
 
@@ -91,11 +96,10 @@ an OpenAI-compatible API on `127.0.0.1:8001`.
 omlx start
 ```
 
-The reference model is `omlx/gemma-4-12B-it-MLX-8bit`. Any
-OpenAI-compatible server works — LM Studio, Ollama with its compat
-endpoint, vLLM — but if you use a different one, **say so when you report
-numbers.** Runs from different models aren't comparable, and the whole
-point of the harness is producing numbers that mean something.
+The reference model is `omlx/gemma-4-12B-it-MLX-8bit`. Phase 1's runner is
+configured for the recorded oMLX endpoint; another OpenAI-compatible server
+is not yet a supported runner configuration. Do not compare numbers from a
+different model or endpoint with the Phase 1 baseline.
 
 ### Verify the server
 
@@ -117,12 +121,12 @@ Two gotchas it exists to catch, both of which cost us real debugging time:
 ### Verify end to end
 
 ```bash
-uv run pytest tests/test_runner.py -v
+SATYRN_LIVE=1 uv run pytest tests/test_runner.py -v
 ```
 
-This invokes `pi` against a real model and grades the result. It takes a
-minute or so. If it now *passes* rather than skips, your Part 2 setup is
-complete.
+This explicitly opts into invoking `pi` against a real model and grading the
+result. It takes a minute or so. A passing result is evidence that the live
+path worked; without `SATYRN_LIVE=1`, the test deliberately skips.
 
 ## Editor notes
 

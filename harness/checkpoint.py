@@ -1,4 +1,5 @@
 import json
+import os
 from dataclasses import asdict
 from pathlib import Path
 
@@ -7,16 +8,27 @@ from harness.runner import RunResult
 
 
 def append_checkpoint(path: Path, result: RunResult) -> None:
-    if path.is_file():
-        content = path.read_text()
-        if content and not content.endswith("\n"):
-            # A prior write was interrupted mid-line. Drop the dangling
-            # fragment before appending, so this write starts clean
-            # instead of concatenating onto it.
-            path.write_text(content[: content.rfind("\n") + 1])
+    record = (json.dumps(asdict(result)) + "\n").encode()
+    with path.open("a+b") as checkpoint:
+        checkpoint.seek(0)
+        content = checkpoint.read()
+        if content and not content.endswith(b"\n"):
+            final_line_start = content.rfind(b"\n") + 1
+            try:
+                json.loads(content[final_line_start:])
+            except json.JSONDecodeError:
+                # Discard only the interrupted final fragment. Truncation
+                # preserves earlier records; rewriting the file could lose
+                # them if that rewrite itself were interrupted.
+                checkpoint.truncate(final_line_start)
+            else:
+                checkpoint.seek(0, os.SEEK_END)
+                checkpoint.write(b"\n")
 
-    with path.open("a") as f:
-        f.write(json.dumps(asdict(result)) + "\n")
+        checkpoint.seek(0, os.SEEK_END)
+        checkpoint.write(record)
+        checkpoint.flush()
+        os.fsync(checkpoint.fileno())
 
 
 def load_checkpoint(path: Path) -> list[RunResult]:
@@ -40,6 +52,7 @@ def load_checkpoint(path: Path) -> list[RunResult]:
                 grade=GradeResult(**grade_data),
                 pi_stdout=data["pi_stdout"],
                 pi_stderr=data["pi_stderr"],
+                pi_returncode=data.get("pi_returncode"),
             )
         )
     return results

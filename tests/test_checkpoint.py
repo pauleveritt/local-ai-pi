@@ -21,6 +21,7 @@ def _sample_result(accepted: bool = True) -> RunResult:
         ),
         pi_stdout="I created app.py.\n",
         pi_stderr="",
+        pi_returncode=0,
     )
 
 
@@ -77,6 +78,7 @@ def test_load_checkpoint_raises_on_a_corrupted_non_final_line(tmp_path):
                 },
                 "pi_stdout": _sample_result().pi_stdout,
                 "pi_stderr": "",
+                "pi_returncode": 0,
             }
         )
         + "\n"
@@ -100,3 +102,85 @@ def test_append_checkpoint_cleans_up_a_dangling_truncated_line_first(tmp_path):
     loaded = load_checkpoint(path)
 
     assert loaded == [complete, new_result]
+
+
+def test_append_checkpoint_never_rewrites_valid_records_while_repairing(
+    tmp_path, monkeypatch
+):
+    path = tmp_path / "checkpoint.jsonl"
+    complete = _sample_result()
+    append_checkpoint(path, complete)
+    with path.open("a") as checkpoint:
+        checkpoint.write('{"diff": "partial, process died mid-writ')
+
+    def interrupted_rewrite(self, data, *args, **kwargs):
+        with self.open("w") as checkpoint:
+            checkpoint.write(data[:1])
+        raise OSError("interrupted rewrite")
+
+    monkeypatch.setattr(type(path), "write_text", interrupted_rewrite)
+    new_result = _sample_result(accepted=False)
+
+    append_checkpoint(path, new_result)
+
+    assert load_checkpoint(path) == [complete, new_result]
+
+
+def test_append_checkpoint_preserves_a_complete_final_record_without_a_newline(
+    tmp_path,
+):
+    path = tmp_path / "checkpoint.jsonl"
+    first = _sample_result()
+    path.write_text(
+        json.dumps(
+            {
+                "diff": first.diff,
+                "grade": {
+                    "accepted": first.grade.accepted,
+                    "tests_executed": first.grade.tests_executed,
+                    "tests_expected": first.grade.tests_expected,
+                    "returncode": first.grade.returncode,
+                    "stdout": first.grade.stdout,
+                    "stderr": first.grade.stderr,
+                    "refused_config": [],
+                },
+                "pi_stdout": first.pi_stdout,
+                "pi_stderr": first.pi_stderr,
+                "pi_returncode": first.pi_returncode,
+            }
+        )
+    )
+    second = _sample_result(accepted=False)
+
+    append_checkpoint(path, second)
+
+    assert load_checkpoint(path) == [first, second]
+
+
+def test_load_checkpoint_preserves_a_pre_returncode_record(tmp_path):
+    path = tmp_path / "checkpoint.jsonl"
+    record = _sample_result()
+    path.write_text(
+        json.dumps(
+            {
+                "diff": record.diff,
+                "grade": {
+                    "accepted": record.grade.accepted,
+                    "tests_executed": record.grade.tests_executed,
+                    "tests_expected": record.grade.tests_expected,
+                    "returncode": record.grade.returncode,
+                    "stdout": record.grade.stdout,
+                    "stderr": record.grade.stderr,
+                    "refused_config": [],
+                },
+                "pi_stdout": record.pi_stdout,
+                "pi_stderr": record.pi_stderr,
+            }
+        )
+        + "\n"
+    )
+
+    loaded = load_checkpoint(path)
+
+    assert loaded[0].pi_returncode is None
+    assert loaded[0].diff == record.diff

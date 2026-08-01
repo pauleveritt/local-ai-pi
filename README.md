@@ -16,14 +16,14 @@ over-designed, over-engineered, or too large to absorb.
 
 ## Status
 
-**Phase 1 is nearly complete.** Ten feature cycles have built and proven a
+**Phase 1 is nearly complete.** Eleven feature cycles have built and proven a
 grading engine that can run a small local model against a real task and
 decide, hermetically, whether it succeeded. The engine has survived
 deliberate attacks on its own grading, and one real end-to-end run has
 graded a live model's work as accepted.
 
-Three cycles remain in Phase 1 (hang tolerance, an n=16 batch, and a small
-hardening pass). **Phase 2 is where new collaborators come in** — see
+Three cycles remain in Phase 1 (hang tolerance, the batch contract, and a
+sequential n=16 batch). **Phase 2 is where new collaborators come in** — see
 [the roadmap](ROADMAP.md) for what's planned and what's deliberately
 parked.
 
@@ -48,9 +48,8 @@ uv sync
 uv run pytest
 ```
 
-Most tests are hermetic and need nothing but Python. One integration test
-needs the `pi` binary and a running model server, and skips cleanly when
-they're absent — so a green run on a fresh machine is expected. Full setup,
+Most tests are hermetic and need nothing but Python. One live-model test is
+explicitly opt-in, so a green run on a fresh machine is expected. Full setup,
 including the model server, is in [`docs/setup.md`](docs/setup.md).
 
 ## How this project is built

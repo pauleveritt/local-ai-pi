@@ -12,7 +12,7 @@ bug in the engine's own trustworthiness.
 
 ## Phase 1 — Reproduce AgentClinic Phase 1
 
-Ten cycles, building a grading engine that can decide hermetically whether
+Eleven cycles, building a grading engine that can decide hermetically whether
 a small local model succeeded at a real task. The order is deliberate:
 cycles 3–7 build and prove the entire judging apparatus *before* a model
 runs once, so that when a number finally arrives it measures the model
@@ -30,10 +30,10 @@ rather than the engine.
 | 8 | First real run | [spec](specs/2026-07-31-phase1-cycle8-first-real-run-design.md) | [plan](plans/2026-07-31-phase1-cycle8-first-real-run.md) |
 | 9 | Source allowlist | [spec](specs/2026-07-31-phase1-cycle9-source-allowlist-design.md) | [plan](plans/2026-07-31-phase1-cycle9-source-allowlist.md) |
 | 10 | Checkpoint recording | [spec](specs/2026-07-31-phase1-cycle10-checkpoint-recording-design.md) | [plan](plans/2026-07-31-phase1-cycle10-checkpoint-recording.md) |
+| 11 | Corrective hardening | [spec](specs/2026-08-01-phase1-cycle11-corrective-hardening-design.md) | [plan](plans/2026-08-01-phase1-cycle11-corrective-hardening.md) |
 
-Cycles 11–13 (hang tolerance, the n=16 batch, and a `workspace.py`
-hardening pass) are planned but not yet built — see
-[the roadmap](https://github.com/pauleveritt/local-ai-pi/blob/restructure/ROADMAP.md).
+Cycles 12–14 (hang tolerance, the batch contract, and the n=16 batch) are
+planned but not yet built — see `ROADMAP.md` in this checkout.
 
 ## Withdrawn
 
@@ -67,6 +67,7 @@ specs/2026-07-31-phase1-cycle7-liveness-check-design
 specs/2026-07-31-phase1-cycle8-first-real-run-design
 specs/2026-07-31-phase1-cycle9-source-allowlist-design
 specs/2026-07-31-phase1-cycle10-checkpoint-recording-design
+specs/2026-08-01-phase1-cycle11-corrective-hardening-design
 specs/2026-08-01-phase1-cycle14-live-server-execution-design
 ```
 
@@ -85,6 +86,7 @@ plans/2026-07-31-phase1-cycle7-liveness-check
 plans/2026-07-31-phase1-cycle8-first-real-run
 plans/2026-07-31-phase1-cycle9-source-allowlist
 plans/2026-07-31-phase1-cycle10-checkpoint-recording
+plans/2026-08-01-phase1-cycle11-corrective-hardening
 ```
 
 ```{toctree}

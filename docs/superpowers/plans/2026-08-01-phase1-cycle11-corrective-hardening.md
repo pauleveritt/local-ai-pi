@@ -60,7 +60,8 @@ ran. Tests use temporary paths and mocks only.
 - Add a test whose global Git hook would fail if executed; prove
   `prepare_workspace` still supplies its initial commit.
 - Give the initial commit an explicit controlled Git environment,
-  `--allow-empty`, and an overridden inert `core.hooksPath`.
+  `--allow-empty`, and an overridden inert `core.hooksPath`; let callers use
+  `prepare_workspace()` with no source directory for the tracked empty state.
 - Remove the empty-fixture workaround only after the literal-empty test passes.
 
 ### 4. Close the proof gaps around counting, liveness, and the runner
@@ -73,7 +74,8 @@ ran. Tests use temporary paths and mocks only.
   assert it contributes to the expected count.
 - Make the liveness stub reject paths other than `/v1/models`; retain its
   positive case so it pins the real endpoint.
-- Add `pi_returncode: int` to `RunResult` and checkpoint serialization.
+- Add `pi_returncode: int | None` to `RunResult` and checkpoint serialization;
+  old records load with `None` rather than becoming unreadable.
 - Replace the live, circular runner assertion with a mocked unit test that
   verifies ordered liveness, workspace, Pi, diff, and grading collaborators,
   plus the Pi output and return code in `RunResult`. Keep an optional live test

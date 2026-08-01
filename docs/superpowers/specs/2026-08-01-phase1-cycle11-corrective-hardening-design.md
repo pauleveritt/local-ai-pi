@@ -68,9 +68,10 @@ that Python, pytest, or the host operating system cease to be dependencies.
 ### Workspace setup
 
 `prepare_workspace(source_dir)` must support a literally empty source
-directory and still yield a workspace whose `HEAD` is an initial commit. It
-uses Git's `--allow-empty` option rather than adding a harness-owned placeholder
-to the model's workspace.
+directory and still yield a workspace whose `HEAD` is an initial commit. With
+no source directory, `prepare_workspace()` creates that empty starting state
+directly. It uses Git's `--allow-empty` option rather than adding a
+harness-owned placeholder to the model's workspace.
 
 Its initial commit must not run hooks or inherit a contributor's global/system
 Git configuration. It uses a controlled Git environment and an explicit empty
@@ -83,7 +84,8 @@ workspace setup; it does not alter the user's repository configuration.
   def test_*`, alongside existing synchronous coverage.
 - The liveness stub returns success only for `/v1/models`; its existing success
   test therefore proves the checked path, not merely that some GET succeeded.
-- `RunResult` records Pi's return code. The runner's non-live test replaces the
+- `RunResult` records Pi's return code (or `None` when loading a pre-Cycle-11
+  record that never had one). The runner's non-live test replaces the
   circular `tests_expected == 4` assertion with controlled collaborators that
   prove liveness runs before Pi, Pi is invoked in the prepared workspace, and
   its stdout, stderr, and return code reach the result. It does not pretend a

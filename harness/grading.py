@@ -114,9 +114,7 @@ def grade(
         shutil.copy2(suite, grading_dir / suite.name)
 
         repo_root = Path(__file__).resolve().parents[1]
-        env = dict(os.environ)
-        env[RESULTS_ENV_VAR] = str(results_path)
-        env["PYTHONPATH"] = str(repo_root)
+        env = _grading_environment(repo_root, grading_dir, results_path)
 
         proc = subprocess.run(
             [
@@ -171,6 +169,36 @@ def _test_count(suite: Path) -> int:
         and node.name.startswith("test_")
         for node in tree.body
     )
+
+
+def _grading_environment(
+    repo_root: Path, grading_dir: Path, results_path: Path
+) -> dict[str, str]:
+    """Return the complete environment for the grading subprocess.
+
+    The verdict must not depend on a caller's pytest switches, Python path,
+    user site, or user configuration. The subprocess receives only the values
+    the harness deliberately provides.
+    """
+    home = grading_dir / ".home"
+    config_home = home / ".config"
+    cache_home = home / ".cache"
+    for path in home, config_home, cache_home:
+        path.mkdir(parents=True, exist_ok=True)
+
+    return {
+        "PATH": os.defpath,
+        "HOME": str(home),
+        "XDG_CONFIG_HOME": str(config_home),
+        "XDG_CACHE_HOME": str(cache_home),
+        "LANG": "C",
+        "LC_ALL": "C",
+        "TZ": "UTC",
+        "PYTHONPATH": str(repo_root),
+        "PYTHONNOUSERSITE": "1",
+        "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1",
+        RESULTS_ENV_VAR: str(results_path),
+    }
 
 
 def _refused_config(workspace: Path) -> tuple[str, ...]:

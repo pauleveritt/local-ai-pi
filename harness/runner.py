@@ -18,6 +18,7 @@ class RunResult:
     grade: GradeResult
     pi_stdout: str
     pi_stderr: str
+    pi_returncode: int | None
 
 
 def run_agentclinic_phase1(
@@ -26,7 +27,7 @@ def run_agentclinic_phase1(
 ) -> RunResult:
     check_model_server_alive()
 
-    with prepare_workspace(PHASE_1 / "empty") as workspace:
+    with prepare_workspace() as workspace:
         initial_commit = subprocess.run(
             ["git", "rev-parse", "HEAD"],
             cwd=workspace,
@@ -79,4 +80,5 @@ def run_agentclinic_phase1(
         grade=grade_result,
         pi_stdout=pi_proc.stdout,
         pi_stderr=pi_proc.stderr,
+        pi_returncode=pi_proc.returncode,
     )

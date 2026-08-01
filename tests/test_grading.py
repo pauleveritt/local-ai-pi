@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 from types import SimpleNamespace
 
-from harness.grading import _verdict, grade
+from harness.grading import _grading_environment, _test_count, _verdict, grade
 from harness.grading_plugin import (
     DONE_MARKER,
     RESULTS_ENV_VAR,
@@ -168,6 +168,34 @@ def test_verdict_rejects_on_nonzero_returncode_even_if_everything_else_passed():
     assert result.accepted is False
 
 
+def test_test_count_includes_module_level_async_tests(tmp_path):
+    suite = tmp_path / "test_async_suite.py"
+    suite.write_text(
+        "def test_sync():\n"
+        "    pass\n"
+        "\n"
+        "async def test_async():\n"
+        "    pass\n"
+        "\n"
+        "def helper():\n"
+        "    pass\n"
+    )
+
+    assert _test_count(suite) == 2
+
+
+def test_grading_environment_excludes_ambient_pytest_settings(tmp_path, monkeypatch):
+    monkeypatch.setenv("PYTEST_ADDOPTS", "--collect-only")
+    monkeypatch.setenv("PYTEST_PLUGINS", "ambient_plugin")
+    env = _grading_environment(tmp_path / "repo", tmp_path / "grading", tmp_path / "results")
+
+    assert env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] == "1"
+    assert env["PYTHONNOUSERSITE"] == "1"
+    assert "PYTEST_ADDOPTS" not in env
+    assert "PYTEST_PLUGINS" not in env
+    assert env["PYTHONPATH"] == str(tmp_path / "repo")
+
+
 # ---------------------------------------------------------------------
 # 3. grade() against the real fixtures
 # ---------------------------------------------------------------------
@@ -209,6 +237,16 @@ def _shadow_attack_source(tmp_path):
 
 
 def test_grade_accepts_the_reference_solution():
+    with prepare_workspace(PHASE_1 / "reference") as workspace:
+        result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")
+
+    assert result.accepted is True
+    assert result.tests_executed == result.tests_expected == 4
+
+
+def test_grade_ignores_ambient_collect_only_option(monkeypatch):
+    monkeypatch.setenv("PYTEST_ADDOPTS", "--collect-only")
+
     with prepare_workspace(PHASE_1 / "reference") as workspace:
         result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")
 

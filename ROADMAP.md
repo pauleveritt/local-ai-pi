@@ -31,7 +31,7 @@ not by being convenient shorthand.*
 | fixture | a known-good or known-broken example solution, used to prove the grader itself | cycle 1 |
 | workspace | a disposable, git-initialized directory the model writes into. Read by the grader, never graded directly — see *grading directory* | cycle 2 |
 | grading directory | a fresh directory holding only allowlisted files copied out of the workspace, plus the suite; what pytest actually runs against | cycle 9 |
-| hermetic | graded in isolation — nothing outside the grading directory can affect the verdict | cycle 2 |
+| hermetic | graded with controlled model-written files and caller configuration, so those inputs cannot affect the verdict | cycle 2 |
 | grader | the code that turns a workspace into a verdict (`harness/grading.py`) | cycle 1 |
 | harness | the eval harness as a whole (`harness/` package) | kickoff |
 | verdict | the accept/reject/refuse outcome of grading one workspace (`GradeResult`) | cycle 3 |
@@ -43,6 +43,9 @@ not by being convenient shorthand.*
 | liveness (check) | confirming the model server responds before a run is even attempted | cycle 7 |
 | allowlist | which model-written paths (`app.py`, `templates`) get copied into a fresh directory and graded at all | cycle 5's close, implemented cycle 9 |
 | checkpoint | an append-only JSONL record of completed runs; resumes by counting valid lines, tolerant of a truncated last line on both read and write | cycle 2's deferrals, implemented cycle 10 |
+| run | one invocation of Pi against one fresh workspace, followed by its grade | cycle 8 |
+| batch | a fixed, sequential set of runs under one declared set of conditions | cycle 11's re-plan |
+| extension | the fixed project-supplied Pi addition loaded for each run, distinct from Pi's ambient extensions | cycle 8 |
 
 **Retired, not currently spent:** `oracle` — dropped from the engine's
 vocabulary, since "grader"/"verdict" cover the same ground without a term
@@ -69,17 +72,18 @@ test name.
 | 5 | Refusal of model-written config — the grader refuses to certify a run whose workspace carries model-written `pytest.ini`/`.pytest.ini`/`pyproject.toml`/`tox.ini`/`setup.cfg`/`conftest.py`/`sitecustomize.py`, before pytest ever runs. Split from the original combined row (below) — the allowlist half needed evidence this half didn't. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle5-config-refusal-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle5-config-refusal.md) | Done |
 | 6 | AgentClinic task spec — transplanted **Phase 1's section only** of the detailed roadmap to `examples/agentclinic/specs/roadmap.md`, the document the trusted number was produced against, resolving a citation cycle 1's suite had carried since. Deliberately *not* a variant choice: see the Backlog note. Also fixed the grading regression the transplant made reachable. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle6-task-spec-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle6-task-spec.md) | Done |
 | 7 | Model-server liveness check — `check_model_server_alive` GETs `/v1/models` on the `omlx` server (`127.0.0.1:8001` default, a seam) and raises `ModelServerDown` on anything but a 200; proven against a stub HTTP server, not a real model, with two distinct down-modes (nothing listening; a completed exchange with a bad status) so the raise isn't just "catch anything." | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle7-liveness-check-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle7-liveness-check.md) | Done |
-| 8 | First real run — `run_agentclinic_phase1()` invokes `pi` against a fresh, literally-empty workspace (a `.gitkeep` fixture, to sidestep `prepare_workspace`'s empty-directory commit bug rather than fix it), captures a diff against the workspace's initial commit, and grades hermetically via cycles 3–6's grader. The task spec is passed as `pi`'s prompt text, never placed in the workspace. **Actually run, live, against the real `omlx` server, once the harness code and three bugs invisible to fixture-only testing were fixed** (see below): the model built a working AgentClinic Phase 1 app and it graded `accepted=True, tests_executed=tests_expected=4, returncode=0`. | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle8-first-real-run-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle8-first-real-run.md) | Done |
+| 8 | First real run — `run_agentclinic_phase1()` invokes `pi` against a fresh, literally-empty workspace, captures a diff against the workspace's initial commit, and grades hermetically via cycles 3–6's grader. The task spec is passed as `pi`'s prompt text, never placed in the workspace. **Actually run, live, against the real `omlx` server, once the harness code and three bugs invisible to fixture-only testing were fixed** (see below): the model built a working AgentClinic Phase 1 app and it graded `accepted=True, tests_executed=tests_expected=4, returncode=0`. | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle8-first-real-run-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle8-first-real-run.md) | Done |
 | 9 | Source allowlist — `grade()` now copies only allowlisted paths (`app.py`, `templates`, default) plus the suite into a fresh grading directory and runs pytest there, instead of `cwd=workspace`. Closes the sys.path-shadowing threat by construction: a model-written `harness/` package or `pytest.py` is never copied in, so it can never be imported in place of the real thing. Proven with a verified-first exploit — a rogue `harness/grading_plugin.py` that crashed collection and leaked into `stderr` under the old code, confirmed inert after the fix. | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle9-source-allowlist-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle9-source-allowlist.md) | Done |
 | 10 | Checkpoint recording — `harness/checkpoint.py`'s `append_checkpoint`/`load_checkpoint` persist a `RunResult` per completed run as JSONL, resuming by position (the Nth valid line is run N). `load_checkpoint` tolerates a truncated final line (a process that died mid-write); `append_checkpoint` cleans up that same dangling fragment before writing its own record, so resuming more than once stays safe — a real corruption bug Fable's review caught before implementation, where the naive version would have concatenated onto the fragment instead. | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle10-checkpoint-recording-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle10-checkpoint-recording.md) | Done |
-| 11 | Hang tolerance — `grade()`'s pytest subprocess and `run_agentclinic_phase1()`'s `pi` subprocess both currently let `subprocess.TimeoutExpired` propagate uncaught, crashing the run instead of producing a rejection. A batch needs one hung run recorded and the rest to continue, not the whole batch aborted. The actual prerequisite for "resumable batch," not the batch loop itself. | | | Next |
-| 12 | n=16 batch, sequential and resumable — target ~15/16 | | | Planned |
-| 13 | `harness/workspace.py` hardening — a global `core.hooksPath` pre-commit hook breaking `prepare_workspace`'s commit, and `prepare_workspace` raising `CalledProcessError` on a literally-empty source directory. Both homeless since cycle 2's review; folded into their own small cycle rather than left dangling past Phase 1's end. | | | Planned |
+| 11 | Corrective hardening — checkpoint append preserves complete final records and never rewrites valid prefixes; grading uses a controlled child environment; workspace setup is independent of hooks/global Git config and supports a literally empty workspace; missing proof regressions are added. | [spec](docs/superpowers/specs/2026-08-01-phase1-cycle11-corrective-hardening-design.md) | [plan](docs/superpowers/plans/2026-08-01-phase1-cycle11-corrective-hardening.md) | Done |
+| 12 | Hang tolerance — Pi and pytest timeouts must terminate their entire process groups, yield bounded rejected results, and let a later batch attempt continue. | | | Next |
+| 13 | Batch contract — restore the trusted Pi invocation shape, prove real model output before a batch, and record the conditions that make completed runs comparable. | | | Planned |
+| 14 | n=16 batch, sequential and resumable — target ~15/16 | | | Planned |
 
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus
 *before* a model runs once — every one of them is provable against fixtures
 with no model in the loop. That is deliberate: it means the ~15/16 at cycle
-12 measures the model rather than the engine, which is the whole reason
+14 measures the model rather than the engine, which is the whole reason
 Phase 1 was chosen for being boring (see `BRIEF.md`). Building the grader
 after the first run would produce output with no trusted way to judge it.
 Cycle 9 (the allowlist) is the one deliberate exception — it is judging
@@ -92,6 +96,16 @@ server, exactly like cycles 3–7.
 Cycles 4-before-5, 6-before-8, and 8-before-9 follow cycle 1's precedent:
 the artifacts that make a proof possible get their own cycle, ahead of the
 machinery that consumes them.
+
+**Current dependency order, corrected 2026-08-01.** The post-cycle-10
+harvest originally placed workspace hardening after the batch. The deep
+review demonstrated that a contributor's `core.hooksPath`, checkpoint repair,
+and caller-controlled pytest settings can break or corrupt an otherwise valid
+batch before it starts. Cycle 11 repairs those prerequisites first; cycle 12
+then makes one timed-out attempt survivable; cycle 13 establishes the exact
+conditions and real-output preflight for comparable runs; and cycle 14 is the
+batch that consumes all three. The historical harvest notes below retain their
+original cycle numbers only as a record of that superseded plan.
 
 **The 2026-07-31 harvest re-plan.** After cycle 10 closed, a stocktake of
 everything sitting in Deferred candidates and the Backlog turned three
@@ -125,7 +139,7 @@ a substring, two links, and a doctype. And decisively, the acceptance
 suite *is* the measuring instrument that produced the trusted number;
 rewriting it at the end of a reproduction phase, and paying a sixteen-run
 re-baseline to get back to where we already are, is the same move cycle 6
-refused for one bullet of the task spec. Phase 1 now ends at cycle 13.
+refused for one bullet of the task spec. Phase 1 now ends at cycle 14.
 The research survives in the Backlog entry — it is worth keeping and
 expensive to re-derive.
 
@@ -160,14 +174,11 @@ graded in the workspace with no second directory, consumed cycle 4's
 helpers as planned, and its non-vacuous tests assert on `refused_config`
 and `returncode is None` rather than `accepted is False` alone.
 
-**Homed by the 2026-07-31 harvest re-plan, as cycle 13.** Originally
-surfaced by cycle 2's review; carried through cycle 9 on the assumption
-the allowlist's problem domain would touch `harness/workspace.py`, but
-cycle 9 shipped as a `grade()`-only change and never did: a global
-`core.hooksPath` pre-commit hook would make `prepare_workspace`'s commit
-fail, and `prepare_workspace` raises `CalledProcessError` on an empty
-source directory because `git commit` finds nothing staged. No longer
-homeless — see cycle 13.
+**Resolved by cycle 11.** The 2026-07-31 harvest had assigned workspace
+hardening to its old cycle 13. Cycle 11 moved it before every batch
+dependency: its initial commit ignores global/system Git configuration and
+hooks, and `--allow-empty` permits a genuinely empty workspace with no
+placeholder file.
 
 These two notes from cycle 5 were carried to cycle 9. One is resolved,
 one is still open and has nowhere else to go:
@@ -188,13 +199,13 @@ one is still open and has nowhere else to go:
   Backlog entry (below) for the full resolution. Cycle 9 took exactly the
   copy-only-allowlisted-files shape this note speculated about.
 
-**Homed by the 2026-07-31 harvest re-plan, as cycle 11.** Surfaced by
-cycle 5's brainstorming, not a specific single cycle at the time:
+**Deferred to cycle 12.** Surfaced by cycle 5's brainstorming, not a
+specific single cycle at the time:
 `grade()` never catches `subprocess.TimeoutExpired`; it propagates
 uncaught. Immaterial for a single run, but a batch needs one hung run to
 record a rejection and continue, not abort the whole batch. Cycle 10's
-checkpoint made resuming a batch possible; cycle 11 makes surviving a
-hang inside one possible — see cycle 11.
+checkpoint made resuming a batch possible; Cycle 12 makes surviving a
+hang inside one possible.
 
 **A collision surfaced by cycle 6's brainstorming, confirmed empirically,
 and resolved by cycle 6.** `grade()` invoked `pytest -q` with
@@ -274,7 +285,8 @@ real `pi` process —
    live invocation before fixing — the prompt is a plain positional
    argument, no separator needed.
 3. The captured diff included `__pycache__/*.pyc` as new binary files.
-   Fixed with a `.gitignore` in the `empty/` fixture.
+   Fixed at the time with a `.gitignore` in the now-retired `empty/`
+   fixture.
 
 `pi_stdout`/`pi_stderr` were added to `RunResult` while diagnosing bug 2 —
 without them, bug 2 would have produced an empty diff and a silent
@@ -288,7 +300,9 @@ fourth instance of the same leak: `.pytest_cache/` wasn't in the `empty/`
 fixture's `.gitignore` either, and the task spec has the model write its
 own smoke test — so `pi` running pytest inside the workspace would create
 one, showing up in the diff exactly like the `.pyc` files did. Fixed the
-same way, verified the same way (no full model run needed).
+same way, verified the same way (no full model run needed). Cycle 11 later
+removed the `empty/` placeholder entirely: `prepare_workspace()` now creates
+the empty initial commit directly.
 
 **Considered and deliberately not promoted by the 2026-07-31 harvest
 re-plan.** `pi_stdout`/`pi_stderr` are captured, but only on the path
@@ -298,21 +312,17 @@ spec explicitly allows this) and whatever `pi` had printed up to that
 point is lost, since `subprocess.run` doesn't expose partial output from
 a killed process. Immaterial for a single supervised run; a batch that
 needs to diagnose *why* one run out of sixteen hung will want it. Cycle
-11 (hang tolerance) makes the batch survive this case, but doesn't
+12 (hang tolerance) makes the batch survive this case, but doesn't
 capture partial output when it happens — still not fixed, still no
 evidence it's needed, and `subprocess.run`'s timeout handling doesn't
 offer partial capture without switching to `Popen` directly, which
 remains more machinery than a single unconfirmed need justifies. Revisit
-if cycle 12's actual batch run ever produces a hang worth diagnosing.
+if Cycle 14's actual batch run ever produces a hang worth diagnosing.
 
-**Homed by the 2026-07-31 harvest re-plan, as cycle 13.**
-`prepare_workspace`'s `CalledProcessError` on a literally-empty source
-directory (cycle 2's review, carried through cycle 9 above) was
-*sidestepped*, not fixed: cycle 8's `empty/` fixture contains a
-`.gitkeep` placeholder specifically so `git add -A` has something to
-stage. The underlying bug in `harness/workspace.py` is untouched — cycle
-9 shipped as a `grade()`-only change and never reached it. Same fix, same
-cycle as the `core.hooksPath` note above — see cycle 13.
+**Resolved by cycle 11.** `prepare_workspace` no longer needs the old
+`empty/` fixture's `.gitkeep` placeholder: `git commit --allow-empty`
+creates a real initial commit from an empty source, while Git hooks and
+ambient configuration remain isolated.
 
 **A quiet coverage shift, surfaced by the 2026-08-01 deep review.** Cycle
 5's refusal now intercepts the `--collect-only` attack before pytest ever
@@ -333,6 +343,10 @@ things over.
 
 - Volunteer-reader / section-structure design (superseded Phase 1 framing;
   revisit once an engine and real suites exist to write about)
+- Telemetry (Phase 2): aggregate model/session measurements only after a
+  suite author has named a claim they need those measurements to support.
+  Phase 1 records accept/reject evidence and complete Pi output, but does not
+  infer token, tool, or context-window metrics from it.
 - Authoring scaffold for future acceptance suites (phase 2+): stub test
   functions named for the fact they prove, `raise NotImplementedError`
   bodies, a model fills in from owner-dictated bullets, owner reviews by
@@ -436,26 +450,6 @@ things over.
   withdrawn cycle-14 design doc
   (`docs/superpowers/specs/2026-08-01-phase1-cycle14-live-server-execution-design.md`)
   is kept as the starting point.
-- **Resolved by cycle 9, kept for the record.** Same root cause,
-  different shape from the entry above: `python -m pytest` with
-  `cwd=workspace` used to put the workspace first on `sys.path`. A
-  model-written module that shadowed a real import name — a
-  workspace-root `harness/` package, or `pytest.py`/`pytest/` — could be
-  imported instead of the genuine one, including standing in for
-  `harness/grading_plugin.py` itself and writing a forged results file
-  exactly as the entry above describes. No filename-based refusal caught
-  this, since the threat was never a config file. Cycle 9 took the
-  copy-only-allowlisted-files shape this entry named as one closing
-  option: `grade()` now runs pytest against a fresh directory containing
-  only `source_allowlist`-named paths, so a rogue `harness/` package is
-  never copied in and never reachable to shadow anything. Verified
-  directly, not assumed: a rogue `harness/grading_plugin.py` that raises
-  on import crashed collection and leaked its message into `stderr`
-  under the pre-cycle-9 code; confirmed inert after the fix. The
-  out-of-process fix in the entry above remains the one thing this
-  doesn't close — it defends the import path, not the shared-process
-  results-file secret, which is a different attack surface entirely.
-
 ## Prior work
 
 The pre-restructure project lives on the `user-story-batch` branch, untouched.
