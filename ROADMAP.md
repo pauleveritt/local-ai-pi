@@ -88,6 +88,7 @@ test name.
 | 15 | Pi exit veto — a run remains diagnostically graded after Pi returns, but it is accepted only when Pi did not time out, Pi exited zero, and the grade is accepted. The recorded Phase 1 batch is unaffected: all sixteen Pi return codes were zero. | [spec](docs/superpowers/specs/2026-08-01-post-phase1-pi-exit-veto-design.md) | [plan](docs/superpowers/plans/2026-08-01-post-phase1-pi-exit-veto.md) | Done |
 | 16 | n=16 batch evidence — a compact, committed [record](docs/superpowers/research/2026-08-01-phase1-n16-batch-evidence.md) identifies the raw checkpoint and its measured conditions/results without committing 4.5 MB of model output. | [spec](docs/superpowers/specs/2026-08-01-post-phase1-batch-evidence-record-design.md) | [plan](docs/superpowers/plans/2026-08-01-post-phase1-batch-evidence-record.md) | Done |
 | 17 | Local workspace hygiene — active linked worktrees and local agent state are ignored; nine old generated session files moved unchanged into the preserved old-project worktree after SHA-256 verification; the stale Sphinx static-path setting is removed so strict docs builds pass. | [spec](docs/superpowers/specs/2026-08-01-post-phase1-local-workspace-hygiene-design.md) | [plan](docs/superpowers/plans/2026-08-01-post-phase1-local-workspace-hygiene.md) | Done |
+| 18 | Pages publication — restore the `main`-push Pages workflow with strict Sphinx, update the landing status, and leave a migration page at the old Section III URL. | [spec](docs/superpowers/specs/2026-08-01-post-phase1-pages-publication-design.md) | [plan](docs/superpowers/plans/2026-08-01-post-phase1-pages-publication.md) | Done |
 
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus
 *before* a model runs once — every one of them is provable against fixtures
@@ -159,6 +160,12 @@ sequence because all sixteen historical records already have return code zero,
 so the correction does not alter the reproduced result. The concept budget is
 unchanged: it uses the existing terms *run* and *verdict* rather than naming a
 new mechanism.
+
+**Post-Phase 1 Pages publication, 2026-08-01.** Cycle 18 restores the
+GitHub Pages workflow on `main`, gates deployment on a warning-free Sphinx
+build, updates the landing page to Phase 1 complete, and leaves a migration
+page at the old Section III URL. The concept budget is unchanged: this is
+publication wiring and compatibility documentation, not an engine mechanism.
 
 **Post-Phase 1 evidence record, 2026-08-01.** Cycle 16 records the raw
 n=16 checkpoint's path at verification time, size, checksum, shared

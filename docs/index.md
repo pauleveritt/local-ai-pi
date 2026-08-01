@@ -36,10 +36,10 @@ for the full statement — it's short, and it's the whole context.
 
 ## Where things stand
 
-**Phase 1 is nearly complete.** Ten feature cycles have built a grading
+**Phase 1 is complete.** Fourteen feature cycles built and proved a grading
 engine that runs a small local model against a real task — building an
 AgentClinic home page from a spec — and decides hermetically whether it
-succeeded.
+succeeded. A supervised n=16 reproduction accepted all 16 attempts.
 
 Phase 1 was chosen *because it is boring*: it starts from an empty
 workspace, and its answer is already known and trusted. The engine's first
@@ -47,13 +47,12 @@ job is to **reproduce a number we already trust, not to discover one.**
 ~15/16 means the engine works; 3/16 means the engine is broken, not the
 model. That inference isn't available on any phase whose answer is unknown.
 
-Along the way the engine has been attacked deliberately and repeatedly, by
-us, to prove it can't be fooled — by test configs that skip execution, by
-processes that exit before reporting, and by modules that impersonate the
-grader itself. One real end-to-end run has graded a live model's work as
-accepted.
+Along the way the engine was attacked deliberately and repeatedly, by us, to
+prove it can't be fooled — by test configs that skip execution, by processes
+that exit before reporting, and by modules that impersonate the grader itself.
+The live model run and supervised batch both have recorded evidence.
 
-Three cycles remain. **Phase 2 is where new collaborators come in.**
+**Phase 2 is where new collaborators come in.**
 
 ## For new collaborators
 

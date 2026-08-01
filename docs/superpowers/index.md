@@ -50,6 +50,7 @@ repository.
 | 15 | Pi exit veto | [spec](specs/2026-08-01-post-phase1-pi-exit-veto-design.md) | [plan](plans/2026-08-01-post-phase1-pi-exit-veto.md) |
 | 16 | n=16 batch evidence | [spec](specs/2026-08-01-post-phase1-batch-evidence-record-design.md) | [plan](plans/2026-08-01-post-phase1-batch-evidence-record.md) |
 | 17 | Local workspace hygiene | [spec](specs/2026-08-01-post-phase1-local-workspace-hygiene-design.md) | [plan](plans/2026-08-01-post-phase1-local-workspace-hygiene.md) |
+| 18 | Pages publication | [spec](specs/2026-08-01-post-phase1-pages-publication-design.md) | [plan](plans/2026-08-01-post-phase1-pages-publication.md) |
 
 ## Withdrawn
 
@@ -92,6 +93,7 @@ specs/2026-08-01-phase1-cycle14-live-server-execution-design
 specs/2026-08-01-post-phase1-pi-exit-veto-design
 specs/2026-08-01-post-phase1-batch-evidence-record-design
 specs/2026-08-01-post-phase1-local-workspace-hygiene-design
+specs/2026-08-01-post-phase1-pages-publication-design
 ```
 
 ```{toctree}
@@ -116,6 +118,7 @@ plans/2026-08-01-phase1-cycle14-n16-batch
 plans/2026-08-01-post-phase1-pi-exit-veto
 plans/2026-08-01-post-phase1-batch-evidence-record
 plans/2026-08-01-post-phase1-local-workspace-hygiene
+plans/2026-08-01-post-phase1-pages-publication
 ```
 
 ```{toctree}
