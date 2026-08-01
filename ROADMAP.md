@@ -70,7 +70,8 @@ every test name).
 | 11 | Hang tolerance — `grade()`'s pytest subprocess and `run_agentclinic_phase1()`'s `pi` subprocess both currently let `subprocess.TimeoutExpired` propagate uncaught, crashing the run instead of producing a rejection. A batch needs one hung run recorded and the rest to continue, not the whole batch aborted. The actual prerequisite for "resumable batch," not the batch loop itself. | | | Next |
 | 12 | n=16 batch, sequential and resumable — target ~15/16 | | | Planned |
 | 13 | `harness/workspace.py` hardening — a global `core.hooksPath` pre-commit hook breaking `prepare_workspace`'s commit, and `prepare_workspace` raising `CalledProcessError` on a literally-empty source directory. Both homeless since cycle 2's review; folded into their own small cycle rather than left dangling past Phase 1's end. | | | Planned |
-| 14 | Out-of-process suite execution — closes the same-process forged-results-file gap: a model-authored `app.py` can currently read the results-file path from its shared environment and forge a passing verdict. Scoped out of cycle 4 as "materially larger" than that cycle; cycle 9 closed the sys.path half of this same root cause, not this half. Scope not yet designed — brainstormed on its own once cycles 11–13 are settled. | | | Planned |
+| 14 | Live-server suite execution (fidelity) — the acceptance suite stops importing `app` and `TestClient`, and talks HTTP to a real uvicorn subprocess instead. Splits the single grading directory into an `app_dir` (allowlisted model files only) and a `suite_dir` (suite only), so the pytest process becomes model-free by construction. Justified primarily by fidelity, not security: `TestClient` bypasses the real ASGI stack, so a solution passing it can still fail under uvicorn. | | | Planned |
+| 15 | Results-channel hardening (security) — closes the forged-results-file gap for real. **Verified empirically during cycle 14's brainstorm: process separation alone does NOT close it.** A subprocess with `SATYRN_GRADE_RESULTS_PATH` scrubbed still globs `$TMPDIR/satyrn-grade-results-*.txt` (the prefix is a literal in `grading.py`) and forges a pass — mode `0600` is worthless at the same UID. The fix, also verified: keep the results file's fd, unlink its path immediately, pass the fd only to the trusted pytest process. Split from cycle 14 so each half is independently provable, and so cycle 14's fidelity value doesn't depend on the security model being right. | | | Planned |
 
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus
 *before* a model runs once — every one of them is provable against fixtures
@@ -353,8 +354,18 @@ things over.
   doc, "Out of scope for this cycle"). Left in the Backlog for three
   cycles as the largest known correctness gap; promoted once it was the
   clear largest remaining item on a harvest pass, not because anything
-  new made it more urgent. Cycle 14's scope isn't designed yet — this
-  entry is its starting point, not its final shape.
+  new made it more urgent.
+
+  **Cycle 14's brainstorm then split it into cycles 14 and 15, and
+  disproved the obvious fix along the way.** Running the app in a
+  separate process with the env var scrubbed does *not* close this: the
+  app subprocess globs `$TMPDIR/satyrn-grade-results-*.txt` and forges a
+  pass, because it runs as the same UID that owns the `0600` file.
+  Demonstrated directly, not argued — a broken solution graded as
+  accepted. The working fix (also demonstrated): hold the results file's
+  fd, unlink its path so nothing is on disk to find, and pass the fd only
+  to the trusted pytest process. Cycle 14 does the fidelity half (live
+  server, model-free pytest process); cycle 15 does this.
 - **Resolved by cycle 9, kept for the record.** Same root cause,
   different shape from the entry above: `python -m pytest` with
   `cwd=workspace` used to put the workspace first on `sys.path`. A
