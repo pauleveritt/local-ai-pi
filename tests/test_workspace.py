@@ -38,10 +38,9 @@ def test_prepare_workspace_cleans_up_when_the_body_raises(tmp_path):
     (source / "app.py").write_text("x = 1\n")
 
     leaked = None
-    with pytest.raises(RuntimeError):
-        with prepare_workspace(source) as workspace:
-            leaked = workspace
-            raise RuntimeError("boom")
+    with pytest.raises(RuntimeError), prepare_workspace(source) as workspace:
+        leaked = workspace
+        raise RuntimeError("boom")
 
     assert not leaked.exists()
 

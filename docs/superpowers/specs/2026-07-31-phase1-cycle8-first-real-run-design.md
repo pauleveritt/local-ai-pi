@@ -1,7 +1,16 @@
 # Cycle 8 — First real run
 
 **Phase:** 1 — Reproduce AgentClinic Phase 1 with a trustworthy engine
-**Status:** design, awaiting plan
+**Status:** implemented — cycle marked Done in `ROADMAP.md`
+
+> *Two things drifted after this document was written, and it is left
+> as-authored rather than rewritten. **Cycle numbers:** the 2026-07-31
+> harvest re-plan renumbered later cycles — the n=16 batch is now cycle
+> 12, not 11, and the `prepare_workspace` empty-source fix is cycle 13,
+> not cycle 9 (cycle 9 shipped as a `grade()`-only change and never
+> touched it). **`RunResult`:** it later gained `pi_stdout` and
+> `pi_stderr`, added while diagnosing the first live run. `ROADMAP.md`
+> is authoritative for both.*
 
 ## Why this cycle
 

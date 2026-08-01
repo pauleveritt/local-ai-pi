@@ -122,10 +122,14 @@ def grade(
             [
                 sys.executable, "-m", "pytest", "-q",
                 "-p", "harness.grading_plugin",
-                # Collect the acceptance suite and nothing else. See
-                # module-level notes: the allowlist copy already keeps
-                # model-written test files out of the grading directory,
-                # but this stays as a second, independent guard.
+                # Collect the acceptance suite and nothing else. Cycle 9's
+                # allowlist copy already keeps model-written test files out
+                # of the grading directory, so this is now a second,
+                # independent guard rather than the only one -- it is what
+                # cycle 6 added when a model following the task spec (which
+                # tells it to write tests/test_app.py) inflated
+                # tests_executed past tests_expected and a correct solution
+                # was rejected.
                 suite.name,
             ],
             cwd=grading_dir,
@@ -148,9 +152,23 @@ def grade(
 
 
 def _test_count(suite: Path) -> int:
+    """How many tests the suite declares, counted from its source.
+
+    Counts module-level `def test_*` and `async def test_*`. Class-grouped
+    tests are deliberately unsupported: no suite uses them, and counting
+    them would mean deciding what pytest would collect rather than reading
+    what the file declares.
+
+    Undercounting here is not a cosmetic bug. `tests_expected` feeds the
+    `tests_executed == tests_expected` condition, so a miscount rejects a
+    *correct* solution -- the engine-looks-like-a-model-failure confusion
+    Phase 1 exists to prevent. Async was missed until a review caught it,
+    and would have bitten the first suite written against an async client.
+    """
     tree = ast.parse(suite.read_text(), filename=str(suite))
     return sum(
-        isinstance(node, ast.FunctionDef) and node.name.startswith("test_")
+        isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+        and node.name.startswith("test_")
         for node in tree.body
     )
 
@@ -165,17 +183,23 @@ def _refused_config(workspace: Path) -> tuple[str, ...]:
     inert -- pytest reads ini files at the rootdir, and sitecustomize is
     imported from sys.path.
 
-    Two of these currently execute code, not just configure the run:
-    conftest.py at collection time, and any ini-style file (pytest.ini,
-    .pytest.ini, pyproject.toml, tox.ini, setup.cfg) whose addopts loads a
-    plugin -- confirmed directly: a workspace-root .pytest.ini with
-    `addopts = -p evil` runs evil.py's pytest_configure() before
-    collection, under this module's invocation of pytest (cwd=workspace,
-    python -m pytest). sitecustomize.py is the one entry refused purely as
-    defense-in-depth: it does not execute under the current invocation
-    shape (site processes it before -m puts the workspace directory on
-    sys.path), only against how that invocation might change (e.g. if the
-    workspace directory ever ends up on PYTHONPATH or sys.path earlier).
+    **Since cycle 9, none of these names can reach the graded run at all.**
+    pytest runs in an allowlist-copied grading directory, and no refused
+    name is on the allowlist, so nothing here is load-bearing against
+    execution any more. Refusal is retained for two reasons: it is
+    defense-in-depth if the allowlist ever widens, and `refused_config` in
+    the verdict is useful evidence of what the model *attempted*,
+    independent of whether the attempt could have worked.
+
+    Historical, and the reason the list looks like it does -- when grading
+    ran with `cwd=workspace` (pre-cycle-9), two of these executed code
+    rather than merely configuring the run: conftest.py at collection
+    time, and any ini-style file (pytest.ini, .pytest.ini, pyproject.toml,
+    tox.ini, setup.cfg) whose addopts loads a plugin. That was confirmed
+    directly at the time: a workspace-root .pytest.ini with
+    `addopts = -p evil` ran evil.py's pytest_configure() before collection.
+    sitecustomize.py never executed even then; it was refused purely as
+    defense-in-depth against the invocation shape changing.
 
     The five ini-style names above (pytest.ini, .pytest.ini, pyproject.toml,
     tox.ini, setup.cfg) should track pytest's own config-discovery order

@@ -29,8 +29,10 @@ not by being convenient shorthand.*
 | phase | groups feature cycles; one direction at a time | kickoff |
 | suite | the acceptance test suite a solution is graded against | cycle 1 |
 | fixture | a known-good or known-broken example solution, used to prove the grader itself | cycle 1 |
-| workspace | a disposable, git-initialized copy of a fixture that actually gets graded | cycle 2 |
-| hermetic | graded in isolation — nothing outside the workspace can affect the verdict | cycle 2 |
+| workspace | a disposable, git-initialized directory the model writes into. Read by the grader, never graded directly — see *grading directory* | cycle 2 |
+| grading directory | a fresh directory holding only allowlisted files copied out of the workspace, plus the suite; what pytest actually runs against | cycle 9 |
+| hermetic | graded in isolation — nothing outside the grading directory can affect the verdict | cycle 2 |
+| grader | the code that turns a workspace into a verdict (`harness/grading.py`) | cycle 1 |
 | harness | the eval harness as a whole (`harness/` package) | kickoff |
 | verdict | the accept/reject/refuse outcome of grading one workspace (`GradeResult`) | cycle 3 |
 | hook | the pytest hook that writes the real per-test outcomes to a results file | cycle 3 |
@@ -42,10 +44,13 @@ not by being convenient shorthand.*
 | allowlist | which model-written paths (`app.py`, `templates`) get copied into a fresh directory and graded at all | cycle 5's close, implemented cycle 9 |
 | checkpoint | an append-only JSONL record of completed runs; resumes by counting valid lines, tolerant of a truncated last line on both read and write | cycle 2's deferrals, implemented cycle 10 |
 
-**Retired, not currently spent:** `oracle` (dropped — "grader"/"verdict" cover
-the same ground without a term borrowed from testing theory); `conjunct`
-(renamed to `condition` — cycle 5's audit caught the rename hadn't reached
-every test name).
+**Retired, not currently spent:** `oracle` — dropped from the engine's
+vocabulary, since "grader"/"verdict" cover the same ground without a term
+borrowed from testing theory. It survives in `BRIEF.md` only as a
+reference to the old branch's suite, which is a historical citation rather
+than live usage; don't "fix" that occurrence. `conjunct` — renamed to
+`condition`; cycle 5's audit caught that the rename hadn't reached every
+test name.
 
 ## Phases
 
@@ -308,6 +313,18 @@ directory (cycle 2's review, carried through cycle 9 above) was
 stage. The underlying bug in `harness/workspace.py` is untouched — cycle
 9 shipped as a `grade()`-only change and never reached it. Same fix, same
 cycle as the `core.hooksPath` note above — see cycle 13.
+
+**A quiet coverage shift, surfaced by the 2026-08-01 deep review.** Cycle
+5's refusal now intercepts the `--collect-only` attack before pytest ever
+runs, so `test_collect_only_attack_is_refused_before_any_exit_code_exists`
+(cycle 4) and `test_grade_refuses_a_workspace_carrying_config_without_running_pytest`
+(cycle 5) assert the same thing by different routes. Both are kept — they
+would fail differently if refusal regressed — but the consequence is worth
+naming: there is no longer any *end-to-end* proof that the verdict's
+count-mismatch logic catches `--collect-only`. Only the unit-level
+`test_verdict_rejects_a_partial_run` covers that mechanism now. Not a bug;
+worth knowing before anyone assumes the integration path still exercises
+it.
 
 Nothing else is currently deferred. Add to this list as later cycles pass
 things over.

@@ -1,11 +1,29 @@
+"""Tests for the grading engine, in three sections:
+
+1. `grading_plugin`'s hooks -- unit tests, no pytest subprocess.
+2. `_verdict` -- unit tests of the pure verdict function.
+3. `grade()` -- integration tests against the real fixtures.
+"""
+import shutil
+from pathlib import Path
 from types import SimpleNamespace
 
+from harness.grading import _verdict, grade
 from harness.grading_plugin import (
     DONE_MARKER,
     RESULTS_ENV_VAR,
     pytest_runtest_logreport,
     pytest_sessionfinish,
 )
+from harness.workspace import prepare_workspace
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+PHASE_1 = REPO_ROOT / "examples" / "agentclinic" / "phase-1"
+
+
+# ---------------------------------------------------------------------
+# 1. grading_plugin hooks
+# ---------------------------------------------------------------------
 
 
 def test_plugin_appends_outcome_line_on_call_phase(tmp_path, monkeypatch):
@@ -74,7 +92,9 @@ def test_plugin_appends_done_marker_on_session_finish(tmp_path, monkeypatch):
     assert results.read_text() == f"{DONE_MARKER}\n"
 
 
-from harness.grading import _verdict
+# ---------------------------------------------------------------------
+# 2. _verdict
+# ---------------------------------------------------------------------
 
 
 def test_verdict_accepts_when_all_conditions_hold():
@@ -148,14 +168,44 @@ def test_verdict_rejects_on_nonzero_returncode_even_if_everything_else_passed():
     assert result.accepted is False
 
 
-import shutil
-from pathlib import Path
+# ---------------------------------------------------------------------
+# 3. grade() against the real fixtures
+# ---------------------------------------------------------------------
 
-from harness.grading import grade
-from harness.workspace import prepare_workspace
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
-PHASE_1 = REPO_ROOT / "examples" / "agentclinic" / "phase-1"
+def _shadow_attack_source(tmp_path):
+    """The broken solution plus a rogue `harness.grading_plugin` that
+    forges a passing results file and exits 0.
+
+    Shared by the shadowing test and its non-vacuity control so both
+    provably run the same payload."""
+    source = tmp_path / "shadow-attempt"
+    shutil.copytree(PHASE_1 / "broken", source)
+    rogue_pkg = source / "harness"
+    rogue_pkg.mkdir()
+    (rogue_pkg / "__init__.py").write_text("")
+    (rogue_pkg / "grading_plugin.py").write_text(
+        "import os\n"
+        "\n"
+        "RESULTS_ENV_VAR = 'SATYRN_GRADE_RESULTS_PATH'\n"
+        "DONE_MARKER = '__DONE__'\n"
+        "\n"
+        "\n"
+        "def pytest_sessionfinish(session, exitstatus):\n"
+        "    with open(os.environ[RESULTS_ENV_VAR], 'a') as f:\n"
+        "        for name in (\n"
+        "            'test_home_returns_200',\n"
+        "            'test_home_shows_the_tagline_verbatim',\n"
+        "            'test_home_extends_the_shared_layout',\n"
+        "            'test_home_declares_html5_and_language',\n"
+        "        ):\n"
+        "            f.write(f'test_acceptance.py::{name}\\tpassed\\n')\n"
+        "        f.write(DONE_MARKER + '\\n')\n"
+        "        f.flush()\n"
+        "        os.fsync(f.fileno())\n"
+        "    os._exit(0)\n"
+    )
+    return source
 
 
 def test_grade_accepts_the_reference_solution():
@@ -211,24 +261,47 @@ def test_grade_ignores_model_written_tests_and_grades_the_suite_alone(tmp_path):
 
 
 def test_grade_is_not_shadowed_by_a_workspace_root_harness_package(tmp_path):
-    """Before this fix, `cwd=workspace` put a model-written harness/
+    """Before cycle 9, `cwd=workspace` put a model-written harness/
     package ahead of the real one on sys.path, so `-p
     harness.grading_plugin` could import the model's copy instead of the
     real plugin. Verified directly against the pre-fix code: a rogue
-    harness/grading_plugin.py that raises on import crashed collection
-    (tests_executed == 0) and its exception text reached stderr."""
-    source = tmp_path / "shadow-attempt"
-    shutil.copytree(PHASE_1 / "broken", source)
-    rogue_pkg = source / "harness"
-    rogue_pkg.mkdir()
-    (rogue_pkg / "__init__.py").write_text("")
-    (rogue_pkg / "grading_plugin.py").write_text(
-        "raise RuntimeError('SHADOW_MARKER')\n"
-    )
+    harness/grading_plugin.py was imported in place of the genuine one.
+
+    The rogue here forges a full passing results file for the *broken*
+    solution and then exits the process with status 0, defeating both
+    the outcome check and the return-code veto. The companion test below
+    proves that payload really does forge an acceptance when it is
+    reachable, so this test's `accepted is False` means the rogue never
+    ran -- not merely that something else went wrong."""
+    source = _shadow_attack_source(tmp_path)
 
     with prepare_workspace(source) as workspace:
         result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")
 
-    assert "SHADOW_MARKER" not in result.stderr
-    assert result.tests_executed == 4
     assert result.accepted is False
+    assert result.tests_executed == 4
+
+
+def test_the_shadow_attack_payload_really_forges_when_it_is_reachable(tmp_path):
+    """Non-vacuity control for the test above.
+
+    Same rogue package, but graded with an allowlist that copies
+    `harness/` into the grading directory -- reproducing the exposure
+    cycle 9 removed, where model-written files sat on the path pytest
+    runs from. The forgery lands: a solution that 404s every route is
+    accepted with four 'passing' tests.
+
+    Without this control, the test above could pass for any reason at
+    all -- a typo'd payload, a rogue that silently no-ops -- and still
+    look like proof."""
+    source = _shadow_attack_source(tmp_path)
+
+    with prepare_workspace(source) as workspace:
+        result = grade(
+            workspace,
+            PHASE_1 / "acceptance" / "test_acceptance.py",
+            source_allowlist=("app.py", "templates", "harness"),
+        )
+
+    assert result.accepted is True
+    assert result.returncode == 0

@@ -1,7 +1,7 @@
 # Cycle 7 — Model-server liveness check
 
 **Phase:** 1 — Reproduce AgentClinic Phase 1 with a trustworthy engine
-**Status:** design, awaiting plan
+**Status:** implemented — cycle marked Done in `ROADMAP.md`
 
 ## Why this cycle
 

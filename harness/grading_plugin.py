@@ -20,13 +20,14 @@ DONE_MARKER = "__DONE__"
 
 
 def pytest_runtest_logreport(report):
-    if report.when == "call":
-        outcome = report.outcome
-    elif report.when in ("setup", "teardown") and report.outcome == "failed":
-        outcome = report.outcome
-    else:
-        return
-    _append(f"{report.nodeid}\t{outcome}\n")
+    # The call phase is always verdict-relevant. Setup and teardown are
+    # relevant only when they fail: a passing setup says nothing, but a
+    # failing one means the test never really ran, and a failing teardown
+    # invalidates a call phase that looked fine.
+    if report.when == "call" or (
+        report.when in ("setup", "teardown") and report.outcome == "failed"
+    ):
+        _append(f"{report.nodeid}\t{report.outcome}\n")
 
 
 def pytest_sessionfinish(session, exitstatus):

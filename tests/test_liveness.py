@@ -15,44 +15,26 @@ def _free_port() -> int:
 
 
 @contextlib.contextmanager
-def _stub_server(status: int, body: bytes):
+def _stub_server(status: int, body: bytes, *, require_auth: bool = False):
+    """A throwaway HTTP server standing in for the model server.
+
+    `require_auth=True` answers 401 unless an Authorization header is
+    present, mimicking oMLX -- which demands the header but never checks
+    its value.
+    """
+
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
-            self.send_response(status)
+            if require_auth and not self.headers.get("Authorization"):
+                reply_status, reply_body = 401, b'{"error": "API key required"}'
+            else:
+                reply_status, reply_body = status, body
+            self.send_response(reply_status)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
-            self.wfile.write(body)
+            self.wfile.write(reply_body)
 
-        def log_message(self, *args):
-            pass
-
-    server = HTTPServer(("localhost", 0), Handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        yield f"http://localhost:{server.server_port}"
-    finally:
-        server.shutdown()
-        thread.join()
-        server.server_close()
-
-
-@contextlib.contextmanager
-def _auth_requiring_stub_server():
-    class Handler(BaseHTTPRequestHandler):
-        def do_GET(self):
-            if self.headers.get("Authorization"):
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(b'{"data": []}')
-            else:
-                self.send_response(401)
-                self.send_header("Content-Type", "application/json")
-                self.end_headers()
-                self.wfile.write(b'{"error": "API key required"}')
-
-        def log_message(self, *args):
+        def log_message(self, format, *args):
             pass
 
     server = HTTPServer(("localhost", 0), Handler)
@@ -78,11 +60,10 @@ def test_check_model_server_alive_raises_when_nothing_is_listening():
 
 
 def test_check_model_server_alive_raises_when_server_returns_non_200():
-    with _stub_server(500, b"") as base_url:
-        with pytest.raises(ModelServerDown):
-            check_model_server_alive(base_url)
+    with _stub_server(500, b"") as base_url, pytest.raises(ModelServerDown):
+        check_model_server_alive(base_url)
 
 
 def test_check_model_server_alive_sends_an_authorization_header():
-    with _auth_requiring_stub_server() as base_url:
+    with _stub_server(200, b'{"data": []}', require_auth=True) as base_url:
         assert check_model_server_alive(base_url) is None

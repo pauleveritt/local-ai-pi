@@ -42,6 +42,12 @@ select = [
     "B",    # bugbear
     "SIM",  # simplify
 ]
+# Line length is the one rule we decline. Several tests carry literal
+# results-file content and contract strings where a wrap would hurt
+# readability rather than help it. Everything else in E stays -- E402
+# in particular, which caught test_grading.py having grown imports in
+# three places across six cycles.
+ignore = ["E501"]
 
 [tool.pyrefly]
 project-includes = ["harness", "tests"]

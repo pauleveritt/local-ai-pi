@@ -1,7 +1,11 @@
 # Cycle 10 — Checkpoint recording
 
 **Phase:** 1 — Reproduce AgentClinic Phase 1 with a trustworthy engine
-**Status:** design, awaiting plan
+**Status:** implemented — cycle marked Done in `ROADMAP.md`
+
+> *Cycle numbers herein predate the 2026-07-31 harvest re-plan: the n=16
+> batch this document calls "cycle 11" is now cycle 12. Left as-authored;
+> `ROADMAP.md` is authoritative.*
 
 ## Why this cycle
 
