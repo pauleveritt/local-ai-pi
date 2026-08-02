@@ -52,6 +52,56 @@ corruption bug that would have broken the first resume.
 **Merge**, then update `ROADMAP.md`: mark the cycle done, advance the next,
 record what got deferred and why.
 
+## Checking a quantitative claim
+
+Research records carry numbers, and numbers are where this project has been
+wrong most often. Six times in a single day, in prose that no test looked at:
+
+| Error | What went wrong | Caught by |
+|---|---|---|
+| A regression intercept read as "23s of fixed overhead" | R² was 0.30; the fit was stated as unreliable and then used anyway. Measured, the floor is 1.6s — off by a factor of 14. | Measuring it, six minutes |
+| A 46.1s median offered as a budgeting reference | It was *in-stream* span, next to an instruction to time an *end-to-end* call — about 16% apart, in the direction that under-budgets. | Adversarial review |
+| "500 not reachable within 1000 runs" | A search bug published as a finding. | Adversarial review |
+| A precision table built on 16 runs | The sample's support was missing two turn values that 32 more runs revealed. | Running the extra runs |
+| Tool totals of `bash` 207 / `write` 129 | Never measured. 129 was another batch's figure copied across; 207 matched nothing at all. | Recomputing before commit |
+| The paragraph confessing the previous row | It misreported the very numbers it was confessing, having been written from memory of the draft rather than from the draft. | Writing the next cycle's spec |
+
+Before publishing a number, ask:
+
+1. **Am I extrapolating outside the observed range?** Fitting a line to a
+   narrow range and reading its intercept is the classic case. So is a
+   bootstrap over a sample that is mostly one value.
+2. **What exactly does this number measure — in the same units as whatever I
+   am comparing it to?** Two counts over different denominators are not
+   comparable. Neither are two durations that start and stop at different
+   points. And a number can be *correct* while measuring the wrong thing: a
+   zero error rate looked like success until it turned out the runs with no
+   errors were the runs that never tested anything.
+3. **Could a new sample contain a value mine never showed?** A quiet tail is
+   not coverage. The 16-run sample's last quarter introduced nothing new, and
+   two unseen values surfaced immediately afterwards.
+4. **Did this number come from a command whose output I can point to, or did
+   I write it down?** The last two rows of the table above are this question
+   going unasked. Memory is not a source.
+
+**What is enforced, and what is not.** Question 4 is mechanised for one thing
+only: a record's per-run table is diffed against its script's committed output
+by `tests/test_research_records.py`. Everything else on this page is a human
+check. Neither fabricated number above was in a per-run table — one was a cell
+in a comparison table, the other a paragraph — so the test would have caught
+neither. A green suite means the per-run table was transcribed correctly. It
+says nothing about the tables and paragraphs around it.
+
+**And the test proves less than it looks like it proves.** It compares a record
+against a committed text file. A hand-written text file passes identically.
+What makes that file trustworthy is the checkpoint SHA-256s recorded in the
+record beside it, and whoever ran the script — not the test.
+
+**Why the output is committed and the data is not.** The raw checkpoints are
+tens of millions of bytes of model output and stay outside the repository; a
+script's output is a few dozen lines. Committing the small artifact is what
+lets the check run on a fresh clone, where the data will never exist.
+
 ## Feature cycles and phases
 
 A **feature cycle** is the unit of work — one small, provable thing. A
