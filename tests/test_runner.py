@@ -202,7 +202,7 @@ def test_preflight_rejects_user_message_content_as_assistant_output(monkeypatch)
 
 def test_run_batch_runs_remaining_attempts_and_appends_each(tmp_path, monkeypatch):
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30)
+    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("digest",))
     calls = []
 
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
@@ -223,7 +223,7 @@ def test_run_batch_runs_remaining_attempts_and_appends_each(tmp_path, monkeypatc
 
 def test_run_batch_resumes_after_existing_records(tmp_path, monkeypatch):
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30)
+    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("digest",))
     first = RunResult("first", _grade_result(), "out", "", 0, conditions=conditions)
     append_checkpoint(checkpoint, first)
     calls = []
@@ -250,7 +250,9 @@ def test_run_batch_refuses_a_record_without_matching_conditions(tmp_path, monkey
     monkeypatch.setattr(
         runner,
         "_conditions",
-        lambda *args: RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30),
+        lambda *args: RunConditions(
+            "model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("digest",)
+        ),
     )
     monkeypatch.setattr(runner, "preflight_model", lambda model: pytest.fail("preflight called"))
     monkeypatch.setattr(runner, "run_agentclinic_phase1", lambda model: pytest.fail("run called"))
@@ -261,7 +263,7 @@ def test_run_batch_refuses_a_record_without_matching_conditions(tmp_path, monkey
 
 def test_run_batch_preflight_failure_leaves_checkpoint_unchanged(tmp_path, monkeypatch):
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30)
+    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("digest",))
 
     def fail_preflight(model):
         raise RuntimeError("down")
@@ -278,7 +280,7 @@ def test_run_batch_preflight_failure_leaves_checkpoint_unchanged(tmp_path, monke
 
 def test_run_batch_does_not_preflight_when_target_is_already_reached(tmp_path, monkeypatch):
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30)
+    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("digest",))
     for _ in range(2):
         append_checkpoint(
             checkpoint,
@@ -293,7 +295,7 @@ def test_run_batch_does_not_preflight_when_target_is_already_reached(tmp_path, m
 
 def test_run_batch_appends_rejected_attempt_before_continuing(tmp_path, monkeypatch):
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30)
+    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("digest",))
     calls = []
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
     monkeypatch.setattr(runner, "preflight_model", lambda model: None)
@@ -373,3 +375,70 @@ def test_the_extension_emits_an_evidence_entry_into_captured_stdout():
         event.get("entry", {}).get("customType") == "evidence"
         for event in appended
     )
+
+
+def test_extension_digest_changes_with_file_content(tmp_path):
+    extension = tmp_path / "ext.ts"
+    extension.write_text("one")
+    first = runner._extension_digest(extension)
+    extension.write_text("two")
+
+    assert runner._extension_digest(extension) != first
+
+
+def test_extension_digest_raises_on_a_directory(tmp_path):
+    # Pi's shipped subagent extension is a directory. Cycle 2 must
+    # decide how a tree is hashed, not inherit a plausible wrong answer.
+    with pytest.raises(ValueError, match="directory"):
+        runner._extension_digest(tmp_path)
+
+
+def test_extension_digest_raises_on_a_missing_file(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        runner._extension_digest(tmp_path / "absent.ts")
+
+
+def test_conditions_record_a_digest_per_extension(monkeypatch, tmp_path):
+    # _conditions shells out to `git rev-parse` and `pi --version`.
+    # Every other unit test in this file monkeypatches _conditions
+    # away for that reason; this one needs the real thing, so it stubs
+    # the subprocesses instead. The suite stays fixture-only -- no test
+    # here may depend on the `pi` binary being installed.
+    extension = tmp_path / "ext.ts"
+    extension.write_text("contents")
+    monkeypatch.setattr(runner, "EXTENSIONS", (extension,))
+    monkeypatch.setattr(
+        runner.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(stdout="stubbed\n"),
+    )
+
+    conditions = runner._conditions("model", ["pi"], 600)
+
+    assert len(conditions.extension_digests) == 1
+    assert len(conditions.extension_digests[0]) == 64
+
+
+def test_run_batch_refuses_a_record_recorded_under_a_different_extension(
+    tmp_path, monkeypatch
+):
+    from harness.checkpoint import append_checkpoint
+
+    checkpoint = tmp_path / "checkpoint.jsonl"
+    recorded = RunConditions(
+        "model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("old-digest",)
+    )
+    append_checkpoint(
+        checkpoint,
+        RunResult("d", _grade_result(), "out", "", 0, conditions=recorded),
+    )
+    monkeypatch.setattr(
+        runner,
+        "_conditions",
+        lambda *args: RunConditions(
+            "model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("new-digest",)
+        ),
+    )
+
+    with pytest.raises(ValueError, match="checkpoint conditions do not match"):
+        runner.run_batch(checkpoint, target=1, model="model")

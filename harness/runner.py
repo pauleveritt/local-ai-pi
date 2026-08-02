@@ -18,6 +18,20 @@ DEFAULT_MODEL = "omlx/gemma-4-12B-it-MLX-8bit"
 
 @dataclass(frozen=True)
 class RunConditions:
+    """The conditions a run happened under, compared for equality by
+    `run_batch` before resuming a checkpoint.
+
+    `pi_command` records extension *paths*. `extension_digests` records
+    their *contents*, and exists because without it, editing an
+    extension leaves these conditions byte-identical — so a batch would
+    silently resume a checkpoint whose earlier runs used different code.
+
+    Records written before this field load with the sentinel
+    `("<pre-cycle1>",)`. They stay readable and recomputable; no
+    SHA-256 can equal the sentinel, so `run_batch` refuses to resume
+    them. Unreadable is a different, worse failure than unresumable.
+    """
+
     model: str
     pi_command: tuple[str, ...]
     pi_version: str
@@ -25,6 +39,7 @@ class RunConditions:
     harness_revision: str
     run_timeout: int
     grade_timeout: int | float
+    extension_digests: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -109,6 +124,18 @@ def _pi_command(
     return command
 
 
+def _extension_digest(path: Path) -> str:
+    """SHA-256 of one extension file.
+
+    Raises on a directory rather than hashing something plausible: Pi's
+    shipped subagent extension is a directory tree, and how a tree is
+    hashed is a decision for the cycle that needs it.
+    """
+    if path.is_dir():
+        raise ValueError(f"extension is a directory, not a file: {path}")
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def _conditions(model: str, command: list[str], timeout: int) -> RunConditions:
     revision = subprocess.run(
         ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
@@ -121,6 +148,7 @@ def _conditions(model: str, command: list[str], timeout: int) -> RunConditions:
         model=model, pi_command=normalized, pi_version=version,
         task_spec_sha256=hashlib.sha256(TASK_SPEC.read_bytes()).hexdigest(),
         harness_revision=revision, run_timeout=timeout, grade_timeout=30,
+        extension_digests=tuple(_extension_digest(path) for path in EXTENSIONS),
     )
 
 

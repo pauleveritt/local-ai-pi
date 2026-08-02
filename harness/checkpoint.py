@@ -63,6 +63,11 @@ def load_checkpoint(path: Path) -> list[RunResult]:
                         harness_revision=data["conditions"]["harness_revision"],
                         run_timeout=data["conditions"]["run_timeout"],
                         grade_timeout=data["conditions"]["grade_timeout"],
+                        extension_digests=tuple(
+                            data["conditions"].get(
+                                "extension_digests", ("<pre-cycle1>",)
+                            )
+                        ),
                     )
                     if data.get("conditions") is not None
                     else None
