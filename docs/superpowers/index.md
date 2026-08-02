@@ -135,6 +135,7 @@ specs/2026-08-01-post-phase1-pages-publication-design
 specs/2026-08-02-phase2-cycle1-telemetry-reader-design
 specs/2026-08-02-phase2-cycle2-precision-baseline-design
 specs/2026-08-02-phase2-cycle3-honest-environment-design
+specs/2026-08-02-phase3-cycle1-observable-extension-design
 ```
 
 ```{toctree}
@@ -162,6 +163,7 @@ plans/2026-08-01-post-phase1-local-workspace-hygiene
 plans/2026-08-01-post-phase1-pages-publication
 plans/2026-08-02-phase2-cycle1-telemetry-reader
 plans/2026-08-02-phase2-cycle2-precision-baseline
+plans/2026-08-02-phase2-cycle3-honest-environment
 ```
 
 ```{toctree}
@@ -172,5 +174,6 @@ plans/2026-08-02-phase2-cycle2-precision-baseline
 research/2026-07-30-phase1-cycle1-fixture-results
 research/2026-08-01-phase1-n16-batch-evidence
 research/2026-08-02-phase2-cycle2-precision-baseline
+research/2026-08-02-phase2-cycle3-clean-baseline
 research/2026-08-02-phase2-remaining-plan
 ```
