@@ -53,7 +53,12 @@ def read_telemetry(pi_stdout: str) -> RunTelemetry:
     agent_ended = False
 
     for line in pi_stdout.splitlines():
-        event = json.loads(line)
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            # A process killed mid-write leaves a partial final line.
+            # Tolerated, as harness/checkpoint.py already tolerates one.
+            continue
         match event.get("type"):
             case "turn_end":
                 turns += 1
@@ -63,7 +68,11 @@ def read_telemetry(pi_stdout: str) -> RunTelemetry:
                 # undercount badly.
                 usage = event.get("message", {}).get("usage", {})
                 input_tokens += usage.get("input", 0)
-                output_tokens += usage.get("output", 0)
+                # Reasoning tokens are generated output. Folding them in
+                # rather than giving them their own field means a future
+                # reasoning-capable model's tokens cannot vanish
+                # silently, and no assertion has to fire to prevent it.
+                output_tokens += usage.get("output", 0) + usage.get("reasoning", 0)
                 cache_read_tokens += usage.get("cacheRead", 0)
                 cache_write_tokens += usage.get("cacheWrite", 0)
             case "tool_execution_start":
@@ -85,5 +94,8 @@ def read_telemetry(pi_stdout: str) -> RunTelemetry:
         output_tokens=output_tokens,
         cache_read_tokens=cache_read_tokens,
         cache_write_tokens=cache_write_tokens,
-        complete=agent_ended,
+        # Checked against `ended`'s keys rather than its values so that a
+        # matched call carrying no `isError` field still counts as
+        # complete, while an unmatched one never does.
+        complete=agent_ended and started.keys() <= ended.keys(),
     )
