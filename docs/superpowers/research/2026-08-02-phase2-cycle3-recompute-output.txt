@@ -1,0 +1,48 @@
+ 1: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16237 span= 28.0s complete=True accepted=True tested=True
+ 2: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16302 span= 30.8s complete=True accepted=True tested=True
+ 3: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16328 span= 34.8s complete=True accepted=True tested=True
+ 4: turns= 9 tools= 8 (bashx3,editx1,writex4) errors=0 ctx= 23184 span= 41.8s complete=True accepted=True tested=True
+ 5: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16203 span= 37.8s complete=True accepted=True tested=True
+ 6: turns= 9 tools= 8 (bashx3,editx1,writex4) errors=0 ctx= 23109 span= 55.1s complete=True accepted=True tested=True
+ 7: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16259 span= 47.9s complete=True accepted=True tested=True
+ 8: turns=12 tools=11 (bashx5,editx1,writex5) errors=0 ctx= 31993 span= 71.9s complete=True accepted=True tested=True
+ 9: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16293 span= 46.8s complete=True accepted=True tested=True
+10: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16322 span= 45.0s complete=True accepted=True tested=True
+11: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16243 span= 40.8s complete=True accepted=True tested=True
+12: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16281 span= 41.3s complete=True accepted=True tested=True
+13: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16350 span= 40.8s complete=True accepted=True tested=True
+14: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16388 span= 28.9s complete=True accepted=True tested=True
+15: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16275 span= 31.6s complete=True accepted=True tested=True
+16: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16295 span= 34.9s complete=True accepted=True tested=True
+17: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16377 span= 35.1s complete=True accepted=True tested=True
+18: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16277 span= 35.4s complete=True accepted=True tested=True
+19: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16266 span= 37.7s complete=True accepted=True tested=True
+20: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16317 span= 42.7s complete=True accepted=True tested=True
+21: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16269 span= 43.3s complete=True accepted=True tested=True
+22: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16235 span= 42.4s complete=True accepted=True tested=True
+23: turns= 9 tools= 8 (bashx3,editx1,writex4) errors=0 ctx= 23243 span= 52.7s complete=True accepted=True tested=True
+24: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16300 span= 43.1s complete=True accepted=True tested=True
+25: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16218 span= 41.1s complete=True accepted=True tested=True
+26: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16222 span= 39.5s complete=True accepted=True tested=True
+27: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16344 span= 39.8s complete=True accepted=True tested=True
+28: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16334 span= 41.1s complete=True accepted=True tested=True
+29: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16299 span= 37.8s complete=True accepted=True tested=True
+30: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16246 span= 36.8s complete=True accepted=True tested=True
+31: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16267 span= 36.9s complete=True accepted=True tested=True
+32: turns= 7 tools= 6 (bashx2,writex4     ) errors=0 ctx= 16344 span= 37.7s complete=True accepted=True tested=True
+
+runs: 32
+turn distribution: {7: 28, 9: 3, 12: 1}
+mean turns: 7.34375
+tool totals: {'bash': 70, 'write': 129, 'edit': 4}
+total tool calls: 203
+total errors: 0
+runs with >=1 error: 0
+runs that ran a test: 32
+all complete: True
+accepted: 32
+refused: 0
+context_processed min/max/mean: 16203 31993 17425.625
+span min/median/max: 28.0 40.8 71.9
+new turn values in final quarter: none
+support coverage: final quarter was quiet (this certifies nothing)

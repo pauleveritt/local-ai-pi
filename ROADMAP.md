@@ -11,12 +11,31 @@ n=16 reproducing ~15/16 — the supervised batch accepted 16/16. The engine's
 first job was to reproduce a number we already trust, not to discover one —
 see `BRIEF.md` for why.
 
-**Phase 2 — Measurement we can trust, cheaply enough to repeat.** Phase 1
-measured whether generated code can be *trusted*; it says nothing about
-speed, cost, or effort. Cycle 1 built the instrument (`harness/telemetry.py`).
-What Phase 2 pursues from here is making measurement **trustworthy and
-affordable**: a slice small enough that n=100 is practical, rather than a
-full multi-phase build where every question costs a supervised batch.
+**Phase 2 — Measurement we can trust, cheaply enough to repeat.
+Complete.** Phase 1 measured whether generated code can be *trusted*; it
+says nothing about speed, cost, or effort. Four cycles: the instrument
+(`harness/telemetry.py`), its precision characterized against a real
+baseline, an honest environment and a clean re-measurement, and the
+discipline that keeps the numbers trustworthy.
+
+*(The affordability target was retired by the phase's own findings,
+2026-08-02, and this paragraph is corrected accordingly rather than
+rewritten. It previously read: "What Phase 2 pursues from here is making
+measurement trustworthy and affordable: a slice small enough that n=100 is
+practical." Two cycles' evidence dissolved that. Cycle 3 found the friction
+that dominated turn-count variance was environmental, and that fixing it
+attacks the required **n**, not the per-run cost — a defensible clean claim
+needs roughly 30–48 runs, not 100+. The cheaper task slice that the n=100
+framing existed to motivate was withdrawn twice, most recently by cycle 3's
+spec. What the phase actually delivered is the first half of that sentence:
+measurement you can trust. The second half turned out to be answering a
+question nobody had asked yet.)*
+
+**Phase 3 — Build the extension half.** Next, and already planned below.
+Phase 2 closes having paid its debts to it: `read_telemetry` counts
+delegations, `harness/precision.py` sizes the experiment, and cycle 3's
+honest environment supplies the clean baseline an orchestrated arm gets
+compared against.
 
 *(Withdrawn framing, kept for the record — corrected 2026-08-02. An earlier
 pass, written at cycle 1's close, gave Phase 2 three steps: "step 1 builds
@@ -101,7 +120,7 @@ occurrences either. Both revive if and when the experiment is scheduled.
 | # | Phase | Direction (one sentence) | Status |
 |---|-------|--------------------------|--------|
 | 1 | Reproduce AgentClinic Phase 1 | One trustworthy, hermetically-graded run; n=16 reproducing ~15/16 | complete |
-| 2 | Measurement we can trust, cheaply enough to repeat | Instrument a run, then make measurement trustworthy on a slice small enough that repetition (n=100) is affordable | in progress; direction corrected 2026-08-02 |
+| 2 | Measurement we can trust, cheaply enough to repeat | Instrument a run, characterize its precision, make the environment honest, and impose a discipline on published numbers | complete; the n=100 affordability target was retired 2026-08-02 by the phase's own findings — see "Now" |
 | 3 | Build the extension half | The product is "a Pi extension plus an eval harness"; two phases built the harness. Specialize Pi's shipped subagent, then test the handoff-packet cost claim with the instrument Phase 2 built | planned |
 
 ### Phase 1 feature cycles
@@ -138,6 +157,8 @@ occurrences either. Both revive if and when the experiment is scheduled.
 |-------|---------|------|------|-------|
 | 1 | Telemetry reader — `harness/telemetry.py`'s `read_telemetry()` derives turns, tool calls, and token counts from the JSONL `RunResult.pi_stdout` already captures. A pure function over a string: `runner.py`, `checkpoint.py`, and the batch are untouched, and nothing consumes the result yet. Proven against a real captured pi 0.82.0 stream, because the schema drifts across pi versions — the pre-restructure reader's 0.81.1 beliefs (no usage in `--mode json`; `isError` a string) are both false in 0.82.0. Three cases real data cannot reach are proven with inline synthetic streams. | [spec](docs/superpowers/specs/2026-08-02-phase2-cycle1-telemetry-reader-design.md) | [plan](docs/superpowers/plans/2026-08-02-phase2-cycle1-telemetry-reader.md) | Done |
 | 2 | Precision baseline — `harness/precision.py` answers how many runs a claim needs before it's evidence: `bootstrap_ci_halfwidth`, `minimum_n_for_precision`, and a `leave_one_out_spread` stability diagnostic, proven against synthetic samples with known ground truth. Applied to a real n=48 sample (the preserved n=16 checkpoint plus 32 more runs executed specifically to extend it, after a jackknife check demonstrated n=16 wasn't yet trustworthy) — new turn-count values (10, 12) appeared that n=16 never showed, confirming the extension was necessary. Recommendation expressed in runs, not minutes, so it holds on any hardware. | [spec](docs/superpowers/specs/2026-08-02-phase2-cycle2-precision-baseline-design.md) | [plan](docs/superpowers/plans/2026-08-02-phase2-cycle2-precision-baseline.md) | Done |
+| 3 | Honest environment, clean baseline — the 48-run baseline's turn variance was ~95% tool errors, all of it environment friction, and all 20 of its zero-error runs reached zero by never running a test. Two lines appended verbatim to the task spec state that dependencies are installed and that tests run with `python -m pytest`; `RunTelemetry.tool_errors` counts the friction. A fresh n=32 batch came back **0 errors across 203 tool calls, 32/32 accepted, and 32/32 actually running a test** — the fix works, and works without buying the old zero-error number by skipping verification. Cycle 2's record and Phase 1's teaching record are corrected: what Phase 1 provisioned was a git repository, not a working environment. | [spec](docs/superpowers/specs/2026-08-02-phase2-cycle3-honest-environment-design.md) | [plan](docs/superpowers/plans/2026-08-02-phase2-cycle3-honest-environment.md) | Done |
+| 4 | Claim discipline — six derived-prose errors in a single day, none reachable by any existing test. `tests/test_research_records.py` diffs each research record's per-run table against its recompute script's committed output, so a published table cannot silently diverge from the committed output it claims to come from; `docs/sdd.md` gains "Checking a quantitative claim", four questions carrying the casualty list that motivates each. Cycles 2 and 3 backfilled: both published tables matched their scripts exactly, 48 rows and 32, and the audit found nothing — one clean audit is one data point, not evidence the gate has earned its keep. | [spec](docs/superpowers/specs/2026-08-02-phase2-cycle4-claim-discipline-design.md) | [plan](docs/superpowers/plans/2026-08-02-phase2-cycle4-claim-discipline.md) | Done |
 
 **The cycle spent six terms, not the four its spec budgeted.** The spec
 authorised `telemetry`, `turn`, `tool call`, and `context processed`, and
@@ -162,12 +183,28 @@ it catches drift only when the check runs at *close*, against prose as well
 as code, and a term justified by a *plan* rather than by working software
 is exactly the kind that gets retired a day later.
 
+**Cycle 3 spent nothing, and the check was run at close against the prose.**
+That is the correction cycle 2's episode above demands, so it is recorded
+rather than assumed. `tool_errors` aggregates *tool call* and its `is_error`,
+both already in the table. "Environment" is used in its ordinary sense and
+names no mechanism. Two candidates were considered and rejected: `ran_a_test`
+and *support coverage*. The first is a helper inside one research script, the
+same status as cycle 2's `message_span`, which was also not budgeted; the
+second is ordinary statistical usage that cycle 2's record already used in
+prose. Neither is vocabulary a contributor must hold to read the design.
+
+**Cycle 4 spent nothing.** "Claim", "check", and "gate" are used in their
+ordinary senses; the two artifacts are named literally
+(`tests/test_research_records.py`, `*-recompute-output.txt`). The check was
+run at close against the spec, the `docs/sdd.md` section, and the roadmap row.
+
 ### Phase 3 feature cycles
 
 *Phase 3 is the first work on the half of the product `BRIEF.md` names and
 neither prior phase has touched: **"a Pi extension (not a fork of Pi) plus
 an eval harness."* Phases 1 and 2 built the harness. `.pi/extensions/hello-world.ts`
-has exactly one commit in its history — cycle 8's transplant — and is loaded
+had, until cycle 1 of this phase, exactly one commit in its history —
+cycle 8's transplant — and was loaded
 on every run only as isolation plumbing.*
 
 **The prior project already built this, and its specs survive.** The

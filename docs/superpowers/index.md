@@ -67,13 +67,22 @@ repository.
 
 ## Phase 2 — Measurement we can trust, cheaply enough to repeat
 
-Phase 1 asked whether generated code can be trusted. Phase 2 asks what it
-costs to measure that trustworthily and affordably — on hardware ranging
-from the owner's Mac to a collaborator's much lower-powered machine, without
-every question costing a supervised batch. Cycle 1 builds the instrument
-and wires it to nothing — the same instrument-before-experiment order
-Phase 1 used when it built the entire grading apparatus before a model ran
-once.
+Phase 1 asked whether generated code can be trusted. Phase 2 asked what it
+costs to measure that trustworthily — on hardware ranging from the owner's
+Mac to a collaborator's much lower-powered machine, without every question
+costing a supervised batch. Cycle 1 builds the instrument and wires it to
+nothing, the same instrument-before-experiment order Phase 1 used when it
+built the entire grading apparatus before a model ran once.
+
+**Four cycles, and the most instructive thing they found was about
+themselves.** Cycle 2 characterized the instrument's precision against 48
+real runs. Cycle 3 then discovered what that instrument had been measuring:
+the variance was ~95% environment friction, and every run that showed no
+friction had avoided it by never running a test. Cycle 4 responded to a
+different problem the same session exposed — six wrong numbers in published
+prose, none reachable by any test — with four checks and one gate. Phase 2
+is complete; see `ROADMAP.md` for why its original affordability target was
+retired rather than met.
 
 *(An earlier framing named this phase "Measure the cost of orchestration"
 and planned to build an orchestrator as its second and third steps. That
@@ -87,6 +96,8 @@ not scheduled within this phase.)*
 |---|---|---|---|
 | 1 | Telemetry reader | [spec](specs/2026-08-02-phase2-cycle1-telemetry-reader-design.md) | [plan](plans/2026-08-02-phase2-cycle1-telemetry-reader.md) |
 | 2 | Precision baseline | [spec](specs/2026-08-02-phase2-cycle2-precision-baseline-design.md) | [plan](plans/2026-08-02-phase2-cycle2-precision-baseline.md) |
+| 3 | Honest environment, clean baseline | [spec](specs/2026-08-02-phase2-cycle3-honest-environment-design.md) | [plan](plans/2026-08-02-phase2-cycle3-honest-environment.md) |
+| 4 | Claim discipline | [spec](specs/2026-08-02-phase2-cycle4-claim-discipline-design.md) | [plan](plans/2026-08-02-phase2-cycle4-claim-discipline.md) |
 
 ## Withdrawn
 
@@ -149,6 +160,7 @@ specs/2026-08-01-post-phase1-pages-publication-design
 specs/2026-08-02-phase2-cycle1-telemetry-reader-design
 specs/2026-08-02-phase2-cycle2-precision-baseline-design
 specs/2026-08-02-phase2-cycle3-honest-environment-design
+specs/2026-08-02-phase2-cycle4-claim-discipline-design
 specs/2026-08-02-phase3-cycle1-observable-extension-design
 ```
 
@@ -178,6 +190,7 @@ plans/2026-08-01-post-phase1-pages-publication
 plans/2026-08-02-phase2-cycle1-telemetry-reader
 plans/2026-08-02-phase2-cycle2-precision-baseline
 plans/2026-08-02-phase2-cycle3-honest-environment
+plans/2026-08-02-phase2-cycle4-claim-discipline
 plans/2026-08-02-phase3-cycle1-observable-extension
 ```
 

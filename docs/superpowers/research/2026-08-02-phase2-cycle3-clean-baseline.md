@@ -16,7 +16,10 @@ Outside Git, per the same reasoning as cycles 2 and 16. This record and the
 recompute script alongside it are what survive if the checkpoints are lost.
 
 Recomputed by `2026-08-02-phase2-cycle3-recompute-summary.py`, alongside this
-file.
+file. Its output is committed as
+`2026-08-02-phase2-cycle3-recompute-output.txt`, and
+`tests/test_research_records.py` asserts the per-run table below matches it
+row for row — see `docs/sdd.md`, "Checking a quantitative claim".
 
 ## Why two checkpoints, treated as one batch
 
@@ -270,13 +273,27 @@ cleanly: it is evidence about the check's hit rate, not only its usefulness.
 
 **What the check did not catch, and something has to.** A draft of the "What
 the runs look like now" section above reported the 48-run baseline's tool
-totals as `bash` 207 / `write` 199 — inverted and wrong; the real figures are
-`bash` 137 / `write` 199 — and built a striking claim on top of the error
-("the `write` count is *identical*, 129 in both") plus a derived "137 extra
-`bash` calls" that was the *entire* old bash total misread as a difference.
-All three questions passed over it. They interrogate what a number *means*;
-none of them asks whether the number was ever *measured*. It was caught only
-by running the recompute script against the old checkpoints before publishing.
+totals as `bash` 207 / `write` 129. The real figures are `bash` 137 /
+`write` 199. Both were wrong, in different ways: 129 is *this* batch's write
+count, copied into the old batch's column, and 207 corresponds to nothing in
+either dataset. On top of that error the draft built a striking claim — "the
+`write` count is *identical*, 129 in both", which was only true because the
+same number had been written in both cells — plus a derived "137 extra `bash`
+calls" that was, by coincidence, the *entire* old bash total misread as a
+difference. All three questions passed over it. They interrogate what a number
+*means*; none of them asks whether the number was ever *measured*. It was
+caught only by running the recompute script against the old checkpoints before
+publishing.
+
+**Corrected 2026-08-02, during cycle 4's design.** This paragraph itself
+misreported the error it was confessing: it gave the bad draft's figures as
+`bash` 207 / `write` 199 and called them "inverted". That is wrong twice over —
+199 is the *correct* old write count, not the draft's, and nothing was
+inverted. The confession was written from memory instead of from the draft,
+which is the same failure it describes, one level up. Recording it rather than
+quietly amending it, because an error-rate of two in one paragraph is the
+strongest evidence this pilot produced that memory is not an acceptable source
+for a number.
 
 That is the most useful finding this pilot produced, and it points at a fourth
 question, or better, a mechanical rule: **every number in a research record
