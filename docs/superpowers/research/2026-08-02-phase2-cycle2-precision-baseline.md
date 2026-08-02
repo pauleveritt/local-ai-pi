@@ -18,8 +18,11 @@ Neither is committed to Git or archived elsewhere; this record and the
 small derived fixture (`tests/fixtures/phase1-n48-telemetry-summary.json`)
 are what survive if either is lost.
 
-Recomputed by `2026-08-02-phase2-cycle2-recompute-summary.py`, alongside
-this file.
+Recomputed by `2026-08-02-phase2-cycle2-recompute-summary.py`, alongside this
+file. Its output is committed as
+`2026-08-02-phase2-cycle2-recompute-output.txt`, and
+`tests/test_research_records.py` asserts the per-run table below matches it
+row for row — see `docs/sdd.md`, "Checking a quantitative claim".
 
 ## Why two checkpoints, treated as one batch
 
