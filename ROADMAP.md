@@ -448,6 +448,49 @@ things over.
   listed with its reason and a path back in the cycle 1 spec's "Deliberate
   exclusions" table — that table is a record of decisions, not a backlog to
   work through.
+- **Investigate Recursive Language Models (RLM) and DSPy for constructing the
+  handoff packet.** Phase 2's third step assumes the orchestrator *writes* a
+  packet: it reads the spec, decides what the implementer needs, and hands
+  over prose. That framing is worth challenging before a long sequence of
+  incremental fixes is spent improving it, because two nearby techniques
+  attack the same problem from opposite ends.
+
+  *Recursive Language Models* treat a large context as a queryable variable
+  the model interacts with programmatically — recursing on sub-parts —
+  instead of reading everything into one context window. Applied here, the
+  implementer would *pull* what it needs rather than receive a pre-digested
+  packet, which would dissolve the packet-sizing tradeoff rather than
+  optimize it.
+
+  *DSPy* is a declarative framework for modular AI programs: you define
+  modules by signature and an optimizer compiles them into effective prompts
+  (and optionally weights). Applied here, packet construction stops being
+  prompt engineering and becomes a compiled artifact.
+
+  These are related but distinct levers — RLM is an inference strategy, DSPy
+  a program-optimization framework — and they can be evaluated separately.
+
+  **The non-obvious reason this is worth recording now:** a DSPy optimizer
+  takes `metric: Callable` and compiles a program against a trainset
+  (verified against current DSPy docs, 2026-08-02). This project is already
+  building exactly that metric from both directions — Phase 1 produces
+  accept/reject, and Phase 2 cycle 1 produces `context_processed`. "Did the
+  packet work, and what did it cost" is precisely the signal a
+  packet-construction optimizer would need, and we will have it before
+  anything here is attempted.
+
+  **Skepticism to carry in, all of it load-bearing:**
+  - *Order matters.* Phase 2 step 3 exists to measure whether handoff packets
+    pay for themselves **at all**. If they don't, optimizing them optimizes
+    the wrong thing. This comes after that baseline, never before it.
+  - *A trainset of one is overfitting, not optimization.* There is currently
+    one task (AgentClinic Phase 1). DSPy optimizers need examples to compile
+    against; a second real workload is a prerequisite, not a nicety.
+  - *RLM adds a REPL/tool loop* — orchestration machinery, the exact class
+    `BRIEF.md` says "every hang and timeout lived here." Cycle 12's hang
+    tolerance would need to cover it.
+  - *Both add a dependency and vocabulary.* Neither `RLM` nor `DSPy` enters
+    the concept budget unless promoted to a cycle.
 - Authoring scaffold for future acceptance suites (phase 2+): stub test
   functions named for the fact they prove, `raise NotImplementedError`
   bodies, a model fills in from owner-dictated bullets, owner reviews by
