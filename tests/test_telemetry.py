@@ -175,3 +175,49 @@ def test_a_clean_real_run_reports_zero_tool_errors():
     # holds only turns and context_processed, and extending it would
     # change a checksum already recorded in tests/fixtures/README.md.
     assert read_telemetry(_real_run()).tool_errors == 0
+
+
+ENTRY_FIXTURE = Path(__file__).parent / "fixtures" / "pi-run-0.82.0-entry-appended.jsonl"
+
+
+def test_reads_custom_entry_types_from_a_real_run():
+    assert "evidence" in read_telemetry(ENTRY_FIXTURE.read_text()).custom_entries
+
+
+def test_the_pre_cycle1_fixture_has_no_custom_entries():
+    # Regression guard on the inert behaviour: 48 runs produced none,
+    # because the entry was appended before print mode subscribed.
+    assert read_telemetry(_real_run()).custom_entries == ()
+
+
+def test_reads_custom_entry_types_in_stdout_order():
+    stream = "\n".join(
+        json.dumps({"type": "entry_appended", "entry": {"type": "custom", "customType": name}})
+        for name in ("first", "second")
+    )
+
+    assert read_telemetry(stream).custom_entries == ("first", "second")
+
+
+def test_skips_an_appended_entry_that_is_not_a_custom_entry():
+    # appendEntry is not the only thing that appends an entry. A label
+    # change is not evidence.
+    stream = json.dumps(
+        {"type": "entry_appended", "entry": {"type": "label_change", "label": "x"}}
+    )
+
+    assert read_telemetry(stream).custom_entries == ()
+
+
+def test_skips_a_custom_entry_whose_type_is_not_a_string():
+    stream = json.dumps(
+        {"type": "entry_appended", "entry": {"type": "custom", "customType": 7}}
+    )
+
+    assert read_telemetry(stream).custom_entries == ()
+
+
+def test_a_missing_custom_entry_does_not_make_a_run_incomplete():
+    # The extension observes. It must never fail a run the model
+    # actually completed.
+    assert read_telemetry(_real_run()).complete is True

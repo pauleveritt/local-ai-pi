@@ -15,6 +15,12 @@ This is a derived, recomputable view and never load-bearing storage -- but
 only because checkpoints retain raw `pi_stdout`. Trimming stdout from
 checkpoint records would make every telemetry number ever computed
 unreproducible.
+
+**Custom entries never affect a run's verdict.** `custom_entries` records
+what the extension emitted; it has no bearing on `complete`, on
+`RunResult.accepted`, or on grading. The extension observes. Letting it
+fail a run the model actually completed would make the instrument a
+participant in what it measures.
 """
 
 import json
@@ -36,6 +42,7 @@ class RunTelemetry:
     cache_read_tokens: int
     cache_write_tokens: int
     complete: bool  # the run finished normally; counts are lower bounds if False
+    custom_entries: tuple[str, ...]  # customType of each entry_appended, in order
 
     @property
     def context_processed(self) -> int:
@@ -64,6 +71,7 @@ def read_telemetry(pi_stdout: str) -> RunTelemetry:
     started: dict[str, str] = {}  # toolCallId -> toolName, in start order
     ended: dict[str, bool | None] = {}  # toolCallId -> isError
     agent_ended = False
+    custom_entries: list[str] = []
 
     # Split on "\n" only, not str.splitlines()'s full line-break set.
     # pi is a Node tool; Node's JSON.stringify emits U+2028/U+2029 raw
@@ -100,6 +108,13 @@ def read_telemetry(pi_stdout: str) -> RunTelemetry:
                 ended[event["toolCallId"]] = event.get("isError")
             case "agent_end":
                 agent_ended = True
+            case "entry_appended":
+                entry = event.get("entry")
+                if not isinstance(entry, dict) or entry.get("type") != "custom":
+                    continue
+                custom_type = entry.get("customType")
+                if isinstance(custom_type, str):
+                    custom_entries.append(custom_type)
 
     tool_calls = tuple(
         ToolCall(name=name, is_error=ended.get(call_id))
@@ -117,4 +132,5 @@ def read_telemetry(pi_stdout: str) -> RunTelemetry:
         # matched call carrying no `isError` field still counts as
         # complete, while an unmatched one never does.
         complete=agent_ended and started.keys() <= ended.keys(),
+        custom_entries=tuple(custom_entries),
     )
