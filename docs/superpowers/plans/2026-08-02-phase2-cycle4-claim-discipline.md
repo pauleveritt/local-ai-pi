@@ -593,7 +593,7 @@ found nothing and that one clean audit is one data point; if it found a
 mismatch, say what it was. Do not carry a pre-written result into the roadmap:
 
 ```markdown
-| 4 | Claim discipline — six derived-prose errors in one session, none reachable by any existing test. `tests/test_research_records.py` diffs each research record's per-run table against its recompute script's committed output, so a table cannot be published without a command behind it; `docs/sdd.md` gains "Checking a quantitative claim", four questions carrying the casualty list that motivates each. Cycles 2 and 3 backfilled. | [spec](docs/superpowers/specs/2026-08-02-phase2-cycle4-claim-discipline-design.md) | [plan](docs/superpowers/plans/2026-08-02-phase2-cycle4-claim-discipline.md) | Done |
+| 4 | Claim discipline — six derived-prose errors in a single day, none reachable by any existing test. `tests/test_research_records.py` diffs each research record's per-run table against its recompute script's committed output, so a published table cannot silently diverge from the committed output it claims to come from; `docs/sdd.md` gains "Checking a quantitative claim", four questions carrying the casualty list that motivates each. Cycles 2 and 3 backfilled. | [spec](docs/superpowers/specs/2026-08-02-phase2-cycle4-claim-discipline-design.md) | [plan](docs/superpowers/plans/2026-08-02-phase2-cycle4-claim-discipline.md) | Done |
 ```
 
 Verify the table did not break:

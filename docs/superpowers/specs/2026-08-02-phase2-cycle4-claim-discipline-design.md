@@ -9,7 +9,7 @@ Cycle 3 piloted three questions against its own record and reported what they
 caught. This cycle turns that pilot into something that survives the session
 that invented it.
 
-**The corpus.** This session produced six errors in derived prose. None was
+**The corpus.** This project produced six errors in derived prose in a single day. None was
 caught by any test in the repository, because no test looks at prose.
 
 | # | Error | Class | Caught by |
@@ -19,7 +19,7 @@ caught by any test in the repository, because no test looks at prose.
 | 3 | "500 not reachable within 1000 runs", published as a finding. It was a bug in `minimum_n_for_precision`'s search, which never tested `max_n` itself. | A defect published as a result | Fable's review |
 | 4 | A precision table computed from the n=16 sample, whose support was missing turn values 10 and 12. | Extrapolation past the observed support | The n=32 extension that revealed them |
 | 5 | The 48-run baseline's tool totals given as `bash` 207 / `write` 129 — 129 being *this* batch's write count copied into the old batch's column, and 207 corresponding to nothing in either dataset. The real figures are `bash` 137 / `write` 199. A claim was then built on the error ("the `write` count is *identical*, 129 in both"), true only because the same number had been written into both cells. | A number that was never measured | Recomputing before commit |
-| 6 | The paragraph confessing error 5 **misreported error 5**, giving the bad draft's figures as `bash` 207 / `write` 199 and calling them "inverted" — 199 is the correct old value, not the draft's, and nothing was inverted. | A number written from memory rather than from the source | Writing this spec, one day later |
+| 6 | The paragraph confessing error 5 **misreported error 5**, giving the bad draft's figures as `bash` 207 / `write` 199 and calling them "inverted" — 199 is the correct old value, not the draft's, and nothing was inverted. | A number written from memory rather than from the source | Writing this spec, minutes later |
 
 **What the pilot showed.** Questions 1 and 2 both bit. Question 3 was quiet.
 Errors 5 and 6 slipped all three, and they are the worst of the six, because

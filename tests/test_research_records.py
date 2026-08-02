@@ -13,8 +13,9 @@ authenticity rests on the checkpoint SHA-256s recorded in the record beside
 it, and on whoever ran the script -- not on this test.
 
 It also gates per-run tables only. Aggregate lines and derived prose figures
-are not compared, and both fabricated numbers in this project's history were
-outside a per-run table. See docs/sdd.md, "Checking a quantitative claim".
+are not compared, and both fabricated numbers in the corpus that motivated
+this test were outside a per-run table. See docs/sdd.md, "Checking a
+quantitative claim".
 """
 
 import re
@@ -202,6 +203,28 @@ def test_at_least_two_records_are_gated():
     # Without this, a parser regression that stops recognising tables would
     # make every parametrised case below vanish and the suite still pass.
     assert len(_gated_records()) >= 2
+
+
+def _records_naming_an_output_file() -> list[Path]:
+    return sorted(
+        path
+        for path in RESEARCH.glob("*.md")
+        if OUTPUT_REFERENCE.search(path.read_text())
+    )
+
+
+def test_a_record_naming_an_output_file_parses_a_nonempty_table():
+    # _gated_records() finds records by successfully parsing a table -- so a
+    # table whose shape changes (a seventh column, say) parses to zero rows
+    # and silently drops out of the gate, while still naming its output file.
+    # This inverts the search: start from the output-file reference, which
+    # survives a shape change, and require a non-empty table behind it.
+    for record in _records_naming_an_output_file():
+        rows = parse_record_table(record.read_text())
+        assert rows, (
+            f"{record.name} names a *-recompute-output.txt file but its "
+            f"per-run table parsed to zero rows -- check its column count"
+        )
 
 
 @pytest.mark.parametrize("record", _gated_records(), ids=lambda p: p.stem)
