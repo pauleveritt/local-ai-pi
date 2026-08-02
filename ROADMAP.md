@@ -162,7 +162,7 @@ it catches drift only when the check runs at *close*, against prose as well
 as code, and a term justified by a *plan* rather than by working software
 is exactly the kind that gets retired a day later.
 
-### Phase 3 feature cycles — planned, not started
+### Phase 3 feature cycles
 
 *Phase 3 is the first work on the half of the product `BRIEF.md` names and
 neither prior phase has touched: **"a Pi extension (not a fork of Pi) plus
@@ -234,9 +234,9 @@ compared against — and without it, cycle 4 would be measuring retry friction
 again. Phase 2 cycle 4's claim-checking discipline applies to cycle 4's
 record.
 
-**Not started, and deliberately not specced.** Phase 2 is still open. This
-entry records direction and the prior art's location so the next session
-does not re-derive either; every cycle above still gets its own
+**Cycle 1 is done; cycles 2–4 are deliberately not specced.** This entry
+records their direction and the prior art's location so the next session does
+not re-derive either; each of them still gets its own
 brainstorm → spec → plan.
 
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus

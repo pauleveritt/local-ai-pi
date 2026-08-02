@@ -75,6 +75,7 @@ def run_agentclinic_phase1(
         prompt = TASK_SPEC.read_text()
         extensions = EXTENSIONS
         command = _pi_command(model, prompt, extensions)
+        conditions = _conditions(model, command, timeout, extensions)
         pi_proc = run_process(
             command,
             timeout=timeout,
@@ -105,7 +106,7 @@ def run_agentclinic_phase1(
         pi_stderr=pi_proc.stderr,
         pi_returncode=pi_proc.returncode,
         pi_timed_out=pi_proc.timed_out,
-        conditions=_conditions(model, command, timeout, extensions),
+        conditions=conditions,
     )
 
 

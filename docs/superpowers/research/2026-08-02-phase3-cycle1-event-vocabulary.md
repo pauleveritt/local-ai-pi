@@ -10,10 +10,19 @@ installed package root
 
 Cycle 3 has to attribute a delegated run's cost, and a delegated child is
 spawned as `pi --mode json -p --no-session`, so a delegation arrives in the
-parent's stream as a tool call. Before that can be measured, something has to
+parent's stream as a `tool_execution_start` / `tool_execution_end` pair, which
+carries `toolName`. Before that can be measured, something has to
 establish that the *parent's own extension activity* is visible on that same
 stream. That is what this note is for: cycle 3 should not start from a guess
 about where a delegation becomes observable.
+
+*This paragraph previously said a delegation "arrives in the parent's stream as
+a tool call." That was wrong: `tool_call` is delivered to extensions only and
+never reaches stdout (row 7 of the drift table below;
+`core/agent-session.js:214-224`, `:234-247`, and zero occurrences in the
+157-line fixture). It was retired by the audit in this same note. The inherited
+conclusion is unaffected — a delegation is still observable in the parent's
+stream — but it is the execution events that carry it.*
 
 ## The contract, stated once
 
@@ -81,8 +90,8 @@ The installed signature is
 `appendEntry<T = unknown>(customType: string, data?: T): void`
 (`core/extensions/types.d.ts:915`) — one string type ID plus optional data, not
 the single-object `appendEntry({type, data})` the prior project's chapter
-documents. That drift is real and will be audited when this cycle's chapter
-is written.
+documents. That drift is real; it is row 1 of the audit in "Drift found against
+0.82.0" below.
 
 Called from `agent_start` or any later event, `appendEntry` reaches stdout with
 no new API and no change to how Pi is invoked.
@@ -119,14 +128,27 @@ with the call in the other handler.
 
 `agent_start` fires during `session.prompt()`, at least once per run and before
 any model-dependent behaviour. It is not *exactly* once — Pi retries after some
-agent errors (`agent_end` carries `willRetry`, `core/agent-session.js:353`).
-Whether a retry re-fires `agent_start` is plausible but unverified: the retry
-path calls `this.agent.continue()` (`core/agent-session.js:748-749`), and
-`agent_start` itself originates inside `@earendil-works/pi-agent-core`, which
-is not present under the installed package tree, so its emission points could
-not be read. The operational conclusion does not depend on resolving this
-either way: anything asserting on the resulting entries must test membership,
-not length.
+agent errors (`agent_end` carries `willRetry`, `core/agent-session.js:353`) —
+and **a retry does re-fire `agent_start`.** Read, the chain resolves: the retry
+loop calls `await this.agent.continue()` (`core/agent-session.js:748-749`);
+`continue()` (`pi-agent-core/dist/agent.js:229`) falls through to
+`runContinuation()` (`:270-272`), which calls `runAgentLoopContinue`; and that
+function's first emission is `await emit({ type: "agent_start" })`
+(`pi-agent-core/dist/agent-loop.js:67`). The operational conclusion is
+unchanged and now better supported: anything asserting on the resulting entries
+must test membership, not length.
+
+*This paragraph previously called the retry behaviour "plausible but
+unverified," on the grounds that `@earendil-works/pi-agent-core` was "not
+present under the installed package tree." That second claim was false, and so
+the first was unnecessary. `pi-agent-core` is present, nested one level down at
+`<installed-package>/node_modules/@earendil-works/pi-agent-core/` at the same
+0.82.0 version; it is simply not a sibling in the top-level `node_modules`,
+which is how a directory listing made it look absent. Reading it retired the
+hedge. Recording the manner of the error as well as the error: this note was
+written in a cycle that exists because a claim had been confidently asserted
+from reading rather than running. Asserting unverifiability from a directory
+listing rather than a search is the same failure in humbler dress.*
 
 ## `ctx.ui.notify` is not an evidence channel
 
@@ -179,8 +201,11 @@ isolation and instrumentation.
 
 ## What cycle 3 inherits
 
-- A delegation is a tool call in the parent's stream, and the child is itself
-  `pi --mode json`.
+- A delegation is visible in the parent's stream as a `tool_execution_start` /
+  `tool_execution_end` pair carrying `toolName`, and the child is itself
+  `pi --mode json`. Read the execution events, **not** `tool_call` — `tool_call`
+  goes to extensions only and never reaches stdout (row 7 below). *This bullet
+  previously named `tool_call`; the drift audit in this note retired that.*
 - The parent's extension activity is visible on that same stream, provided the
   emission happens after the subscribe boundary — which every event from
   `agent_start` onward does.
@@ -228,39 +253,3 @@ Two things the prior work got right and were carried over unchanged: the
 default-export factory shape (`ExtensionFactory = (pi: ExtensionAPI) => void |
 Promise<void>`, `core/extensions/types.d.ts:1076`), and the `-e` short flag for
 `--extension`, confirmed against `pi --help` on the installed binary.
-
-**One wording correction, to this note's own opening paragraph and to "What
-cycle 3 inherits."** The opening paragraph says a delegation "arrives in the
-parent's stream as a tool call," and the first bullet of "What cycle 3
-inherits" says a delegation "is a tool call in the parent's stream." Item 7
-above shows that `tool_call` events do not reach the stream. What is visible is
-the `tool_execution_start` / `tool_execution_end` pair, which carries
-`toolName`. The inherited conclusion is unaffected — a delegation is still
-observable in the parent's stream — but cycle 3 should read the execution
-events, not `tool_call`. This correction covers both places; a reader starting
-at the top of the note should apply it there too.
-
-**One factual correction, to "`agent_start` fires during `session.prompt()`."**
-That paragraph says whether a retry re-fires `agent_start` "is plausible but
-unverified," on the grounds that `@earendil-works/pi-agent-core` "is not
-present under the installed package tree." That second claim is false, and so
-the first is unnecessary. `pi-agent-core` *is* present, nested one level down
-at
-`<installed-package>/node_modules/@earendil-works/pi-agent-core/`, at the same
-0.82.0 version; it is simply not a sibling in the top-level `node_modules`,
-which is how a directory listing made it look absent.
-
-Read, the chain resolves: the retry loop calls `await this.agent.continue()`
-(`core/agent-session.js:748-749`); `continue()`
-(`pi-agent-core/dist/agent.js:229`) falls through to `runContinuation()`
-(`:270-272`), which calls `runAgentLoopContinue`; and that function's first
-emission is `await emit({ type: "agent_start" })`
-(`pi-agent-core/dist/agent-loop.js:67`). **A retry does re-fire
-`agent_start`.** The operational conclusion is unchanged and now better
-supported: anything asserting on the resulting entries must test membership,
-not length.
-
-Recording the manner of the error as well as the error: this note was written
-in a cycle that exists because a claim had been confidently asserted from
-reading rather than running. Asserting *unverifiability* from a directory
-listing rather than a search is the same failure in humbler dress.

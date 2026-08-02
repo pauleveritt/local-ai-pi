@@ -118,7 +118,7 @@ package, at the same 0.82.0 version. It is not a sibling in the top-level
 
 ## `ctx.ui.notify` shows you nothing here
 
-Run the harness and you will see none of those six notifications. This is not
+Run the harness and you will see none of those seven notifications. This is not
 broken.
 
 Pi's extension runner supplies a no-op UI context whose `notify` is an empty
@@ -134,7 +134,7 @@ its extension UI context with a real implementation,
 (`modes/interactive/interactive-mode.js:1670`). The harness deliberately runs
 without a UI, so it deliberately gets no notifications.
 
-The six handlers stay anyway. They are the lifecycle tour, and their silence in
+The seven handlers stay anyway. They are the lifecycle tour, and their silence in
 this mode is a recorded finding rather than a defect to fix.
 
 ## Where you emit decides whether anything hears it

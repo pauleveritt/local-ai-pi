@@ -48,9 +48,21 @@ records extension **contents**. Editing `hello-world.ts` therefore leaves
 a different extension — silently.
 
 `ROADMAP.md` asserts that changing the extension changes run conditions. Today
-it does not. This cycle is the one that makes the assertion true, and it is the
-cheapest moment to do it: Phase 2 cycle 3's clean baseline has not been run, so
-no checkpoint is lost.
+it does not. This cycle is the one that makes the assertion true.
+
+**The cost, corrected.** This section first claimed the moment was free because
+"Phase 2 cycle 3's clean baseline has not been run, so no checkpoint is lost."
+That was not known to be false when the spec was written, and it was false: the
+clean baseline had already been run, and `~/local-ai-pi-evidence/` holds its
+32 records —
+`satyrn-phase2-cycle3-clean-part1-n13.jsonl` (13) and
+`satyrn-phase2-cycle3-clean-part2-n19.jsonl` (19) — written shortly before this
+branch's first commit. So the honest statement of the cost is: **32 recorded
+clean-baseline runs, plus cycle 14's n=16 and cycle 2's n=32, become
+unresumable.** They remain readable and recomputable via the
+`("<pre-cycle1>",)` sentinel described below, verified by loading all four
+checkpoints at this HEAD. The argument for doing it here still holds — nothing
+measured becomes unreadable — but it is a real cost, not a free one.
 
 ## What this cycle is not
 
