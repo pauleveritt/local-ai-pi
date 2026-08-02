@@ -58,8 +58,14 @@ docs/superpowers/research/
 
 The naming rule is mechanical: `<stem>-recompute-output.txt` beside
 `<stem>-recompute-summary.py`. The output is small — 54 lines for cycle 2, 48
-for cycle 3 — while the raw checkpoints it derives from are 8.7 MB and stay
-outside Git. That asymmetry is the whole reason this works on a fresh clone.
+for cycle 3 — while the four raw checkpoints those two records derive from
+total **22,908,754 bytes** and stay outside Git. That asymmetry is the whole
+reason this works on a fresh clone.
+
+**The record must name its own output file**, and the test reads the name from
+the record rather than deriving it. Stems do not line up —
+`…-cycle3-clean-baseline.md` sits beside `…-cycle3-recompute-output.txt` — and
+a guessing rule would be one more thing to get quietly wrong.
 
 ### 2. `tests/test_research_records.py`
 
@@ -71,6 +77,13 @@ For every `docs/superpowers/research/*.md` containing a per-run table:
 2. Parse the record's table rows and the script output's per-run lines.
 3. Assert they agree: the same set of run numbers, and equal values in every
    column, `span` included.
+4. **Fail if any run number appears twice in the record.** This project's house
+   style keeps superseded content in place — "kept for the record" recurs
+   throughout `ROADMAP.md` and both research records. A record retaining a
+   withdrawn per-run table beside its corrected one would pass a
+   last-occurrence-wins parser while the wrong table went uncompared. That is
+   the gate's most plausible defeat path, and it is closed by construction
+   rather than by hoping nobody does it.
 
 Records with no per-run table — cycle 1's fixture results, the n=16 evidence
 record, the Phase 2 planning analysis — are not gated, because there is no
@@ -124,16 +137,25 @@ it found nothing is the same reasoning as reading a quiet final quarter as
 coverage — which this project has already rejected in writing.
 
 **The section must state what the gate does not cover.** Item 4 is mechanized
-for table rows only. Prose figures — rates, differences, percentages — remain a
-human check, and errors 5 and 6 were both prose. A reader who sees a green test
-suite and concludes their derived paragraph is verified would be making this
-cycle's own mistake.
+for *per-run* table rows only. Error 5 lived in a **comparison table** — the
+"What the runs look like now" row giving tool totals — with prose built on top
+of it; error 6 was prose. Neither is a per-run row, so the gate catches
+neither. A reader who sees a green test suite and concludes their derived
+paragraph is verified would be making this cycle's own mistake.
+
+**And the gate proves less than it appears to.** It compares a record against a
+committed text file. A hand-written text file passes identically. What makes
+the output trustworthy is the checkpoint SHA-256s recorded in the record beside
+it and the person who ran the script — not the test. That boundary must be
+stated in `docs/sdd.md` and in the test module's own docstring, where a reader
+will meet it, rather than only here.
 
 ## Deliberate exclusions
 
 | Excluded | Why |
 |---|---|
-| Gating prose figures | Legitimately derived numbers (rates, ratios, differences) have no line in any script output to match. A gate that fires on all of them would be turned off within a cycle. |
+| Gating derived prose figures (rates, ratios, differences) | These are computed *from* the measured values and have no corresponding line in any script output. A gate that fired on every one of them would be turned off within a cycle. |
+| Gating the aggregate figures | **A choice, not an impossibility — and the earlier draft of this spec wrongly claimed the latter.** The scripts *do* print their aggregates (`tool totals: {'bash': 137, 'write': 199}`, `total errors: 65`, the turn distribution), and error 5 fabricated exactly one of those lines. So the ground truth for the worst error in the corpus will be sitting in the committed file. It is excluded because the formats differ between the two scripts and between output and prose, so matching would be fuzzy and brittle — not because there is nothing to match against. The consolation is real and worth stating: committing the output turns the aggregate check into a one-glance diff a human can actually perform, and a targeted check on specific aggregate lines is a reasonable later cycle if this class recurs. |
 | Gating `ROADMAP.md` rows and `docs/superpowers/index.md` | They restate figures the record already establishes, in prose form no script emits. They inherit the record's verification. |
 | Gating `BRIEF.md`, `docs/setup.md` | Their numbers are environmental facts — ports, versions — with no recompute script behind them. The gate would be almost entirely exceptions. |
 | Running recompute scripts in CI | The raw checkpoints are outside Git, so the run would skip on every fresh clone and in CI — silently absent exactly where it would matter. Committing the output instead moves the evidence to where the test can reach it. |

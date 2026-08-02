@@ -20,8 +20,8 @@ name their own output file, so the test never guesses at filename stems. No
 - **`tests/` and `docs/` only.** No change to `harness/`, the run machinery, or
   the adversarial-review step.
 - **The gate must run on a fresh clone.** No raw checkpoints, no model, no
-  server. The committed output is the evidence; the 8.7 MB of checkpoints stay
-  outside Git.
+  server. The committed output is the evidence; the four raw checkpoints
+  (22,908,754 bytes) stay outside Git.
 - **A record with a table and no output file is a failure, not a skip.** A
   record must not be able to opt out of the gate by omission.
 - **The non-vacuity tests are written and seen to fail first.** The backfill
@@ -33,7 +33,7 @@ name their own output file, so the test never guesses at filename stems. No
   docs/_build/html`.
 
 **Starting state:** worktree `.worktrees/phase2-cycle4` on branch
-`phase2-cycle4`, HEAD `1b5fab7`, tree clean, baseline green (101 tests).
+`phase2-cycle4`, HEAD `1b5fab7`, tree clean, baseline green (101 passed, 1 skipped).
 
 **The raw checkpoints Task 2 needs** (present on the owner's machine, outside
 Git):
@@ -53,7 +53,8 @@ Git):
 **Interfaces:**
 - Consumes: nothing from the project. Pure string functions plus `pathlib`.
 - Produces, for Task 2 and any later record:
-  - `parse_record_table(text: str) -> dict[int, tuple[str, ...]]`
+  - `parse_record_table(text: str) -> list[tuple[int, tuple[str, ...]]]` —
+    rows in document order, so duplicates stay visible
   - `parse_output_rows(text: str) -> dict[int, tuple[str, ...]]`
   - `compare_record_to_output(record_text: str, output_text: str) -> list[str]`
     — returns a list of human-readable mismatch descriptions; empty means agree.
@@ -87,16 +88,20 @@ Create `tests/test_research_records.py`:
 """A research record's per-run table must match its recompute script's
 committed output.
 
-The raw checkpoints these records derive from live outside Git (8.7 MB, see
-each record's "Raw checkpoints" table), so no test can recompute them. What
-is committed is the script's *output* -- small enough to live in the
-repository, and enough to prove the record's table was transcribed from a
-real command rather than written down.
+The raw checkpoints these records derive from live outside Git (22,908,754
+bytes across four files; see each record's "Raw checkpoints" table), so no
+test can recompute them. What is committed is the script's *output* -- small
+enough to live in the repository.
 
-This gates the table only. Prose figures -- rates, differences, percentages
--- are legitimately derived and have no line to match. See docs/sdd.md,
-"Checking a quantitative claim", for the part of the discipline no test can
-reach.
+**What a green run does and does not mean.** It means the record's per-run
+table agrees with the committed output. It does NOT prove that output came
+from a real command: a hand-written .txt passes identically. The output's
+authenticity rests on the checkpoint SHA-256s recorded in the record beside
+it, and on whoever ran the script -- not on this test.
+
+It also gates per-run tables only. Aggregate lines and derived prose figures
+are not compared, and both fabricated numbers in this project's history were
+outside a per-run table. See docs/sdd.md, "Checking a quantitative claim".
 """
 
 import re
@@ -110,6 +115,13 @@ RESEARCH = Path(__file__).resolve().parents[1] / "docs" / "superpowers" / "resea
 # stem would not work -- "...cycle3-clean-baseline.md" sits beside
 # "...cycle3-recompute-output.txt" -- and a guessing rule would be one more
 # thing to get quietly wrong.
+#
+# Known brittleness, accepted: a record that mentions ANOTHER record's
+# output filename -- quoting one as an example, say -- breaks its own gate,
+# because exactly one reference is required. Likewise any future six-column
+# table with a numeric first cell would be read as run data. Both are safe
+# across all five records today. If you hit either, the fix is to change the
+# record, not to loosen the check.
 OUTPUT_REFERENCE = re.compile(r"([0-9A-Za-z.\-]+-recompute-output\.txt)")
 
 # Accepts both scripts' spacing, and ignores their trailing fields.
@@ -119,13 +131,21 @@ _OUTPUT_ROW = re.compile(
 )
 
 
-def parse_record_table(text: str) -> dict[int, tuple[str, ...]]:
-    """Per-run rows of a record's markdown table, keyed by run number.
+def parse_record_table(text: str) -> list[tuple[int, tuple[str, ...]]]:
+    """Per-run rows of a record's markdown table, in document order.
+
+    A list, not a dict, on purpose. This project keeps superseded content in
+    place -- "kept for the record" recurs throughout ROADMAP.md and both
+    research records -- so a document can plausibly end up holding a
+    withdrawn per-run table beside its replacement. A dict keyed by run
+    number would silently let the last one win and never compare the first.
+    Returning rows in order lets compare_record_to_output see the duplicate
+    and fail.
 
     Values stay strings: comparing "28.0" to "28.0" avoids float equality,
     and the record and the output are both rendered to one decimal place.
     """
-    rows: dict[int, tuple[str, ...]] = {}
+    rows: list[tuple[int, tuple[str, ...]]] = []
     for line in text.splitlines():
         line = line.strip()
         if not line.startswith("|"):
@@ -133,7 +153,7 @@ def parse_record_table(text: str) -> dict[int, tuple[str, ...]]:
         cells = [cell.strip() for cell in line.strip("|").split("|")]
         if len(cells) != 6 or not cells[0].isdigit():
             continue
-        rows[int(cells[0])] = tuple(cells[1:])
+        rows.append((int(cells[0]), tuple(cells[1:])))
     return rows
 
 
@@ -154,9 +174,15 @@ def compare_record_to_output(record_text: str, output_text: str) -> list[str]:
     well as differing values, so a parser that silently drops rows cannot
     pass by producing two small matching dicts.
     """
-    record = parse_record_table(record_text)
+    ordered = parse_record_table(record_text)
+    record = dict(ordered)
     output = parse_output_rows(output_text)
     problems = []
+    seen: set[int] = set()
+    for run, _ in ordered:
+        if run in seen:
+            problems.append(f"run {run} appears more than once in the record")
+        seen.add(run)
     if not record:
         problems.append("no per-run rows parsed from the record")
     if not output:
@@ -237,7 +263,17 @@ def test_the_record_parser_ignores_tables_that_are_not_per_run_tables():
 |---|---|
 | Pi version | 0.82.0 |
 """
-    assert parse_record_table(other_tables) == {}
+    assert parse_record_table(other_tables) == []
+
+
+def test_a_duplicated_run_number_is_caught():
+    # The gate's most plausible defeat path. This project keeps superseded
+    # content in place, so a record could hold a withdrawn per-run table
+    # beside its corrected one. A dict-keyed parser would compare only the
+    # last and pass.
+    doubled = _GOOD_RECORD + "| 1 | 99 | 99 | 9 | 99999 | 9.9 |\n" + _GOOD_RECORD
+    problems = compare_record_to_output(doubled, _GOOD_OUTPUT)
+    assert any("more than once" in problem for problem in problems)
 
 
 # --- The gate itself, over the committed records.
@@ -351,6 +387,12 @@ If either command fails because a checkpoint is missing, **stop**. Do not
 hand-write an output file — a fabricated output would defeat the entire cycle
 and would be error 5 with extra steps.
 
+One known asymmetry between the two scripts, relevant only if a future
+checkpoint contains an incomplete run: cycle 3's script guards `span=None`
+(`"n/a"`), cycle 2's does not and will raise `TypeError` formatting it. It
+fails loudly rather than silently, so it needs no fix now — but if cycle 2's
+output is ever regenerated over different data and crashes, that is why.
+
 - [ ] **Step 2: Have each record name its output**
 
 In `2026-08-02-phase2-cycle2-precision-baseline.md`, replace:
@@ -420,6 +462,11 @@ Both published tables -- 48 rows and 32 -- match their scripts exactly.
 The audit found nothing, which is one data point and not evidence the
 gate has earned its keep."
 ```
+
+**This message is written in advance and asserts a result.** If Step 3
+reported any mismatch, it is false -- rewrite it to say what was actually
+found before committing. A canned success message pasted past a failing
+check is this cycle's own subject matter.
 
 ---
 
@@ -534,10 +581,13 @@ measurement.
 - [ ] **Step 1: Add the roadmap row**
 
 Append to the Phase 2 feature-cycle table in `ROADMAP.md`, directly after
-cycle 3's row with no blank line between them:
+cycle 3's row with no blank line between them. **Finish the last sentence from
+what Task 2 Step 3 actually reported** — if both tables matched, say the audit
+found nothing and that one clean audit is one data point; if it found a
+mismatch, say what it was. Do not carry a pre-written result into the roadmap:
 
 ```markdown
-| 4 | Claim discipline — six derived-prose errors in one session, none reachable by any existing test. `tests/test_research_records.py` diffs each research record's per-run table against its recompute script's committed output, so a table cannot be published without a command behind it; `docs/sdd.md` gains "Checking a quantitative claim", four questions carrying the casualty list that motivates each. Cycles 2 and 3 backfilled: both tables matched, an audit that found nothing and says so. | [spec](docs/superpowers/specs/2026-08-02-phase2-cycle4-claim-discipline-design.md) | [plan](docs/superpowers/plans/2026-08-02-phase2-cycle4-claim-discipline.md) | Done |
+| 4 | Claim discipline — six derived-prose errors in one session, none reachable by any existing test. `tests/test_research_records.py` diffs each research record's per-run table against its recompute script's committed output, so a table cannot be published without a command behind it; `docs/sdd.md` gains "Checking a quantitative claim", four questions carrying the casualty list that motivates each. Cycles 2 and 3 backfilled. | [spec](docs/superpowers/specs/2026-08-02-phase2-cycle4-claim-discipline-design.md) | [plan](docs/superpowers/plans/2026-08-02-phase2-cycle4-claim-discipline.md) | Done |
 ```
 
 Verify the table did not break:
