@@ -164,6 +164,7 @@ plans/2026-08-01-post-phase1-pages-publication
 plans/2026-08-02-phase2-cycle1-telemetry-reader
 plans/2026-08-02-phase2-cycle2-precision-baseline
 plans/2026-08-02-phase2-cycle3-honest-environment
+plans/2026-08-02-phase3-cycle1-observable-extension
 ```
 
 ```{toctree}
