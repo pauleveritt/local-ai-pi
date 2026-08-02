@@ -140,3 +140,38 @@ def test_a_tool_update_with_no_end_is_unknown_not_successful():
     telemetry = read_telemetry(stream)
     assert telemetry.tool_calls == (ToolCall(name="bash", is_error=None),)
     assert telemetry.complete is False
+
+
+def test_tool_errors_counts_only_calls_that_reported_an_error():
+    # Non-vacuity pin. `None` means *unknown*, not failure, and has two
+    # distinct sources -- an unmatched start (c3) and a matched end
+    # carrying no isError field (c4). Counting either would be the
+    # plausible wrong implementation, so this asserts they are excluded
+    # specifically rather than only asserting the total.
+    stream = (
+        '{"type": "tool_execution_start", "toolCallId": "c1", "toolName": "bash"}\n'
+        '{"type": "tool_execution_end", "toolCallId": "c1", "isError": true}\n'
+        '{"type": "tool_execution_start", "toolCallId": "c2", "toolName": "bash"}\n'
+        '{"type": "tool_execution_end", "toolCallId": "c2", "isError": false}\n'
+        '{"type": "tool_execution_start", "toolCallId": "c3", "toolName": "write"}\n'
+        '{"type": "tool_execution_start", "toolCallId": "c4", "toolName": "write"}\n'
+        '{"type": "tool_execution_end", "toolCallId": "c4"}\n'
+        '{"type": "agent_end"}\n'
+    )
+    telemetry = read_telemetry(stream)
+    assert [call.is_error for call in telemetry.tool_calls] == [
+        True,
+        False,
+        None,
+        None,
+    ]
+    assert telemetry.tool_errors == 1
+
+
+def test_a_clean_real_run_reports_zero_tool_errors():
+    # A weak pin on its own -- zero -- which is why the synthetic
+    # mixed-outcome test above carries the non-vacuity weight. It is the
+    # only real-data pin available: tests/fixtures/phase1-n48-telemetry-summary.json
+    # holds only turns and context_processed, and extending it would
+    # change a checksum already recorded in tests/fixtures/README.md.
+    assert read_telemetry(_real_run()).tool_errors == 0

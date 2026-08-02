@@ -41,6 +41,19 @@ class RunTelemetry:
     def context_processed(self) -> int:
         return self.input_tokens + self.cache_read_tokens + self.cache_write_tokens
 
+    @property
+    def tool_errors(self) -> int:
+        """Count of tool calls that finished and reported an error.
+
+        Counts `is_error is True` only. `None` means *unknown*, not a
+        failure, and has two sources (see `ToolCall.is_error`): a start
+        with no matching end -- where `complete` already declares every
+        count a lower bound -- and a matched end carrying no `isError`
+        field, which `complete` deliberately still counts as a complete
+        run. Neither is counted here.
+        """
+        return sum(1 for call in self.tool_calls if call.is_error)
+
 
 def read_telemetry(pi_stdout: str) -> RunTelemetry:
     turns = 0
