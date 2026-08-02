@@ -199,8 +199,8 @@ extension file here is **byte-identical** to the prior project's. But it is
 **inert in the harness's invocation mode**: zero custom entries appear in
 any recorded run. The cause is subscribe ordering. Print mode wires its
 json-mode subscriber only *after* `bindExtensions()` returns
-(`modes/print-mode.js:50, 80`), and `bindExtensions()` ends by awaiting the
-`session_start` emission (`core/agent-session.js:1766`) — so the
+(`modes/print-mode.js:50, 80`), and `bindExtensions()` emits `session_start`
+before returning (`core/agent-session.js:1766`) — so the
 `entry_appended` our `session_start` handler produced was emitted with no
 subscriber attached and dropped, irrecoverably (`core/agent-session.js:285-289`).
 `--print --no-themes` does leave `ctx.ui.notify` no TUI

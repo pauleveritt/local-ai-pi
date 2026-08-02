@@ -39,8 +39,7 @@ subscribe boundary.
 
 Print mode's `rebindSession` calls `await session.bindExtensions(…)` at
 `modes/print-mode.js:50`, and only wires the subscriber at
-`modes/print-mode.js:80`, after that await returns. `bindExtensions` ends by
-awaiting the `session_start` emission:
+`modes/print-mode.js:80`, after that await returns. `bindExtensions` emits `session_start` before returning:
 
 ```js
 await this._extensionRunner.emit(this._sessionStartEvent);
@@ -82,7 +81,8 @@ The installed signature is
 `appendEntry<T = unknown>(customType: string, data?: T): void`
 (`core/extensions/types.d.ts:915`) — one string type ID plus optional data, not
 the single-object `appendEntry({type, data})` the prior project's chapter
-documents. That drift is real and is audited in this cycle's chapter.
+documents. That drift is real and will be audited when this cycle's chapter
+is written.
 
 Called from `agent_start` or any later event, `appendEntry` reaches stdout with
 no new API and no change to how Pi is invoked.
@@ -101,8 +101,13 @@ lines. Line 2 is:
 Two details in that placement are worth recording:
 
 - **Line 1 is the `session` header and line 2 is the entry.** Nothing from
-  `session_start` appears between them, which is the dropped emission showing up
-  as an absence.
+  `session_start` appears between them — but that absence is not evidence of a
+  drop. Task 1 moved the `appendEntry` call to `agent_start`, so nothing was
+  emitted at `session_start` at all in this run; the handler that remains
+  there only calls `ctx.ui.notify` (`.pi/extensions/hello-world.ts:5-7`),
+  which is inert for the unrelated reason covered below. The absence here is
+  the expected consequence of the code change. The evidence for the drop is
+  the control fixture, next.
 - **Line 3 is Pi's own `agent_start` event.** The extension's handler runs, and
   its emission is serialized, *before* the event that triggered it reaches
   stdout. Ordering in the stream reflects emission order, not causal order, and
@@ -114,9 +119,14 @@ with the call in the other handler.
 
 `agent_start` fires during `session.prompt()`, at least once per run and before
 any model-dependent behaviour. It is not *exactly* once — Pi retries after some
-agent errors (`agent_end` carries `willRetry`, `core/agent-session.js:353`), and
-a retry fires `agent_start` again. Anything asserting on the resulting entries
-must test membership, not length.
+agent errors (`agent_end` carries `willRetry`, `core/agent-session.js:353`).
+Whether a retry re-fires `agent_start` is plausible but unverified: the retry
+path calls `this.agent.continue()` (`core/agent-session.js:748-749`), and
+`agent_start` itself originates inside `@earendil-works/pi-agent-core`, which
+is not present under the installed package tree, so its emission points could
+not be read. The operational conclusion does not depend on resolving this
+either way: anything asserting on the resulting entries must test membership,
+not length.
 
 ## `ctx.ui.notify` is not an evidence channel
 
@@ -133,9 +143,12 @@ documented finding, not a defect to repair.
 
 `pi.sendMessage` does reach stdout. It is barred for a different reason.
 
-Pi's own documentation draws the line: `registerEntryRenderer` is annotated
-"Custom entries do not participate in LLM context"
-(`core/extensions/types.d.ts:900`), sitting directly beside
+Pi's own documentation states this outright rather than leaving it to
+inference: `docs/extensions.md:1561` says of `registerMessageRenderer` that
+"Custom messages are created with `pi.sendMessage()` and participate in LLM
+context." The installed `types.d.ts` corroborates by contrast:
+`registerEntryRenderer` is annotated "Custom entries do not participate in
+LLM context" (`core/extensions/types.d.ts:900`), sitting directly beside
 `registerMessageRenderer` for `CustomMessageEntry`, which carries no such
 disclaimer. Custom *messages* can enter the model's context; custom *entries*
 cannot.

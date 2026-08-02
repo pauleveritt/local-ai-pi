@@ -106,6 +106,7 @@ shipped.
 - [Cycle 1 fixture results](research/2026-07-30-phase1-cycle1-fixture-results.md)
 - [Phase 1 n=16 batch evidence](research/2026-08-01-phase1-n16-batch-evidence.md)
 - [Phase 2 cycle 2 — precision baseline](research/2026-08-02-phase2-cycle2-precision-baseline.md)
+- [Phase 2 cycle 3 — clean baseline](research/2026-08-02-phase2-cycle3-clean-baseline.md)
 - [Phase 2 — plan for the remainder](research/2026-08-02-phase2-remaining-plan.md)
 - [Phase 3, cycle 1 — the event vocabulary](research/2026-08-02-phase3-cycle1-event-vocabulary.md)
   — what an extension can and cannot emit under
