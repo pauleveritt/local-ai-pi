@@ -16,7 +16,10 @@ Outside Git, per the same reasoning as cycles 2 and 16. This record and the
 recompute script alongside it are what survive if the checkpoints are lost.
 
 Recomputed by `2026-08-02-phase2-cycle3-recompute-summary.py`, alongside this
-file.
+file. Its output is committed as
+`2026-08-02-phase2-cycle3-recompute-output.txt`, and
+`tests/test_research_records.py` asserts the per-run table below matches it
+row for row — see `docs/sdd.md`, "Checking a quantitative claim".
 
 ## Why two checkpoints, treated as one batch
 
