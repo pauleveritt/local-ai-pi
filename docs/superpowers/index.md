@@ -52,12 +52,23 @@ repository.
 | 17 | Local workspace hygiene | [spec](specs/2026-08-01-post-phase1-local-workspace-hygiene-design.md) | [plan](plans/2026-08-01-post-phase1-local-workspace-hygiene.md) |
 | 18 | Pages publication | [spec](specs/2026-08-01-post-phase1-pages-publication-design.md) | [plan](plans/2026-08-01-post-phase1-pages-publication.md) |
 
-## Phase 2 — Measure the cost of orchestration
+## Phase 2 — Measurement we can trust, cheaply enough to repeat
 
 Phase 1 asked whether generated code can be trusted. Phase 2 asks what it
-costs. Cycle 1 builds the instrument and wires it to nothing — the same
-instrument-before-experiment order Phase 1 used when it built the entire
-grading apparatus before a model ran once.
+costs to measure that trustworthily and affordably — on hardware ranging
+from the owner's Mac to a collaborator's much lower-powered machine, without
+every question costing a supervised batch. Cycle 1 builds the instrument
+and wires it to nothing — the same instrument-before-experiment order
+Phase 1 used when it built the entire grading apparatus before a model ran
+once.
+
+*(An earlier framing named this phase "Measure the cost of orchestration"
+and planned to build an orchestrator as its second and third steps. That
+plan was withdrawn 2026-08-02 — see `ROADMAP.md`'s concept budget and "Now"
+section for the full correction. The orchestration-cost claim that
+motivated cycle 1's metric choices remains true and worth testing
+eventually; building the orchestrator itself is deferred to the Backlog,
+not scheduled within this phase.)*
 
 | # | Cycle | Spec | Plan |
 |---|---|---|---|
@@ -106,6 +117,7 @@ specs/2026-08-01-post-phase1-batch-evidence-record-design
 specs/2026-08-01-post-phase1-local-workspace-hygiene-design
 specs/2026-08-01-post-phase1-pages-publication-design
 specs/2026-08-02-phase2-cycle1-telemetry-reader-design
+specs/2026-08-02-phase2-cycle2-precision-baseline-design
 ```
 
 ```{toctree}
