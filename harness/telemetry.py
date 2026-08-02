@@ -24,7 +24,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class ToolCall:
     name: str
-    is_error: bool | None  # None = started but never finished
+    is_error: bool | None  # None = no matching end, or an end with no isError field
 
 
 @dataclass(frozen=True)
@@ -52,7 +52,13 @@ def read_telemetry(pi_stdout: str) -> RunTelemetry:
     ended: dict[str, bool | None] = {}  # toolCallId -> isError
     agent_ended = False
 
-    for line in pi_stdout.splitlines():
+    # Split on "\n" only, not str.splitlines()'s full line-break set.
+    # pi is a Node tool; Node's JSON.stringify emits U+2028/U+2029 raw
+    # rather than \u-escaped, and both are legal unescaped inside a JSON
+    # string. splitlines() treats them as breaks too, fracturing one
+    # valid JSON line into two invalid halves -- silently dropping a
+    # turn's tokens while agent_end still parses, misreporting complete.
+    for line in pi_stdout.split("\n"):
         try:
             event = json.loads(line)
         except json.JSONDecodeError:

@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from harness.telemetry import ToolCall, read_telemetry
@@ -103,3 +104,39 @@ def test_reasoning_tokens_are_folded_into_output_tokens():
         '{"type": "agent_end"}\n'
     )
     assert read_telemetry(stream).output_tokens == 12
+
+
+def test_a_line_separator_inside_message_text_does_not_fracture_the_line():
+    # U+2028/U+2029 are legal unescaped inside a JSON string, and pi is a
+    # Node tool -- Node's JSON.stringify emits them raw rather than
+    # \u-escaped. str.splitlines() treats U+2028 as a line break, so a
+    # naive split fractures one valid JSON line into two invalid halves,
+    # silently dropping the turn's tokens while agent_end still parses.
+    # ensure_ascii=False is required to reproduce that: the default
+    # ascii-escapes U+2028 away, which would make this test vacuous.
+    content = json.dumps("line one line two", ensure_ascii=False)
+    stream = (
+        '{"type": "turn_end", "message": {"content": ' + content + ", "
+        '"usage": {"input": 500, "output": 50, "cacheRead": 0, "cacheWrite": 0, "reasoning": 0}}}\n'
+        '{"type": "agent_end"}\n'
+    )
+    telemetry = read_telemetry(stream)
+    assert telemetry.turns == 1
+    assert telemetry.input_tokens == 500
+    assert telemetry.complete is True
+
+
+def test_a_tool_update_with_no_end_is_unknown_not_successful():
+    # tool_execution_update (a streaming progress event) must not be
+    # mistaken for tool_execution_end. A tool killed after emitting an
+    # update but before finishing is exactly the case complete=False
+    # exists to catch.
+    stream = (
+        '{"type": "tool_execution_start", "toolCallId": "call_1", "toolName": "bash"}\n'
+        '{"type": "tool_execution_update", "toolCallId": "call_1", '
+        '"toolName": "bash", "partialResult": {}}\n'
+        '{"type": "agent_end"}\n'
+    )
+    telemetry = read_telemetry(stream)
+    assert telemetry.tool_calls == (ToolCall(name="bash", is_error=None),)
+    assert telemetry.complete is False
