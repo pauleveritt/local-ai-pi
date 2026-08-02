@@ -522,14 +522,20 @@ Before publishing a number, ask:
 **What is enforced, and what is not.** Question 4 is mechanised for one thing
 only: a record's per-run table is diffed against its script's committed output
 by `tests/test_research_records.py`. Everything else on this page is a human
-check. Both of the fabricated numbers above were in *prose*, not in a table,
-so the test would not have caught either. A green suite means the table was
-transcribed correctly. It says nothing about the paragraph underneath it.
+check. Neither fabricated number above was in a per-run table — one was a cell
+in a comparison table, the other a paragraph — so the test would have caught
+neither. A green suite means the per-run table was transcribed correctly. It
+says nothing about the tables and paragraphs around it.
+
+**And the test proves less than it looks like it proves.** It compares a record
+against a committed text file. A hand-written text file passes identically.
+What makes that file trustworthy is the checkpoint SHA-256s recorded in the
+record beside it, and whoever ran the script — not the test.
 
 **Why the output is committed and the data is not.** The raw checkpoints are
-millions of bytes of model output and stay outside the repository; a script's
-output is a few dozen lines. Committing the small artifact is what lets the
-check run on a fresh clone, where the data will never exist.
+tens of millions of bytes of model output and stay outside the repository; a
+script's output is a few dozen lines. Committing the small artifact is what
+lets the check run on a fresh clone, where the data will never exist.
 ````
 
 - [ ] **Step 2: Verify the heading matches every citation**
