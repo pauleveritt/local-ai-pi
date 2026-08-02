@@ -63,7 +63,7 @@ Every number below was computed and independently sanity-checked before this pla
 - `minimum_n_for_precision(turns_48, target_halfwidth=0.25, seed=0)` is `237`.
 - `minimum_n_for_precision(context_processed_48, target_halfwidth=1500, seed=0)` is `64`.
 - `minimum_n_for_precision(context_processed_48, target_halfwidth=1000, seed=0)` is `144`.
-- `minimum_n_for_precision(context_processed_48, target_halfwidth=500, seed=0)` is `None` (unreachable within `max_n=1000`).
+- `minimum_n_for_precision(context_processed_48, target_halfwidth=500, seed=0)` is `574` — **corrected during execution.** The originally-verified value here was `None`, computed with a version of the search that doubled `n` past `max_n` and gave up without ever testing `max_n` itself; Fable's review of the finished implementation caught that `max_n=1000` in fact satisfies this target (halfwidth 374.3 there), fixed the search, and the true first-satisfying n (567) turned out to be masked by real resampling noise at that boundary, landing the fixed binary search on 574 instead. See the research record's "How many runs do you need?" section for the full explanation this correction is quoted from.
 - Adding one hypothetical run at 20 turns to the n=48 sample: `bootstrap_ci_halfwidth` at n=16 goes `0.9375 → 1.28125` (×1.37); at n=48, `0.5416666666666665 → 0.7291666666666666` (×1.35) — versus roughly ×2 at n=16 alone. Improved, not eliminated.
 - `context_processed` spread within each turn-count group, n=48 (was ≤3.2% at n=16, for the groups that existed then): 6 turns (n=20) 3.2%, 8 turns (n=9) 6.8%, 9 turns (n=7) 0.4%, 10 turns (n=4) 1.3%, 11 turns (n=7) 1.0%, 12 turns (n=1) — undefined (single value).
 
@@ -723,7 +723,7 @@ first place — the n=16 sample's support was incomplete, not just noisy.
 | | n=16 | n=48 | change |
 |---|---|---|---|
 | `leave_one_out_spread` (turns) | 0.333 | 0.128 | −61.7% |
-| Hypothetical +1 run at 20 turns, halfwidth ratio at n=16 | ×1.73 (0.938→1.625, unseeded estimate from the spec) | ×1.37 (seed=0) | improved |
+| Hypothetical +1 run at 20 turns, halfwidth ratio at n=16 | ×1.93 (0.84375→1.625, seed=0, matching the spec) | ×1.37 (seed=0, n=16 within the n=48 sample) | improved |
 | Hypothetical +1 run at 20 turns, halfwidth ratio at n=48/n=64 | — | ×1.35 (seed=0) | — |
 
 The jackknife spread tightened substantially — a real, meaningful
@@ -758,14 +758,28 @@ half-width looks small.
 |---|---|
 | 1500 (coarse) | 64 |
 | 1000 | 144 |
-| 500 (fine) | not reachable within 1000 runs |
+| 500 (fine) | 574 (corrected — see note below) |
+
+**A bug in `minimum_n_for_precision`'s search, caught by Fable's review, is
+why the 500 row above isn't "not reachable within 1000 runs" as this
+record first published.** The search doubled `n` past `max_n` and gave up
+without ever testing `max_n` itself or anything between the last
+power-of-2 and it — but `max_n=1000` easily satisfies this target
+(halfwidth 374.3 there). The true first-satisfying n is 567, though real
+resampling noise near that boundary (567 and 568 satisfy; 569 doesn't;
+570–571 do again) means binary search over that noise lands on 574, not
+567 — both are correct answers in the sense the module actually promises
+(the returned n is checked directly, not merely inferred), just not
+necessarily the literal smallest one when the underlying function isn't
+cleanly monotonic at that resolution. Fixed in `harness/precision.py`;
+`tests/test_precision.py` now pins this case directly.
 
 **Read in runs, not minutes, on purpose** — a contributor on any hardware
 uses this table by timing one `run_agentclinic_phase1()` call on their own
 machine (one line, no new tooling — see the design spec's "Deliberate
 exclusions") and multiplying. On the owner's machine, the measured n=48
-median span was **44.6 seconds** per run (min 34.2s, max 90.1s, total
-2343.7s across all 48) — so n=56 is roughly 42 minutes of model time
+median span was **46.1 seconds** per run (min 34.2s, max 90.1s, total
+2343.7s across all 48) — so n=56 is roughly 43 minutes of model time
 there; elsewhere, it depends entirely on that machine's own one-run timing.
 
 **n=48 already covers the coarsest target for both metrics.** It sits just
@@ -922,3 +936,11 @@ git commit -m "docs(phase2-cycle2): close the precision baseline cycle"
 ## A note for the executor on git discipline during this plan
 
 Nothing in this plan invokes `pi` or `run_batch()` — all real-batch work is already done and preserved outside the repo. The mid-session lesson recorded in Task 3's research record (don't commit while a batch runs) does not constrain this plan's own commits; it is recorded as an operational note for *future* cycles that run a live batch, not a rule this plan's tasks need to work around.
+
+## Post-execution correction: a real bug in `minimum_n_for_precision`, caught by Fable's review
+
+After all four tasks above were executed and committed, a light Fable review of the finished implementation (not just the spec — the first Fable pass on this cycle's actual code) found that `minimum_n_for_precision`'s doubling search could overshoot `max_n` without ever testing `max_n` itself, incorrectly returning `None` in cases where `max_n` — or some n between the last power-of-2 and it — actually satisfies the target. This fired on this cycle's own published data: `minimum_n_for_precision(context_processed_48, target_halfwidth=500, seed=0)` was verified as `None` throughout Tasks 1–3 (see the "Verified Facts" bullet above and Task 3's embedded research-record template, both left as originally written above this note, as a record of the mistake rather than a silent rewrite) but is actually **574** — `max_n=1000` alone satisfies the target with room to spare (halfwidth 374.3).
+
+Fixed in `harness/precision.py`: the search now caps each doubling step at `max_n` and tests the cap directly before giving up, only returning `None` if `max_n` itself fails. `tests/test_precision.py` gained two tests: one pinning a genuine off-by-one in the confidence-interval index calculation that the original test suite's pinned values happened not to expose (all landed where two adjacent order statistics were equal), and one pinning this `max_n` fix directly, including the honest note that real resampling noise near the true boundary (567 and 568 satisfy; 569 doesn't; 570–571 do again) means binary search lands on 574 rather than the literal smallest satisfying n — the module's actual guarantee, checked directly rather than inferred, is that the returned n satisfies the target, not that it is provably the global minimum under noise.
+
+`docs/superpowers/research/2026-08-02-phase2-cycle2-precision-baseline.md` and this plan's own Task 3 template were both corrected to state 574, not "not reachable." Two smaller stale numbers Fable caught in the same pass were corrected alongside: the record's tail-sensitivity comparison had mismatched a spec-cited pair (0.84375→1.625, ×1.93) with a different sample's number (0.9375) and mislabeled the result "unseeded" when it reproduces exactly at `seed=0`; and the record's "measured n=48 median span" was actually the n=16 median (44.6s) rather than the true n=48 median (46.1s).

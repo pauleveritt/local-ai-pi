@@ -130,7 +130,7 @@ first place — the n=16 sample's support was incomplete, not just noisy.
 | | n=16 | n=48 | change |
 |---|---|---|---|
 | `leave_one_out_spread` (turns) | 0.333 | 0.128 | −61.7% |
-| Hypothetical +1 run at 20 turns, halfwidth ratio at n=16 | ×1.73 (0.938→1.625, unseeded estimate from the spec) | ×1.37 (seed=0) | improved |
+| Hypothetical +1 run at 20 turns, halfwidth ratio at n=16 | ×1.93 (0.84375→1.625, seed=0, matching the spec) | ×1.37 (seed=0, n=16 within the n=48 sample) | improved |
 | Hypothetical +1 run at 20 turns, halfwidth ratio at n=48/n=64 | — | ×1.35 (seed=0) | — |
 
 The jackknife spread tightened substantially — a real, meaningful
@@ -165,14 +165,28 @@ half-width looks small.
 |---|---|
 | 1500 (coarse) | 64 |
 | 1000 | 144 |
-| 500 (fine) | not reachable within 1000 runs |
+| 500 (fine) | 574 (corrected — see note below) |
+
+**A bug in `minimum_n_for_precision`'s search, caught by Fable's review, is
+why the 500 row above isn't "not reachable within 1000 runs" as this
+record first published.** The search doubled `n` past `max_n` and gave up
+without ever testing `max_n` itself or anything between the last
+power-of-2 and it — but `max_n=1000` easily satisfies this target
+(halfwidth 374.3 there). The true first-satisfying n is 567, though real
+resampling noise near that boundary (567 and 568 satisfy; 569 doesn't;
+570–571 do again) means binary search over that noise lands on 574, not
+567 — both are correct answers in the sense the module actually promises
+(the returned n is checked directly, not merely inferred), just not
+necessarily the literal smallest one when the underlying function isn't
+cleanly monotonic at that resolution. Fixed in `harness/precision.py`;
+`tests/test_precision.py` now pins this case directly.
 
 **Read in runs, not minutes, on purpose** — a contributor on any hardware
 uses this table by timing one `run_agentclinic_phase1()` call on their own
 machine (one line, no new tooling — see the design spec's "Deliberate
 exclusions") and multiplying. On the owner's machine, the measured n=48
-median span was **44.6 seconds** per run (min 34.2s, max 90.1s, total
-2343.7s across all 48) — so n=56 is roughly 42 minutes of model time
+median span was **46.1 seconds** per run (min 34.2s, max 90.1s, total
+2343.7s across all 48) — so n=56 is roughly 43 minutes of model time
 there; elsewhere, it depends entirely on that machine's own one-run timing.
 
 **n=48 already covers the coarsest target for both metrics.** It sits just

@@ -52,24 +52,35 @@ def minimum_n_for_precision(
     max_n: int = 1000,
     seed: int | None = None,
 ) -> int | None:
-    """Smallest n, 1 <= n <= max_n, whose bootstrap_ci_halfwidth(sample,
-    n, ...) is <= target_halfwidth. None if max_n is reached without
-    satisfying it.
+    """An n, 1 <= n <= max_n, whose bootstrap_ci_halfwidth(sample, n,
+    ...) is <= target_halfwidth. None only if max_n itself fails to
+    satisfy the target -- max_n is always tested directly before giving
+    up, never skipped past by an overshooting doubling step.
 
-    Searches by doubling from n=1 to find an n that satisfies the
-    target, then binary search between the last failing n and the first
-    succeeding one -- relies on bootstrap_ci_halfwidth's ~1/sqrt(n)
-    trend, not strict monotonicity at every adjacent n (resampling
-    noise can produce tiny local upticks there). The returned n is
-    checked directly against the target inside the search, not merely
-    inferred from it.
+    Searches by doubling from n=1, capped at max_n, until a satisfying n
+    is found; then binary search between the last failing n and that
+    satisfying one. Relies on bootstrap_ci_halfwidth's ~1/sqrt(n) trend,
+    not strict monotonicity at every adjacent n -- resampling noise can
+    make the halfwidth flip above and below the target several times
+    near the true boundary (observed directly on real data: n=567 and
+    568 satisfy a target, 569 does not, 570-571 do again). Binary search
+    over a noisy function is not guaranteed to land on the smallest such
+    n in that situation. What it does guarantee, checked directly rather
+    than inferred: the n actually returned satisfies the target.
     """
+    lo = 0
     n = 1
-    while bootstrap_ci_halfwidth(sample, n, confidence, resamples, seed) > target_halfwidth:
-        n *= 2
-        if n > max_n:
+    while True:
+        capped = min(n, max_n)
+        if bootstrap_ci_halfwidth(sample, capped, confidence, resamples, seed) <= target_halfwidth:
+            hi = capped
+            break
+        if capped >= max_n:
+            # max_n itself was just tested (capped == max_n) and failed:
+            # no n <= max_n can satisfy the target.
             return None
-    lo, hi = n // 2, n
+        lo = capped
+        n *= 2
     while hi - lo > 1:
         mid = (lo + hi) // 2
         if bootstrap_ci_halfwidth(sample, mid, confidence, resamples, seed) <= target_halfwidth:

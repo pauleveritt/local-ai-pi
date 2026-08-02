@@ -55,6 +55,14 @@ def test_same_seed_produces_the_same_result():
     assert a == b == 3.55
 
 
+def test_halfwidth_ci_index_is_not_off_by_one():
+    # A Fable-caught gap: every value pinned elsewhere in this file
+    # happens to land where the two central order statistics are equal,
+    # so dropping the "- 1" from the upper index passed all of them.
+    # This point differs under that mutation (3.5 vs 3.55).
+    assert bootstrap_ci_halfwidth(SPREAD_1_TO_20, 10, seed=0) == 3.5
+
+
 def test_leave_one_out_spread_matches_a_hand_computed_example():
     # drop 1 -> mean(2,3,4)=3.0; drop 2 -> mean(1,3,4)=2.667;
     # drop 3 -> mean(1,2,4)=2.333; drop 4 -> mean(1,2,3)=2.0
@@ -109,4 +117,24 @@ def test_minimum_n_for_context_processed_precision_at_n48():
     _, context_processed = _real_samples()
     assert minimum_n_for_precision(context_processed, target_halfwidth=1500, seed=0) == 64
     assert minimum_n_for_precision(context_processed, target_halfwidth=1000, seed=0) == 144
-    assert minimum_n_for_precision(context_processed, target_halfwidth=500, seed=0) is None
+
+
+def test_minimum_n_for_context_processed_precision_reaches_max_n_range():
+    # Fable caught a real bug here: the search used to double straight
+    # past max_n and return None without ever testing max_n itself or
+    # anything between the last power-of-2 and it. n=567 through 1000
+    # (with noisy exceptions -- see the module docstring) all satisfy
+    # this target; None would be a false claim that no such n exists.
+    #
+    # 574, not the "true" first-satisfying 567: real resampling noise
+    # makes the halfwidth flip above and below 500 several times near
+    # the boundary (567, 568 satisfy; 569 doesn't; 570-571 do again),
+    # so binary search over that noise doesn't land on the literal
+    # minimum. The pin is still exact and deterministic for this seed;
+    # the self-consistency checks below are what the module actually
+    # promises.
+    _, context_processed = _real_samples()
+    n = minimum_n_for_precision(context_processed, target_halfwidth=500, seed=0)
+    assert n == 574
+    assert n <= 1000
+    assert bootstrap_ci_halfwidth(context_processed, n, seed=0) <= 500
