@@ -11,12 +11,31 @@ n=16 reproducing ~15/16 — the supervised batch accepted 16/16. The engine's
 first job was to reproduce a number we already trust, not to discover one —
 see `BRIEF.md` for why.
 
-**Phase 2 — Measurement we can trust, cheaply enough to repeat.** Phase 1
-measured whether generated code can be *trusted*; it says nothing about
-speed, cost, or effort. Cycle 1 built the instrument (`harness/telemetry.py`).
-What Phase 2 pursues from here is making measurement **trustworthy and
-affordable**: a slice small enough that n=100 is practical, rather than a
-full multi-phase build where every question costs a supervised batch.
+**Phase 2 — Measurement we can trust, cheaply enough to repeat.
+Complete.** Phase 1 measured whether generated code can be *trusted*; it
+says nothing about speed, cost, or effort. Four cycles: the instrument
+(`harness/telemetry.py`), its precision characterized against a real
+baseline, an honest environment and a clean re-measurement, and the
+discipline that keeps the numbers trustworthy.
+
+*(The affordability target was retired by the phase's own findings,
+2026-08-02, and this paragraph is corrected accordingly rather than
+rewritten. It previously read: "What Phase 2 pursues from here is making
+measurement trustworthy and affordable: a slice small enough that n=100 is
+practical." Two cycles' evidence dissolved that. Cycle 3 found the friction
+that dominated turn-count variance was environmental, and that fixing it
+attacks the required **n**, not the per-run cost — a defensible clean claim
+needs roughly 30–48 runs, not 100+. The cheaper task slice that the n=100
+framing existed to motivate was withdrawn twice, most recently by cycle 3's
+spec. What the phase actually delivered is the first half of that sentence:
+measurement you can trust. The second half turned out to be answering a
+question nobody had asked yet.)*
+
+**Phase 3 — Build the extension half.** Next, and already planned below.
+Phase 2 closes having paid its debts to it: `read_telemetry` counts
+delegations, `harness/precision.py` sizes the experiment, and cycle 3's
+honest environment supplies the clean baseline an orchestrated arm gets
+compared against.
 
 *(Withdrawn framing, kept for the record — corrected 2026-08-02. An earlier
 pass, written at cycle 1's close, gave Phase 2 three steps: "step 1 builds
@@ -101,7 +120,7 @@ occurrences either. Both revive if and when the experiment is scheduled.
 | # | Phase | Direction (one sentence) | Status |
 |---|-------|--------------------------|--------|
 | 1 | Reproduce AgentClinic Phase 1 | One trustworthy, hermetically-graded run; n=16 reproducing ~15/16 | complete |
-| 2 | Measurement we can trust, cheaply enough to repeat | Instrument a run, then make measurement trustworthy on a slice small enough that repetition (n=100) is affordable | in progress; direction corrected 2026-08-02 |
+| 2 | Measurement we can trust, cheaply enough to repeat | Instrument a run, characterize its precision, make the environment honest, and impose a discipline on published numbers | complete; the n=100 affordability target was retired 2026-08-02 by the phase's own findings — see "Now" |
 | 3 | Build the extension half | The product is "a Pi extension plus an eval harness"; two phases built the harness. Specialize Pi's shipped subagent, then test the handoff-packet cost claim with the instrument Phase 2 built | planned |
 
 ### Phase 1 feature cycles
