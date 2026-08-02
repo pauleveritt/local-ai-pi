@@ -102,6 +102,7 @@ occurrences either. Both revive if and when the experiment is scheduled.
 |---|-------|--------------------------|--------|
 | 1 | Reproduce AgentClinic Phase 1 | One trustworthy, hermetically-graded run; n=16 reproducing ~15/16 | complete |
 | 2 | Measurement we can trust, cheaply enough to repeat | Instrument a run, then make measurement trustworthy on a slice small enough that repetition (n=100) is affordable | in progress; direction corrected 2026-08-02 |
+| 3 | Build the extension half | The product is "a Pi extension plus an eval harness"; two phases built the harness. Specialize Pi's shipped subagent, then test the handoff-packet cost claim with the instrument Phase 2 built | planned |
 
 ### Phase 1 feature cycles
 
@@ -160,6 +161,67 @@ survive contact with the owner. The lesson is the budget's own, sharpened —
 it catches drift only when the check runs at *close*, against prose as well
 as code, and a term justified by a *plan* rather than by working software
 is exactly the kind that gets retired a day later.
+
+### Phase 3 feature cycles — planned, not started
+
+*Phase 3 is the first work on the half of the product `BRIEF.md` names and
+neither prior phase has touched: **"a Pi extension (not a fork of Pi) plus
+an eval harness."* Phases 1 and 2 built the harness. `.pi/extensions/hello-world.ts`
+has exactly one commit in its history — cycle 8's transplant — and is loaded
+on every run only as isolation plumbing.*
+
+**The prior project already built this, and its specs survive.** The
+pre-restructure worktree carries a complete, approved spec and plan at
+`.worktrees/pre-restructure/docs/section-1-hello-agent/` (spec 170 lines,
+plan 486, chapter 222), where the hello-world extension was SP0 / Part I of
+a course. Per `BRIEF.md`'s gardening rule these are *candidates*, read and
+argued on their merits, not a manifest — and cycle 1 starts with
+brainstorming, not with a copy.
+
+**Two findings from reading that prior work, verified against the installed
+package, that shrink Phase 3 considerably:**
+
+- **Pi ships a complete subagent extension** at `examples/extensions/subagent/`
+  (verified present: `index.ts` 34 KB, `agents/`, `prompts/`). It calls
+  `pi.registerTool(…)` and spawns a real child with
+  `["--mode","json","-p","--no-session"]`. The prior project's own dated
+  review correction records the consequence: the work is **not** rebuilding
+  it, it is *specialization* — an `implementer` specialist as data
+  (`.pi/agents/<name>.md`) plus an orchestrator prompt.
+- **A delegation is therefore a tool call, and the child is `pi --mode json`.**
+  Both are shapes `harness/telemetry.py` already reads. Phase 2 cycle 1
+  excluded parent/child attribution as "unmeasurable today — Pi is invoked
+  once, bare, with no delegation"; this is the path that makes it
+  measurable, using the instrument already built.
+
+**A finding of our own, and the reason cycle 1 is not a file copy.** The
+extension file here is **byte-identical** to the prior project's. But it is
+**inert in the harness's invocation mode**: zero custom entries appear in
+any recorded run, because `--no-session` leaves `appendEntry` nowhere to
+write and `--print --no-themes` leaves `ctx.ui.notify` no TUI. Every one of
+the 48 recorded runs loaded seven handlers that produced nothing
+observable. Cycle 1's real question is what an extension *can* emit in the
+mode we actually run.
+
+| Cycle | Summary | State |
+|-------|---------|-------|
+| 1 | Observable extension — establish what an extension can emit under `--print --mode json --no-session`, and get one piece of evidence to travel extension → captured stdout → `read_telemetry`. Transplant the prior chapter/spec as the teaching artifact, with a drift audit: the prior spec's `appendEntry({type, data})` is already stale against the installed `appendEntry(customType, data?)`. Note this changes the extension, and `RunConditions` records its path — so it changes run conditions. | Planned |
+| 2 | Specialized subagent — enable Pi's shipped subagent extension, author `.pi/agents/implementer.md` and the orchestrator prompt, and prove one delegation happens. No TypeScript orchestrator is written. | Planned |
+| 3 | Parent/child telemetry — attribute a delegated run's cost, closing Phase 2 cycle 1's deliberate exclusion now that a split exists to attribute. | Planned |
+| 4 | The handoff-packet cost claim — measure orchestrator-plus-implementer against doing the work directly. This is the claim that satisfied the gate to build telemetry at all, finally tested. | Planned |
+
+**How this fits Phase 2's results.** Each Phase 2 asset has a job here:
+`read_telemetry` already counts delegations; `harness/precision.py` sizes
+cycle 4's experiment so it is not run at an arbitrary n; Phase 2 cycle 3's
+honest environment supplies the clean baseline the orchestrated arm is
+compared against — and without it, cycle 4 would be measuring retry friction
+again. Phase 2 cycle 4's claim-checking discipline applies to cycle 4's
+record.
+
+**Not started, and deliberately not specced.** Phase 2 is still open. This
+entry records direction and the prior art's location so the next session
+does not re-derive either; every cycle above still gets its own
+brainstorm → spec → plan.
 
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus
 *before* a model runs once — every one of them is provable against fixtures
