@@ -197,15 +197,31 @@ package, that shrink Phase 3 considerably:**
 **A finding of our own, and the reason cycle 1 is not a file copy.** The
 extension file here is **byte-identical** to the prior project's. But it is
 **inert in the harness's invocation mode**: zero custom entries appear in
-any recorded run, because `--no-session` leaves `appendEntry` nowhere to
-write and `--print --no-themes` leaves `ctx.ui.notify` no TUI. Every one of
-the 48 recorded runs loaded seven handlers that produced nothing
-observable. Cycle 1's real question is what an extension *can* emit in the
-mode we actually run.
+any recorded run. The cause is subscribe ordering. Print mode wires its
+json-mode subscriber only *after* `bindExtensions()` returns
+(`modes/print-mode.js:50, 80`), and `bindExtensions()` ends by awaiting the
+`session_start` emission (`core/agent-session.js:1766`) — so the
+`entry_appended` our `session_start` handler produced was emitted with no
+subscriber attached and dropped, irrecoverably (`core/agent-session.js:285-289`).
+`--print --no-themes` does leave `ctx.ui.notify` no TUI
+(`core/extensions/runner.js:88-92`); that half was right. Every one of the 48
+recorded runs loaded seven handlers that produced nothing observable.
+
+*This paragraph previously attributed the inertness to `--no-session` leaving
+`appendEntry` nowhere to write. That claim was justified by reading, not by a
+run; it was wrong — `appendCustomEntry` stores into an in-memory map and disk
+persistence is a separate step (`core/session-manager.js:820-831`) — and it was
+retired when a run disagreed with it. Cycle 1's gating spike moved the call to
+`agent_start` and the entry reached stdout, captured at
+`tests/fixtures/pi-run-0.82.0-entry-appended.jsonl`. See
+`docs/superpowers/research/2026-08-02-phase3-cycle1-event-vocabulary.md`.*
+
+Cycle 1's real question is what an extension *can* emit in the mode we
+actually run.
 
 | Cycle | Summary | State |
 |-------|---------|-------|
-| 1 | Observable extension — establish what an extension can emit under `--print --mode json --no-session`, and get one piece of evidence to travel extension → captured stdout → `read_telemetry`. Transplant the prior chapter/spec as the teaching artifact, with a drift audit: the prior spec's `appendEntry({type, data})` is already stale against the installed `appendEntry(customType, data?)`. Note this changes the extension, and `RunConditions` records its path — so it changes run conditions. | Planned |
+| 1 | Observable extension — establish what an extension can emit under `--print --mode json --no-session`, and get one piece of evidence to travel extension → captured stdout → `read_telemetry`. Transplant the prior chapter/spec as the teaching artifact, with a drift audit: the prior spec's `appendEntry({type, data})` is already stale against the installed `appendEntry(customType, data?)`. This row previously claimed that changing the extension changes run conditions because `RunConditions` records its path. It did not: `RunConditions` recorded only the path, never the contents, so editing `hello-world.ts` left the conditions byte-identical and `run_batch` would have resumed a checkpoint recorded under a different extension. That gap is closed by this cycle's new `RunConditions.extension_digests` — a SHA-256 per extension file — and only from that point is the claim true. | Planned |
 | 2 | Specialized subagent — enable Pi's shipped subagent extension, author `.pi/agents/implementer.md` and the orchestrator prompt, and prove one delegation happens. No TypeScript orchestrator is written. | Planned |
 | 3 | Parent/child telemetry — attribute a delegated run's cost, closing Phase 2 cycle 1's deliberate exclusion now that a split exists to attribute. | Planned |
 | 4 | The handoff-packet cost claim — measure orchestrator-plus-implementer against doing the work directly. This is the claim that satisfied the gate to build telemetry at all, finally tested. | Planned |
