@@ -121,6 +121,7 @@ specs/2026-08-01-post-phase1-local-workspace-hygiene-design
 specs/2026-08-01-post-phase1-pages-publication-design
 specs/2026-08-02-phase2-cycle1-telemetry-reader-design
 specs/2026-08-02-phase2-cycle2-precision-baseline-design
+specs/2026-08-02-phase2-cycle3-honest-environment-design
 ```
 
 ```{toctree}
