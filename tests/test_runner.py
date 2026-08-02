@@ -1,6 +1,7 @@
 import json
 import os
 from contextlib import contextmanager
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -326,6 +327,25 @@ def test_run_agentclinic_phase1_produces_live_model_evidence():
     assert result.pi_stdout.strip()
     assert result.grade.accepted is True
     assert result.grade.tests_executed == result.grade.tests_expected == 4
+
+
+def test_pi_command_emits_one_extension_flag_per_path_in_order():
+    command = _pi_command(
+        "model-name", "task text", extensions=(Path("/a/one.ts"), Path("/b/two.ts"))
+    )
+
+    flagged = [
+        command[i + 1] for i, item in enumerate(command) if item == "--extension"
+    ]
+    assert flagged == ["/a/one.ts", "/b/two.ts"]
+
+
+def test_pi_command_defaults_to_the_projects_extensions():
+    command = _pi_command("model-name", "task text")
+
+    assert command.count("--extension") == len(runner.EXTENSIONS)
+    for extension in runner.EXTENSIONS:
+        assert str(extension) in command
 
 
 @pytest.mark.skipif(

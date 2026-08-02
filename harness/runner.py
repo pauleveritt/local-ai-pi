@@ -12,7 +12,7 @@ from harness.workspace import prepare_workspace
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PHASE_1 = REPO_ROOT / "examples" / "agentclinic" / "phase-1"
 TASK_SPEC = REPO_ROOT / "examples" / "agentclinic" / "specs" / "roadmap.md"
-EXTENSION = REPO_ROOT / ".pi" / "extensions" / "hello-world.ts"
+EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / ".pi" / "extensions" / "hello-world.ts",)
 DEFAULT_MODEL = "omlx/gemma-4-12B-it-MLX-8bit"
 
 
@@ -93,13 +93,20 @@ def run_agentclinic_phase1(
     )
 
 
-def _pi_command(model: str, prompt: str) -> list[str]:
-    return [
+def _pi_command(
+    model: str, prompt: str, extensions: tuple[Path, ...] = EXTENSIONS
+) -> list[str]:
+    command = [
         "pi", "--print", "--mode", "json", "--no-session", "--model", model,
-        "--no-extensions", "--extension", str(EXTENSION), "--no-skills",
-        "--no-prompt-templates", "--no-themes", "--no-context-files",
-        "--approve", prompt,
+        "--no-extensions",
     ]
+    for extension in extensions:
+        command += ["--extension", str(extension)]
+    command += [
+        "--no-skills", "--no-prompt-templates", "--no-themes",
+        "--no-context-files", "--approve", prompt,
+    ]
+    return command
 
 
 def _conditions(model: str, command: list[str], timeout: int) -> RunConditions:
