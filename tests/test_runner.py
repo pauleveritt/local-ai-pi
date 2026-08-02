@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 from contextlib import contextmanager
@@ -74,7 +75,9 @@ def test_run_agentclinic_phase1_calls_pi_and_returns_its_result(tmp_path, monkey
     monkeypatch.setattr(runner.subprocess, "run", fake_run)
     monkeypatch.setattr(runner, "run_process", fake_process)
     monkeypatch.setattr(runner, "grade", fake_grade)
-    monkeypatch.setattr(runner, "_conditions", lambda model, command, timeout: None)
+    monkeypatch.setattr(
+        runner, "_conditions", lambda model, command, timeout, extensions: None
+    )
 
     result = run_agentclinic_phase1()
 
@@ -406,17 +409,45 @@ def test_conditions_record_a_digest_per_extension(monkeypatch, tmp_path):
     # here may depend on the `pi` binary being installed.
     extension = tmp_path / "ext.ts"
     extension.write_text("contents")
-    monkeypatch.setattr(runner, "EXTENSIONS", (extension,))
     monkeypatch.setattr(
         runner.subprocess,
         "run",
         lambda *args, **kwargs: SimpleNamespace(stdout="stubbed\n"),
     )
 
-    conditions = runner._conditions("model", ["pi"], 600)
+    conditions = runner._conditions("model", ["pi"], 600, (extension,))
 
-    assert len(conditions.extension_digests) == 1
-    assert len(conditions.extension_digests[0]) == 64
+    assert conditions.extension_digests == (
+        hashlib.sha256(b"contents").hexdigest(),
+    )
+
+
+def test_conditions_digests_the_extension_set_it_is_given_not_the_default(
+    monkeypatch, tmp_path
+):
+    # _pi_command already takes an explicit extension set; _conditions must
+    # digest that same set, not fall back to the module-level default --
+    # otherwise a caller using a different extension set (e.g. adding Pi's
+    # shipped subagent extension) would silently record the wrong digests.
+    first = tmp_path / "one.ts"
+    second = tmp_path / "two.ts"
+    first.write_text("first contents")
+    second.write_text("second contents")
+    monkeypatch.setattr(
+        runner.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(stdout="stubbed\n"),
+    )
+
+    conditions = runner._conditions("model", ["pi"], 600, (first, second))
+
+    assert conditions.extension_digests == (
+        hashlib.sha256(b"first contents").hexdigest(),
+        hashlib.sha256(b"second contents").hexdigest(),
+    )
+    assert conditions.extension_digests != tuple(
+        runner._extension_digest(path) for path in runner.EXTENSIONS
+    )
 
 
 def test_run_batch_refuses_a_record_recorded_under_a_different_extension(

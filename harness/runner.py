@@ -73,7 +73,8 @@ def run_agentclinic_phase1(
         ).stdout.strip()
 
         prompt = TASK_SPEC.read_text()
-        command = _pi_command(model, prompt)
+        extensions = EXTENSIONS
+        command = _pi_command(model, prompt, extensions)
         pi_proc = run_process(
             command,
             timeout=timeout,
@@ -104,7 +105,7 @@ def run_agentclinic_phase1(
         pi_stderr=pi_proc.stderr,
         pi_returncode=pi_proc.returncode,
         pi_timed_out=pi_proc.timed_out,
-        conditions=_conditions(model, command, timeout),
+        conditions=_conditions(model, command, timeout, extensions),
     )
 
 
@@ -136,7 +137,12 @@ def _extension_digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _conditions(model: str, command: list[str], timeout: int) -> RunConditions:
+def _conditions(
+    model: str,
+    command: list[str],
+    timeout: int,
+    extensions: tuple[Path, ...] = EXTENSIONS,
+) -> RunConditions:
     revision = subprocess.run(
         ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
     ).stdout.strip()
@@ -148,7 +154,7 @@ def _conditions(model: str, command: list[str], timeout: int) -> RunConditions:
         model=model, pi_command=normalized, pi_version=version,
         task_spec_sha256=hashlib.sha256(TASK_SPEC.read_bytes()).hexdigest(),
         harness_revision=revision, run_timeout=timeout, grade_timeout=30,
-        extension_digests=tuple(_extension_digest(path) for path in EXTENSIONS),
+        extension_digests=tuple(_extension_digest(path) for path in extensions),
     )
 
 
@@ -195,8 +201,9 @@ def run_batch(
     if target < 0:
         raise ValueError("target must not be negative")
     records = load_checkpoint(checkpoint_path)
-    command = _pi_command(model, TASK_SPEC.read_text())
-    requested = _conditions(model, command, 600)
+    extensions = EXTENSIONS
+    command = _pi_command(model, TASK_SPEC.read_text(), extensions)
+    requested = _conditions(model, command, 600, extensions)
     for record in records:
         if record.conditions != requested:
             raise ValueError("checkpoint conditions do not match this batch")
