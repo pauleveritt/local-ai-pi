@@ -4,15 +4,29 @@ export default function (pi: ExtensionAPI) {
   // ── session_start: the session comes to life ──────────────────────
   pi.on("session_start", async (_event, ctx) => {
     ctx.ui.notify("Session started!", "info");
-
-    // Write an evidence entry into the session.
-    // pi.appendEntry(customType, data?) — first arg is a string type ID.
-    pi.appendEntry("evidence", { event: "session_start", timestamp: Date.now() });
   });
 
   // ── agent_start: the LLM wakes up ─────────────────────────────────
   pi.on("agent_start", async (_event, ctx) => {
     ctx.ui.notify("Agent started — LLM turn beginning", "info");
+
+    // Write an evidence entry into the session.
+    // pi.appendEntry(customType, data?) — first arg is a string type ID.
+    //
+    // This must happen *after* print mode subscribes to session events.
+    // `bindExtensions` awaits the `session_start` emission, and the
+    // json-mode subscriber is attached only once it returns — so an
+    // entry appended during `session_start` is emitted with no
+    // subscriber and dropped. That, not `--no-session`, is why 48
+    // recorded runs produced nothing. `agent_start` fires during
+    // `session.prompt()`, at least once per run and before any
+    // model-dependent behaviour. Not exactly once: Pi retries after
+    // some agent errors, and a retry fires it again.
+    //
+    // No timestamp in the payload: the session entry already carries
+    // its own, and a second wall-clock value makes every captured
+    // stdout differ from the last for no gain.
+    pi.appendEntry("evidence", { event: "agent_start" });
   });
 
   // ── tool_call: a tool is about to execute (can block here) ────────

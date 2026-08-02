@@ -38,6 +38,28 @@ Replacing this data would cost another supervised 16-run batch.
 exercise malformed-line tolerance. Tests needing that build a small synthetic
 string inline.
 
+## `pi-run-0.82.0-entry-appended.jsonl`
+
+One real `pi --mode json` stdout stream, 224 KB, 157 lines, captured from a
+genuine model run against `omlx/gemma-4-12B-it-MLX-8bit` under Pi 0.82.0 —
+not synthesized.
+
+**Provenance.** It is `pi_stdout` from a live `run_agentclinic_phase1()` call
+(Phase 3, Task 1), run immediately after
+`test_the_extension_emits_an_evidence_entry_into_captured_stdout` passed
+against the same server and model. It is the first fixture captured with the
+`.pi/extensions/hello-world.ts` extension appending its evidence entry from
+`agent_start` rather than `session_start` — the change that lets the entry
+survive past the point where `--mode json` attaches its session-event
+subscriber.
+
+- Fixture SHA-256:
+  `f04dfdf0005927acfd5252fb85b31f66ac958a58007f948f3b22b57e8e330ba5`
+- Line and byte counts: 157 lines, 229,266 bytes
+- Conditions: `omlx/gemma-4-12B-it-MLX-8bit`, pi 0.82.0, run accepted
+  (`returncode=0`, not timed out)
+- `entry_appended` events: 1, with `entry.customType == "evidence"`
+
 ## `phase1-n48-telemetry-summary.json`
 
 48 `{"turns": int, "context_processed": int}` pairs — the derived

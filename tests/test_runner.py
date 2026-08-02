@@ -1,3 +1,4 @@
+import json
 import os
 from contextlib import contextmanager
 from types import SimpleNamespace
@@ -325,3 +326,30 @@ def test_run_agentclinic_phase1_produces_live_model_evidence():
     assert result.pi_stdout.strip()
     assert result.grade.accepted is True
     assert result.grade.tests_executed == result.grade.tests_expected == 4
+
+
+@pytest.mark.skipif(
+    os.environ.get("SATYRN_LIVE") != "1",
+    reason="set SATYRN_LIVE=1 to require an actual Pi/model run",
+)
+def test_the_extension_emits_an_evidence_entry_into_captured_stdout():
+    # The cycle's whole claim: one entry travels extension -> stdout.
+    #
+    # Parsed tolerantly rather than substring-filtered: an assistant
+    # message quoting "entry_appended", or a truncated final line, would
+    # otherwise crash this test instead of failing it -- and a crash
+    # reads as a broken test rather than a falsified hypothesis.
+    appended = []
+    for line in run_agentclinic_phase1().pi_stdout.split("\n"):
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(event, dict) and event.get("type") == "entry_appended":
+            appended.append(event)
+
+    assert appended, "no entry_appended event reached stdout"
+    assert any(
+        event.get("entry", {}).get("customType") == "evidence"
+        for event in appended
+    )
