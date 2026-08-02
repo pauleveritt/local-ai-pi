@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from harness.precision import (
     bootstrap_ci_halfwidth,
     leave_one_out_spread,
@@ -61,3 +64,49 @@ def test_leave_one_out_spread_matches_a_hand_computed_example():
 
 def test_leave_one_out_spread_is_zero_for_a_constant_sample():
     assert leave_one_out_spread(ZERO_VARIANCE) == 0.0
+
+
+FIXTURE = Path(__file__).parent / "fixtures" / "phase1-n48-telemetry-summary.json"
+
+
+def _real_samples() -> tuple[list[int], list[int]]:
+    records = json.loads(FIXTURE.read_text())
+    turns = [r["turns"] for r in records]
+    context_processed = [r["context_processed"] for r in records]
+    return turns, context_processed
+
+
+def test_real_fixture_has_48_records_and_the_expected_turn_distribution():
+    turns, _ = _real_samples()
+    assert len(turns) == 48
+    from collections import Counter
+
+    assert Counter(turns) == {6: 20, 8: 9, 9: 7, 10: 4, 11: 7, 12: 1}
+
+
+def test_stability_tightened_from_n16_to_n48():
+    # Non-vacuity: pins the *actual* finding that motivated running the
+    # extension, not just "the function returns a float."
+    turns, _ = _real_samples()
+    turns_16 = turns[:16]
+    assert leave_one_out_spread(turns_16) == 0.33333333333333304
+    assert leave_one_out_spread(turns) == 0.12765957446808418
+
+
+def test_context_processed_stability_at_n48():
+    _, context_processed = _real_samples()
+    assert leave_one_out_spread(context_processed) == 402.2553191489351
+
+
+def test_minimum_n_for_turn_count_precision_at_n48():
+    turns, _ = _real_samples()
+    assert minimum_n_for_precision(turns, target_halfwidth=1.0, seed=0) == 14
+    assert minimum_n_for_precision(turns, target_halfwidth=0.5, seed=0) == 56
+    assert minimum_n_for_precision(turns, target_halfwidth=0.25, seed=0) == 237
+
+
+def test_minimum_n_for_context_processed_precision_at_n48():
+    _, context_processed = _real_samples()
+    assert minimum_n_for_precision(context_processed, target_halfwidth=1500, seed=0) == 64
+    assert minimum_n_for_precision(context_processed, target_halfwidth=1000, seed=0) == 144
+    assert minimum_n_for_precision(context_processed, target_halfwidth=500, seed=0) is None

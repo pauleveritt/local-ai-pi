@@ -357,7 +357,7 @@ Create `tests/fixtures/phase1-n48-telemetry-summary.json` with this exact conten
 shasum -a 256 tests/fixtures/phase1-n48-telemetry-summary.json
 ```
 
-Expected: `140680ed8a16b57e29bcfbd795f520c3387f6d664789ba3c8f46b85806a8f0ad` if the file matches Step 1 exactly (2-space JSON indent, trailing newline). If it differs, the file's formatting drifted from what's specified above — fix the formatting rather than accepting a different checksum, since Step 3 records this exact value.
+Expected: `a384468da474952e0035f1c977a5a4323eb99bb1170eea8b12bf6608d464b153` if the file matches Step 1 exactly (compact single-line objects, trailing newline). If it differs, the file's formatting drifted from what's specified above — fix the formatting rather than accepting a different checksum, since Step 3 records this exact value. (Corrected during execution: an earlier draft of this plan used a multi-line indent=2 JSON format when the checksum below was first computed, then Step 1's code block was simplified to compact single-line objects without updating the checksum to match -- the fixture actually written matches Step 1 exactly, so this checksum, not the fixture, was fixed.)
 
 - [ ] **Step 3: Add fixture provenance to `tests/fixtures/README.md`**
 
@@ -388,7 +388,7 @@ The full per-run detail (tool calls, errors, timing) and the reasoning for
 treating the two checkpoints as one comparable batch are in
 `docs/superpowers/research/2026-08-02-phase2-cycle2-precision-baseline.md`.
 
-- Fixture SHA-256: `140680ed8a16b57e29bcfbd795f520c3387f6d664789ba3c8f46b85806a8f0ad`
+- Fixture SHA-256: `a384468da474952e0035f1c977a5a4323eb99bb1170eea8b12bf6608d464b153`
 - Turn-count distribution: 6×20, 8×9, 9×7, 10×4, 11×7, 12×1
 - All 48 runs accepted, `returncode=0`, not timed out, `complete=True`
 ```
@@ -453,9 +453,9 @@ def test_minimum_n_for_context_processed_precision_at_n48():
 uv run pytest tests/test_precision.py -v
 ```
 
-Expected first run: `FileNotFoundError` or similar on the fixture path if Step 1 wasn't done in this session, otherwise these 6 new tests should pass immediately since they pin already-verified real values — this step is a *regression pin*, not new-behavior TDD. If any assertion fails, the fixture content (Step 1) or the module (Task 1) has drifted from what was verified while writing this plan; do not adjust the expected values to match a wrong result without first re-deriving them independently.
+Expected first run: `FileNotFoundError` or similar on the fixture path if Step 1 wasn't done in this session, otherwise these 5 new tests should pass immediately since they pin already-verified real values — this step is a *regression pin*, not new-behavior TDD. If any assertion fails, the fixture content (Step 1) or the module (Task 1) has drifted from what was verified while writing this plan; do not adjust the expected values to match a wrong result without first re-deriving them independently.
 
-Expected: 14 passed (8 from Task 1 + 6 new).
+Expected: 13 passed (8 from Task 1 + 5 new).
 
 - [ ] **Step 6: Run the full gates**
 
@@ -463,7 +463,7 @@ Expected: 14 passed (8 from Task 1 + 6 new).
 uv run pytest tests/ && uv run ruff check . && uv run pyrefly check
 ```
 
-Expected: 98 passed, 1 skipped; ruff clean; pyrefly 0 errors.
+Expected: 97 passed, 1 skipped; ruff clean; pyrefly 0 errors.
 
 - [ ] **Step 7: Commit**
 
@@ -853,7 +853,7 @@ research document.
 uv run pytest tests/ && uv run ruff check . && uv run pyrefly check
 ```
 
-Expected: 98 passed, 1 skipped (no new tests this task); ruff clean; pyrefly 0 errors.
+Expected: 97 passed, 1 skipped (no new tests this task); ruff clean; pyrefly 0 errors.
 
 - [ ] **Step 7: Commit**
 
@@ -910,7 +910,7 @@ Expected: `build succeeded.`
 uv run pytest tests/ && uv run ruff check . && uv run pyrefly check
 ```
 
-Expected: 98 passed, 1 skipped; ruff clean; pyrefly 0 errors.
+Expected: 97 passed, 1 skipped; ruff clean; pyrefly 0 errors.
 
 - [ ] **Step 6: Commit**
 

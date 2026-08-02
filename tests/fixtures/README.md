@@ -37,3 +37,30 @@ Replacing this data would cost another supervised 16-run batch.
 **What it cannot test.** All 123 lines are valid JSON, so this fixture cannot
 exercise malformed-line tolerance. Tests needing that build a small synthetic
 string inline.
+
+## `phase1-n48-telemetry-summary.json`
+
+48 `{"turns": int, "context_processed": int}` pairs — the derived
+telemetry summary of every run in two real batches, not raw model
+output. In checkpoint order: the 16 preserved runs from the supervised
+n=16 batch, then 32 more run specifically to extend this baseline
+(Phase 2 cycle 2).
+
+**Provenance.** Computed via `harness.telemetry.read_telemetry` from:
+
+- `~/local-ai-pi-evidence/satyrn-cycle14-checkpoint-v2.jsonl` (16 records,
+  SHA-256 `ef0a7b9fc80b8c33fbe619ecf6fbef03edd98fad2209431b4af6febee1c26c8e`,
+  the same checkpoint `pi-run-0.82.0.jsonl` above was extracted from).
+- `~/local-ai-pi-evidence/satyrn-phase2-cycle2-extension-n32.jsonl` (32
+  records, SHA-256
+  `66acdc5a272a45a8e94e040594e7e6821597944ea686bb98cf39d098a07edcce`).
+
+Both files are outside Git, per the same reasoning as the n=16 batch's raw
+output (see `docs/superpowers/research/2026-08-01-phase1-n16-batch-evidence.md`).
+The full per-run detail (tool calls, errors, timing) and the reasoning for
+treating the two checkpoints as one comparable batch are in
+`docs/superpowers/research/2026-08-02-phase2-cycle2-precision-baseline.md`.
+
+- Fixture SHA-256: `a384468da474952e0035f1c977a5a4323eb99bb1170eea8b12bf6608d464b153`
+- Turn-count distribution: 6×20, 8×9, 9×7, 10×4, 11×7, 12×1
+- All 48 runs accepted, `returncode=0`, not timed out, `complete=True`
