@@ -21,3 +21,8 @@
   - Import `TestClient` from `starlette.testclient`
   - `GET /` returns status 200
   - Response body contains the tagline text
+
+## Environment
+
+- FastAPI, Jinja2, pytest, and httpx are already installed. Do not install anything.
+- Run tests with `python -m pytest` from the project root.
