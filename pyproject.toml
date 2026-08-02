@@ -23,7 +23,11 @@ docs = [
 ]
 
 [tool.pytest.ini_options]
-norecursedirs = ["examples/agentclinic", "docs/_build"]
+# .worktrees holds linked worktrees kept as local state by cycle 17 --
+# including the preserved pre-restructure project, whose acceptance
+# suites do `from app import app` and only collect inside a grading
+# directory. They are another checkout, not this one's tests.
+norecursedirs = ["examples/agentclinic", "docs/_build", ".worktrees"]
 
 [tool.ruff]
 # examples/agentclinic holds fixtures that are deliberately broken or
