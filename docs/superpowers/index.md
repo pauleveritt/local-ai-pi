@@ -73,6 +73,7 @@ not scheduled within this phase.)*
 | # | Cycle | Spec | Plan |
 |---|---|---|---|
 | 1 | Telemetry reader | [spec](specs/2026-08-02-phase2-cycle1-telemetry-reader-design.md) | [plan](plans/2026-08-02-phase2-cycle1-telemetry-reader.md) |
+| 2 | Precision baseline | [spec](specs/2026-08-02-phase2-cycle2-precision-baseline-design.md) | [plan](plans/2026-08-02-phase2-cycle2-precision-baseline.md) |
 
 ## Withdrawn
 
