@@ -63,6 +63,8 @@ not by being convenient shorthand.*
 | turn | one `turn_end` event in Pi's JSON stream — borrowed from Pi's vocabulary, not coined. Pinned: any redefinition invalidates every number already produced | phase 2 cycle 1 |
 | tool call | one tool Pi invoked during a run, correlated start-to-end by `toolCallId` — borrowed from Pi's vocabulary, not coined | phase 2 cycle 1 |
 | context processed | `input + cacheRead + cacheWrite` — a cumulative *workload* measure, not a context-window size, and not latency or cost. Adopted from the prior effort's metrics report rather than invented, so its numbers stay comparable | phase 2 cycle 1 |
+| orchestrator | the agent that plans work and delegates it, as opposed to the implementer that carries it out. Note the project has no orchestrator yet and Phase 1 never invoked one: Pi is called once, bare. The term names the *subject of Phase 2's question*, not a component | phase 2 cycle 1's close |
+| handoff packet | the written context an orchestrator prepares so an implementer can work without re-deriving it. Whether writing one costs more than doing the work directly is the claim Phase 2 exists to test — so the term is spent before anything is built, deliberately | phase 2 cycle 1's close |
 
 **Retired, not currently spent:** `oracle` — dropped from the engine's
 vocabulary, since "grader"/"verdict" cover the same ground without a term
@@ -112,6 +114,20 @@ test name.
 | Cycle | Summary | Spec | Plan | State |
 |-------|---------|------|------|-------|
 | 1 | Telemetry reader — `harness/telemetry.py`'s `read_telemetry()` derives turns, tool calls, and token counts from the JSONL `RunResult.pi_stdout` already captures. A pure function over a string: `runner.py`, `checkpoint.py`, and the batch are untouched, and nothing consumes the result yet. Proven against a real captured pi 0.82.0 stream, because the schema drifts across pi versions — the pre-restructure reader's 0.81.1 beliefs (no usage in `--mode json`; `isError` a string) are both false in 0.82.0. Three cases real data cannot reach are proven with inline synthetic streams. | [spec](docs/superpowers/specs/2026-08-02-phase2-cycle1-telemetry-reader-design.md) | [plan](docs/superpowers/plans/2026-08-02-phase2-cycle1-telemetry-reader.md) | Done |
+
+**The cycle spent six terms, not the four its spec budgeted.** The spec
+authorised `telemetry`, `turn`, `tool call`, and `context processed`, and
+called four "the largest single-cycle spend so far, worth stating plainly
+rather than slipping through." Writing the Phase 2 framing at cycle close
+then introduced `orchestrator` and `handoff packet` in prose without
+checking them against the table — neither word appears anywhere in the
+project before this cycle. ("Orchestration" did, but only in `BRIEF.md` as
+the name of the trap being avoided, never as an actor; "packet" only as
+`packet_context.py`, a transplant candidate rejected outright.) Both are now
+budgeted rather than quietly retained, because they state Phase 2's central
+claim and the direction cannot be read without them. The lesson is the
+budget's own: it catches drift only when the check runs at *close*, against
+prose as well as code.
 
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus
 *before* a model runs once — every one of them is provable against fixtures
@@ -414,6 +430,14 @@ things over.
   mechanical, non-behavioral debt, so it stays deferred rather than widening a
   corrective cycle into a noisy rewrite. Revisit as one isolated mechanical
   cycle when a clean repository-wide formatter check is worth the review cost.
+- Sphinx glossary for the concept budget. Cycle 1's spec listed its terms as
+  "candidates for a Sphinx glossary once docs exist." Docs now exist and are
+  published, and the glossary was never built — there is no `glossary::`
+  directive or `:term:` role anywhere in the repo. This is recorded so the
+  aspiration stops being an invisible loose end, **not** because it should be
+  built now: the `ROADMAP.md` table is doing the job at zero cost, and a
+  directive with cross-references is machinery ahead of its contract. Revisit
+  if contributors start needing to link a term from several documents at once.
 - Volunteer-reader / section-structure design (superseded Phase 1 framing;
   revisit once an engine and real suites exist to write about)
 - Telemetry — **gate satisfied; promoted to Phase 2 cycle 1.** The gate was
