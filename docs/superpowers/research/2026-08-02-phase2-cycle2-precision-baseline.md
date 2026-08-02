@@ -184,10 +184,39 @@ cleanly monotonic at that resolution. Fixed in `harness/precision.py`;
 **Read in runs, not minutes, on purpose** — a contributor on any hardware
 uses this table by timing one `run_agentclinic_phase1()` call on their own
 machine (one line, no new tooling — see the design spec's "Deliberate
-exclusions") and multiplying. On the owner's machine, the measured n=48
-median span was **46.1 seconds** per run (min 34.2s, max 90.1s, total
-2343.7s across all 48) — so n=56 is roughly 43 minutes of model time
-there; elsewhere, it depends entirely on that machine's own one-run timing.
+exclusions") and multiplying.
+
+**Corrected 2026-08-02, after the cost floor was measured.** This
+paragraph originally gave the owner's reference as the n=48 median
+**in-stream span, 46.1 seconds**, and concluded "n=56 is roughly 43
+minutes." That was an apples-to-oranges comparison in the one place it
+does the most damage: the instruction above tells a contributor to time
+`run_agentclinic_phase1()`, which is **end-to-end** wall clock, while
+46.1s measures only the interval between the first and last
+`message_start` *inside* the stream — excluding Pi startup, workspace
+provisioning, grading, and the final generation tail. A contributor
+following the instruction would measure ~16% more than the number they
+were told to compare against, and under-budget their own batch
+accordingly — precisely the lower-powered collaborator this section
+exists to serve.
+
+Measured directly (5 end-to-end runs, same machine and model): the
+outside-the-stream gap is a median of **7.6 seconds per run**, ~17% of
+total. That overhead is essentially task-independent, so it adds rather
+than scales: a baseline-typical run costs about **53.7 seconds**
+end-to-end (46.1 + 7.6), making **n=56 roughly 50 minutes** and n=100
+roughly 90 minutes on the owner's machine — not 43 and 77. Elsewhere it
+depends entirely on that machine's own one-run timing, which is why the
+recommendation is stated in runs.
+
+None of this touches the precision findings above: `minimum_n_for_precision`
+and `leave_one_out_spread` operate on turn counts and `context_processed`,
+which are counts, not times. Only the translation from runs into minutes
+was wrong.
+
+For reference, the in-stream figures this record originally quoted, still
+correct as in-stream measurements: median 46.1s, min 34.2s, max 90.1s,
+total 2343.7s across all 48 runs.
 
 **n=48 already covers the coarsest target for both metrics.** It sits just
 short of the middle turn-count target (56 vs. 48 in hand) and well short of

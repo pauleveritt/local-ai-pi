@@ -509,6 +509,21 @@ things over.
   exactly the author's-belief-versus-captured-stream failure the fixture
   discipline exists to catch — the pre-restructure reader made the same class
   of mistake about pi 0.81.1.
+
+  **How much of a lower bound, measured 2026-08-02:** the gap between
+  in-stream span and true end-to-end wall clock is a median of **7.6
+  seconds per run, ~17% of total** (5 timed runs, `omlx`
+  gemma-4-12B-it-MLX-8bit, owner's machine). The gap covers Pi startup,
+  workspace provisioning and `git init`, the grading subprocess, and the
+  final generation tail. It is essentially task-independent, so it adds a
+  roughly constant amount per run rather than scaling with task size — the
+  per-run floor for a trivial single-turn invocation, workspace included,
+  is **1.6 seconds**. This matters for anyone converting run counts into a
+  time budget; see
+  `docs/superpowers/research/2026-08-02-phase2-remaining-plan.md` for the
+  full measurement and
+  `docs/superpowers/research/2026-08-02-phase2-cycle2-precision-baseline.md`
+  for the correction it forced there.
 - **The orchestration-cost experiment itself — deferred out of Phase 2,
   2026-08-02.** The claim, unchanged and still worth testing: *getting an
   orchestrator to write handoff packets for an implementer may consume more
