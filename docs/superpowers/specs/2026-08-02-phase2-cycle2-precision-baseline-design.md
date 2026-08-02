@@ -14,8 +14,10 @@ against the preserved n=16 checkpoint rather than assumed:
 
 **Duration is real, and it is not general.** Per-run span, computed from
 the delta between each run's first and last message-creation timestamp in
-its captured `pi_stdout` (a lower bound — see the "Deliberate exclusions"
-note on why this is a floor, not a true wall-clock figure):
+its captured `pi_stdout` (a lower bound, not a true wall-clock figure —
+see `ROADMAP.md`'s Backlog note on wall-clock timing: message timestamps
+are creation times, and nothing after the final `message_start` carries
+one):
 
 | | min | median | max | total (n=16) |
 |---|---|---|---|---|
@@ -74,14 +76,16 @@ same way from this checkout. That refusal is cycle 13's batch-comparability
 contract working correctly, not a bug to route around.
 
 Verified before treating the two batches as comparable anyway: the only
-`harness/` diff between `ddc03b3` and HEAD is (a) the pi-exit-veto
+`harness/` diff between `ddc03b3` and HEAD is the addition of
+`harness/telemetry.py` (cycle 1's pure reader, imported by nothing in
+`runner.py`) plus two changes to `runner.py` itself: (a) the pi-exit-veto
 correction to `RunResult.accepted` and (b) a role-check guard added to
-`_has_assistant_content`, used only by `preflight_model`. Neither touches
-`_pi_command`, `_conditions`, or `run_agentclinic_phase1`'s invocation
-logic. The extension file's content is confirmed byte-identical at both
-the old worktree path and the current one (it has exactly one commit in
-its history, cycle 8, never modified since). The task spec's SHA-256 is
-unchanged. So the two checkpoints differ only in a git-revision string and
+`_has_assistant_content`, used only by `preflight_model`. None of the
+three touches `_pi_command`, `_conditions`, or `run_agentclinic_phase1`'s
+invocation logic. The extension file's content is confirmed
+byte-identical at both the old worktree path and the current one (it has
+exactly one commit in its history, cycle 8, never modified since). The
+task spec's SHA-256 is unchanged. So the two checkpoints differ only in a git-revision string and
 a recording artifact of which worktree ran them — not in what was actually
 asked of the model — and the research record combines their turn-count and
 `context_processed` data with this reasoning stated explicitly, rather than
@@ -137,14 +141,18 @@ def minimum_n_for_precision(
     max_n: int = 1000,
     seed: int | None = None,
 ) -> int | None:
-    """Smallest n <= max_n whose bootstrap_ci_halfwidth(sample, n, ...) is
-    <= target_halfwidth. None if max_n is reached without satisfying it.
+    """Smallest n, 1 <= n <= max_n, whose bootstrap_ci_halfwidth(sample,
+    n, ...) is <= target_halfwidth. None if max_n is reached without
+    satisfying it.
 
-    Assumes bootstrap_ci_halfwidth is non-increasing in n (verified by
-    test, not just assumed) and searches accordingly: doubling to find an
-    n that satisfies the target, then binary search between the last
-    failing n and the first succeeding one. A linear scan from n=1 would
-    be correct but slow at max_n in the hundreds.
+    Assumes bootstrap_ci_halfwidth is non-increasing in n — true of its
+    ~1/sqrt(n) behavior, and verified by test across doublings rather
+    than assumed; resampling noise can still produce tiny local upticks
+    at adjacent n, so the returned n is itself checked against the
+    target (see Testing). Searches accordingly: doubling from n=1 to
+    find an n that satisfies the target, then binary search between the
+    last failing n and the first succeeding one. A linear scan from n=1
+    would be correct but slow at max_n in the hundreds.
     """
 
 
@@ -180,11 +188,13 @@ stated as a documented judgment call, not a derived fact, when the research
 record picks concrete thresholds.
 
 **The limitation the bootstrap does not remove, stated plainly.** Resampling
-with replacement from only 16 unique turn-count values cannot produce a
-value outside {6, 8, 9, 11}. For n far larger than 16, this understates the
-true sampling variability somewhat — a known property of the bootstrap with
-small original samples, not a bug in the implementation. The research record
-must state this rather than present a recommended n as exact.
+with replacement cannot produce a value the original sample never contained —
+from the n=16 data, nothing outside its four observed values {6, 8, 9, 11},
+and the combined n=48 sample is likewise limited to whatever support those
+48 runs happened to show. For n far larger than the original sample, this
+understates the true sampling variability somewhat — a known property of the
+bootstrap with small original samples, not a bug in the implementation. The
+research record must state this rather than present a recommended n as exact.
 
 **External validity, stated plainly.** The turn-count relationship is
 measured from one task (AgentClinic Phase 1) and one model
@@ -207,7 +217,7 @@ rather than reporting a number anyway.
 
 - The per-run table (turns, tool calls, `context_processed`, span) for all
   48 runs (16 preserved + 32 extended) — recomputed from both checkpoints by
-  a committed script reference, not retyped by hand.
+  a small committed script the record cites, not retyped by hand.
 - The stability check: `leave_one_out_spread` on the n=48 combined sample,
   compared plainly against the n=16 figure (0.33 turns) that motivated the
   extension.
@@ -237,14 +247,14 @@ rather than reporting a number anyway.
 
 ## A dependency worth naming
 
-This cycle's real fixture is 48 numbers (turn count, `context_processed`),
+This cycle's real fixture is 48 (turn count, `context_processed`) pairs,
 not the megabytes of raw `pi_stdout` those numbers were computed from — a
 smaller, safely-committable derivative of cycle 1's fixture pattern. But the
 *research record's* claims about the real batches (the per-run table, the
 provenance) remain traceable only as long as both raw checkpoints survive
 somewhere. Neither lives in `/tmp`, but neither is archived anywhere
 durable-by-design either (no backup policy, single copy each). If either is
-lost, the 48-number fixture below remains provable forever; the research
+lost, the 48-pair fixture below remains provable forever; the research
 record's narrative around it would not be independently re-verifiable.
 
 ## Deliberate exclusions
@@ -262,10 +272,15 @@ record's narrative around it would not be independently re-verifiable.
 
 - A zero-variance sample (`[5.0] * 20`): `bootstrap_ci_halfwidth` must be
   `0.0` at any `n`, and `minimum_n_for_precision` must return the smallest
-  allowed n for any positive target — not merely "doesn't raise."
+  allowed n (1, the search's lower bound) for any positive target — not
+  merely "doesn't raise."
 - Half-width must be **verified non-increasing in `n`** on a synthetic
   sample with real spread (not assumed — this is the property
-  `minimum_n_for_precision`'s search strategy depends on).
+  `minimum_n_for_precision`'s search strategy depends on). Check it
+  across doublings of `n`, where the true ~1/√n decrease dwarfs
+  resampling noise; at adjacent values of `n` that noise can produce
+  tiny local upticks, which is why the self-consistency pin below, not
+  monotonicity alone, is what guarantees the returned n.
 - **Self-consistency, the non-vacuity pin for the search function:** the n
   `minimum_n_for_precision` returns must itself satisfy
   `bootstrap_ci_halfwidth(sample, n, ...) <= target_halfwidth` when checked
@@ -281,12 +296,15 @@ record's narrative around it would not be independently re-verifiable.
   small example (3–4 values worked out by hand) pinned as a regression
   value, not just "returns a float."
 - **Real data, as a small committed fixture** —
-  `tests/fixtures/phase1-n48-telemetry-summary.json`: the 48 `(turns,
-  context_processed)` pairs derived from the two combined checkpoints (16
-  preserved + 32 extended), with provenance recorded in
-  `tests/fixtures/README.md` alongside the existing `pi-run-0.82.0.jsonl`
-  entry. Small and safe to commit, unlike the raw streams — this is derived
-  numbers, not model output. Tests apply `minimum_n_for_precision` and
+  `tests/fixtures/phase1-n48-telemetry-summary.json`: a JSON array of 48
+  objects, one per run in checkpoint order (the 16 preserved runs first,
+  then the 32 extended), each `{"turns": <int>, "context_processed":
+  <int>}` — field names matching `RunTelemetry`'s, values derived from the
+  two checkpoints via `read_telemetry`. Provenance (both checkpoints'
+  paths and checksums) recorded in `tests/fixtures/README.md` alongside
+  the existing `pi-run-0.82.0.jsonl` entry. Small and safe to commit,
+  unlike the raw streams — this is derived numbers, not model output.
+  Tests apply `minimum_n_for_precision` and
   `leave_one_out_spread` to this real fixture and assert the result is a
   concrete, previously-computed value (a regression pin on the actual
   finding), not just "returns without error."
@@ -306,5 +324,6 @@ and is not treated as a defined term requiring a table row.
 No new machinery — the baseline extension runs unmodified `run_batch()`, no
 new `RunTelemetry` field, no wall-clock instrumentation, no two-arm
 comparison, no decision about cycle 3. This cycle produces one small pure
-module, its tests, thirty-two additional real runs, and a research record
-applying the module to the combined batch.
+module, its tests, thirty-two additional real runs, the small committed
+script that recomputes the research record's per-run table, and a research
+record applying the module to the combined batch.
