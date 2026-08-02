@@ -49,6 +49,22 @@ This is the evidence behind Phase 1's completed n=16 reproduction. The
 post-Phase-1 Pi-exit correction does not alter it: every recorded Pi return
 code already satisfies the stricter zero-exit requirement.
 
+## Note added 2026-08-02 — the environment this was produced in
+
+The result above stands and is not re-litigated here. What was not recorded
+at the time is the environment the sixteen runs were given: the workspace was
+a fresh git repository with no `pyproject.toml`, and the model was told
+nothing about it. The dependencies it needed were already importable, but the
+uv venv had no `pip`, and a bare `pytest` could not import `app`. Across the
+wider 48-run baseline that grew from this batch, that friction accounts for
+~95% of the variance in turn count, and the runs with no errors at all were
+the runs that never ran a test.
+
+The sixteen accepted runs were graded hermetically by the harness, so the
+verdicts are unaffected. What the number cannot be read as is a measurement
+taken under conditions that made verification easy. See
+[Phase 2, cycle 3 — clean baseline](2026-08-02-phase2-cycle3-clean-baseline.md).
+
 ## Verification method
 
 The checkpoint was inspected directly as JSONL: its lines were counted, its

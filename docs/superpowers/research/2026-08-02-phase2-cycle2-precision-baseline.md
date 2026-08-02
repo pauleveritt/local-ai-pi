@@ -263,3 +263,40 @@ hand-aggregated. The precision analysis was performed with
 `context_processed` samples — both committed as
 `tests/fixtures/phase1-n48-telemetry-summary.json` and pinned by
 `tests/test_precision.py`.
+
+## Corrected 2026-08-02 — what the turn variance was actually measuring
+
+This record's central quantity, turn count, is almost entirely explained by
+tool errors:
+
+```
+errors = -3.79 + 0.643 × turns     R² = 0.952
+```
+
+All 65 errored tool calls are environment friction, in two families: 43
+dependency-install attempts against dependencies that were already
+importable in a uv venv with no `pip`, and 22 test-import failures where a
+bare `pytest` does not put the project root on `sys.path`.
+
+**And the 20 zero-error runs all avoided that friction the same way.** Every
+one has a byte-identical shape — `mkdir -p templates tests`, four `write`
+calls, and no test run at all. Recomputed directly from these checkpoints:
+of the 20 zero-error runs, **zero ran a test**; of the 28 errored runs, all
+28 tried. The runs that looked cleanest were the runs that skipped
+verification.
+
+So "the one real random variable" was, to ~95%, a property of the
+environment rather than of the model. Nothing in the per-run table or the
+checksums above is withdrawn — they are the raw material the finding was
+derived from, and they stay exactly as recorded. What is withdrawn is the
+implicit reading that this variance measured task difficulty.
+
+Cycle 3 amended the task spec to state the environment and re-measured: 32
+runs, **0 tool errors, and all 32 running a test**. See
+[Phase 2, cycle 3 — clean baseline](2026-08-02-phase2-cycle3-clean-baseline.md).
+
+**One operational rule this record stated is amended there too.** The note
+above says "do not commit to the repository while a `run_batch()` call is in
+flight." Cycle 3's batch obeyed that rule and still lost 13 runs, because a
+*concurrent session* on the same repository committed. It is a coordination
+requirement across sessions, not self-discipline within one.

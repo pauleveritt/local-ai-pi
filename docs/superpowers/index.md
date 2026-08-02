@@ -18,6 +18,19 @@ cycles 3–7 build and prove the entire judging apparatus *before* a model
 runs once, so that when a number finally arrives it measures the model
 rather than the engine.
 
+**One correction, added 2026-08-02.** Cycle 2 is titled *workspace
+provisioning* and cycle 11 *corrective hardening*, and it is easy to read
+those as having provisioned the model a working environment. They did not.
+Cycle 2 provisioned a disposable **git repository**; cycle 11's controlled
+environment covers the *pytest grading child* only, while `runner.py` passes
+`env=None`, so Pi inherits whatever ambient environment it was launched in.
+The model's own working conditions were never in any Phase 1 cycle's scope —
+and Phase 2 cycle 3 found that this cost ~95% of the measured variance in
+turn count, and that the cleanest-looking runs were the ones that skipped
+testing. If you are copying this pattern, provision the environment too, or
+state it in the task. See
+[Phase 2, cycle 3 — clean baseline](research/2026-08-02-phase2-cycle3-clean-baseline.md).
+
 | # | Cycle | Spec | Plan |
 |---|---|---|---|
 | 1 | Accept/reject fixture pair | [spec](specs/2026-07-30-phase1-cycle1-fixture-pair-design.md) | [plan](plans/2026-07-30-phase1-cycle1-fixture-pair.md) |
