@@ -138,6 +138,7 @@ occurrences either. Both revive if and when the experiment is scheduled.
 |-------|---------|------|------|-------|
 | 1 | Telemetry reader — `harness/telemetry.py`'s `read_telemetry()` derives turns, tool calls, and token counts from the JSONL `RunResult.pi_stdout` already captures. A pure function over a string: `runner.py`, `checkpoint.py`, and the batch are untouched, and nothing consumes the result yet. Proven against a real captured pi 0.82.0 stream, because the schema drifts across pi versions — the pre-restructure reader's 0.81.1 beliefs (no usage in `--mode json`; `isError` a string) are both false in 0.82.0. Three cases real data cannot reach are proven with inline synthetic streams. | [spec](docs/superpowers/specs/2026-08-02-phase2-cycle1-telemetry-reader-design.md) | [plan](docs/superpowers/plans/2026-08-02-phase2-cycle1-telemetry-reader.md) | Done |
 | 2 | Precision baseline — `harness/precision.py` answers how many runs a claim needs before it's evidence: `bootstrap_ci_halfwidth`, `minimum_n_for_precision`, and a `leave_one_out_spread` stability diagnostic, proven against synthetic samples with known ground truth. Applied to a real n=48 sample (the preserved n=16 checkpoint plus 32 more runs executed specifically to extend it, after a jackknife check demonstrated n=16 wasn't yet trustworthy) — new turn-count values (10, 12) appeared that n=16 never showed, confirming the extension was necessary. Recommendation expressed in runs, not minutes, so it holds on any hardware. | [spec](docs/superpowers/specs/2026-08-02-phase2-cycle2-precision-baseline-design.md) | [plan](docs/superpowers/plans/2026-08-02-phase2-cycle2-precision-baseline.md) | Done |
+| 3 | Honest environment, clean baseline — the 48-run baseline's turn variance was ~95% tool errors, all of it environment friction, and all 20 of its zero-error runs reached zero by never running a test. Two lines appended verbatim to the task spec state that dependencies are installed and that tests run with `python -m pytest`; `RunTelemetry.tool_errors` counts the friction. A fresh n=32 batch came back **0 errors across 203 tool calls, 32/32 accepted, and 32/32 actually running a test** — the fix works, and works without buying the old zero-error number by skipping verification. Cycle 2's record and Phase 1's teaching record are corrected: what Phase 1 provisioned was a git repository, not a working environment. | [spec](docs/superpowers/specs/2026-08-02-phase2-cycle3-honest-environment-design.md) | [plan](docs/superpowers/plans/2026-08-02-phase2-cycle3-honest-environment.md) | Done |
 
 **The cycle spent six terms, not the four its spec budgeted.** The spec
 authorised `telemetry`, `turn`, `tool call`, and `context processed`, and
@@ -161,6 +162,16 @@ survive contact with the owner. The lesson is the budget's own, sharpened —
 it catches drift only when the check runs at *close*, against prose as well
 as code, and a term justified by a *plan* rather than by working software
 is exactly the kind that gets retired a day later.
+
+**Cycle 3 spent nothing, and the check was run at close against the prose.**
+That is the correction cycle 2's episode above demands, so it is recorded
+rather than assumed. `tool_errors` aggregates *tool call* and its `is_error`,
+both already in the table. "Environment" is used in its ordinary sense and
+names no mechanism. Two candidates were considered and rejected: `ran_a_test`
+and *support coverage*. The first is a helper inside one research script, the
+same status as cycle 2's `message_span`, which was also not budgeted; the
+second is ordinary statistical usage that cycle 2's record already used in
+prose. Neither is vocabulary a contributor must hold to read the design.
 
 ### Phase 3 feature cycles — planned, not started
 
