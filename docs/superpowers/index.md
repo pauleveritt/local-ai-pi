@@ -101,6 +101,15 @@ shipped.
   app in a separate process does *not* close the forgery gap everyone
   assumed it would.
 
+## Chapters
+
+Teaching material, written for contributors rather than as a record of a
+cycle's argument.
+
+- [Hello, agent](chapters/hello-agent.md) — what a Pi extension is, the
+  lifecycle the project's own extension tours, and why *where* you emit
+  decides whether anything hears it.
+
 ## Research
 
 - [Cycle 1 fixture results](research/2026-07-30-phase1-cycle1-fixture-results.md)
@@ -170,6 +179,14 @@ plans/2026-08-02-phase2-cycle1-telemetry-reader
 plans/2026-08-02-phase2-cycle2-precision-baseline
 plans/2026-08-02-phase2-cycle3-honest-environment
 plans/2026-08-02-phase3-cycle1-observable-extension
+```
+
+```{toctree}
+:hidden:
+:maxdepth: 1
+:caption: Chapters
+
+chapters/hello-agent
 ```
 
 ```{toctree}
