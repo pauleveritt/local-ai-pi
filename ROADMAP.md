@@ -11,16 +11,28 @@ n=16 reproducing ~15/16 — the supervised batch accepted 16/16. The engine's
 first job was to reproduce a number we already trust, not to discover one —
 see `BRIEF.md` for why.
 
-**Phase 2 — Measure the cost of orchestration.** Phase 1 measured whether
-generated code can be *trusted*; it says nothing about speed, cost, or
-effort. The Backlog gated telemetry on "a suite author naming a claim they
-need those measurements to support," and cycle 1 satisfies that gate rather
-than waiving it. The claim: *getting an orchestrator to write handoff
-packets for an implementer may consume more tokens than the orchestrator
-simply doing the work itself.* Step 1 builds the instrument; step 2 brings
-back a hello-world Pi extension teaching lifecycle events and
-`appendEntry`; step 3 begins incremental orchestrator work, where the
-instrument answers the claim.
+**Phase 2 — Measurement we can trust, cheaply enough to repeat.** Phase 1
+measured whether generated code can be *trusted*; it says nothing about
+speed, cost, or effort. Cycle 1 built the instrument (`harness/telemetry.py`).
+What Phase 2 pursues from here is making measurement **trustworthy and
+affordable**: a slice small enough that n=100 is practical, rather than a
+full multi-phase build where every question costs a supervised batch.
+
+*(Withdrawn framing, kept for the record — corrected 2026-08-02. An earlier
+pass, written at cycle 1's close, gave Phase 2 three steps: "step 1 builds
+the instrument; step 2 brings back a hello-world Pi extension teaching
+lifecycle events and `appendEntry`; step 3 begins incremental orchestrator
+work." Two things were wrong. Step 2 described as future work something
+that already exists and is load-bearing: `.pi/extensions/hello-world.ts`
+was transplanted in cycle 8 and is wired into every Pi invocation as
+isolation plumbing (`harness/runner.py`, `docs/setup.md`) — it never left,
+and teaching the extension API is a separate concern that need not precede
+anything here. Step 3 is withdrawn from Phase 2 by owner decision: **the
+orchestrator is not being built in this phase.** The handoff-packet cost
+claim that satisfied the telemetry gate remains real and worth testing, but
+its experiment is deferred — see the Backlog. The prose was also written
+without checking the repository, the same drift the concept-budget note
+below diagnoses in itself.)*
 
 *(Superseded framing, kept for the record: an earlier pass named Phase 1 "the
 restructure spec" — define the volunteer reader, then derive a section
@@ -63,8 +75,6 @@ not by being convenient shorthand.*
 | turn | one `turn_end` event in Pi's JSON stream — borrowed from Pi's vocabulary, not coined. Pinned: any redefinition invalidates every number already produced | phase 2 cycle 1 |
 | tool call | one tool Pi invoked during a run, correlated start-to-end by `toolCallId` — borrowed from Pi's vocabulary, not coined | phase 2 cycle 1 |
 | context processed | `input + cacheRead + cacheWrite` — a cumulative *workload* measure, not a context-window size, and not latency or cost. Adopted from the prior effort's metrics report rather than invented, so its numbers stay comparable | phase 2 cycle 1 |
-| orchestrator | the agent that plans work and delegates it, as opposed to the implementer that carries it out. Note the project has no orchestrator yet and Phase 1 never invoked one: Pi is called once, bare. The term names the *subject of Phase 2's question*, not a component | phase 2 cycle 1's close |
-| handoff packet | the written context an orchestrator prepares so an implementer can work without re-deriving it. Whether writing one costs more than doing the work directly is the claim Phase 2 exists to test — so the term is spent before anything is built, deliberately | phase 2 cycle 1's close |
 
 **Retired, not currently spent:** `oracle` — dropped from the engine's
 vocabulary, since "grader"/"verdict" cover the same ground without a term
@@ -74,12 +84,24 @@ than live usage; don't "fix" that occurrence. `conjunct` — renamed to
 `condition`; cycle 5's audit caught that the rename hadn't reached every
 test name.
 
+`orchestrator` and `handoff packet` — spent at cycle 1's close and
+**retired 2026-08-02, unspent**, when the orchestrator experiment was
+withdrawn from Phase 2. The budget's rule is present-tense: a term earns
+its place by naming something the design *actually needs*. With the
+experiment deferred to the Backlog, no current or next cycle needs either
+word — they name a backlog item, and carrying them would make the table a
+record of things once said rather than a measure of what a 5-h/wk
+contributor must currently hold. They survive as historical citations in
+cycle 1's spec and in the Backlog entries that describe the deferred
+experiment; that is the same status `oracle` has, so don't "fix" those
+occurrences either. Both revive if and when the experiment is scheduled.
+
 ## Phases
 
 | # | Phase | Direction (one sentence) | Status |
 |---|-------|--------------------------|--------|
 | 1 | Reproduce AgentClinic Phase 1 | One trustworthy, hermetically-graded run; n=16 reproducing ~15/16 | complete |
-| 2 | Measure the cost of orchestration | Instrument a run, then test whether an orchestrator writing handoff packets costs more than doing the work itself | in progress |
+| 2 | Measurement we can trust, cheaply enough to repeat | Instrument a run, then make measurement trustworthy on a slice small enough that repetition (n=100) is affordable | in progress; direction corrected 2026-08-02 |
 
 ### Phase 1 feature cycles
 
@@ -123,11 +145,20 @@ then introduced `orchestrator` and `handoff packet` in prose without
 checking them against the table — neither word appears anywhere in the
 project before this cycle. ("Orchestration" did, but only in `BRIEF.md` as
 the name of the trap being avoided, never as an actor; "packet" only as
-`packet_context.py`, a transplant candidate rejected outright.) Both are now
-budgeted rather than quietly retained, because they state Phase 2's central
-claim and the direction cannot be read without them. The lesson is the
-budget's own: it catches drift only when the check runs at *close*, against
-prose as well as code.
+`packet_context.py`, a transplant candidate rejected outright.) Both were
+budgeted rather than quietly retained, on the grounds that they stated
+Phase 2's central claim and the direction could not be read without them.
+
+**That justification dissolved the same day.** The orchestrator experiment
+was withdrawn from Phase 2 on 2026-08-02 and the direction rewritten without
+either word, so both terms were retired unspent (see "Retired, not currently
+spent" above). The episode is kept in full because it demonstrates the
+failure mode twice over: prose introduced jargon the code never needed, and
+then the jargon's own justification was a forward-looking plan that did not
+survive contact with the owner. The lesson is the budget's own, sharpened —
+it catches drift only when the check runs at *close*, against prose as well
+as code, and a term justified by a *plan* rather than by working software
+is exactly the kind that gets retired a day later.
 
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus
 *before* a model runs once — every one of them is provable against fixtures
@@ -448,12 +479,56 @@ things over.
   listed with its reason and a path back in the cycle 1 spec's "Deliberate
   exclusions" table — that table is a record of decisions, not a backlog to
   work through.
+
+  **Honesty note, 2026-08-02.** The claim that satisfied this gate is no
+  longer scheduled: the orchestrator experiment was withdrawn from Phase 2.
+  The instrument still earns its place — it serves the reaffirmed direction
+  (trustworthy, repeatable measurement) on general grounds — but no future
+  reader should infer from "gate satisfied" that the handoff-packet
+  experiment is imminent, nor treat that one claim as a standing
+  justification for further telemetry features. Each new field needs its own
+  named consumer; the gate was paid once, for the instrument, not for
+  everything downstream of it.
+
+- **Wall-clock timing — deferred, and a schema correction to carry into any
+  future spec.** Cycle 1's "Deliberate exclusions" table defers wall time on
+  the grounds that "epoch-ms timestamps are already in the stream
+  (`message_start`/`message_end`), so deferring the *field* loses no *data*."
+  The deferral holds — raw stdout is retained, so the data is recoverable
+  forever. But the parenthetical's implied schema is wrong, and this was
+  verified against the committed fixture rather than reasoned about:
+  `message_end.message.timestamp` is **identical** to its matching
+  `message_start.message.timestamp` for all 12 message pairs. It is a
+  message-*creation* time, not an end time. Consequences for whoever specs
+  this: per-message durations do not exist as start/end pairs; any wall-clock
+  figure must be reconstructed from deltas between successive message
+  creations (which bundle generation *and* tool execution together); and a
+  run's total span computed this way is a lower bound, because nothing after
+  the final `message_start` carries a timestamp. Recorded now because it is
+  exactly the author's-belief-versus-captured-stream failure the fixture
+  discipline exists to catch — the pre-restructure reader made the same class
+  of mistake about pi 0.81.1.
+- **The orchestration-cost experiment itself — deferred out of Phase 2,
+  2026-08-02.** The claim, unchanged and still worth testing: *getting an
+  orchestrator to write handoff packets for an implementer may consume more
+  tokens than the orchestrator simply doing the work itself.* It was cited in
+  cycle 1's spec as motivation for **which metrics to collect** — why
+  `context_processed` is the headline and why `is_error` earns its place —
+  and that motivation did its job. What does not follow is building the
+  orchestrator soon: doing so would be the exact trap `BRIEF.md` names, where
+  three prior attempts "turned into engineering efforts about orchestration."
+  When it is scheduled, it revives the `orchestrator` and `handoff packet`
+  terms, and per the owner it should be proved against **synthetic, fake,
+  disposable examples** rather than a real orchestrator or a real
+  multi-agent batch.
+
 - **Investigate Recursive Language Models (RLM) and DSPy for constructing the
-  handoff packet.** Phase 2's third step assumes the orchestrator *writes* a
-  packet: it reads the spec, decides what the implementer needs, and hands
-  over prose. That framing is worth challenging before a long sequence of
-  incremental fixes is spent improving it, because two nearby techniques
-  attack the same problem from opposite ends.
+  handoff packet.** The deferred orchestration-cost experiment (above)
+  assumes the orchestrator *writes* a packet: it reads the spec, decides what
+  the implementer needs, and hands over prose. That framing is worth
+  challenging before a long sequence of incremental fixes is spent improving
+  it, because two nearby techniques attack the same problem from opposite
+  ends.
 
   *Recursive Language Models* treat a large context as a queryable variable
   the model interacts with programmatically — recursing on sub-parts —
@@ -480,9 +555,11 @@ things over.
   anything here is attempted.
 
   **Skepticism to carry in, all of it load-bearing:**
-  - *Order matters.* Phase 2 step 3 exists to measure whether handoff packets
-    pay for themselves **at all**. If they don't, optimizing them optimizes
-    the wrong thing. This comes after that baseline, never before it.
+  - *Order matters.* The orchestration-cost experiment exists to measure
+    whether handoff packets pay for themselves **at all**. If they don't,
+    optimizing them optimizes the wrong thing. This comes after that
+    baseline, never before it — and that baseline is itself now deferred out
+    of Phase 2, so this sits two decisions away, not one.
   - *A trainset of one is overfitting, not optimization.* There is currently
     one task (AgentClinic Phase 1). DSPy optimizers need examples to compile
     against; a second real workload is a prerequisite, not a nicety.
