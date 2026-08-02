@@ -88,6 +88,7 @@ not scheduled within this phase.)*
 | 1 | Telemetry reader | [spec](specs/2026-08-02-phase2-cycle1-telemetry-reader-design.md) | [plan](plans/2026-08-02-phase2-cycle1-telemetry-reader.md) |
 | 2 | Precision baseline | [spec](specs/2026-08-02-phase2-cycle2-precision-baseline-design.md) | [plan](plans/2026-08-02-phase2-cycle2-precision-baseline.md) |
 | 3 | Honest environment, clean baseline | [spec](specs/2026-08-02-phase2-cycle3-honest-environment-design.md) | [plan](plans/2026-08-02-phase2-cycle3-honest-environment.md) |
+| 4 | Claim discipline | [spec](specs/2026-08-02-phase2-cycle4-claim-discipline-design.md) | [plan](plans/2026-08-02-phase2-cycle4-claim-discipline.md) |
 
 ## Withdrawn
 
@@ -137,6 +138,7 @@ specs/2026-08-01-post-phase1-pages-publication-design
 specs/2026-08-02-phase2-cycle1-telemetry-reader-design
 specs/2026-08-02-phase2-cycle2-precision-baseline-design
 specs/2026-08-02-phase2-cycle3-honest-environment-design
+specs/2026-08-02-phase2-cycle4-claim-discipline-design
 ```
 
 ```{toctree}
@@ -165,6 +167,7 @@ plans/2026-08-01-post-phase1-pages-publication
 plans/2026-08-02-phase2-cycle1-telemetry-reader
 plans/2026-08-02-phase2-cycle2-precision-baseline
 plans/2026-08-02-phase2-cycle3-honest-environment
+plans/2026-08-02-phase2-cycle4-claim-discipline
 ```
 
 ```{toctree}
