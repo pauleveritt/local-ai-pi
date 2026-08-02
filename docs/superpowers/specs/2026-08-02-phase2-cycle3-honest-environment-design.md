@@ -76,15 +76,36 @@ Append to `examples/agentclinic/specs/roadmap.md`:
 ```markdown
 ## Environment
 
-- FastAPI, Jinja2, pytest, and httpx are already installed. Do not install
-  anything.
-- A bare `pytest` does not put the project root on `sys.path`, so importing
-  `app` from a test will fail. Run tests with `python -m pytest`, which adds
-  the working directory.
+- FastAPI, Jinja2, pytest, and httpx are already installed. Do not install anything.
+- Run tests with `python -m pytest` from the project root.
 ```
 
-Two lines, ~40 tokens. The second states the environment *fact* and then
-the working command, so it reads as description rather than incantation.
+Two lines, ~35 tokens — **byte-identical to the wording the sixteen
+exploratory runs used**, which went 16/16 clean. The first bullet is a
+single unwrapped line on purpose: the spec file is passed to Pi as raw
+prompt text, so re-wrapping it would change the bytes and the recorded
+`task_spec_sha256`, making the baseline a test of something the sixteen
+runs never used. The plan must append these two lines verbatim.
+
+**Why this wording and not a more descriptive one.** An earlier draft of
+this spec replaced the second line with an explanation: "A bare `pytest`
+does not put the project root on `sys.path`, so importing `app` from a
+test will fail. Run tests with `python -m pytest`, which adds the working
+directory." That reads better as environment description than as an
+incantation, and it was rejected for two reasons found in review.
+
+First, it was untested: no run has ever been made against it, so adopting
+it would have made the n=32 baseline the *first* test of new model-facing
+wording rather than a measurement of a known effect — and cycle 6's
+precedent is that changes here are consequential.
+
+Second, and decisive: **naming the import failure invites the standard
+community fix, a workspace `conftest.py`, which cycle 5's grader refuses**
+(`_REFUSED_CONFIG` in `harness/grading.py`, plus a recursive sweep for
+nested ones). A model that helpfully solves the problem the spec just
+named produces a *refused* run — a worse failure than an inelegant
+sentence, and one that would look like the environment fix having failed.
+The tested wording names the command and never the problem.
 
 **Why `python -m pytest` and not `uv run …`.** Measured in a fresh
 workspace under the environment Pi actually inherits: bare `pytest` fails
@@ -102,9 +123,11 @@ not be baked into a model-facing document — and it additionally assumes
 def tool_errors(self) -> int:
     """Count of tool calls that finished and reported an error.
 
-    Counts `is_error is True` only. `None` means *unknown* -- a start with
-    no matching end -- not a failure, and `complete` already declares every
-    count a lower bound when that happens.
+    Counts `is_error is True` only. `None` means *unknown*, not a failure,
+    and has two sources (see `ToolCall.is_error`): a start with no matching
+    end -- where `complete` already declares every count a lower bound --
+    and a matched end carrying no `isError` field, which `complete`
+    deliberately still counts as a complete run. Neither is counted here.
     """
     return sum(1 for call in self.tool_calls if call.is_error)
 ```
@@ -139,7 +162,11 @@ matches the extension batch that corrected it. Cost ≈ 25 minutes.
 **Support-coverage diagnostic, reported not assumed.** The record must
 state whether any *new* distinct turn value appeared in the final quarter
 of the batch. If one did, the support is not covered and the record says
-so rather than publishing a precision table as if it were.
+so rather than publishing a precision table as if it were. **The check is
+one-sided: it can fail, never certify.** The n=16 baseline sample is the
+proof — its own final quarter (runs 13–16) introduced no new turn value,
+yet 10 and 12 were still unseen and surfaced at runs 17 and 20. A quiet
+final quarter is reported as exactly that, not as evidence of coverage.
 
 ### 4. Research record
 
@@ -204,10 +231,11 @@ sense and is not a defined mechanism.
 ## Testing
 
 **`tool_errors`, synthetic, with the non-vacuity pin the semantics
-require:** a stream mixing `is_error` `True`, `False`, and an unmatched
-start must yield a count of the `True` values only — asserting the
-unmatched call is *excluded* specifically, since counting it would be the
-plausible wrong implementation.
+require:** a stream mixing `is_error` `True`, `False`, an unmatched
+start, and a matched end carrying no `isError` field (the second source
+of `None`) must yield a count of the `True` values only — asserting the
+two `None`-producing calls are *excluded* specifically, since counting
+them would be the plausible wrong implementation.
 
 **Against committed real data.** `tests/fixtures/phase1-n48-telemetry-summary.json`
 holds only `turns` and `context_processed`, so it cannot pin error counts,
