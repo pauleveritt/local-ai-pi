@@ -52,6 +52,17 @@ repository.
 | 17 | Local workspace hygiene | [spec](specs/2026-08-01-post-phase1-local-workspace-hygiene-design.md) | [plan](plans/2026-08-01-post-phase1-local-workspace-hygiene.md) |
 | 18 | Pages publication | [spec](specs/2026-08-01-post-phase1-pages-publication-design.md) | [plan](plans/2026-08-01-post-phase1-pages-publication.md) |
 
+## Phase 2 — Measure the cost of orchestration
+
+Phase 1 asked whether generated code can be trusted. Phase 2 asks what it
+costs. Cycle 1 builds the instrument and wires it to nothing — the same
+instrument-before-experiment order Phase 1 used when it built the entire
+grading apparatus before a model ran once.
+
+| # | Cycle | Spec | Plan |
+|---|---|---|---|
+| 1 | Telemetry reader | [spec](specs/2026-08-02-phase2-cycle1-telemetry-reader-design.md) | [plan](plans/2026-08-02-phase2-cycle1-telemetry-reader.md) |
+
 ## Withdrawn
 
 Designs that were approved and then withdrawn are kept, headed with a
@@ -94,6 +105,7 @@ specs/2026-08-01-post-phase1-pi-exit-veto-design
 specs/2026-08-01-post-phase1-batch-evidence-record-design
 specs/2026-08-01-post-phase1-local-workspace-hygiene-design
 specs/2026-08-01-post-phase1-pages-publication-design
+specs/2026-08-02-phase2-cycle1-telemetry-reader-design
 ```
 
 ```{toctree}
@@ -119,6 +131,7 @@ plans/2026-08-01-post-phase1-pi-exit-veto
 plans/2026-08-01-post-phase1-batch-evidence-record
 plans/2026-08-01-post-phase1-local-workspace-hygiene
 plans/2026-08-01-post-phase1-pages-publication
+plans/2026-08-02-phase2-cycle1-telemetry-reader
 ```
 
 ```{toctree}

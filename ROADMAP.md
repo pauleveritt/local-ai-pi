@@ -5,10 +5,22 @@ Backlog, not into the current phase.*
 
 ## Now
 
-**Phase 1 — Reproduce AgentClinic Phase 1 with a trustworthy engine.** One
-run, hermetically graded, recorded to a checkpoint; then n=16 reproducing
-~15/16. The engine's first job is to reproduce a number we already trust, not
-to discover one — see `BRIEF.md` for why. Everything else waits.
+**Phase 1 — Reproduce AgentClinic Phase 1 with a trustworthy engine.
+Complete.** One run, hermetically graded, recorded to a checkpoint; then
+n=16 reproducing ~15/16 — the supervised batch accepted 16/16. The engine's
+first job was to reproduce a number we already trust, not to discover one —
+see `BRIEF.md` for why.
+
+**Phase 2 — Measure the cost of orchestration.** Phase 1 measured whether
+generated code can be *trusted*; it says nothing about speed, cost, or
+effort. The Backlog gated telemetry on "a suite author naming a claim they
+need those measurements to support," and cycle 1 satisfies that gate rather
+than waiving it. The claim: *getting an orchestrator to write handoff
+packets for an implementer may consume more tokens than the orchestrator
+simply doing the work itself.* Step 1 builds the instrument; step 2 brings
+back a hello-world Pi extension teaching lifecycle events and
+`appendEntry`; step 3 begins incremental orchestrator work, where the
+instrument answers the claim.
 
 *(Superseded framing, kept for the record: an earlier pass named Phase 1 "the
 restructure spec" — define the volunteer reader, then derive a section
@@ -47,6 +59,10 @@ not by being convenient shorthand.*
 | batch | a fixed, sequential set of runs under one declared set of conditions | cycle 11's re-plan |
 | extension | the fixed project-supplied Pi addition loaded for each run, distinct from Pi's ambient extensions | cycle 8 |
 | process group | one Pi or pytest child plus descendants, terminated together if that child times out | cycle 12 |
+| telemetry | structured measurements derived from a run's captured output (`harness/telemetry.py`); a recomputable view, never storage | phase 2 cycle 1 |
+| turn | one `turn_end` event in Pi's JSON stream — borrowed from Pi's vocabulary, not coined. Pinned: any redefinition invalidates every number already produced | phase 2 cycle 1 |
+| tool call | one tool Pi invoked during a run, correlated start-to-end by `toolCallId` — borrowed from Pi's vocabulary, not coined | phase 2 cycle 1 |
+| context processed | `input + cacheRead + cacheWrite` — a cumulative *workload* measure, not a context-window size, and not latency or cost. Adopted from the prior effort's metrics report rather than invented, so its numbers stay comparable | phase 2 cycle 1 |
 
 **Retired, not currently spent:** `oracle` — dropped from the engine's
 vocabulary, since "grader"/"verdict" cover the same ground without a term
@@ -61,6 +77,7 @@ test name.
 | # | Phase | Direction (one sentence) | Status |
 |---|-------|--------------------------|--------|
 | 1 | Reproduce AgentClinic Phase 1 | One trustworthy, hermetically-graded run; n=16 reproducing ~15/16 | complete |
+| 2 | Measure the cost of orchestration | Instrument a run, then test whether an orchestrator writing handoff packets costs more than doing the work itself | in progress |
 
 ### Phase 1 feature cycles
 
@@ -89,6 +106,12 @@ test name.
 | 16 | n=16 batch evidence — a compact, committed [record](docs/superpowers/research/2026-08-01-phase1-n16-batch-evidence.md) identifies the raw checkpoint and its measured conditions/results without committing 4.5 MB of model output. | [spec](docs/superpowers/specs/2026-08-01-post-phase1-batch-evidence-record-design.md) | [plan](docs/superpowers/plans/2026-08-01-post-phase1-batch-evidence-record.md) | Done |
 | 17 | Local workspace hygiene — active linked worktrees and local agent state are ignored; nine old generated session files moved unchanged into the preserved old-project worktree after SHA-256 verification; the stale Sphinx static-path setting is removed so strict docs builds pass. | [spec](docs/superpowers/specs/2026-08-01-post-phase1-local-workspace-hygiene-design.md) | [plan](docs/superpowers/plans/2026-08-01-post-phase1-local-workspace-hygiene.md) | Done |
 | 18 | Pages publication — restore the `main`-push Pages workflow with strict Sphinx, update the landing status, and leave a migration page at the old Section III URL. | [spec](docs/superpowers/specs/2026-08-01-post-phase1-pages-publication-design.md) | [plan](docs/superpowers/plans/2026-08-01-post-phase1-pages-publication.md) | Done |
+
+### Phase 2 feature cycles
+
+| Cycle | Summary | Spec | Plan | State |
+|-------|---------|------|------|-------|
+| 1 | Telemetry reader — `harness/telemetry.py`'s `read_telemetry()` derives turns, tool calls, and token counts from the JSONL `RunResult.pi_stdout` already captures. A pure function over a string: `runner.py`, `checkpoint.py`, and the batch are untouched, and nothing consumes the result yet. Proven against a real captured pi 0.82.0 stream, because the schema drifts across pi versions — the pre-restructure reader's 0.81.1 beliefs (no usage in `--mode json`; `isError` a string) are both false in 0.82.0. Three cases real data cannot reach are proven with inline synthetic streams. | [spec](docs/superpowers/specs/2026-08-02-phase2-cycle1-telemetry-reader-design.md) | [plan](docs/superpowers/plans/2026-08-02-phase2-cycle1-telemetry-reader.md) | Done |
 
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus
 *before* a model runs once — every one of them is provable against fixtures
@@ -393,10 +416,14 @@ things over.
   cycle when a clean repository-wide formatter check is worth the review cost.
 - Volunteer-reader / section-structure design (superseded Phase 1 framing;
   revisit once an engine and real suites exist to write about)
-- Telemetry (Phase 2): aggregate model/session measurements only after a
-  suite author has named a claim they need those measurements to support.
-  Phase 1 records accept/reject evidence and complete Pi output, but does not
-  infer token, tool, or context-window metrics from it.
+- Telemetry — **gate satisfied; promoted to Phase 2 cycle 1.** The gate was
+  "only after a suite author has named a claim they need those measurements
+  to support," and the handoff-packet cost claim named one. What remains
+  deferred is everything past the reader itself: wall time, cost,
+  parent/child attribution, and any aggregation or report format. Each is
+  listed with its reason and a path back in the cycle 1 spec's "Deliberate
+  exclusions" table — that table is a record of decisions, not a backlog to
+  work through.
 - Authoring scaffold for future acceptance suites (phase 2+): stub test
   functions named for the fact they prove, `raise NotImplementedError`
   bodies, a model fills in from owner-dictated bullets, owner reviews by
