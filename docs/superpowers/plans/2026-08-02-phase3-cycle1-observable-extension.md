@@ -17,7 +17,7 @@
 - Ruff lint selects `E,F,I,UP,B,SIM`; `E501` (line length) is ignored. Import sorting is enforced.
 - **Never `git commit` while a `run_batch()` is in flight.** A concurrent commit changes `harness_revision` and aborts the batch.
 - Runs are sequential, never concurrent — one shared local model has no isolation.
-- The live model server must be verified alive before any live run: `/Users/pauleveritt/.omlx/bin/omlx diagnose`. When it is down, `pi` exits 0 with empty stderr and the harness records a fabricated result that looks like data.
+- The live model server must be verified alive before any live run, via `harness.liveness.check_model_server_alive()`. When it is down, `pi` exits 0 with empty stderr and the harness records a fabricated result that looks like data.
 - Work happens on branch `phase3` in the worktree at `.worktrees/phase3`.
 - Every new doc must be added to a toctree in `docs/superpowers/index.md`, or the strict Sphinx gate fails.
 
@@ -129,8 +129,12 @@ def test_the_extension_emits_an_evidence_entry_into_captured_stdout():
 
 - [ ] **Step 3: Verify the model server is alive**
 
-Run: `/Users/pauleveritt/.omlx/bin/omlx diagnose`
-Expected: a report showing the server serving on `127.0.0.1:8001`. If it is not, run `/Users/pauleveritt/.omlx/bin/omlx start` and re-check. **Do not proceed on a dead server** — `pi` will exit 0 with empty output and the spike will look like a clean falsification when it is a dead server.
+Run: `uv run python -c "from harness.liveness import check_model_server_alive; check_model_server_alive(); print('alive')"`
+Expected: prints `alive`. If it raises, run `/Users/pauleveritt/.omlx/bin/omlx start` and re-check.
+
+**Do not proceed on a dead server** — `pi` exits 0 with empty output when the server is down, and the spike would look like a clean falsification of the hypothesis when it is only a dead server. That is the single most expensive way this task can go wrong.
+
+(`omlx diagnose` is not the check: the installed CLI requires a target argument, `omlx diagnose menubar`, which reports on the menubar app rather than the served model.)
 
 - [ ] **Step 4: Run the live test**
 
