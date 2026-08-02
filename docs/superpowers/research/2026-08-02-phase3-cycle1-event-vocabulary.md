@@ -203,19 +203,25 @@ worktree starts from a known state instead of re-deriving these.
 Citations are relative to the installed package `dist/` root named at the top
 of this note.
 
+Not every row is drift. Nine rows (1–4, 6–10) are genuine divergences of the
+prior work from installed 0.82.0. Three are not, and say so in place: two are
+hygiene or enrichment on claims that were not wrong, and one was never claimed
+by the prior work at all. Read the parenthetical label on rows 5, 11, and 12
+before treating them as things the prior work got wrong.
+
 | # | Prior claim | Installed 0.82.0 | Evidence |
 |---|---|---|---|
 | 1 | `pi.appendEntry({type, data})` — one object argument | `appendEntry<T = unknown>(customType: string, data?: T): void` — a string ID, then optional data | `core/extensions/types.d.ts:915` |
 | 2 | `appendEntry` "writes directly into the session's JSONL file" | Appends to an **in-memory** map and emits `entry_appended`; disk persistence is a separate step gated on session persistence and is not on this path | `core/session-manager.js:820-831`, `core/agent-session.js:1869-1874` |
 | 3 | Verify with `grep "session_start" ~/.pi/agent/sessions/<dir>/<id>.jsonl`, looking for `"type":"evidence"` | Under `--no-session` there is no such file at all; and the entry's `type` is `"custom"` — the string you passed lands in `customType` | fixture line 2; `core/session-manager.js:240-246` |
 | 4 | The `appendEntry` call belongs in the `session_start` handler | That placement drops the entry: the json-mode subscriber is attached only after `bindExtensions` returns, and `bindExtensions` emits `session_start` before returning | `modes/print-mode.js:50` vs `:80`, `core/agent-session.js:1766`; body of this note |
-| 5 | Payload includes `timestamp: Date.now()` | Redundant — the entry carries its own `timestamp` — and it makes every captured stdout differ from the last for no gain | fixture line 2 |
+| 5 | (not a divergence — hygiene, recorded for completeness) Payload includes `timestamp: Date.now()` | Redundant — the entry carries its own `timestamp` — and it makes every captured stdout differ from the last for no gain | fixture line 2 |
 | 6 | "Restart Pi … you'll see a notification flash" | True in an interactive session; under the harness's `--no-themes` print mode `notify` is a no-op function | `core/extensions/runner.js:88-92` |
 | 7 | `tool_call` is presented alongside `tool_execution_*` as an observable lifecycle event | `tool_call` is delivered to **extensions only**, via the agent's `beforeToolCall` hook, and is never passed to `_emit`. It appears zero times in the 157-line fixture. `tool_result` behaves the same way | `core/agent-session.js:214-224` and `:234-247`; fixture |
 | 8 | The lifecycle diagram treats "the event" as a single thing | The extension event and the stdout event are **separately constructed objects**. A `turn_end` handler receives `turnIndex`; the `turn_end` line on stdout has only `type`, `message`, `toolResults` | `core/agent-session.js:427-451`; fixture |
 | 9 | Seven events named as the lifecycle | 0.82.0 also emits `turn_start`, `message_start` / `message_update` / `message_end`, `tool_execution_update`, and `agent_settled` on the same stream. The tour is a selection, not a census | fixture event sequence; `core/extensions/types.d.ts:847-880` |
 | 10 | Spec: "If a handler throws, Pi catches and logs; the extension stays loaded" | Not true of `tool_call` handlers — a throw propagates and blocks tool execution, by design | `core/agent-session.js:226-233` |
-| 11 | `tool_call` is where you "inspect or block" | Also where you *patch*: `event.input` is mutable in 0.82.0 and later handlers see earlier mutations, with no re-validation | `core/extensions/types.d.ts:679-683` |
+| 11 | (not a divergence — an addition found while auditing) `tool_call` is where you "inspect or block", which is correct as far as it goes | Also where you *patch*: `event.input` is mutable in 0.82.0 and later handlers see earlier mutations, with no re-validation | `core/extensions/types.d.ts:679-683` |
 | 12 | (not claimed, recorded for completeness) | The `agent_end` line on stdout carries a `willRetry` field added at emission that the published `AgentEndEvent` type does not declare — the type is incomplete against the stream | `core/agent-session.js:353` vs `core/extensions/types.d.ts:534-537`; fixture line 156 |
 
 Two things the prior work got right and were carried over unchanged: the
@@ -223,10 +229,38 @@ default-export factory shape (`ExtensionFactory = (pi: ExtensionAPI) => void |
 Promise<void>`, `core/extensions/types.d.ts:1076`), and the `-e` short flag for
 `--extension`, confirmed against `pi --help` on the installed binary.
 
-**One wording correction to this note's own "What cycle 3 inherits."** It says
-a delegation "is a tool call in the parent's stream." Item 7 above shows that
-`tool_call` events do not reach the stream. What is visible is the
-`tool_execution_start` / `tool_execution_end` pair, which carries `toolName`.
-The inherited conclusion is unaffected — a delegation is still observable in
-the parent's stream — but cycle 3 should read the execution events, not
-`tool_call`.
+**One wording correction, to this note's own opening paragraph and to "What
+cycle 3 inherits."** The opening paragraph says a delegation "arrives in the
+parent's stream as a tool call," and the first bullet of "What cycle 3
+inherits" says a delegation "is a tool call in the parent's stream." Item 7
+above shows that `tool_call` events do not reach the stream. What is visible is
+the `tool_execution_start` / `tool_execution_end` pair, which carries
+`toolName`. The inherited conclusion is unaffected — a delegation is still
+observable in the parent's stream — but cycle 3 should read the execution
+events, not `tool_call`. This correction covers both places; a reader starting
+at the top of the note should apply it there too.
+
+**One factual correction, to "`agent_start` fires during `session.prompt()`."**
+That paragraph says whether a retry re-fires `agent_start` "is plausible but
+unverified," on the grounds that `@earendil-works/pi-agent-core` "is not
+present under the installed package tree." That second claim is false, and so
+the first is unnecessary. `pi-agent-core` *is* present, nested one level down
+at
+`<installed-package>/node_modules/@earendil-works/pi-agent-core/`, at the same
+0.82.0 version; it is simply not a sibling in the top-level `node_modules`,
+which is how a directory listing made it look absent.
+
+Read, the chain resolves: the retry loop calls `await this.agent.continue()`
+(`core/agent-session.js:748-749`); `continue()`
+(`pi-agent-core/dist/agent.js:229`) falls through to `runContinuation()`
+(`:270-272`), which calls `runAgentLoopContinue`; and that function's first
+emission is `await emit({ type: "agent_start" })`
+(`pi-agent-core/dist/agent-loop.js:67`). **A retry does re-fire
+`agent_start`.** The operational conclusion is unchanged and now better
+supported: anything asserting on the resulting entries must test membership,
+not length.
+
+Recording the manner of the error as well as the error: this note was written
+in a cycle that exists because a claim had been confidently asserted from
+reading rather than running. Asserting *unverifiability* from a directory
+listing rather than a search is the same failure in humbler dress.

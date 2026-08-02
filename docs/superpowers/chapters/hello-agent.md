@@ -100,11 +100,21 @@ seven `turn_start` / `turn_end` pairs, six tool executions, and one `agent_end`.
 
 `agent_start` is the useful anchor: it fires during `session.prompt()`, before
 anything the model does can influence it. It is not exactly once per run — Pi
-retries after some agent errors — so anything asserting on the entries it
-produces should test membership, not count. (Whether a retry re-fires
-`agent_start` is plausible but was not verified; the emission lives in
-`@earendil-works/pi-agent-core`, which is not present under the installed
-package tree.)
+retries after some agent errors, and **a retry does fire it again** — so
+anything asserting on the entries it produces should test membership, not
+count.
+
+That last part is read, not guessed. The retry loop calls
+`await this.agent.continue()` (`core/agent-session.js:748-749`); `continue()`
+falls through to `runContinuation()`
+(`node_modules/@earendil-works/pi-agent-core/dist/agent.js:229`, `:270-272`),
+which calls `runAgentLoopContinue`; and that function's first act is
+`await emit({ type: "agent_start" })`
+(`node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:67`).
+
+Note the path: `pi-agent-core` is a *nested* dependency of the installed
+package, at the same 0.82.0 version. It is not a sibling in the top-level
+`node_modules`, which is why a directory listing can make it look absent.
 
 ## `ctx.ui.notify` shows you nothing here
 
@@ -118,8 +128,11 @@ The handler runs; the message goes nowhere.
 
 The right way to hold this: `notify` is a property of *how Pi was invoked*, not
 a capability the extension does or does not have. Load the same file in an
-interactive `pi` session and the notifications appear. The harness deliberately
-runs without a UI, so it deliberately gets no notifications.
+interactive `pi` session and the notifications appear: interactive mode builds
+its extension UI context with a real implementation,
+`notify: (message, type) => this.showExtensionNotify(message, type)`
+(`modes/interactive/interactive-mode.js:1670`). The harness deliberately runs
+without a UI, so it deliberately gets no notifications.
 
 The six handlers stay anyway. They are the lifecycle tour, and their silence in
 this mode is a recorded finding rather than a defect to fix.
@@ -230,11 +243,16 @@ against the fixture.
 **`tool_call` never appears on the stream.** It is delivered to extensions only,
 through the agent's `beforeToolCall` hook (`core/agent-session.js:214-224`),
 and is never passed to `_emit`. The fixture's 157 lines contain no `tool_call`.
-Its sibling `tool_result` works the same way. Both are still real, and both are
-still the place to inspect or block — `event.input` is even mutable in 0.82.0,
-so a handler can patch a tool's arguments in place
-(`core/extensions/types.d.ts:679-683`) — but if you want a record of one, you
-have to append an entry for it.
+Its sibling `tool_result` works the same way. Both are still real, but they are
+not interchangeable. `tool_call` is "fired before a tool executes. Can block."
+(`core/extensions/types.d.ts:679`) — inspect it, block it, or patch it, since
+`event.input` is mutable in 0.82.0 and a handler can rewrite a tool's arguments
+in place (`core/extensions/types.d.ts:679-683`). `tool_result` is "fired after
+a tool executes. Can modify result." (`core/extensions/types.d.ts:726`) — by
+then the tool has run, and the hook can only substitute `content`, `details`,
+`isError`, and `usage` (`core/agent-session.js:250-257`). Blocking is
+`tool_call`'s alone. And if you want a record of either, you have to append an
+entry for it.
 
 There is one more asymmetry in the other direction: the `agent_end` line on
 stdout carries a `willRetry` field, added at emission
