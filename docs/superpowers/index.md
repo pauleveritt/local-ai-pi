@@ -91,6 +91,7 @@ shipped.
 
 - [Cycle 1 fixture results](research/2026-07-30-phase1-cycle1-fixture-results.md)
 - [Phase 1 n=16 batch evidence](research/2026-08-01-phase1-n16-batch-evidence.md)
+- [Phase 2 cycle 2 — precision baseline](research/2026-08-02-phase2-cycle2-precision-baseline.md)
 
 ```{toctree}
 :hidden:
@@ -154,4 +155,5 @@ plans/2026-08-02-phase2-cycle2-precision-baseline
 
 research/2026-07-30-phase1-cycle1-fixture-results
 research/2026-08-01-phase1-n16-batch-evidence
+research/2026-08-02-phase2-cycle2-precision-baseline
 ```
