@@ -78,8 +78,9 @@ Edit `.pi/extensions/hello-world.ts`. Replace the `session_start` handler (lines
     // entry appended during `session_start` is emitted with no
     // subscriber and dropped. That, not `--no-session`, is why 48
     // recorded runs produced nothing. `agent_start` fires during
-    // `session.prompt()`, exactly once per run, regardless of what the
-    // model goes on to do.
+    // `session.prompt()`, at least once per run and before any
+    // model-dependent behaviour. Not exactly once: Pi retries after
+    // some agent errors, and a retry fires it again.
     //
     // No timestamp in the payload: the session entry already carries
     // its own, and a second wall-clock value makes every captured
@@ -90,7 +91,13 @@ Edit `.pi/extensions/hello-world.ts`. Replace the `session_start` handler (lines
 
 - [ ] **Step 2: Write the failing live test**
 
-Append to `tests/test_runner.py`:
+`tests/test_runner.py` imports `os` and `pytest` but **not** `json`. Add to the standard-library import block at the top of the file:
+
+```python
+import json
+```
+
+Then append the test:
 
 ```python
 @pytest.mark.skipif(
@@ -99,21 +106,26 @@ Append to `tests/test_runner.py`:
 )
 def test_the_extension_emits_an_evidence_entry_into_captured_stdout():
     # The cycle's whole claim: one entry travels extension -> stdout.
-    result = run_agentclinic_phase1()
-
-    appended = [
-        json.loads(line)
-        for line in result.pi_stdout.split("\n")
-        if '"entry_appended"' in line
-    ]
+    #
+    # Parsed tolerantly rather than substring-filtered: an assistant
+    # message quoting "entry_appended", or a truncated final line, would
+    # otherwise crash this test instead of failing it -- and a crash
+    # reads as a broken test rather than a falsified hypothesis.
+    appended = []
+    for line in run_agentclinic_phase1().pi_stdout.split("\n"):
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(event, dict) and event.get("type") == "entry_appended":
+            appended.append(event)
 
     assert appended, "no entry_appended event reached stdout"
     assert any(
-        event["entry"]["customType"] == "evidence" for event in appended
+        event.get("entry", {}).get("customType") == "evidence"
+        for event in appended
     )
 ```
-
-`json` and `os` are already imported at the top of `tests/test_runner.py`; verify with `head -20 tests/test_runner.py` and add any that is missing.
 
 - [ ] **Step 3: Verify the model server is alive**
 
@@ -148,15 +160,27 @@ Expected: prints a line count well above 50.
 Run: `grep -c entry_appended tests/fixtures/pi-run-0.82.0-entry-appended.jsonl`
 Expected: `1` or greater.
 
-- [ ] **Step 7: Run the full gates**
+- [ ] **Step 7: Record the fixture's provenance**
 
-Run: `uv run pytest && uv run ruff check . && uv run pyrefly check`
-Expected: all pass. (The new live test skips without `SATYRN_LIVE=1`.)
-
-- [ ] **Step 8: Commit**
+`tests/fixtures/README.md` records SHA-256, provenance, and known-good values for every committed fixture, and tests cite it as the record. Add a section for the new fixture following the existing `pi-run-0.82.0.jsonl` section's shape:
 
 ```bash
-git add .pi/extensions/hello-world.ts tests/test_runner.py tests/fixtures/pi-run-0.82.0-entry-appended.jsonl
+shasum -a 256 tests/fixtures/pi-run-0.82.0-entry-appended.jsonl
+wc -l -c tests/fixtures/pi-run-0.82.0-entry-appended.jsonl
+grep -c entry_appended tests/fixtures/pi-run-0.82.0-entry-appended.jsonl
+```
+
+The section must state: the SHA-256, the line and byte counts, that it is `pi_stdout` from a live `run_agentclinic_phase1()` against `omlx/gemma-4-12B-it-MLX-8bit` under Pi 0.82.0, the count of `entry_appended` events, and that it is the first fixture captured with the extension appending from `agent_start`.
+
+- [ ] **Step 8: Run the full gates**
+
+Run: `uv run pytest && uv run ruff check . && uv run pyrefly check`
+Expected: all pass, **two skipped** — the pre-existing `test_run_agentclinic_phase1_produces_live_model_evidence` and the new one, both gated on `SATYRN_LIVE=1`.
+
+- [ ] **Step 9: Commit**
+
+```bash
+git add .pi/extensions/hello-world.ts tests/test_runner.py tests/fixtures/pi-run-0.82.0-entry-appended.jsonl tests/fixtures/README.md
 git commit -m "feat(phase3-cycle1): make the extension observable in print mode
 
 Moving appendEntry from session_start to agent_start puts it after the
@@ -328,7 +352,13 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Write the failing tests**
 
-Append to `tests/test_runner.py`:
+`tests/test_runner.py` imports `harness.runner as runner` but **not** `Path`. Add to the standard-library import block at the top of the file:
+
+```python
+from pathlib import Path
+```
+
+Then append:
 
 ```python
 def test_pi_command_emits_one_extension_flag_per_path_in_order():
@@ -350,12 +380,10 @@ def test_pi_command_defaults_to_the_projects_extensions():
         assert str(extension) in command
 ```
 
-`Path` and `runner` are already imported in `tests/test_runner.py`; verify with `head -20 tests/test_runner.py` and add any that is missing.
-
 - [ ] **Step 2: Run the tests to verify they fail**
 
 Run: `uv run pytest tests/test_runner.py -k extension -v`
-Expected: FAIL with `TypeError: _pi_command() got an unexpected keyword argument 'extensions'`.
+Expected: two FAILs — `TypeError: _pi_command() got an unexpected keyword argument 'extensions'` for the first, and `AttributeError: module 'harness.runner' has no attribute 'EXTENSIONS'` for the second.
 
 - [ ] **Step 3: Replace the constant**
 
@@ -393,8 +421,10 @@ Expected: all PASS, including the pre-existing `test_pi_command_contains_trusted
 
 - [ ] **Step 6: Confirm no stale references**
 
-Run: `grep -rn "EXTENSION\b" harness/ tests/ docs/`
+Run: `grep -rn "EXTENSION\b" harness/ tests/`
 Expected: no hits for the singular `EXTENSION`. Update any that appear.
+
+Do **not** widen this to `docs/`. Two documents quote the old constant and must keep quoting it: `docs/superpowers/plans/2026-07-31-phase1-cycle8-first-real-run.md` is a historical record of what cycle 8 did, and this cycle's own spec quotes `EXTENSION: Path` as the thing being replaced. Editing either would falsify the record. `docs/_build` is generated output and is never edited by hand.
 
 - [ ] **Step 7: Run the full gates**
 
@@ -455,11 +485,25 @@ def test_extension_digest_raises_on_a_missing_file(tmp_path):
         runner._extension_digest(tmp_path / "absent.ts")
 
 
-def test_conditions_record_a_digest_per_extension():
+def test_conditions_record_a_digest_per_extension(monkeypatch, tmp_path):
+    # _conditions shells out to `git rev-parse` and `pi --version`.
+    # Every other unit test in this file monkeypatches _conditions
+    # away for that reason; this one needs the real thing, so it stubs
+    # the subprocesses instead. The suite stays fixture-only -- no test
+    # here may depend on the `pi` binary being installed.
+    extension = tmp_path / "ext.ts"
+    extension.write_text("contents")
+    monkeypatch.setattr(runner, "EXTENSIONS", (extension,))
+    monkeypatch.setattr(
+        runner.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(stdout="stubbed\n"),
+    )
+
     conditions = runner._conditions("model", ["pi"], 600)
 
-    assert len(conditions.extension_digests) == len(runner.EXTENSIONS)
-    assert all(len(digest) == 64 for digest in conditions.extension_digests)
+    assert len(conditions.extension_digests) == 1
+    assert len(conditions.extension_digests[0]) == 64
 
 
 def test_run_batch_refuses_a_record_recorded_under_a_different_extension(
@@ -487,12 +531,43 @@ def test_run_batch_refuses_a_record_recorded_under_a_different_extension(
         runner.run_batch(checkpoint, target=1, model="model")
 ```
 
-`_grade_result` is an existing helper in `tests/test_runner.py`; read it before use to confirm its signature.
+Append to `tests/test_checkpoint.py`:
+
+```python
+def test_a_checkpoint_predating_extension_digests_still_loads(tmp_path):
+    # Four real evidence checkpoints predate this field. A record that
+    # cannot be *read* cannot be recomputed -- and telemetry.py's
+    # docstring makes recomputability the reason raw stdout is retained
+    # at all. The sentinel keeps them readable while guaranteeing
+    # run_batch refuses to resume them: no SHA-256 equals it.
+    path = tmp_path / "checkpoint.jsonl"
+    record = json.loads(json.dumps(asdict(replace(
+        _sample_result(),
+        conditions=RunConditions(
+            model="model",
+            pi_command=("pi",),
+            pi_version="0.82.0",
+            task_spec_sha256="abc",
+            harness_revision="def",
+            run_timeout=600,
+            grade_timeout=30,
+            extension_digests=("unused",),
+        ),
+    ))))
+    del record["conditions"]["extension_digests"]
+    path.write_text(json.dumps(record) + "\n")
+
+    loaded = load_checkpoint(path)
+
+    assert loaded[0].conditions.extension_digests == ("<pre-cycle1>",)
+```
+
+`_grade_result` is an existing helper in `tests/test_runner.py`; `_sample_result`, `replace`, and `load_checkpoint` are existing names in `tests/test_checkpoint.py`. Read each before use to confirm its signature, and add `import json` and `from dataclasses import asdict` to `tests/test_checkpoint.py` if absent.
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `uv run pytest tests/test_runner.py -k "digest or extension" -v`
-Expected: FAIL with `AttributeError: module 'harness.runner' has no attribute '_extension_digest'`.
+Run: `uv run pytest tests/test_runner.py tests/test_checkpoint.py -k "digest or extension" -v`
+Expected: several FAILs — `AttributeError: module 'harness.runner' has no attribute '_extension_digest'` for the digest helper tests, and `TypeError: RunConditions.__init__() takes 8 positional arguments but 9 were given` for the tests passing the new field.
 
 - [ ] **Step 3: Add the field**
 
@@ -539,8 +614,11 @@ Add this docstring to `RunConditions`, directly under the `class` line:
     their *contents*, and exists because without it, editing an
     extension leaves these conditions byte-identical — so a batch would
     silently resume a checkpoint whose earlier runs used different code.
-    Adding a field here invalidates every existing checkpoint. That is
-    the field doing its job.
+
+    Records written before this field load with the sentinel
+    `("<pre-cycle1>",)`. They stay readable and recomputable; no
+    SHA-256 can equal the sentinel, so `run_batch` refuses to resume
+    them. Unreadable is a different, worse failure than unresumable.
     """
 ```
 
@@ -550,11 +628,15 @@ In `harness/checkpoint.py`, add to the `RunConditions(...)` construction inside 
 
 ```python
                         extension_digests=tuple(
-                            data["conditions"]["extension_digests"]
+                            data["conditions"].get(
+                                "extension_digests", ("<pre-cycle1>",)
+                            )
                         ),
 ```
 
-Use `data[...]`, not `.get(...)`: a checkpoint recorded before this field must fail loudly, not load with a fabricated empty tuple that would compare unequal for the wrong reason.
+Use `.get(...)` with the sentinel, **not** `data[...]`. Requiring the key would make the four real evidence checkpoints at `~/local-ai-pi-evidence/` (cycle 14's n=16, cycle 2's n=32, cycle 3's clean parts 1 and 2) raise `KeyError` on *any* read, not only on resume — destroying the ability to recompute every number ever published from them. `harness/telemetry.py`'s docstring states the principle directly: raw stdout is retained precisely so past numbers stay reproducible.
+
+The sentinel is a string no SHA-256 hexdigest can equal, so `run_batch`'s existing conditions comparison still refuses to resume such a checkpoint, with its existing message. Unresumable is the intended consequence; unreadable is not.
 
 - [ ] **Step 8: Update the existing positional constructions**
 
@@ -579,7 +661,7 @@ One in `tests/test_checkpoint.py` (lines 205-220) uses keywords; add:
 - [ ] **Step 9: Run the tests to verify they pass**
 
 Run: `uv run pytest -v`
-Expected: all PASS, one skipped (the live test).
+Expected: all PASS, **two skipped** — both `SATYRN_LIVE`-gated live tests.
 
 - [ ] **Step 10: Run the full gates**
 
@@ -637,7 +719,7 @@ In `ROADMAP.md`, in the "A finding of our own, and the reason cycle 1 is not a f
 
 In the cycle 1 table row, replace the sentence "Note this changes the extension, and `RunConditions` records its path — so it changes run conditions" with a statement of what was actually true: `RunConditions` recorded only the path, never the contents, so changing the extension did **not** change run conditions until this cycle added `extension_digests`.
 
-Change the cycle 1 row's **State** column from `Planned` to `Done`.
+Leave the cycle 1 row's **State** column as `Planned`. The cycle is not done until Task 6's chapter exists; flipping it here would make the roadmap claim something untrue for the length of one task, which is the exact failure mode this task is correcting.
 
 - [ ] **Step 3: Add the note to the toctree**
 
@@ -708,7 +790,11 @@ Honour `BRIEF.md`'s concept budget: a 5-h/wk contributor must be able to absorb 
 
 Append a short "Drift found against 0.82.0" section to `docs/superpowers/research/2026-08-02-phase3-cycle1-event-vocabulary.md` listing each divergence from Step 2, so the next transplant from the pre-restructure worktree starts from a known state.
 
-- [ ] **Step 5: Add to the toctree**
+- [ ] **Step 5: Mark the cycle done in ROADMAP.md**
+
+Now that every deliverable exists, change the Phase 3 cycle 1 row's **State** column from `Planned` to `Done`.
+
+- [ ] **Step 6: Add to the toctree**
 
 In `docs/superpowers/index.md`, add `chapters/hello-agent` to an appropriate toctree. If no `Chapters` caption exists, create one following the pattern of the existing `Specs`, `Plans`, and `Research` toctrees:
 
@@ -722,20 +808,20 @@ chapters/hello-agent
 ```
 ````
 
-- [ ] **Step 6: Verify the docs build**
+- [ ] **Step 7: Verify the docs build**
 
 Run: `rm -rf docs/_build && uv run sphinx-build -W -b html docs docs/_build/html`
 Expected: `build succeeded.`
 
-- [ ] **Step 7: Run the full gates**
+- [ ] **Step 8: Run the full gates**
 
 Run: `uv run pytest && uv run ruff check . && uv run pyrefly check`
-Expected: all pass.
+Expected: all pass, two skipped.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add docs/superpowers/chapters/hello-agent.md docs/superpowers/index.md docs/superpowers/research/2026-08-02-phase3-cycle1-event-vocabulary.md
+git add ROADMAP.md docs/superpowers/chapters/hello-agent.md docs/superpowers/index.md docs/superpowers/research/2026-08-02-phase3-cycle1-event-vocabulary.md
 git commit -m "docs(phase3-cycle1): the hello-agent chapter, gardened not copied
 
 Transplanted from the pre-restructure worktree with a drift audit

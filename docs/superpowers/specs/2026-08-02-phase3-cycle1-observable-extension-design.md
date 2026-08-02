@@ -70,8 +70,13 @@ no checkpoint is lost.
 Move the `appendEntry` call from `session_start` to `agent_start`.
 
 `agent_start` fires during `session.prompt()`, well after `session.subscribe`,
-and fires exactly once per run regardless of what the model does — it does not
-depend on tool calls, turn counts, or the model succeeding.
+and fires **at least once per run before any model-dependent behaviour** — it
+does not depend on tool calls, turn counts, or the model succeeding.
+
+Not *exactly* once: Pi retries after some agent errors (`agent_end` carries a
+`willRetry` flag, `core/agent-session.js:353`), and a retry fires `agent_start`
+again. `custom_entries` is therefore a tuple whose length can exceed one, and
+assertions on it must test membership rather than length.
 
 Drop `Date.now()` from the payload. The session entry already carries its own
 `timestamp`, and a second wall-clock value in captured stdout makes every
@@ -126,9 +131,22 @@ wrong answer from us.
 `_conditions` runs before any model work, so a missing extension file raises
 there rather than 600 seconds later.
 
-**Accepted consequence:** this invalidates every existing checkpoint. Resuming
-one raises "checkpoint conditions do not match this batch". That is the field
-doing its job.
+**Accepted consequence: existing checkpoints stop being resumable — but must
+stay readable.** Four real evidence checkpoints exist outside the repo at
+`~/local-ai-pi-evidence/` (cycle 14's n=16, cycle 2's n=32, and cycle 3's clean
+parts 1 and 2). They predate this field.
+
+Making `load_checkpoint` *require* the field would make all four unloadable,
+which is the wrong failure. `harness/telemetry.py`'s own docstring already
+states the principle: telemetry is recomputable only because checkpoints retain
+raw stdout, and anything that makes a past number unreproducible is a defect,
+not a gate. A run condition that cannot be *read* cannot be compared either.
+
+So `load_checkpoint` tolerates a record with no `extension_digests` and loads it
+with the sentinel `("<pre-cycle1>",)` — a value no SHA-256 can equal. Historical
+records stay readable and recomputable; `run_batch`'s existing conditions check
+refuses to resume them, with its existing message. The refusal happens where
+refusals belong, and nothing that was ever measured becomes unreadable.
 
 ## Data flow
 
