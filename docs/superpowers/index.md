@@ -144,6 +144,7 @@ plans/2026-08-01-post-phase1-batch-evidence-record
 plans/2026-08-01-post-phase1-local-workspace-hygiene
 plans/2026-08-01-post-phase1-pages-publication
 plans/2026-08-02-phase2-cycle1-telemetry-reader
+plans/2026-08-02-phase2-cycle2-precision-baseline
 ```
 
 ```{toctree}
