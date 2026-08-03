@@ -31,11 +31,18 @@ spec. What the phase actually delivered is the first half of that sentence:
 measurement you can trust. The second half turned out to be answering a
 question nobody had asked yet.)*
 
-**Phase 3 — Build the extension half.** Next, and already planned below.
-Phase 2 closes having paid its debts to it: `read_telemetry` counts
-delegations, `harness/precision.py` sizes the experiment, and cycle 3's
-honest environment supplies the clean baseline an orchestrated arm gets
-compared against.
+**Phase 3 — Build the extension half.** In progress; see the cycles below.
+Cycle 1 made the project's Pi extension observable — an entry it appends now
+reaches captured stdout and the telemetry reader. Cycle 2 teaches the
+mechanics and records the gotchas.
+
+*(Corrected 2026-08-03. This paragraph previously said Phase 2 "closes having
+paid its debts" to Phase 3 because `read_telemetry` counts delegations and
+cycle 3's honest environment supplies "the clean baseline an orchestrated arm
+gets compared against." That described a phase that was going to run an
+orchestrated arm. Phase 3 is not: its orchestration cycles were withdrawn to
+the Backlog. Those Phase 2 assets are real and still useful — they are simply
+owed to the deferred orchestration-cost experiment, not to this phase.)*
 
 *(Withdrawn framing, kept for the record — corrected 2026-08-02. An earlier
 pass, written at cycle 1's close, gave Phase 2 three steps: "step 1 builds
@@ -259,17 +266,19 @@ actually run.
 | Cycle | Summary | State |
 |-------|---------|-------|
 | 1 | Observable extension — establish what an extension can emit under `--print --mode json --no-session`, and get one piece of evidence to travel extension → captured stdout → `read_telemetry`. Transplant the prior chapter/spec as the teaching artifact, with a drift audit: the prior spec's `appendEntry({type, data})` is already stale against the installed `appendEntry(customType, data?)`. This row previously claimed that changing the extension changes run conditions because `RunConditions` records its path. It did not: `RunConditions` recorded only the path, never the contents, so editing `hello-world.ts` left the conditions byte-identical and `run_batch` would have resumed a checkpoint recorded under a different extension. That gap is closed by this cycle's new `RunConditions.extension_digests` — a SHA-256 per extension file — and only from that point is the claim true. | Done |
-| 2 | Specialized subagent — enable Pi's shipped subagent extension, author an `implementer` specialist and the orchestrator prompt, and prove one delegation happens. No TypeScript orchestrator is written. Two problems found while speccing changed the shape: the child is spawned with only `["--mode","json","-p","--no-session"]` and inherits **none** of the harness's isolation flags, and project agents are found by walking up from cwd, so a repo-committed `.pi/agents/` is invisible from the disposable workspace. One lever fixes both — `PI_CODING_AGENT_DIR`, which the child inherits — at the cost of pre-provisioning that directory, since pointing it at an empty one makes Pi `git clone` a third-party repo. Also decides the directory-hashing question cycle 1 deferred, and adds a refusal check for non-single delegation modes. [spec](docs/superpowers/specs/2026-08-03-phase3-cycle2-specialized-subagent-design.md) | Specced |
-| 3 | Parent/child telemetry — attribute a delegated run's cost, closing Phase 2 cycle 1's deliberate exclusion now that a split exists to attribute. | Planned |
-| 4 | The handoff-packet cost claim — measure orchestrator-plus-implementer against doing the work directly. This is the claim that satisfied the gate to build telemetry at all, finally tested. | Planned |
+| 2 | Extension mechanics, and the gotchas we paid for — teach how a Pi extension actually works, using `hello-world.ts` and Pi's shipped subagent extension read as a worked example, plus one small teaching extension of our own that registers a tool. Record the gotchas this project has already paid to find. **No orchestrator, no delegation in the harness, no harness changes at all.** [spec](docs/superpowers/specs/2026-08-03-phase3-cycle2-extension-mechanics-design.md) | Specced |
 
-**How this fits Phase 2's results.** Each Phase 2 asset has a job here:
-`read_telemetry` already counts delegations; `harness/precision.py` sizes
-cycle 4's experiment so it is not run at an arbitrary n; Phase 2 cycle 3's
-honest environment supplies the clean baseline the orchestrated arm is
-compared against — and without it, cycle 4 would be measuring retry friction
-again. Phase 2 cycle 4's claim-checking discipline applies to cycle 4's
-record.
+**Cycles 3 and 4 were withdrawn from this phase, 2026-08-03.** They were
+*parent/child telemetry* and *the handoff-packet cost claim*, and both are
+orchestration experiments. They contradicted the Backlog entry that had
+already deferred the orchestration-cost experiment out of Phase 2 — the one
+recording that when it is scheduled it should be proved against **synthetic,
+fake, disposable examples** rather than a real orchestrator or a real
+multi-agent batch. The Phase 3 entry scheduled the opposite on the same day
+that entry was written, and the two were never reconciled until the owner
+challenged a cycle 2 design built on the Phase 3 side. Both now live in the
+Backlog with the experiment they belong to. Phase 2 cycle 4's
+claim-checking discipline still applies to whatever tests that claim.
 
 **The fork was proposed and rejected, 2026-08-03.** The owner asked whether
 to fork Pi's shipped subagent example and own it. The decision is no, on one
@@ -699,6 +708,20 @@ things over.
   terms, and per the owner it should be proved against **synthetic, fake,
   disposable examples** rather than a real orchestrator or a real
   multi-agent batch.
+
+  **Phase 3's cycles 3 and 4 folded into this entry, 2026-08-03.** They were
+  *parent/child telemetry* — attributing a delegated run's cost — and *the
+  handoff-packet cost claim* itself. Both were scheduled inside Phase 3 on
+  the same day this entry said not to build the orchestrator soon, and the
+  contradiction stood until the owner challenged a cycle 2 design built on
+  them. They are not separate work from the experiment above; they are its
+  measurement and its conclusion, and they arrive when it does, on the
+  synthetic-examples footing recorded here. **The debt this leaves, stated
+  plainly:** the handoff-packet claim is what satisfied the gate to build
+  `harness/telemetry.py` at all. Deferring it again means the instrument
+  still has not been used for the question that justified it. That is an
+  argument for scheduling the experiment deliberately some day, not for
+  smuggling it into a phase about something else.
 
 - **Investigate Recursive Language Models (RLM) and DSPy for constructing the
   handoff packet.** The deferred orchestration-cost experiment (above)

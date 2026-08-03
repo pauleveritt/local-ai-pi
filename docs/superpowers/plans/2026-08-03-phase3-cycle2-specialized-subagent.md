@@ -1,5 +1,15 @@
 # Phase 3, Cycle 2 — Specialized subagent implementation plan
 
+**Status: WITHDRAWN 2026-08-03, never executed.** Its design was withdrawn on
+the owner's challenge that Phase 3 was not going to get into orchestration —
+see the banner on
+[the spec](../specs/2026-08-03-phase3-cycle2-specialized-subagent-design.md)
+for the full reasoning. **Do not execute this plan.** It is kept because its
+Task 1 states, in runnable form, the one question about Pi's behaviour this
+cycle could not answer from reading — whether a `subagent` tool result carries
+the child's usage into the parent's stdout — and because the replacement cycle
+teaches the mechanics its later tasks would have built on.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make one Pi run delegate to a child Pi run using this project's own `implementer` specialist, under an agent directory the project controls, with the delegation visible in the parent's captured stdout.

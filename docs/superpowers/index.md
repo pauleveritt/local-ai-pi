@@ -121,6 +121,14 @@ cycle's argument.
   lifecycle the project's own extension tours, and why *where* you emit
   decides whether anything hears it.
 
+- [Phase 3, cycle 2 — specialized subagent](specs/2026-08-03-phase3-cycle2-specialized-subagent-design.md)
+  — approved and withdrawn the same day, when the owner challenged whether
+  Phase 3 should be getting into orchestration. It should not have been, and
+  the roadmap had already said so in a Backlog entry nobody reconciled it
+  against. The research survives: how Pi spawns a subagent child, what that
+  child does and does not inherit, and the environment lever that isolates
+  it.
+
 ## Research
 
 - [Cycle 1 fixture results](research/2026-07-30-phase1-cycle1-fixture-results.md)
@@ -163,6 +171,7 @@ specs/2026-08-02-phase2-cycle3-honest-environment-design
 specs/2026-08-02-phase2-cycle4-claim-discipline-design
 specs/2026-08-02-phase3-cycle1-observable-extension-design
 specs/2026-08-03-phase3-cycle2-specialized-subagent-design
+specs/2026-08-03-phase3-cycle2-extension-mechanics-design
 ```
 
 ```{toctree}

@@ -1,7 +1,39 @@
 # Phase 3, Cycle 2 — Specialized subagent
 
 **Phase:** 3 — Build the extension half
-**Status:** design, awaiting plan
+**Status: WITHDRAWN 2026-08-03, never implemented.** Kept for its research,
+not as a plan of record.
+
+> **Read this first.** This design was approved and withdrawn the same day,
+> on the owner's challenge: *"I thought Phase 3 was not going to get into
+> orchestration."*
+>
+> They were right, and the roadmap already said so. The Backlog entry that
+> deferred the orchestration-cost experiment out of Phase 2 records that when
+> it is scheduled, *"per the owner it should be proved against synthetic,
+> fake, disposable examples rather than a real orchestrator or a real
+> multi-agent batch."* This design specified the opposite: a real specialist,
+> a real orchestrator prompt, a real delegation, a real multi-agent run.
+>
+> The contradiction was not introduced here. The Phase 3 roadmap entry
+> scheduled cycles 2–4 around real delegation on the same day the Backlog
+> entry said not to, and the two were never reconciled. This design inherited
+> the Phase 3 side and amplified it.
+>
+> **The growth was the tell.** "Prove one delegation happens" acquired a new
+> module, a committed agent directory, a new `RunConditions` field, a new
+> telemetry dataclass, a refusal check, and a fistful of new vocabulary — in
+> a project whose concept count is a stated design metric and whose central
+> warning is that three prior attempts died as engineering efforts about
+> orchestration.
+>
+> **What survives, and where it went.** Everything below about how Pi
+> actually behaves is real, verified, and was expensive to find: the child
+> spawn's missing isolation flags, the `PI_CODING_AGENT_DIR` lever and its
+> bootstrap trap, agent discovery walking up from cwd, and `--model` reaching
+> the child only when the agent's frontmatter sets it. Those findings are the
+> subject of the replacement cycle 2, which teaches the mechanics and records
+> the gotchas without building any of the machinery specified here.
 
 ## Why this cycle
 
