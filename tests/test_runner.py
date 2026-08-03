@@ -1,6 +1,8 @@
 import hashlib
 import json
 import os
+import shutil
+import subprocess
 from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
@@ -205,7 +207,7 @@ def test_preflight_rejects_user_message_content_as_assistant_output(monkeypatch)
 
 def test_run_batch_runs_remaining_attempts_and_appends_each(tmp_path, monkeypatch):
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("digest",))
+    conditions = RunConditions("model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",))
     calls = []
 
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
@@ -226,7 +228,7 @@ def test_run_batch_runs_remaining_attempts_and_appends_each(tmp_path, monkeypatc
 
 def test_run_batch_resumes_after_existing_records(tmp_path, monkeypatch):
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("digest",))
+    conditions = RunConditions("model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",))
     first = RunResult("first", _grade_result(), "out", "", 0, conditions=conditions)
     append_checkpoint(checkpoint, first)
     calls = []
@@ -254,7 +256,7 @@ def test_run_batch_refuses_a_record_without_matching_conditions(tmp_path, monkey
         runner,
         "_conditions",
         lambda *args: RunConditions(
-            "model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("digest",)
+            "model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",)
         ),
     )
     monkeypatch.setattr(runner, "preflight_model", lambda model: pytest.fail("preflight called"))
@@ -266,7 +268,7 @@ def test_run_batch_refuses_a_record_without_matching_conditions(tmp_path, monkey
 
 def test_run_batch_preflight_failure_leaves_checkpoint_unchanged(tmp_path, monkeypatch):
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("digest",))
+    conditions = RunConditions("model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",))
 
     def fail_preflight(model):
         raise RuntimeError("down")
@@ -283,7 +285,7 @@ def test_run_batch_preflight_failure_leaves_checkpoint_unchanged(tmp_path, monke
 
 def test_run_batch_does_not_preflight_when_target_is_already_reached(tmp_path, monkeypatch):
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("digest",))
+    conditions = RunConditions("model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",))
     for _ in range(2):
         append_checkpoint(
             checkpoint,
@@ -298,7 +300,7 @@ def test_run_batch_does_not_preflight_when_target_is_already_reached(tmp_path, m
 
 def test_run_batch_appends_rejected_attempt_before_continuing(tmp_path, monkeypatch):
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions("model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("digest",))
+    conditions = RunConditions("model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",))
     calls = []
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
     monkeypatch.setattr(runner, "preflight_model", lambda model: None)
@@ -457,7 +459,7 @@ def test_run_batch_refuses_a_record_recorded_under_a_different_extension(
 
     checkpoint = tmp_path / "checkpoint.jsonl"
     recorded = RunConditions(
-        "model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("old-digest",)
+        "model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("old-digest",)
     )
     append_checkpoint(
         checkpoint,
@@ -467,9 +469,74 @@ def test_run_batch_refuses_a_record_recorded_under_a_different_extension(
         runner,
         "_conditions",
         lambda *args: RunConditions(
-            "model", ("pi",), "0.82.0", "sha", "rev", 600, 30, ("new-digest",)
+            "model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("new-digest",)
         ),
     )
 
     with pytest.raises(ValueError, match="checkpoint conditions do not match"):
         runner.run_batch(checkpoint, target=1, model="model")
+
+
+def test_run_batch_refuses_a_pi_version_other_than_the_pinned_one(
+    tmp_path, monkeypatch
+):
+    # Two contributors on different Pi versions would each produce an
+    # internally valid batch, and those batches would be compared as
+    # though they were comparable. They are not.
+    conditions = RunConditions(
+        "model", ("pi",), "0.1.0-not-pinned", "sha", "rev", 600, 30, ("digest",)
+    )
+    monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
+    # Before the check exists, run_batch falls through to preflight_model,
+    # which probes the live server and shells a real `pi`. The red phase
+    # must not depend on the model server being up.
+    monkeypatch.setattr(runner, "preflight_model", lambda *args, **kwargs: None)
+
+    with pytest.raises(RuntimeError, match="0.1.0-not-pinned"):
+        runner.run_batch(tmp_path / "checkpoint.jsonl", target=1, model="model")
+
+
+def test_the_refusal_names_the_version_it_expected(tmp_path, monkeypatch):
+    conditions = RunConditions(
+        "model", ("pi",), "0.1.0-not-pinned", "sha", "rev", 600, 30, ("digest",)
+    )
+    monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
+    monkeypatch.setattr(runner, "preflight_model", lambda *args, **kwargs: None)
+
+    with pytest.raises(RuntimeError, match=runner.EXPECTED_PI_VERSION):
+        runner.run_batch(tmp_path / "checkpoint.jsonl", target=1, model="model")
+
+
+def test_run_batch_proceeds_on_the_pinned_version(tmp_path, monkeypatch):
+    # Without this the check could be refusing every batch and the two
+    # tests above would still pass.
+    conditions = RunConditions(
+        "model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30,
+        ("digest",),
+    )
+    monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
+
+    records = runner.run_batch(tmp_path / "checkpoint.jsonl", target=0)
+
+    assert records == []
+
+
+def test_the_pinned_version_is_the_installed_version():
+    # The one test designed to fail on the next upgrade. That is the
+    # point: it turns a silent drift into a red suite. Pi moved 0.82.0 ->
+    # 0.83.0 during a working session and nothing caught it; eight
+    # file:line citations in a published chapter went stale.
+    #
+    # Skipped when Pi is absent, because docs/setup.md says Pi is needed
+    # only for work that invokes a model, and every other Pi-dependent
+    # test here is opt-in. A contributor without Pi has done nothing
+    # wrong. A contributor with the *wrong* Pi still fails, which is the
+    # case this exists for.
+    if shutil.which("pi") is None:
+        pytest.skip("Pi is not installed; see docs/setup.md")
+
+    installed = subprocess.run(
+        ["pi", "--version"], check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+    assert installed == runner.EXPECTED_PI_VERSION

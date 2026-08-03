@@ -14,6 +14,7 @@ PHASE_1 = REPO_ROOT / "examples" / "agentclinic" / "phase-1"
 TASK_SPEC = REPO_ROOT / "examples" / "agentclinic" / "specs" / "roadmap.md"
 EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / ".pi" / "extensions" / "hello-world.ts",)
 DEFAULT_MODEL = "omlx/gemma-4-12B-it-MLX-8bit"
+EXPECTED_PI_VERSION = "0.83.0"
 
 
 @dataclass(frozen=True)
@@ -210,6 +211,15 @@ def run_batch(
     extensions = EXTENSIONS
     command = _pi_command(model, TASK_SPEC.read_text(), extensions)
     requested = _conditions(model, command, 600, extensions)
+    if requested.pi_version != EXPECTED_PI_VERSION:
+        raise RuntimeError(
+            f"this harness pins Pi {EXPECTED_PI_VERSION}, but {requested.pi_version} "
+            f"is installed. Batches are pinned so that runs stay comparable "
+            f"between contributors. Either install Pi {EXPECTED_PI_VERSION}, or "
+            f"bump EXPECTED_PI_VERSION in harness/runner.py -- and if you bump it, "
+            f"re-check the documentation that cites Pi by file and line, because "
+            f"those citations do not survive upgrades and no test catches them."
+        )
     for record in records:
         if record.conditions != requested:
             raise ValueError("checkpoint conditions do not match this batch")
