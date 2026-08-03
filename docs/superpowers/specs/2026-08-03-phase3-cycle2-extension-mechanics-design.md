@@ -108,15 +108,45 @@ links to it. Nothing else in `harness/` changes.
 ## Testing
 
 There is almost nothing to test, and pretending otherwise would be worse than
-saying so. What can be tested is tested:
+saying so. Two checks earn their place, and the boundary between them is the
+point:
 
-- The teaching extension **type-checks against the installed Pi types**, so a
-  0.82.0 → 0.83 drift breaks the build rather than the reader's trust. This
-  is the cycle's only new machinery, and it exists because the chapter's
-  central promise is that its code is true of the installed version.
-- Every fenced code block in the chapter that claims to be from a real file
-  matches that file. Where a claim cites installed Pi by file:line, the
-  citation resolves.
+**1. The teaching extension actually loads under Pi.** A `SATYRN_LIVE`-gated
+test runs `pi` with the extension and asserts it registered its tool and
+produced no extension error.
+
+*This replaces a type-check, and the reason is worth recording.* The earlier
+draft of this spec called for `tsc --noEmit` against the installed Pi types.
+Attempting it found there is no `tsc` on this machine and no Node toolchain in
+this repository — `npx --no-install tsc` resolves to an unrelated package of
+the same name. Getting a real one means either a network install on every test
+run or a `package.json` and a TypeScript devDependency: a Node build for a
+Python project, which is exactly the buildout the review warned the check
+would smuggle in.
+
+Loading the extension under Pi is the better test anyway. It exercises the
+real question — does Pi accept this file — rather than a proxy for it, and Pi
+already runs `.ts` directly. `.pi/extensions/hello-world.ts` is covered
+incidentally: it is loaded on every live run the suite already has.
+
+**2. Quoted code from files this project owns matches those files.** The
+chapter quotes `.pi/extensions/hello-world.ts`, `harness/runner.py`, and the
+teaching extension. A test asserts each quoted block appears verbatim in its
+source, so editing the code without editing the chapter fails the suite.
+
+**And the boundary: quotations from installed Pi are deliberately *not*
+tested.** A test asserting on a third-party file's contents would fail on any
+contributor whose Pi differs, for a reason they cannot fix in this repository,
+and would turn a routine upgrade into a red suite with no in-repo remedy. What
+guards those instead is weaker and stated as such: the chapter pins the
+version it was written against, and the gotchas record labels every claim
+**read** or **run**. A Pi upgrade therefore obliges a human re-read of the
+chapter — it is not caught automatically, and this spec says so rather than
+implying coverage that does not exist.
+
+Following `tests/test_research_records.py`, the docs-gating test Phase 2 cycle
+4 wrote, its docstring must state plainly what a green run does and does not
+mean.
 
 The existing suite must stay green, and strict Sphinx must build.
 
