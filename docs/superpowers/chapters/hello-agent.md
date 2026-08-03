@@ -77,21 +77,16 @@ pi --print --mode json --no-session --model <model> --no-extensions
 
 `--no-extensions` and `--extension` together look contradictory and are not.
 `--no-extensions` suppresses only *discovered* extensions; paths passed
-explicitly survive it. Pi's own help text says so — "Disable extension
-discovery (explicit -e paths still work)" — and the code agrees at
-`core/resource-loader.js:315-317`, where the `noExtensions` branch keeps only
-the CLI-supplied paths instead of merging in the discovered ones. That is what
-lets the harness run isolated from whatever else is installed on your machine
-while still loading its own instrument.
+explicitly survive it (`core/resource-loader.js:315-317`). That is what lets
+the harness run isolated from whatever else is installed on your machine
+while still loading its own instrument. The full mechanics — the three ways
+Pi finds an extension, and why `--approve` widens rather than narrows what
+gets loaded — are covered in
+[Extension mechanics](pi-extension-mechanics.md#how-pi-finds-an-extension).
 
 **`--approve` is not an isolation flag, despite the company it keeps here.**
-Pi's help says what it does: "Trust project-local files for this run"
-(`cli/args.js:263`). It *widens* trust rather than narrowing it — it is not
-about approving tool calls. The reason a model can't write a `.pi/extensions/`
-file into its workspace and have the next run load it is `--no-extensions`,
-which excludes project-local extensions entirely. If that flag were ever
-dropped from this list, `--approve` would make model-written extensions
-loadable. Worth knowing before you edit the invocation.
+It *widens* trust rather than narrowing it. Worth knowing before you edit the
+invocation.
 
 To try one by hand outside the harness, `-e` is the short form:
 

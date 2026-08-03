@@ -16,8 +16,8 @@ whose `package.json` reads `"version": "0.83.0"` and whose binary answers
 
 This matters, and not as pedantry. This cycle's own spec and plan,
 [the cycle 1 event vocabulary note](2026-08-02-phase3-cycle1-event-vocabulary.md),
-and [`chapters/hello-agent.md`](../chapters/hello-agent.md) all say
-0.82.0 — correctly, at the time they were written. In the day since, the
+and [`chapters/hello-agent.md`](../chapters/hello-agent.md) all said
+0.82.0 when this was written — correctly, at the time. In the day since, the
 installed package moved, and **one citation moved with it by five lines**
 (gotcha 1 below). A `file:line` into a compiled `dist/` is only meaningful
 against a stated version, and a record that names the wrong version is a

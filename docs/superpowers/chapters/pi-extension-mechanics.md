@@ -67,7 +67,8 @@ const extensionPaths = this.noExtensions
 ```
 
 — `core/resource-loader.js:315-317`, and verbatim again at `:408-410`.
-`noExtensions` appears nowhere else in that file. The explicitly-passed paths
+`noExtensions` is used nowhere else in that file beyond the field declaration
+and constructor assignment that store the option (`:120`, `:169`). The explicitly-passed paths
 are kept; the discovered ones are dropped.
 
 That combination is the whole reason this project's harness can be both
@@ -184,8 +185,8 @@ of lines. Here is that pair for the built-in `bash` tool, verbatim from
 `tests/fixtures/pi-run-0.82.0-entry-appended.jsonl` lines 12 and 14:
 
 ```json
-{"type": "tool_execution_start", "toolCallId": "call_434c6318", "toolName": "bash", "args": {"command": "mkdir -p templates tests"}}
-{"type": "tool_execution_end", "toolCallId": "call_434c6318", "toolName": "bash", "result": {"content": [{"type": "text", "text": "(no output)"}]}, "isError": false}
+{"type":"tool_execution_start","toolCallId":"call_434c6318","toolName":"bash","args":{"command":"mkdir -p templates tests"}}
+{"type":"tool_execution_end","toolCallId":"call_434c6318","toolName":"bash","result":{"content":[{"type":"text","text":"(no output)"}]},"isError":false}
 ```
 
 A registered tool appears in exactly that shape, with `toolName` set to the
@@ -225,9 +226,14 @@ It lives at `examples/extensions/subagent/` in the package root, next to
 
 **First: most of it is display code.** `renderCall` and `renderResult` run from
 `index.ts:700` to `:1013` — 314 lines, close to a third of the file — and they
-are the tool's TUI rendering. They never run in print mode: the only consumer
-of `renderCall` in `dist/` outside the built-in tools is
-`modes/interactive/components/tool-execution.js:59-64`. About a hundred more
+are the tool's terminal-UI rendering. They never run in print mode.
+`renderCall` has two consumers in `dist/` outside the built-in tools:
+`modes/interactive/components/tool-execution.js:59-64`, the interactive-mode
+renderer, and `core/export-html/tool-renderer.js:58-65`, reached only through
+`--export` (`cli/args.js:260`), which converts a saved session file to HTML
+after the fact. Neither runs during `--print` — one is interactive-only, the
+other a separate offline conversion — so the display code still never
+executes in the print-mode path this chapter cares about. About a hundred more
 lines of display formatting at `:38-137` feed them. **Skip them on a first read.** A
 large extension is not necessarily a complicated one; this one is a moderate
 tool wearing a large coat.
