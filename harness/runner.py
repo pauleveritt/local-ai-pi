@@ -119,6 +119,11 @@ def _pi_command(
     ]
     for extension in extensions:
         command += ["--extension", str(extension)]
+    # `--approve` is not an isolation flag: Pi's help defines it as "Trust
+    # project-local files for this run" (cli/args.js:263). It widens trust.
+    # Project-local extensions are excluded by `--no-extensions` above, not
+    # by anything here -- so removing that flag would make a model-written
+    # `.pi/extensions/*.ts` in the workspace loadable.
     command += [
         "--no-skills", "--no-prompt-templates", "--no-themes",
         "--no-context-files", "--approve", prompt,

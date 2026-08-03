@@ -75,6 +75,15 @@ discovery (explicit -e paths still work)" — and the code agrees at
 from whatever else is installed on your machine while still loading its own
 instrument.
 
+**`--approve` is not an isolation flag, despite the company it keeps here.**
+Pi's help says what it does: "Trust project-local files for this run"
+(`cli/args.js:263`). It *widens* trust rather than narrowing it — it is not
+about approving tool calls. The reason a model can't write a `.pi/extensions/`
+file into its workspace and have the next run load it is `--no-extensions`,
+which excludes project-local extensions entirely. If that flag were ever
+dropped from this list, `--approve` would make model-written extensions
+loadable. Worth knowing before you edit the invocation.
+
 To try one by hand outside the harness, `-e` is the short form:
 
 ```bash

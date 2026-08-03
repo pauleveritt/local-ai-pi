@@ -259,7 +259,7 @@ actually run.
 | Cycle | Summary | State |
 |-------|---------|-------|
 | 1 | Observable extension — establish what an extension can emit under `--print --mode json --no-session`, and get one piece of evidence to travel extension → captured stdout → `read_telemetry`. Transplant the prior chapter/spec as the teaching artifact, with a drift audit: the prior spec's `appendEntry({type, data})` is already stale against the installed `appendEntry(customType, data?)`. This row previously claimed that changing the extension changes run conditions because `RunConditions` records its path. It did not: `RunConditions` recorded only the path, never the contents, so editing `hello-world.ts` left the conditions byte-identical and `run_batch` would have resumed a checkpoint recorded under a different extension. That gap is closed by this cycle's new `RunConditions.extension_digests` — a SHA-256 per extension file — and only from that point is the claim true. | Done |
-| 2 | Specialized subagent — enable Pi's shipped subagent extension, author `.pi/agents/implementer.md` and the orchestrator prompt, and prove one delegation happens. No TypeScript orchestrator is written. | Planned |
+| 2 | Specialized subagent — enable Pi's shipped subagent extension, author an `implementer` specialist and the orchestrator prompt, and prove one delegation happens. No TypeScript orchestrator is written. Two problems found while speccing changed the shape: the child is spawned with only `["--mode","json","-p","--no-session"]` and inherits **none** of the harness's isolation flags, and project agents are found by walking up from cwd, so a repo-committed `.pi/agents/` is invisible from the disposable workspace. One lever fixes both — `PI_CODING_AGENT_DIR`, which the child inherits — at the cost of pre-provisioning that directory, since pointing it at an empty one makes Pi `git clone` a third-party repo. Also decides the directory-hashing question cycle 1 deferred, and adds a refusal check for non-single delegation modes. [spec](docs/superpowers/specs/2026-08-03-phase3-cycle2-specialized-subagent-design.md) | Specced |
 | 3 | Parent/child telemetry — attribute a delegated run's cost, closing Phase 2 cycle 1's deliberate exclusion now that a split exists to attribute. | Planned |
 | 4 | The handoff-packet cost claim — measure orchestrator-plus-implementer against doing the work directly. This is the claim that satisfied the gate to build telemetry at all, finally tested. | Planned |
 
@@ -271,8 +271,25 @@ compared against — and without it, cycle 4 would be measuring retry friction
 again. Phase 2 cycle 4's claim-checking discipline applies to cycle 4's
 record.
 
-**Cycle 1 is done; cycles 2–4 are deliberately not specced.** This entry
-records their direction and the prior art's location so the next session does
+**The fork was proposed and rejected, 2026-08-03.** The owner asked whether
+to fork Pi's shipped subagent example and own it. The decision is no, on one
+argument that would hold even if this roadmap had said the opposite: a fork
+freezes our copy against a substrate that keeps moving — the example imports
+from `pi-coding-agent`, `pi-tui`, `pi-ai`, and `pi-agent-core` — which is
+the posture that has already bitten this project twice. Referencing the
+shipped tree by path and digesting it into `RunConditions` instead means a Pi
+upgrade changes the digest and `run_batch` refuses to resume, so drift
+becomes loud rather than silent. The one thing a fork genuinely buys —
+removing `parallel` and `chain` from the model-facing schema, which would
+otherwise put several children on the single-threaded local model at once —
+is bought more cheaply by a refusal check. A ~150-line own tool is in the
+Backlog behind an evidence gate. Also worth recording: of the example's 1015
+lines, ~410 are TUI renderers dead under `--no-themes`, so "fork the example"
+and "write the small tool the example taught us to write" are different
+proposals wearing one word.
+
+**Cycle 1 is done, cycle 2 is specced, cycles 3–4 are deliberately not.** This
+entry records their direction and the prior art's location so the next session does
 not re-derive either; each of them still gets its own
 brainstorm → spec → plan.
 
@@ -572,6 +589,20 @@ things over.
 
 ## Backlog
 
+- **Our own minimal subagent tool — gated on evidence, not on preference.**
+  Roughly 150 lines: register one tool, read one frontmattered agent file,
+  spawn `pi --mode json -p --no-session` with flags *we* choose, parse the
+  child's stream, return its final text. It would buy exactly one thing the
+  shipped example cannot: a model-facing schema with no `parallel` or `chain`
+  mode, so the model cannot put several children on the single-threaded local
+  server at once. **The gate:** adopt it when a measured run shows the shipped
+  extension contaminating or losing a measurement — the model reaching for
+  parallel despite the prompt and the refusal check, child contamination
+  surviving `PI_CODING_AGENT_DIR`, or cycle 3 needing the child's raw byte
+  stream rather than what the parent's `tool_execution_end` already carries.
+  Until one of those fires it is machinery ahead of its contract, and the
+  shipped example is maintained by the people who move the APIs it depends
+  on. See the fork decision recorded under Phase 3.
 - **Why seven reviews missed a stale figure.** Phase 3 cycle 1 shipped "48
   inert runs" in five documents; the true census was 80, and a light
   independent review found it after six task-scoped reviews and one
