@@ -7,7 +7,7 @@
 
 `BRIEF.md` defines the product as "a Pi *extension* (not a fork of Pi) plus an
 eval harness." Phases 1 and 2 built the harness. `.pi/extensions/hello-world.ts`
-has been loaded on every one of 48 recorded runs and has produced **nothing
+has been loaded on every one of 80 recorded runs and has produced **nothing
 observable** in any of them.
 
 This cycle makes one custom entry travel extension → captured stdout →
@@ -184,7 +184,7 @@ an extension can and cannot emit under
   That is the whole contract, not a per-event allowlist.
 - The subscribe boundary sits after `bindExtensions`, which awaits
   `session_start`. Anything emitted during `session_start` is dropped for want
-  of a subscriber. This is the real cause of 48 inert runs.
+  of a subscriber. This is the real cause of 80 inert runs.
 - `ctx.ui.notify` has no destination under `--no-themes`. It is not an evidence
   channel.
 - `pi.sendMessage` reaches stdout but can enter LLM context

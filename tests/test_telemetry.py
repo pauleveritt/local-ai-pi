@@ -185,7 +185,7 @@ def test_reads_custom_entry_types_from_a_real_run():
 
 
 def test_the_pre_cycle1_fixture_has_no_custom_entries():
-    # Regression guard on the inert behaviour: 48 runs produced none,
+    # Regression guard on the inert behaviour: 80 runs produced none,
     # because the entry was appended before print mode subscribed.
     assert read_telemetry(_real_run()).custom_entries == ()
 

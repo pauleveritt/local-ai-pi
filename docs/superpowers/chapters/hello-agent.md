@@ -7,11 +7,13 @@ will have read the whole extension we actually run — 57 lines of TypeScript at
 are visible to the harness and which are not.
 
 The second half is the part worth your time. The extension was in the tree for
-48 recorded runs producing nothing observable, and the reason turned out to be
+80 recorded runs producing nothing observable, and the reason turned out to be
 one line's *placement*, not any missing API.
 
-Everything below cites the installed Pi 0.82.0 by file and line. Paths are
-relative to the installed package's `dist/` directory:
+Everything below cites the installed Pi 0.82.0 by file and line. Paths beginning
+`core/` or `modes/` are relative to the installed package's `dist/` directory;
+paths beginning `node_modules/` are relative to the package root, where the
+nested `pi-agent-core` package sits beside `dist/`:
 
 ```text
 ~/.volta/tools/image/packages/@earendil-works/pi-coding-agent/
@@ -54,7 +56,7 @@ EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / ".pi" / "extensions" / "hello-world.
 ```
 
 — `harness/runner.py:15`, and `_pi_command` emits one `--extension` flag per
-entry (`harness/runner.py:119-120`).
+entry (`harness/runner.py:120-121`).
 
 The full invocation is:
 
@@ -171,7 +173,7 @@ with no subscriber attached. The loss is permanent, not delayed: `_emit`
 walks the listener list synchronously at the moment of emission, with no buffer
 and no replay (`core/agent-session.js:285-289`).
 
-That is the whole explanation for 48 runs that produced nothing. The extension
+That is the whole explanation for 80 runs that produced nothing. The extension
 called `appendEntry` from `session_start`. The call worked. The entry was
 appended. The event was emitted. Nobody was listening yet.
 
@@ -268,5 +270,6 @@ makes it usable for measurement: an observation channel that could alter the
 model's context would change the very runs it exists to measure.
 
 The details behind every claim here, including the correction of an earlier
-wrong explanation for those 48 runs, are in
+wrong explanation for those 80 runs — and the correction of the count itself,
+which this chapter first gave as 48 — are in
 [the event vocabulary note](../research/2026-08-02-phase3-cycle1-event-vocabulary.md).

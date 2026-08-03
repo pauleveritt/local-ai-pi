@@ -10,6 +10,15 @@
 
 **Design:** `docs/superpowers/specs/2026-08-02-phase3-cycle1-observable-extension-design.md`
 
+> **One figure below is stale, and is left stale deliberately.** This plan says
+> "48 inert runs" in two places. The true census is **80** — cycle 3's clean
+> baseline had already added 32 runs when this plan was written, and nobody
+> noticed. The corrected figure and how it was verified are in
+> [the event vocabulary note](../research/2026-08-02-phase3-cycle1-event-vocabulary.md).
+> A plan records the instructions an implementer was actually given; editing it
+> after the fact would make the record of the error disappear along with the
+> error.
+
 ## Global Constraints
 
 - Python `>=3.14,<3.15`. No new runtime dependencies.

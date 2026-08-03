@@ -4,9 +4,14 @@ What a Pi extension can and cannot emit under the harness's actual invocation
 mode, `--print --mode json --no-session --no-themes`.
 
 Established 2026-08-02 by reading installed Pi 0.82.0 and then confirming the
-conclusion with one live model run. Every citation below is relative to the
-installed package root
-`~/.volta/tools/image/packages/@earendil-works/pi-coding-agent/lib/node_modules/@earendil-works/pi-coding-agent/dist/`.
+conclusion with one live model run. Citations below are relative to
+`~/.volta/tools/image/packages/@earendil-works/pi-coding-agent/lib/node_modules/@earendil-works/pi-coding-agent/`
+— `dist/…` for Pi's own compiled source, and `node_modules/…` for the nested
+`pi-agent-core` package, which sits beside `dist/` rather than inside it.
+
+*(An earlier version of this line said every path was relative to `dist/`.
+Following it landed on a nonexistent `dist/node_modules/…` — the same
+mislocation this note's own correction, below, is about.)*
 
 Cycle 3 has to attribute a delegated run's cost, and a delegated child is
 spawned as `pi --mode json -p --no-session`, so a delegation arrives in the
@@ -44,7 +49,7 @@ So the rule is one sentence: **everything the session emits after
 is permitted. It is only whether the emission happens on the right side of the
 subscribe boundary.
 
-## The subscribe boundary, and the real cause of 48 inert runs
+## The subscribe boundary, and the real cause of 80 inert runs
 
 Print mode's `rebindSession` calls `await session.bindExtensions(…)` at
 `modes/print-mode.js:50`, and only wires the subscriber at
@@ -61,11 +66,22 @@ with **no subscriber attached**. The drop is irrecoverable rather than delayed:
 `_emit` iterates the listener list synchronously at the moment of emission and
 there is no buffer and no replay (`core/agent-session.js:285-289`).
 
-**This is the real cause of the 48 recorded runs in which
+**This is the real cause of the 80 recorded runs in which
 `.pi/extensions/hello-world.ts` produced nothing observable, and it is not
 `--no-session`.** The extension called `appendEntry` from `session_start`; the
 call worked, the entry was appended, the event was emitted, and nobody was
 listening yet.
+
+*(This note first said 48, and so did four other documents. The figure was
+the size of Phase 2 cycle 2's precision baseline, not a census of recorded
+runs — cycle 3's clean baseline had already added 32 more. Verified by
+loading every checkpoint in `~/local-ai-pi-evidence/` and recomputing:
+16 + 32 + 13 + 19 = 80 runs, every one of them loading `hello-world.ts`,
+every one of them yielding `custom_entries == ()`. The correction is
+recorded here rather than quietly applied because the same cycle had
+already corrected a related cost claim three paragraphs from this one and
+left this figure standing — which is the whole reason it survived seven
+reviews.)*
 
 `ROADMAP.md` had recorded a different cause — that `--no-session` left
 `appendEntry` nowhere to write. That claim was arrived at by reading, was

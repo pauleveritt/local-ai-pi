@@ -241,7 +241,7 @@ before returning (`core/agent-session.js:1766`) — so the
 `entry_appended` our `session_start` handler produced was emitted with no
 subscriber attached and dropped, irrecoverably (`core/agent-session.js:285-289`).
 `--print --no-themes` does leave `ctx.ui.notify` no TUI
-(`core/extensions/runner.js:88-92`); that half was right. Every one of the 48
+(`core/extensions/runner.js:88-92`); that half was right. Every one of the 80
 recorded runs loaded seven handlers that produced nothing observable.
 
 *This paragraph previously attributed the inertness to `--no-session` leaving
