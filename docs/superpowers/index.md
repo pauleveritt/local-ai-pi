@@ -181,6 +181,7 @@ specs/2026-08-02-phase2-cycle4-claim-discipline-design
 specs/2026-08-02-phase3-cycle1-observable-extension-design
 specs/2026-08-03-phase3-cycle2-specialized-subagent-design
 specs/2026-08-03-phase3-cycle2-extension-mechanics-design
+specs/2026-08-03-pi-version-pin-design
 ```
 
 ```{toctree}
