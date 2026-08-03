@@ -156,6 +156,14 @@ opening for the own-tool.
 `implementer.md` plus an orchestrator prompt that gives the parent a reason to
 delegate. The tool's `agentScope` stays at its `"user"` default.
 
+**The specialist must pin the model in its frontmatter.** `--model` is passed
+to the child only `if (agent.model)` (`index.ts:295`). An `implementer.md`
+without a `model:` line therefore spawns a child running Pi's *default* model
+— potentially a cloud model, silently, in the middle of a measurement of a
+local one. `model: omlx/gemma-4-12B-it-MLX-8bit` is not a nicety; it is what
+keeps the delegated half of the run the thing we think we are measuring. A
+test asserts the frontmatter carries it.
+
 ## Proving it
 
 **A gating spike first, as in cycle 1**, because one claim is only

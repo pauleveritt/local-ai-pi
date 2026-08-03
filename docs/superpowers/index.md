@@ -193,6 +193,7 @@ plans/2026-08-02-phase2-cycle2-precision-baseline
 plans/2026-08-02-phase2-cycle3-honest-environment
 plans/2026-08-02-phase2-cycle4-claim-discipline
 plans/2026-08-02-phase3-cycle1-observable-extension
+plans/2026-08-03-phase3-cycle2-specialized-subagent
 ```
 
 ```{toctree}
