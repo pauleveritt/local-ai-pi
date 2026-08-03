@@ -572,6 +572,22 @@ things over.
 
 ## Backlog
 
+- **Why seven reviews missed a stale figure.** Phase 3 cycle 1 shipped "48
+  inert runs" in five documents; the true census was 80, and a light
+  independent review found it after six task-scoped reviews and one
+  whole-branch review had not. It was the third claim that cycle got wrong
+  in the same way — all three were *correction-adjacent*, written while
+  fixing something else. Two candidate responses, neither adopted:
+  a one-line process rule (*when a correction retires a fact, grep for every
+  other statement of that fact before committing*), and a reviewer role whose
+  explicit job is checking derived figures against their sources. What is
+  **not** proposed is extending cycle 4's table gate — all three misses were
+  prose claims about things outside the repo, a shape no plausible extension
+  of that gate reaches, and building one would be machinery ahead of its
+  contract. Revisit as an isolated discipline cycle, after checking the
+  hypothesis against the actual review transcripts rather than accepting the
+  diagnosis of the process that produced the misses. Not urgent: the misses
+  were all caught, and all by review.
 - Formatting cleanup: `uv run ruff format --check .` currently reports 21
   unformatted files across historical source, specs, and plans. This is
   mechanical, non-behavioral debt, so it stays deferred rather than widening a
