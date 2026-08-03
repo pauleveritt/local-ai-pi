@@ -179,10 +179,12 @@ pi -e examples/extensions/word-count.ts
 Then ask for a word count. In an interactive session you will see the tool run.
 
 Under `--mode json` there is no UI; every event the session emits is serialized
-to stdout instead (`modes/print-mode.js:80-84`). A tool call shows up as three
-consecutive lines: a start, a progress update, and an end. Here they are for
+to stdout instead (`modes/print-mode.js:80-84`). A tool call shows up as a
+`tool_execution_start`, zero or more `tool_execution_update` lines, then a
+`tool_execution_end` — most calls in this fixture skip straight from start to
+end, but the one quoted below happens to carry one update. Here they are for
 the built-in `bash` tool, verbatim from
-`tests/fixtures/pi-run-0.82.0-entry-appended.jsonl` lines 13-15:
+`tests/fixtures/pi-run-0.82.0-entry-appended.jsonl` lines 12-14:
 
 ```json
 {"type":"tool_execution_start","toolCallId":"call_434c6318","toolName":"bash","args":{"command":"mkdir -p templates tests"}}
@@ -190,11 +192,11 @@ the built-in `bash` tool, verbatim from
 {"type":"tool_execution_end","toolCallId":"call_434c6318","toolName":"bash","result":{"content":[{"type":"text","text":"(no output)"}]},"isError":false}
 ```
 
-A registered tool appears in exactly that shape, with `toolName` set to the
-`name` you gave it. That is what `tests/test_extensions.py` checks: it runs
-`word-count.ts` against the live model server and asserts that some
-`tool_execution_end` line carries `"toolName": "word_count"`. The fixture pair
-above is from a built-in tool because no `word_count` capture is committed —
+A registered tool appears in that same shape, with `toolName` set to the
+`name` you gave it. That is what `tests/test_extensions.py`
+checks: it runs `word-count.ts` against the live model server and asserts that
+some `tool_execution_end` line carries `"toolName": "word_count"`. The fixture
+excerpt above is from a built-in tool because no `word_count` capture is committed —
 the run happens live, under `SATYRN_LIVE=1`, and is not recorded.
 
 The full invocation that test uses is the harness's own, minus the harness:

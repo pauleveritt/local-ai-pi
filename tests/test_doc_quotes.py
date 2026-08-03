@@ -37,6 +37,12 @@ CHECKED_DIRS = (
 # A fenced block, plus the text just before it, so we can see which file
 # the prose said it came from.
 _BLOCK = re.compile(r"(?P<intro>[^\n]*)\n+```[a-z]*\n(?P<body>.*?)```", re.DOTALL)
+# The character class excludes ":", so a citation written as a single
+# backtick span with a trailing line number (e.g. `harness/runner.py:15`)
+# never matches. That style is used elsewhere in this project's docs, and
+# any fenced block introduced that way is silently unchecked by this test.
+# Known and accepted: measured cost is zero blocks today. Do not widen the
+# class to "fix" this without re-checking that cost.
 _OWNED = re.compile(r"`((?:examples|harness|tests|\.pi)/[\w./-]+)`")
 
 
