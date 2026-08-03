@@ -16,15 +16,22 @@ whose `package.json` reads `"version": "0.83.0"` and whose binary answers
 
 This matters, and not as pedantry. This cycle's own spec and plan,
 [the cycle 1 event vocabulary note](2026-08-02-phase3-cycle1-event-vocabulary.md),
-and [`chapters/hello-agent.md:13`](../chapters/hello-agent.md) all say
+and [`chapters/hello-agent.md`](../chapters/hello-agent.md) all say
 0.82.0 — correctly, at the time they were written. In the day since, the
 installed package moved, and **one citation moved with it by five lines**
-(gotcha 1 below) — the same drift is present, uncorrected, at
-[`chapters/hello-agent.md:179`](../chapters/hello-agent.md), which still
-cites `core/agent-session.js:1766` where 0.83.0 now emits at `:1761`. A
-`file:line` into a compiled `dist/` is only meaningful against a stated
-version, and a record that names the wrong version is a record whose
-citations will silently rot. Read every number here as *0.83.0*.
+(gotcha 1 below). A `file:line` into a compiled `dist/` is only meaningful
+against a stated version, and a record that names the wrong version is a
+record whose citations will silently rot. Read every number here as *0.83.0*.
+
+*(Updated 2026-08-03, later the same day. This paragraph reported the same
+five-line drift as "present, uncorrected" in the chapter, and gotcha 9 below
+reported two further chapter errors the same way. All of them have since been
+fixed in place: every citation in
+[`chapters/hello-agent.md`](../chapters/hello-agent.md) was re-opened against
+0.83.0, eight had drifted, and the chapter now states 0.83.0 and carries its
+own correction notes. This record's chapter references are given without line
+numbers from here on, since the chapter's own lines move when it is
+corrected.)*
 
 Paths: `core/…`, `modes/…`, `cli/…` and `config.js` are relative to `dist/`.
 `examples/extensions/subagent/…` is relative to the *package root* — it is
@@ -264,8 +271,9 @@ looking entirely plausible.
 *This gotcha's own statement is corrected here.* It was previously written as
 "no destination under `--no-themes`", in this project's spec, in
 [the cycle 1 note](2026-08-02-phase3-cycle1-event-vocabulary.md), and in
-[`chapters/hello-agent.md:137-138`](../chapters/hello-agent.md) — the
-reader-facing chapter, the one most likely to be taken as authoritative. The
+[`chapters/hello-agent.md`](../chapters/hello-agent.md) — the
+reader-facing chapter, the one most likely to be taken as authoritative
+(corrected there 2026-08-03). The
 operational conclusion holds — `notify` is not an evidence channel under the
 harness's invocation — but the named cause was wrong. `--no-themes` disables
 theme *discovery* (`cli/args.js:258`). The no-op UI has nothing to do with it.
@@ -292,8 +300,8 @@ So it is `--print` that silences `notify`, and it would be silent with themes
 fully enabled.
 
 *A second correction, smaller: not the cycle 1 note, which never cites this
-line, but [`chapters/hello-agent.md:146`](../chapters/hello-agent.md) and
-this cycle's own
+line, but [`chapters/hello-agent.md`](../chapters/hello-agent.md) (corrected
+there 2026-08-03) and this cycle's own
 [extension-mechanics plan, line 236](../plans/2026-08-03-phase3-cycle2-extension-mechanics.md)
 cited `modes/interactive/interactive-mode.js:1670` for interactive mode's
 "real one." Line 1670 is `notify: ui.notify` inside

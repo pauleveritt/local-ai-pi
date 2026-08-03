@@ -10,7 +10,7 @@ The second half is the part worth your time. The extension was in the tree for
 80 recorded runs producing nothing observable, and the reason turned out to be
 one line's *placement*, not any missing API.
 
-Everything below cites the installed Pi 0.82.0 by file and line. Paths beginning
+Everything below cites the installed Pi 0.83.0 by file and line. Paths beginning
 `core/` or `modes/` are relative to the installed package's `dist/` directory;
 paths beginning `node_modules/` are relative to the package root, where the
 nested `pi-agent-core` package sits beside `dist/`:
@@ -19,6 +19,14 @@ nested `pi-agent-core` package sits beside `dist/`:
 ~/.volta/tools/image/packages/@earendil-works/pi-coding-agent/
   lib/node_modules/@earendil-works/pi-coding-agent/dist/
 ```
+
+*(Corrected 2026-08-03. This chapter was written against 0.82.0 and said so.
+The installed package moved to 0.83.0 a day later, and every citation below
+was re-opened against it: eight line numbers had drifted and are fixed in
+place, and two claims were wrong in 0.82.0 as well — the interactive `notify`
+citation and the flag blamed for `notify`'s silence. Both are corrected and
+noted where they occur. A `file:line` into a compiled `dist/` is only
+meaningful against a stated version; that is why the version is stated.)*
 
 ## An extension is a function
 
@@ -37,7 +45,7 @@ export default function (pi: ExtensionAPI) {
 
 That is the whole contract. The type is
 `ExtensionFactory = (pi: ExtensionAPI) => void | Promise<void>`
-(`core/extensions/types.d.ts:1076`). Pi calls it once at startup and keeps
+(`core/extensions/types.d.ts:1084`). Pi calls it once at startup and keeps
 whatever you registered.
 
 The import is `import type`, so it is erased before anything runs — no
@@ -125,7 +133,7 @@ which calls `runAgentLoopContinue`; and that function's first act is
 (`node_modules/@earendil-works/pi-agent-core/dist/agent-loop.js:67`).
 
 Note the path: `pi-agent-core` is a *nested* dependency of the installed
-package, at the same 0.82.0 version. It is not a sibling in the top-level
+package, at the same 0.83.0 version. It is not a sibling in the top-level
 `node_modules`, which is why a directory listing can make it look absent.
 
 ## `ctx.ui.notify` shows you nothing here
@@ -134,17 +142,32 @@ Run the harness and you will see none of those seven notifications. This is not
 broken.
 
 Pi's extension runner supplies a no-op UI context whose `notify` is an empty
-function (`core/extensions/runner.js:88-92`). Under `--no-themes` there is no
-terminal UI for a notification to reach, and there is no fallback to stdout.
-The handler runs; the message goes nowhere.
+function (`core/extensions/runner.js:88-92`). **`--print` is what leaves the
+extension holding it.** Print mode's `bindExtensions({…})` object
+(`modes/print-mode.js:50-78`) has no `uiContext` key at all, so `setUIContext`
+is handed `undefined` and falls back: `this.uiContext = uiContext ?? noOpUIContext`
+(`core/extensions/runner.js:268`). The handler runs; the message goes nowhere.
 
 The right way to hold this: `notify` is a property of *how Pi was invoked*, not
 a capability the extension does or does not have. Load the same file in an
-interactive `pi` session and the notifications appear: interactive mode builds
-its extension UI context with a real implementation,
-`notify: (message, type) => this.showExtensionNotify(message, type)`
-(`modes/interactive/interactive-mode.js:1670`). The harness deliberately runs
-without a UI, so it deliberately gets no notifications.
+interactive `pi` session and the notifications appear: interactive mode passes a
+`uiContext` (`modes/interactive/interactive-mode.js:1218-1219`) built by
+`createExtensionUIContext` at `:1674`, whose
+`notify: (message, type) => this.showExtensionNotify(message, type)` sits at
+`:1679`. The harness deliberately runs without a UI, so it deliberately gets no
+notifications.
+
+*(Two corrections, 2026-08-03, and both were wrong in 0.82.0 too — neither is
+version drift. This paragraph previously blamed `--no-themes` for the silence.
+It is not responsible: `--no-themes` disables theme discovery and loading
+(`cli/args.js:258`) and never touches the extension UI context. And the
+interactive `notify` was cited at `modes/interactive/interactive-mode.js:1670`,
+which is `notify: ui.notify` inside `createProjectTrustContext` — a different
+context, for project-trust prompts, that merely borrows the same callbacks. The
+citation resolved to a line containing the word `notify`, which is exactly how a
+wrong citation survives a review. The operational conclusion is unchanged: under
+this harness's invocation, `notify` is not an evidence channel. Full chain in
+[gotcha 9](../research/2026-08-03-phase3-cycle2-pi-gotchas.md).)*
 
 The seven handlers stay anyway. They are the lifecycle tour, and their silence in
 this mode is a recorded finding rather than a defect to fix.
@@ -176,7 +199,10 @@ subscriber at `modes/print-mode.js:80`, once the await returns. And
 await this._extensionRunner.emit(this._sessionStartEvent);
 ```
 
-— `core/agent-session.js:1766`.
+— `core/agent-session.js:1761`, the second-to-last statement of a method that
+begins at `:1741`. *(Corrected 2026-08-03: this was cited as `:1766`, which was
+right for 0.82.0 and, in 0.83.0, lands on a bare `return;` inside a different
+method. Five lines of drift, one minor version.)*
 
 So anything an extension emits from inside a `session_start` handler is emitted
 with no subscriber attached. The loss is permanent, not delayed: `_emit`
@@ -207,11 +233,12 @@ pi.appendEntry("evidence", { event: "agent_start" });
 
 The signature is
 `appendEntry<T = unknown>(customType: string, data?: T): void`
-(`core/extensions/types.d.ts:915`) — a string type ID, then optional data.
+(`core/extensions/types.d.ts:923`) — a string type ID, then optional data.
 
 Despite the name, it does not write to disk on this path. It appends to an
 in-memory map (`core/session-manager.js:820-831`) and emits
-`{type: "entry_appended", entry}` (`core/agent-session.js:1869-1874`). Writing
+`{type: "entry_appended", entry}` (`core/agent-session.js:1864-1869`, the emit
+itself at `:1868`). Writing
 to disk is a separate step gated on session persistence, and nothing in that
 chain touches it — which is why `--no-session` does not interfere.
 
@@ -257,10 +284,10 @@ through the agent's `beforeToolCall` hook (`core/agent-session.js:214-224`),
 and is never passed to `_emit`. The fixture's 157 lines contain no `tool_call`.
 Its sibling `tool_result` works the same way. Both are still real, but they are
 not interchangeable. `tool_call` is "fired before a tool executes. Can block."
-(`core/extensions/types.d.ts:679`) — inspect it, block it, or patch it, since
-`event.input` is mutable in 0.82.0 and a handler can rewrite a tool's arguments
-in place (`core/extensions/types.d.ts:679-683`). `tool_result` is "fired after
-a tool executes. Can modify result." (`core/extensions/types.d.ts:726`) — by
+(`core/extensions/types.d.ts:685`) — inspect it, block it, or patch it, since
+`event.input` is mutable in 0.83.0 and a handler can rewrite a tool's arguments
+in place (`core/extensions/types.d.ts:684-690`). `tool_result` is "fired after
+a tool executes. Can modify result." (`core/extensions/types.d.ts:732`) — by
 then the tool has run, and the hook can only substitute `content`, `details`,
 `isError`, and `usage` (`core/agent-session.js:250-257`). Blocking is
 `tool_call`'s alone. And if you want a record of either, you have to append an
@@ -275,7 +302,7 @@ declare.
 
 `entry_appended` is a channel that is observable in the harness's real
 invocation mode and cannot reach the model — custom entries do not participate
-in LLM context (`core/extensions/types.d.ts:900`). That combination is what
+in LLM context (`core/extensions/types.d.ts:908`). That combination is what
 makes it usable for measurement: an observation channel that could alter the
 model's context would change the very runs it exists to measure.
 
@@ -283,3 +310,17 @@ The details behind every claim here, including the correction of an earlier
 wrong explanation for those 80 runs — and the correction of the count itself,
 which this chapter first gave as 48 — are in
 [the event vocabulary note](../research/2026-08-02-phase3-cycle1-event-vocabulary.md).
+
+*(Citation drift corrected 2026-08-03, 0.82.0 → 0.83.0. `types.d.ts` moved
+`ExtensionFactory` `:1076`→`:1084`, `appendEntry` `:915`→`:923`, `tool_call`
+`:679`→`:685` and `:679-683`→`:684-690`, `tool_result` `:726`→`:732`, and the
+custom-entry note `:900`→`:908`; `agent-session.js` moved the `session_start`
+emit `:1766`→`:1761` and the `entry_appended` emit `:1869-1874`→`:1864-1869`.
+Every other citation in this chapter — into `dist/`, into `harness/`, and into
+the two committed fixtures — was re-opened on 2026-08-03 and is unchanged. The
+fixtures keep their `0.82.0` filenames because that is the version that
+produced them.)*
+
+Extension *discovery*, `registerTool`, and Pi's own shipped subagent extension
+read as a worked example are the next chapter:
+[Extension mechanics](pi-extension-mechanics.md).
