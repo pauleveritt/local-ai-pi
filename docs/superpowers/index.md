@@ -129,6 +129,11 @@ cycle's argument.
   lifecycle the project's own extension tours, and why *where* you emit
   decides whether anything hears it.
 
+- [Extension mechanics](chapters/pi-extension-mechanics.md) — how Pi finds an
+  extension, how `registerTool` works taught from a twenty-line example you can
+  run, and Pi's own shipped subagent extension read as a worked example rather
+  than adopted.
+
 ## Research
 
 - [Cycle 1 fixture results](research/2026-07-30-phase1-cycle1-fixture-results.md)
@@ -216,6 +221,7 @@ plans/2026-08-03-phase3-cycle2-extension-mechanics
 :caption: Chapters
 
 chapters/hello-agent
+chapters/pi-extension-mechanics
 ```
 
 ```{toctree}
