@@ -80,12 +80,13 @@ Node toolchain); confirm with:
 pi --version    # 0.83.0
 ```
 
-If yours differs, nothing here stops working — but what a contributor *should*
-do about it is still an open decision, recorded as **"Pin the Pi version the
-harness runs against"** in `ROADMAP.md`'s Backlog. Read that entry before
-assuming a mismatch is safe to ignore: `RunConditions.pi_version` refuses a
-batch that spans an upgrade, and `file:line` citations into Pi's `dist/` drift
-between minor versions.
+The harness pins this version: `EXPECTED_PI_VERSION` in `harness/runner.py`.
+`run_batch` refuses to run on any other version, so batches from different
+contributors stay comparable; a single run and the test suite do not check
+it, so exploring the harness on a different Pi is never blocked. If yours
+differs, either install Pi `0.83.0`, or bump `EXPECTED_PI_VERSION` and
+re-check the documentation that cites Pi by file and line — those citations
+do not survive upgrades and no test catches them.
 
 Two things to know about how we call it. We always run **non-interactive**
 (`--print`), and we disable Pi's ambient extensions, skills, prompt templates,
