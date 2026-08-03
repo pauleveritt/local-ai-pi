@@ -140,6 +140,10 @@ cycle's argument.
   — what an extension can and cannot emit under
   `--print --mode json --no-session --no-themes`, and the corrected cause of
   48 inert runs.
+- [Phase 3, cycle 2 — the Pi gotchas record](research/2026-08-03-phase3-cycle2-pi-gotchas.md)
+  — ten findings this project paid to discover, each with a checked citation
+  into the installed package, each labelled **read** or **run**, and each with
+  what it cost.
 
 ```{toctree}
 :hidden:
@@ -225,4 +229,5 @@ research/2026-08-02-phase2-cycle2-precision-baseline
 research/2026-08-02-phase2-cycle3-clean-baseline
 research/2026-08-02-phase2-remaining-plan
 research/2026-08-02-phase3-cycle1-event-vocabulary
+research/2026-08-03-phase3-cycle2-pi-gotchas
 ```
