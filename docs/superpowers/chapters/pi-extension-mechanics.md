@@ -82,8 +82,7 @@ therefore one file, or one directory — not necessarily a package.
 ## Registering a tool
 
 `registerTool` is how an extension gives the model something new to call. Here
-is the entire teaching example, `examples/extensions/word-count.ts` in this
-repository:
+is the entire teaching example in this repository, `examples/extensions/word-count.ts`:
 
 ```typescript
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -180,12 +179,14 @@ pi -e examples/extensions/word-count.ts
 Then ask for a word count. In an interactive session you will see the tool run.
 
 Under `--mode json` there is no UI; every event the session emits is serialized
-to stdout instead (`modes/print-mode.js:80-84`). A tool call shows up as a pair
-of lines. Here is that pair for the built-in `bash` tool, verbatim from
-`tests/fixtures/pi-run-0.82.0-entry-appended.jsonl` lines 12 and 14:
+to stdout instead (`modes/print-mode.js:80-84`). A tool call shows up as three
+consecutive lines: a start, a progress update, and an end. Here they are for
+the built-in `bash` tool, verbatim from
+`tests/fixtures/pi-run-0.82.0-entry-appended.jsonl` lines 13-15:
 
 ```json
 {"type":"tool_execution_start","toolCallId":"call_434c6318","toolName":"bash","args":{"command":"mkdir -p templates tests"}}
+{"type":"tool_execution_update","toolCallId":"call_434c6318","toolName":"bash","args":{"command":"mkdir -p templates tests"},"partialResult":{"content":[]}}
 {"type":"tool_execution_end","toolCallId":"call_434c6318","toolName":"bash","result":{"content":[{"type":"text","text":"(no output)"}]},"isError":false}
 ```
 

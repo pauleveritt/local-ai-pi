@@ -266,7 +266,7 @@ actually run.
 | Cycle | Summary | State |
 |-------|---------|-------|
 | 1 | Observable extension — establish what an extension can emit under `--print --mode json --no-session`, and get one piece of evidence to travel extension → captured stdout → `read_telemetry`. Transplant the prior chapter/spec as the teaching artifact, with a drift audit: the prior spec's `appendEntry({type, data})` is already stale against the installed `appendEntry(customType, data?)`. This row previously claimed that changing the extension changes run conditions because `RunConditions` records its path. It did not: `RunConditions` recorded only the path, never the contents, so editing `hello-world.ts` left the conditions byte-identical and `run_batch` would have resumed a checkpoint recorded under a different extension. That gap is closed by this cycle's new `RunConditions.extension_digests` — a SHA-256 per extension file — and only from that point is the claim true. | Done |
-| 2 | Extension mechanics, and the gotchas we paid for — teach how a Pi extension actually works, using `hello-world.ts` and Pi's shipped subagent extension read as a worked example, plus one small teaching extension of our own that registers a tool. Record the gotchas this project has already paid to find. **No orchestrator, no delegation in the harness, no harness changes at all.** [spec](docs/superpowers/specs/2026-08-03-phase3-cycle2-extension-mechanics-design.md) | Specced |
+| 2 | Extension mechanics, and the gotchas we paid for — teach how a Pi extension actually works, using `hello-world.ts` and Pi's shipped subagent extension read as a worked example, plus one small teaching extension of our own that registers a tool. Record the gotchas this project has already paid to find. **No orchestrator, no delegation in the harness, no harness changes at all.** [spec](docs/superpowers/specs/2026-08-03-phase3-cycle2-extension-mechanics-design.md), [plan](docs/superpowers/plans/2026-08-03-phase3-cycle2-extension-mechanics.md) | Done |
 
 **Cycles 3 and 4 were withdrawn from this phase, 2026-08-03.** They were
 *parent/child telemetry* and *the handoff-packet cost claim*, and both are
@@ -297,7 +297,7 @@ lines, ~410 are TUI renderers dead under `--no-themes`, so "fork the example"
 and "write the small tool the example taught us to write" are different
 proposals wearing one word.
 
-**Cycle 1 is done; cycle 2 is specced.** There is no cycle 3 or 4 in this
+**Cycles 1 and 2 are both done.** There is no cycle 3 or 4 in this
 phase — they were withdrawn to the Backlog, above. This entry records the
 prior art's location so a later session need not re-derive it. Any further
 cycle in this phase still gets its own brainstorm → spec → plan.

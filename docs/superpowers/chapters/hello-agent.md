@@ -57,14 +57,14 @@ Python, the handlers below read the same way.
 
 ### How this project loads it
 
-The harness passes the path explicitly:
+The harness passes the path explicitly, in `harness/runner.py` at line 15:
 
 ```python
 EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / ".pi" / "extensions" / "hello-world.ts",)
 ```
 
-— `harness/runner.py:15`, and `_pi_command` emits one `--extension` flag per
-entry (`harness/runner.py:120-121`).
+And `_pi_command` emits one `--extension` flag per entry
+(`harness/runner.py:120-121`).
 
 The full invocation is:
 
@@ -221,6 +221,8 @@ The fix was to move one line from one handler to another. No new API, no change
 to how Pi is invoked.
 
 ## `appendEntry`, and the one entry that travels
+
+Here is the call, verbatim from `.pi/extensions/hello-world.ts`:
 
 ```typescript
 pi.appendEntry("evidence", { event: "agent_start" });
