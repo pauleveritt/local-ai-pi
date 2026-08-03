@@ -95,6 +95,7 @@ The ones already paid for:
 | Project-scope agents are discovered by walking **up from cwd** | A repo-committed `.pi/agents/` is invisible to a process running in a temp directory. |
 | An agent file without `model:` in its frontmatter spawns a child on Pi's *default* model | `--model` reaches the child only `if (agent.model)`. A measurement of a local model can silently acquire a cloud one. |
 | `ctx.ui.notify` has no destination under `--no-themes` | Print mode supplies a no-op UI context. It is not an evidence channel. |
+| An extension's bare imports resolve through Pi's own module graph | `import { Type } from "typebox"` works from a file in this repository with no `node_modules` beside it — which is why a teaching extension needs no build step. Found while planning, by running. |
 
 Each entry states what it cost us, because a gotcha with a price attached is
 remembered and one without is skimmed.
