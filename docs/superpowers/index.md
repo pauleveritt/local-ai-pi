@@ -105,6 +105,14 @@ Designs that were approved and then withdrawn are kept, headed with a
 banner explaining why. They're often more instructive than the ones that
 shipped.
 
+- [Phase 3, cycle 2 — specialized subagent](specs/2026-08-03-phase3-cycle2-specialized-subagent-design.md)
+  — approved and withdrawn the same day, when the owner challenged whether
+  Phase 3 should be getting into orchestration. It should not have been, and
+  the roadmap had already said so in a Backlog entry nobody reconciled it
+  against. The research survives: how Pi spawns a subagent child, what that
+  child does and does not inherit, and the environment lever that isolates
+  it.
+
 - [Cycle 14 — live-server suite execution](specs/2026-08-01-phase1-cycle14-live-server-execution-design.md)
   — approved, then withdrawn the same day when the owner challenged whether
   the threat it defended against was real. It wasn't. The research
@@ -120,14 +128,6 @@ cycle's argument.
 - [Hello, agent](chapters/hello-agent.md) — what a Pi extension is, the
   lifecycle the project's own extension tours, and why *where* you emit
   decides whether anything hears it.
-
-- [Phase 3, cycle 2 — specialized subagent](specs/2026-08-03-phase3-cycle2-specialized-subagent-design.md)
-  — approved and withdrawn the same day, when the owner challenged whether
-  Phase 3 should be getting into orchestration. It should not have been, and
-  the roadmap had already said so in a Backlog entry nobody reconciled it
-  against. The research survives: how Pi spawns a subagent child, what that
-  child does and does not inherit, and the environment lever that isolates
-  it.
 
 ## Research
 

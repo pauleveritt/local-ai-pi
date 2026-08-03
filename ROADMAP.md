@@ -128,7 +128,7 @@ occurrences either. Both revive if and when the experiment is scheduled.
 |---|-------|--------------------------|--------|
 | 1 | Reproduce AgentClinic Phase 1 | One trustworthy, hermetically-graded run; n=16 reproducing ~15/16 | complete |
 | 2 | Measurement we can trust, cheaply enough to repeat | Instrument a run, characterize its precision, make the environment honest, and impose a discipline on published numbers | complete; the n=100 affordability target was retired 2026-08-02 by the phase's own findings — see "Now" |
-| 3 | Build the extension half | The product is "a Pi extension plus an eval harness"; two phases built the harness. Specialize Pi's shipped subagent, then test the handoff-packet cost claim with the instrument Phase 2 built | planned |
+| 3 | Build the extension half | The product is "a Pi extension plus an eval harness"; two phases built the harness. Make the extension observable, then teach the mechanics and record the gotchas. *(This row previously read "Specialize Pi's shipped subagent, then test the handoff-packet cost claim" — withdrawn 2026-08-03 as orchestration work the Backlog had already deferred.)* | in progress |
 
 ### Phase 1 feature cycles
 
@@ -297,10 +297,10 @@ lines, ~410 are TUI renderers dead under `--no-themes`, so "fork the example"
 and "write the small tool the example taught us to write" are different
 proposals wearing one word.
 
-**Cycle 1 is done, cycle 2 is specced, cycles 3–4 are deliberately not.** This
-entry records their direction and the prior art's location so the next session does
-not re-derive either; each of them still gets its own
-brainstorm → spec → plan.
+**Cycle 1 is done; cycle 2 is specced.** There is no cycle 3 or 4 in this
+phase — they were withdrawn to the Backlog, above. This entry records the
+prior art's location so a later session need not re-derive it. Any further
+cycle in this phase still gets its own brainstorm → spec → plan.
 
 **Why this order.** Cycles 3–7 build and prove the entire judging apparatus
 *before* a model runs once — every one of them is provable against fixtures
@@ -607,7 +607,8 @@ things over.
   server at once. **The gate:** adopt it when a measured run shows the shipped
   extension contaminating or losing a measurement — the model reaching for
   parallel despite the prompt and the refusal check, child contamination
-  surviving `PI_CODING_AGENT_DIR`, or cycle 3 needing the child's raw byte
+  surviving `PI_CODING_AGENT_DIR`, or the deferred parent/child attribution
+  work needing the child's raw byte
   stream rather than what the parent's `tool_execution_end` already carries.
   Until one of those fires it is machinery ahead of its contract, and the
   shipped example is maintained by the people who move the APIs it depends

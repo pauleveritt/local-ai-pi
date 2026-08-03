@@ -71,9 +71,10 @@ pi --print --mode json --no-session --model <model> --no-extensions
 `--no-extensions` suppresses only *discovered* extensions; paths passed
 explicitly survive it. Pi's own help text says so — "Disable extension
 discovery (explicit -e paths still work)" — and the code agrees at
-`core/resource-loader.js:267-269`. That is what lets the harness run isolated
-from whatever else is installed on your machine while still loading its own
-instrument.
+`core/resource-loader.js:315-317`, where the `noExtensions` branch keeps only
+the CLI-supplied paths instead of merging in the discovered ones. That is what
+lets the harness run isolated from whatever else is installed on your machine
+while still loading its own instrument.
 
 **`--approve` is not an isolation flag, despite the company it keeps here.**
 Pi's help says what it does: "Trust project-local files for this run"

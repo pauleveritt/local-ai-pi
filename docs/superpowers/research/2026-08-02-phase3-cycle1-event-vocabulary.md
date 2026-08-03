@@ -207,7 +207,11 @@ const extensionPaths = this.noExtensions
     : this.mergePaths(cliEnabledExtensions, enabledExtensions);
 ```
 
-— `core/resource-loader.js:267-269`. The `noExtensions` branch keeps
+— `core/resource-loader.js:315-317` (and again at `:408-410`). *(Corrected
+2026-08-03: this note and the chapter both cited `:267-269`, which is
+project-trust code. The claim was always true — `cli/args.js:252` states it —
+but the line reference was not, and a light review caught what an earlier
+review had confirmed as exact.)* The `noExtensions` branch keeps
 `cliEnabledExtensions`; it drops only the discovered set.
 
 This is why the harness can run with ambient extensions disabled — its isolation
