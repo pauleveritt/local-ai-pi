@@ -598,6 +598,23 @@ things over.
 
 ## Backlog
 
+- **Pin the Pi version the harness runs against.** Discovered the hard way on
+  2026-08-03: Pi went from 0.82.0 to 0.83.0 *during a working session*. Every
+  mechanism this project depends on survived, but eight `file:line` citations
+  in a published chapter went stale in one upgrade, and nothing in the suite
+  could catch it — no test can check a citation into `dist/`. The measurement
+  risk is worse than the documentation risk: `RunConditions.pi_version`
+  records the version, so a batch spanning an upgrade is refused, but two
+  collaborators on different Pi versions would produce results that look
+  comparable and are not. **What to decide when this is scheduled:** whether
+  to pin an exact version and how (a documented `volta pin`, a recorded
+  minimum in `docs/setup.md`, or a preflight that refuses an unexpected
+  version outright), and what a contributor should do when their Pi differs.
+  Note the tension with the deliberate choice made in cycle 2's quote-checking
+  test: quotations from the installed package are *not* gated precisely
+  because a contributor's Pi may differ and they cannot fix that here. Pinning
+  would change that calculus.
+
 - **Our own minimal subagent tool — gated on evidence, not on preference.**
   Roughly 150 lines: register one tool, read one frontmattered agent file,
   spawn `pi --mode json -p --no-session` with flags *we* choose, parse the
