@@ -77,8 +77,15 @@ Install it however you prefer (we use [Volta](https://volta.sh/) for the
 Node toolchain); confirm with:
 
 ```bash
-pi --version    # 0.82.0
+pi --version    # 0.83.0
 ```
+
+If yours differs, nothing here stops working — but what a contributor *should*
+do about it is still an open decision, recorded as **"Pin the Pi version the
+harness runs against"** in `ROADMAP.md`'s Backlog. Read that entry before
+assuming a mismatch is safe to ignore: `RunConditions.pi_version` refuses a
+batch that spans an upgrade, and `file:line` citations into Pi's `dist/` drift
+between minor versions.
 
 Two things to know about how we call it. We always run **non-interactive**
 (`--print`), and we disable Pi's ambient extensions, skills, prompt templates,

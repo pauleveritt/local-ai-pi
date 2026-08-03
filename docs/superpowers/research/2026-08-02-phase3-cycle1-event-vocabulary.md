@@ -169,9 +169,20 @@ listing rather than a search is the same failure in humbler dress.*
 ## `ctx.ui.notify` is not an evidence channel
 
 The extension runner supplies a `noOpUIContext` whose `notify` is an empty
-function (`core/extensions/runner.js:88-92`). Under `--no-themes` there is no
-TUI for it to reach and no fallback to stdout. This half of `ROADMAP.md`'s
-original claim was correct.
+function (`core/extensions/runner.js:88-92`). Under `--print` there is no
+TUI for it to reach and no fallback to stdout. The operational half of
+`ROADMAP.md`'s original claim — that `notify` is not an evidence channel
+here — was correct.
+
+*(Corrected 2026-08-03: this section said "under `--no-themes`", and credited
+that half of the original claim as correct without qualification. The
+conclusion holds but the named cause was wrong, and it was wrong in 0.82.0
+too — this is not line drift the header's version pin excuses. `--no-themes`
+governs theme discovery only (`cli/args.js:258`); what silences `notify` is
+`--print`, because print mode's `bindExtensions({…})` passes no `uiContext`
+and `setUIContext(undefined)` falls back to `noOpUIContext`. The four-hop
+chain is gotcha 9 of
+[the cycle 2 Pi gotchas record](2026-08-03-phase3-cycle2-pi-gotchas.md).)*
 
 The seven `notify` handlers in `hello-world.ts` stay anyway. They are the
 teaching artifact's lifecycle tour, and their invisibility in this mode is a
@@ -261,7 +272,7 @@ before treating them as things the prior work got wrong.
 | 3 | Verify with `grep "session_start" ~/.pi/agent/sessions/<dir>/<id>.jsonl`, looking for `"type":"evidence"` | Under `--no-session` there is no such file at all; and the entry's `type` is `"custom"` — the string you passed lands in `customType` | fixture line 2; `core/session-manager.js:240-246` |
 | 4 | The `appendEntry` call belongs in the `session_start` handler | That placement drops the entry: the json-mode subscriber is attached only after `bindExtensions` returns, and `bindExtensions` emits `session_start` before returning | `modes/print-mode.js:50` vs `:80`, `core/agent-session.js:1766`; body of this note |
 | 5 | (not a divergence — hygiene, recorded for completeness) Payload includes `timestamp: Date.now()` | Redundant — the entry carries its own `timestamp` — and it makes every captured stdout differ from the last for no gain | fixture line 2 |
-| 6 | "Restart Pi … you'll see a notification flash" | True in an interactive session; under the harness's `--no-themes` print mode `notify` is a no-op function | `core/extensions/runner.js:88-92` |
+| 6 | "Restart Pi … you'll see a notification flash" | True in an interactive session; under the harness's **`--print`** mode `notify` is a no-op function *(this row read `--no-themes` until 2026-08-03; see the `ctx.ui.notify` section above and gotcha 9)* | `core/extensions/runner.js:88-92`, `modes/print-mode.js:50-78` |
 | 7 | `tool_call` is presented alongside `tool_execution_*` as an observable lifecycle event | `tool_call` is delivered to **extensions only**, via the agent's `beforeToolCall` hook, and is never passed to `_emit`. It appears zero times in the 157-line fixture. `tool_result` behaves the same way | `core/agent-session.js:214-224` and `:234-247`; fixture |
 | 8 | The lifecycle diagram treats "the event" as a single thing | The extension event and the stdout event are **separately constructed objects**. A `turn_end` handler receives `turnIndex`; the `turn_end` line on stdout has only `type`, `message`, `toolResults` | `core/agent-session.js:427-451`; fixture |
 | 9 | Seven events named as the lifecycle | 0.82.0 also emits `turn_start`, `message_start` / `message_update` / `message_end`, `tool_execution_update`, and `agent_settled` on the same stream. The tour is a selection, not a census | fixture event sequence; `core/extensions/types.d.ts:847-880` |

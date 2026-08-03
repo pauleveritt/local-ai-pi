@@ -244,12 +244,20 @@ extension file here is **byte-identical** to the prior project's. But it is
 any recorded run. The cause is subscribe ordering. Print mode wires its
 json-mode subscriber only *after* `bindExtensions()` returns
 (`modes/print-mode.js:50, 80`), and `bindExtensions()` emits `session_start`
-before returning (`core/agent-session.js:1766`) — so the
+before returning (`core/agent-session.js:1761`, in installed 0.83.0) — so the
 `entry_appended` our `session_start` handler produced was emitted with no
 subscriber attached and dropped, irrecoverably (`core/agent-session.js:285-289`).
-`--print --no-themes` does leave `ctx.ui.notify` no TUI
-(`core/extensions/runner.js:88-92`); that half was right. Every one of the 80
+`--print` does leave `ctx.ui.notify` no TUI
+(`core/extensions/runner.js:88-92`) — print mode passes no `uiContext` to
+`bindExtensions`, so `setUIContext(undefined)` falls back to `noOpUIContext`;
+the operational half of the original claim was right. Every one of the 80
 recorded runs loaded seven handlers that produced nothing observable.
+
+*This paragraph previously attributed that silence to `--no-themes`. The
+conclusion held, but the cause did not: `--no-themes` governs theme discovery
+only (`cli/args.js:258`), and `notify` would be silent under `--print` with
+themes fully enabled. The four-hop chain is gotcha 9 of
+`docs/superpowers/research/2026-08-03-phase3-cycle2-pi-gotchas.md`.*
 
 *This paragraph previously attributed the inertness to `--no-session` leaving
 `appendEntry` nowhere to write. That claim was justified by reading, not by a

@@ -25,13 +25,14 @@ record whose citations will silently rot. Read every number here as *0.83.0*.
 
 *(Updated 2026-08-03, later the same day. This paragraph reported the same
 five-line drift as "present, uncorrected" in the chapter, and gotcha 9 below
-reported two further chapter errors the same way. All of them have since been
-fixed in place: every citation in
+reported two further chapter errors the same way. **The chapter has since been
+fixed in place** — every citation in
 [`chapters/hello-agent.md`](../chapters/hello-agent.md) was re-opened against
 0.83.0, eight had drifted, and the chapter now states 0.83.0 and carries its
-own correction notes. This record's chapter references are given without line
-numbers from here on, since the chapter's own lines move when it is
-corrected.)*
+own correction notes. The other documents named in the paragraph above were
+corrected separately and later, not by that pass. This record's chapter
+references are given without line numbers from here on, since the chapter's
+own lines move when it is corrected.)*
 
 Paths: `core/…`, `modes/…`, `cli/…` and `config.js` are relative to `dist/`.
 `examples/extensions/subagent/…` is relative to the *package root* — it is

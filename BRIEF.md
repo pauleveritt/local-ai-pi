@@ -111,7 +111,7 @@ decision.
 
 ## Practical environment
 
-- Model: `omlx/gemma-4-12B-it-MLX-8bit` via `pi` 0.82.0.
+- Model: `omlx/gemma-4-12B-it-MLX-8bit` via `pi` 0.83.0.
 - Local model server: `/Users/pauleveritt/.omlx/bin/omlx {start,stop,restart,diagnose}`,
   serves `127.0.0.1:8001`. **Verify it returns real model output before any
   batch** — when it is down, `pi` exits 0 with empty stderr and the harness

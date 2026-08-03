@@ -494,5 +494,5 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Every citation in the record resolves to what it claims
 - The chapter teaches extension discovery, `registerTool` from a runnable example, and the shipped subagent extension read rather than adopted
 - Quoted code from this project's own files is checked, and the boundary excluding installed Pi is stated rather than implied
-- No file in `harness/` changed
+- No `harness/` **behaviour** changed — the one harness touch is the `--approve` correction comment at `harness/runner.py:122-126`, a comment, not behaviour
 - All four gates pass
