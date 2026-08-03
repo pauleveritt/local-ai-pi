@@ -29,6 +29,13 @@ Phase 1 and needs no change.
 - A fresh batch starting on a newly upgraded Pi with nobody noticing the
   change happened — exactly what occurred on 2026-08-03.
 
+**Also not protected, and not by this cycle: the model server.** `BRIEF.md`
+names oMLX as part of the recorded environment, and `RunConditions` records
+nothing about its version or build. Two contributors on identically pinned Pi
+but different oMLX builds are the original worry, unaddressed *and*
+unrecorded. Saying so matters because the pin must not be read as sufficient
+for comparability — it removes one variable, not the set.
+
 **Not fixable by a pin at all:** documentation citations rotting. No version
 check can find a stale `file:line`. What a pin buys is that the upgrade
 becomes a *decision* someone makes, and re-checking the docs is part of
@@ -100,9 +107,15 @@ commit made on purpose.
   refusing everything and the first test would still pass.
 - `EXPECTED_PI_VERSION` matches the installed `pi --version`. This is the one
   test that will fail on the *next* upgrade, which is the point: it turns a
-  silent drift into a red suite. It is also the one test in the suite that
-  depends on Pi being installed, which is already true of the live-gated
-  tests.
+  silent drift into a red suite.
+
+  It **skips** when `pi` is not on PATH. `docs/setup.md` says Pi is needed
+  only for work that invokes a model, and every other Pi-dependent test here
+  is opt-in — so an ungated version test would error for a contributor who
+  has done nothing wrong. A contributor with the *wrong* Pi still fails,
+  which is the case it exists for. (An earlier draft of this spec justified
+  leaving it ungated by saying Pi-dependence "is already true of the
+  live-gated tests"; that elided the fact that those *skip*.)
 
 ## Documentation
 
@@ -110,7 +123,13 @@ commit made on purpose.
 anything else, and what to do when a contributor's Pi differs.
 
 The Backlog entry proposing this work is replaced by a record that it was
-done, keeping the reasoning that motivated it.
+done, keeping the reasoning that motivated it — and answering a question that
+entry raised about itself. It observes that quotations from installed Pi are
+deliberately ungated by `tests/test_doc_quotes.py` "precisely because a
+contributor's Pi may differ… **Pinning would change that calculus.**" It does
+not: the suite must still pass for a contributor without Pi, which is why the
+installed-version test skips rather than fails. The record says so, rather
+than leaving the question hanging.
 
 ## Gates
 

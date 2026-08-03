@@ -61,10 +61,13 @@ def test_run_batch_refuses_a_pi_version_other_than_the_pinned_one(
     # internally valid batch, and those batches would be compared as
     # though they were comparable. They are not.
     conditions = RunConditions(
-        "model", ("pi",), "0.1.0-not-pinned", "sha", "rev", 600, 30,
-        ("digest",), "agentsha",
+        "model", ("pi",), "0.1.0-not-pinned", "sha", "rev", 600, 30, ("digest",)
     )
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
+    # Before the check exists, run_batch falls through to preflight_model,
+    # which probes the live server and shells a real `pi`. The red phase
+    # must not depend on the model server being up.
+    monkeypatch.setattr(runner, "preflight_model", lambda *args, **kwargs: None)
 
     with pytest.raises(RuntimeError, match="0.1.0-not-pinned"):
         runner.run_batch(tmp_path / "checkpoint.jsonl", target=1, model="model")
@@ -72,10 +75,10 @@ def test_run_batch_refuses_a_pi_version_other_than_the_pinned_one(
 
 def test_the_refusal_names_the_version_it_expected(tmp_path, monkeypatch):
     conditions = RunConditions(
-        "model", ("pi",), "0.1.0-not-pinned", "sha", "rev", 600, 30,
-        ("digest",), "agentsha",
+        "model", ("pi",), "0.1.0-not-pinned", "sha", "rev", 600, 30, ("digest",)
     )
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
+    monkeypatch.setattr(runner, "preflight_model", lambda *args, **kwargs: None)
 
     with pytest.raises(RuntimeError, match=runner.EXPECTED_PI_VERSION):
         runner.run_batch(tmp_path / "checkpoint.jsonl", target=1, model="model")
@@ -86,7 +89,7 @@ def test_run_batch_proceeds_on_the_pinned_version(tmp_path, monkeypatch):
     # tests above would still pass.
     conditions = RunConditions(
         "model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30,
-        ("digest",), "agentsha",
+        ("digest",),
     )
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
 
@@ -100,6 +103,15 @@ def test_the_pinned_version_is_the_installed_version():
     # point: it turns a silent drift into a red suite. Pi moved 0.82.0 ->
     # 0.83.0 during a working session and nothing caught it; eight
     # file:line citations in a published chapter went stale.
+    #
+    # Skipped when Pi is absent, because docs/setup.md says Pi is needed
+    # only for work that invokes a model, and every other Pi-dependent
+    # test here is opt-in. A contributor without Pi has done nothing
+    # wrong. A contributor with the *wrong* Pi still fails, which is the
+    # case this exists for.
+    if shutil.which("pi") is None:
+        pytest.skip("Pi is not installed; see docs/setup.md")
+
     installed = subprocess.run(
         ["pi", "--version"], check=True, capture_output=True, text=True
     ).stdout.strip()
@@ -107,13 +119,13 @@ def test_the_pinned_version_is_the_installed_version():
     assert installed == runner.EXPECTED_PI_VERSION
 ```
 
-`subprocess` is not currently imported in `tests/test_runner.py` — check the import block and add `import subprocess` if absent. Ruff enforces import sorting.
+`subprocess` and `shutil` are not currently imported in `tests/test_runner.py` — check the import block and add `import shutil` and `import subprocess` if absent. Ruff enforces import sorting.
 
 Note `target=0` in the third test: `run_batch` returns early once `len(records) >= target`, so it exercises the version check and then returns without running a model. Read `run_batch` to confirm the ordering before relying on it.
 
 - [ ] **Step 3: Run the tests to verify they fail**
 
-Run: `uv run pytest tests/test_runner.py -k "pinned or pi_version" -v`
+Run: `uv run pytest tests/test_runner.py -k "pinned or version" -v`
 Expected: `test_the_pinned_version_is_the_installed_version` FAILS with `AttributeError: module 'harness.runner' has no attribute 'EXPECTED_PI_VERSION'`, and the refusal tests FAIL because no exception is raised.
 
 - [ ] **Step 4: Add the constant**
@@ -201,6 +213,8 @@ Keep the existing `pi --version` example, updated if Task 1 found a different in
 In `ROADMAP.md`, the Backlog entry beginning **"Pin the Pi version the harness runs against"** asked for exactly this work. Replace it with a short record that it was done, keeping the reasoning that motivated it — follow the format the Backlog already uses for completed entries (search it for "gate satisfied" and "promoted to" to see how a done entry is written).
 
 The record should keep: that Pi moved 0.82.0 → 0.83.0 mid-session, that mechanisms survived but eight citations did not, and that no test could catch a stale citation. It should note what the pin does *not* solve — documentation drift is still uncaught; the pin only makes the upgrade a moment someone decides on.
+
+It must also settle a question the entry itself raised. The entry observes that quotations from installed Pi are deliberately *not* gated by `tests/test_doc_quotes.py` "precisely because a contributor's Pi may differ… **Pinning would change that calculus.**" It does not: the suite must still pass for a contributor without Pi installed, which is why the installed-version test skips rather than fails. Say so, so the question is answered rather than dropped.
 
 - [ ] **Step 3: Check nothing else still calls this an open question**
 
