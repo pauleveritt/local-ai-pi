@@ -278,10 +278,13 @@ actually run.
 |-------|---------|-------|
 | 1 | Observable extension — establish what an extension can emit under `--print --mode json --no-session`, and get one piece of evidence to travel extension → captured stdout → `read_telemetry`. Transplant the prior chapter/spec as the teaching artifact, with a drift audit: the prior spec's `appendEntry({type, data})` is already stale against the installed `appendEntry(customType, data?)`. This row previously claimed that changing the extension changes run conditions because `RunConditions` records its path. It did not: `RunConditions` recorded only the path, never the contents, so editing `hello-world.ts` left the conditions byte-identical and `run_batch` would have resumed a checkpoint recorded under a different extension. That gap is closed by this cycle's new `RunConditions.extension_digests` — a SHA-256 per extension file — and only from that point is the claim true. | Done |
 | 2 | Extension mechanics, and the gotchas we paid for — teach how a Pi extension actually works, using `hello-world.ts` and Pi's shipped subagent extension read as a worked example, plus one small teaching extension of our own that registers a tool. Record the gotchas this project has already paid to find. **No orchestrator, no delegation in the harness, no harness changes at all.** [spec](docs/superpowers/specs/2026-08-03-phase3-cycle2-extension-mechanics-design.md), [plan](docs/superpowers/plans/2026-08-03-phase3-cycle2-extension-mechanics.md) | Done |
+| corrective | Pi version pin — `EXPECTED_PI_VERSION` in `harness/runner.py`, and `run_batch` raises `RuntimeError` when the installed Pi differs, so two contributors' batches cannot be silently compared across an upgrade. Prompted by Pi moving 0.82.0 → 0.83.0 *during* a working session: every mechanism survived, eight `file:line` citations in a published chapter did not, and no test can check a citation. One constant and one comparison, reading a value `_conditions()` already shells `pi --version` for — batch-scoped, with no override, so a bump is a one-line commit that leaves a record. A single run is unaffected; the suite skips when Pi is absent and fails on a *different* version, which is the drift alarm. [spec](docs/superpowers/specs/2026-08-03-pi-version-pin-design.md), [plan](docs/superpowers/plans/2026-08-03-pi-version-pin.md) | Done |
 
 **Cycle 1 spent nothing.** No new project-specific terms were introduced. The cycle makes `extension_digests` a `RunConditions` field (a technical detail, not a design concept) and parses `entry_appended` events into a `RunTelemetry` tuple — both use existing vocabulary. The check was run at close against the spec, code, and design artifacts.
 
 **Cycle 2 spent one term: `gotcha`.** The cycle introduces the gotchas record as a primary teaching artifact, documenting ten non-obvious Pi behaviors this project discovered at a cost. The term names a pattern worth holding: expensive-to-find, invisible-in-documentation findings that need their price recorded so they are remembered. It appears 20 times in shipped materials (chapters and research) as both a concept and a label. The research document explicitly organizes findings as gotchas. While used only in research/teaching, not in structural code, the pattern is load-bearing for explaining this project's hard-won insights about Pi — something a contributor must understand to read the chapters and design documents. Added to the table.
+
+**The corrective cycle spent nothing.** `EXPECTED_PI_VERSION` is a constant name, not a concept a contributor must hold — the cycle names no new mechanism and reuses *batch*, *run*, and *conditions* exactly as the table already defines them. The check was run at close against the spec, the code, and this row.
 
 **Cycles 3 and 4 were withdrawn from this phase, 2026-08-03.** They were
 *parent/child telemetry* and *the handoff-packet cost claim*, and both are
@@ -621,10 +624,14 @@ things over.
   can check a citation into `dist/`. `harness/runner.py` now names
   `EXPECTED_PI_VERSION`, and `run_batch` raises `RuntimeError` when the
   installed Pi differs, naming both versions and both remedies. A single
-  run and the test suite are unaffected, so exploring the harness on a
-  different Pi is never blocked — only batch evidence is. One test asserts
-  the constant matches the installed `pi --version` and skips when Pi is
-  not on PATH; another proves a matching version still proceeds.
+  run is unaffected, so exploring the harness on a different Pi is never
+  blocked — only batch evidence is. The suite is a different case: one test
+  asserts the constant matches the installed `pi --version`, skipping when
+  Pi is not on PATH and *failing* when it is a different version, which is
+  deliberately the drift alarm. Another proves a matching version still
+  proceeds; a third proves the refusal fires before the checkpoint
+  conditions comparison, so a contributor who upgraded mid-batch is told
+  why. This cycle is recorded as a row in the Phase 3 table.
 
   **What this does not solve.** Documentation drift is still uncaught — no
   version check can find a stale `file:line`, and the pin does not add one.

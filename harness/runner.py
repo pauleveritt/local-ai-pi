@@ -217,8 +217,9 @@ def run_batch(
             f"is installed. Batches are pinned so that runs stay comparable "
             f"between contributors. Either install Pi {EXPECTED_PI_VERSION}, or "
             f"bump EXPECTED_PI_VERSION in harness/runner.py -- and if you bump it, "
-            f"re-check the documentation that cites Pi by file and line, because "
-            f"those citations do not survive upgrades and no test catches them."
+            f"re-check docs/setup.md, which names the version twice, and the "
+            f"documentation that cites Pi by file and line, because neither "
+            f"survives an upgrade and no test catches them."
         )
     for record in records:
         if record.conditions != requested:

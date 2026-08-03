@@ -82,11 +82,23 @@ pi --version    # 0.83.0
 
 The harness pins this version: `EXPECTED_PI_VERSION` in `harness/runner.py`.
 `run_batch` refuses to run on any other version, so batches from different
-contributors stay comparable; a single run and the test suite do not check
-it, so exploring the harness on a different Pi is never blocked. If yours
-differs, either install Pi `0.83.0`, or bump `EXPECTED_PI_VERSION` and
-re-check the documentation that cites Pi by file and line — those citations
-do not survive upgrades and no test catches them.
+contributors stay comparable. A single run does not check the version, so
+exploring the harness on a different Pi is never blocked.
+
+The test suite *does* check it. `test_the_pinned_version_is_the_installed_version`
+in `tests/test_runner.py` skips when `pi` is not on your PATH — you have done
+nothing wrong by not installing it — and **fails** when your Pi is a
+different version. That failure is deliberate: it is what turns a silent
+upgrade into a red suite, which is the whole point of the pin.
+
+So if yours differs, either install Pi `0.83.0`, or bump
+`EXPECTED_PI_VERSION` and re-check the documentation that cites Pi — this
+file, which names the version twice, and the chapters that cite Pi by file
+and line. Neither survives an upgrade, and no test catches them.
+
+The pin removes one variable, not the set: `RunConditions` records nothing
+about the oMLX server's version or build, so two contributors on identically
+pinned Pi still have an unrecorded difference between them.
 
 Two things to know about how we call it. We always run **non-interactive**
 (`--print`), and we disable Pi's ambient extensions, skills, prompt templates,

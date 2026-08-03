@@ -507,6 +507,39 @@ def test_the_refusal_names_the_version_it_expected(tmp_path, monkeypatch):
         runner.run_batch(tmp_path / "checkpoint.jsonl", target=1, model="model")
 
 
+def test_the_version_refusal_precedes_the_checkpoint_conditions_check(
+    tmp_path, monkeypatch
+):
+    # The version check sits above the loop over existing records on
+    # purpose: a contributor who upgraded Pi after writing a checkpoint
+    # should learn that their Pi is wrong, not read a generic "checkpoint
+    # conditions do not match this batch". The two refusal tests above
+    # both use a checkpoint that does not exist, so `records` is empty and
+    # neither exercises the ordering -- move the check below the loop and
+    # they stay green while this scenario silently regresses.
+    checkpoint = tmp_path / "checkpoint.jsonl"
+    recorded = RunConditions(
+        "model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",)
+    )
+    append_checkpoint(
+        checkpoint,
+        RunResult("d", _grade_result(), "out", "", 0, conditions=recorded),
+    )
+    monkeypatch.setattr(
+        runner,
+        "_conditions",
+        lambda *args: RunConditions(
+            "model", ("pi",), "0.1.0-not-pinned", "sha", "rev", 600, 30, ("digest",)
+        ),
+    )
+    monkeypatch.setattr(runner, "preflight_model", lambda *args, **kwargs: None)
+
+    # ValueError is not a RuntimeError, so this fails rather than passes if
+    # the checkpoint comparison gets there first.
+    with pytest.raises(RuntimeError, match="0.1.0-not-pinned"):
+        runner.run_batch(checkpoint, target=1, model="model")
+
+
 def test_run_batch_proceeds_on_the_pinned_version(tmp_path, monkeypatch):
     # Without this the check could be refusing every batch and the two
     # tests above would still pass.

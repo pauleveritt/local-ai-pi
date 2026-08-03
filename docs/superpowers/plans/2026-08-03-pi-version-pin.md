@@ -15,7 +15,7 @@
 - Python `>=3.14,<3.15`. No new runtime dependencies.
 - Gates, all four before any commit: `uv run pytest`, `uv run ruff check .`, `uv run pyrefly check`, `uv run sphinx-build -W -b html docs docs/_build/html`.
 - Ruff lint selects `E,F,I,UP,B,SIM`; `E501` ignored. Import sorting enforced.
-- **Batch scope only.** The check goes in `run_batch` and nowhere else. `run_agentclinic_phase1()` and the test suite must stay runnable on any Pi version — a contributor exploring the harness is never blocked, only evidence production is.
+- **Batch scope only.** The check goes in `run_batch` and nowhere else, so `run_agentclinic_phase1()` stays runnable on any Pi version — a contributor exploring the harness is never blocked, only evidence production is. *(Corrected 2026-08-03: this constraint originally read "`run_agentclinic_phase1()` and the test suite must stay runnable on any Pi version." That was wrong about the suite, and contradicted the design this plan implements. The suite must stay runnable without Pi installed — which is why the installed-version test skips when `pi` is absent — but it deliberately **fails** on a different Pi version. See the design's Testing section.)*
 - **No override.** No environment variable, no flag, no parameter to skip the check. A contributor who wants a batch on a newer Pi bumps the constant.
 - Do not add a new module, a named exception class, a second `pi --version` subprocess, or handling for a missing `pi` binary. All four were deliberately removed from the design; `subprocess.run(..., check=True)` inside `_conditions` already raises `FileNotFoundError` and `CalledProcessError` earlier and with better messages.
 - Work happens on branch `pi-pin` in the worktree at `.worktrees/pi-pin`.
@@ -147,8 +147,9 @@ In `run_batch`, immediately after `requested = _conditions(model, command, 600, 
             f"is installed. Batches are pinned so that runs stay comparable "
             f"between contributors. Either install Pi {EXPECTED_PI_VERSION}, or "
             f"bump EXPECTED_PI_VERSION in harness/runner.py -- and if you bump it, "
-            f"re-check the documentation that cites Pi by file and line, because "
-            f"those citations do not survive upgrades and no test catches them."
+            f"re-check docs/setup.md, which names the version twice, and the "
+            f"documentation that cites Pi by file and line, because neither "
+            f"survives an upgrade and no test catches them."
         )
 ```
 
@@ -254,7 +255,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ## Done when
 
 - `run_batch` raises on any `pi_version` other than `EXPECTED_PI_VERSION`, with a message naming both versions and both remedies
-- A single run and the test suite still work on any Pi version
+- A single run still works on any Pi version, and the suite still passes with no Pi installed *(corrected 2026-08-03: this originally read "A single run and the test suite still work on any Pi version" — the suite deliberately fails on a **different** Pi version, which is the drift alarm the next item describes)*
 - A test asserts the constant matches the installed version, and will fail on the next upgrade
 - A test proves a matching version still proceeds, so the check cannot be refusing everything
 - `docs/setup.md` states the pin, its scope, and what to do about a mismatch

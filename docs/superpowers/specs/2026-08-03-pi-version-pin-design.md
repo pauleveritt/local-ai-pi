@@ -92,9 +92,13 @@ to the source to understand it. It states:
 - the expected version and the version found
 - that the harness pins Pi so batches stay comparable between contributors
 - **both** remedies: install the expected version, **or** bump
-  `EXPECTED_PI_VERSION` — and that bumping means re-checking documentation
-  that cites Pi by file and line, because those citations do not survive
-  upgrades and no test catches them
+  `EXPECTED_PI_VERSION` — and that bumping means re-checking the
+  documentation that names Pi, both `docs/setup.md` (which cites the
+  *version*, twice) and the chapters that cite Pi by file and line, because
+  neither survives an upgrade and no test catches them. `docs/setup.md` is
+  named explicitly rather than left to "the documentation": it is the file
+  a bumper is most likely to miss, and `tests/test_doc_quotes.py` covers
+  only `docs/superpowers/chapters` and `docs/superpowers/research`
 
 The second remedy is the one 2026-08-03 argues for. An upgrade should be a
 commit made on purpose.
