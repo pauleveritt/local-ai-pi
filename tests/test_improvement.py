@@ -6,6 +6,7 @@ checkpoint produced under different steering with nothing noticing. These
 tests cover the recording, not the steering's effect.
 """
 
+import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -449,3 +450,43 @@ def test_the_user_story_spec_quotes_the_tagline_verbatim():
     tagline = "Come in. Sit down. Tell us about your human."
 
     assert tagline in runner.AGENTCLINIC_PHASE_1_USER_STORY.task_spec.read_text()
+
+
+def test_a_model_created_nested_repo_does_not_abort_the_run(tmp_path, monkeypatch):
+    """Observed live during phase 5 cycle 4, at run 15 of 16.
+
+    A model given a spec with no file layout ran `git init` in a
+    subdirectory. `git add -A` then refuses outright -- "does not have a
+    commit checked out", exit 128 -- and the exception propagated out of
+    `run_suite`, killing the batch: the completed run discarded and every
+    queued run cancelled, over a step that only produces a diagnostic
+    record. The verdict never depended on it, because `grade` copies
+    allowlisted files into a fresh directory and never reads the diff.
+    """
+    from harness.grading import GradeResult
+    from harness.processes import ProcessResult
+
+    def fake_pi(command, **kwargs):
+        workspace = kwargs["cwd"]
+        (workspace / "app.py").write_text("app = object()\n")
+        nested = workspace / "scaffold"
+        nested.mkdir()
+        subprocess.run(["git", "init", "-q"], cwd=nested, check=True, capture_output=True)
+        (nested / "note.txt").write_text("scaffolded\n")
+        return ProcessResult(0, "", "", False)
+
+    graded = {}
+    monkeypatch.setattr(runner, "check_model_server_alive", lambda: None)
+    monkeypatch.setattr(runner, "run_process", fake_pi)
+    monkeypatch.setattr(
+        runner,
+        "grade",
+        lambda *args, **kwargs: graded.setdefault("ran", True)
+        and GradeResult(True, 1, 1, 0, "1 passed", "", ()),
+    )
+
+    result = runner.run_suite(runner.DURATION)
+
+    assert graded["ran"] is True, "grading must still happen"
+    assert result.diff.startswith("<diff unavailable:")
+    assert "128" in result.diff

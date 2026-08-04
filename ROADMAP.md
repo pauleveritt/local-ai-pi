@@ -522,7 +522,7 @@ expensive to re-derive.
 | 1 | The improvement mechanism — a frozen `Improvement` descriptor (seed directory, extra extensions, system prompt) and `run_batch(suite=…, improvement=…)`, with the orchestrator/implementer pair as improvement #1. Breaks `RunConditions` once rather than twice: the improvement digest plus the two digests the Backlog already owed (the acceptance file's contents, the allowlist), all sentinel-loading like `extension_digests`. Decides how a *directory* extension is digested, which `_extension_digest` explicitly deferred to "the cycle that needs it". Ends with one live delegation observed under this harness's flags. **Claims no number and runs no batch.** The spike found that `--extension` needs the entry-point *file*: pointed at the `subagent/` directory it fails silently and the run still grades accepted. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle1-improvement-mechanism-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle1-improvement-mechanism.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle1-delegation-spike.md) | Done |
 | 2 | The cost answer — two n=16 batches on AgentClinic Phase 1, bare and orchestrated, where success is expected to stay pinned and the only readable signal is turns and `context_processed`. The handoff-packet claim, tested with the instrument built for it. Every orchestrated run is checked for a *successful* delegation before its cost counts, because cycle 1 showed a silently unorchestrated run still grades accepted. Touches no suite. **Result: orchestration cost 8.11x the context, 2.49x the output and 3.14x the turns, and was less reliable — 12/16 against a bare 16/16, with three hangs where the bare arm had none, two of them after a correct solution was already written.** The handoff-packet claim is confirmed and not close. The pre-registered 16/16 for the orchestrated arm was falsified. Max concurrent children was 1 in all 16 runs, so the Backlog's own-subagent-tool gate did not fire. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle2-cost-answer-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle2-cost-answer.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle2-cost-answer.md) | Done |
 | 3 | Telemetry counts the delegated child — `read_telemetry` reads the parent's own events only, so a delegated run's turns and `context_processed` omit the arm's dominant cost. Cycle 2 published a wrong headline on exactly that, and the fix belongs in the instrument rather than in one research script. Pi's shipped subagent extension already surfaces the child's usage in the parent's `tool_execution_end` under `details.results[].usage`, so this is parsing that is already in the stream, not new measurement. Recomputes retroactively over every batch already banked, cycle 2's included. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle3-child-telemetry-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle3-child-telemetry.md) | Done |
-| 4 | The user-story suite and its floor — the user-story roadmap variant as a third `Suite`, with its own task-spec file, its own known-good and known-broken fixtures, tests proving the grader accepts one and rejects the other, and `norecursedirs` / `extend-exclude` entries. Then the as-shipped orchestrator arm on it. Touches no mechanism. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle4-user-story-suite-design.md) | In progress |
+| 4 | The user-story suite and its floor — the user-story roadmap variant as a third `Suite`, with its own task-spec file, its own known-good and known-broken fixtures, tests proving the grader accepts one and rejects the other, and `norecursedirs` / `extend-exclude` entries. Then the as-shipped orchestrator arm on it. Touches no mechanism. **Result: both arms 0/16 — a floor, not the headroom the phase needed.** Bare Pi read the spec, restated it accurately and stopped to ask what to do in all 16 runs, writing nothing; the orchestrator prompt restored agency (11/16 wrote files) but not correctness, and the arm thrashed — 15/16 runs repeating an identical tool call, six timeouts, one run at 261 turns. Also found and fixed a harness bug that let a model-created nested git repo abort a whole batch. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle4-user-story-suite-design.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle4-user-story-arms.md) | Done |
 | 5+ | Improvements against the user-story arm, one at a time — tech-stack and mission first, then a domain document for the data model. Each pre-registers its prediction before its batch runs. | Planned |
 
 **Cycle 1 spent one term: `improvement`**, as budgeted above. `Improvement`,
@@ -592,6 +592,12 @@ dominant cost, and every future orchestrated batch would carry the same trap.
 It goes before the suite work because it is small, because it recomputes
 retroactively over evidence already banked, and because the alternative is
 discovering the same omission a second time on a workload that matters more.
+
+**Cycle 4 spent nothing**, and changed what cycle 5 is for. Two arms at zero
+discriminate nothing, so the user-story suite is not yet a usable instrument:
+cycle 5's first lever is what moves it off the floor, not optional polish
+afterwards. The check was run at close against the spec, the code, and this
+row.
 
 **The levers stay later, deliberately.** The orchestrator prompt, the packet
 format, and the implementer specialist all have obvious knobs, and cycle 2
@@ -885,6 +891,32 @@ things over.
   suite. One lever per cycle, each pre-registering its prediction, per the
   phase's binding one-improvement-at-a-time rule.
 
+- **The recursive-listing spiral — a named, recurring failure, now measured.
+  Owner, 2026-08-04: "recursive has been near the top of the list of my
+  problems for a month."** Phase 5 cycle 4 caught it with a number. One
+  orchestrated run spent **261 turns, 245 of them the identical command
+  `ls -R`**, across only 7 distinct invocations in the whole run, and wrote
+  nothing. Fifteen of that arm's sixteen runs repeated some identical tool
+  call; six timed out.
+
+  This is the concrete shape of the phase's long-term goal. "Keeping a small
+  model on track" is abstract; *"stop it running `ls -R` 245 times"* is
+  testable, and the evidence is already banked in
+  `~/local-ai-pi-evidence/satyrn-phase5-cycle4-user-story-sdd-n16.jsonl`.
+
+  **Candidate levers, none built, listed so the choice is deliberate:** deny
+  or cap recursive listing in the implementer's tool allowlist (it currently
+  gets `read,write,bash`, and `bash` is the hole); supply a file inventory in
+  the packet so exploration is unnecessary; a turn cap; or a repeat-breaker
+  that refuses an identical tool call after N repetitions. The last is
+  mechanism rather than prompt, which the prior project's Part IV boundary
+  treated as a different class of fix — worth honouring, because a prompt
+  that asks nicely and a guard that refuses are different claims.
+
+  **The order that matters:** measure first. The thrash metric below is what
+  makes any of these provable, and it recomputes over batches already
+  recorded, so a lever can be scored against this batch without rerunning it.
+
 - **Thrash metrics: hang rate, repeated tool calls, turn-count tail.
   Recorded 2026-08-04, gated, and deliberately not built.** The phase's
   long-term goal is keeping a small model on track rather than making it
@@ -906,8 +938,16 @@ things over.
   reporting a floor. That is a third ceiling on this workload, alongside the
   saturated success rate and the saturated turn count.
 
-  **The gate:** build it when a batch runs on a workload where the bare arm
-  actually thrashes. The prior project's evidence says where to look — turn
+  **Gate satisfied 2026-08-04, with one qualification.** Phase 5 cycle 4
+  produced a batch in which loops occur — 15 of 16 runs with a repeated
+  identical tool call, six timeouts, one run at 261 turns. The
+  qualification: it is the *orchestrated* arm that thrashes, not the bare
+  one, because the bare arm takes a single turn and cannot repeat itself.
+  The entry's intent — do not build a metric where there is nothing to
+  measure — is met. Promote it to a cycle when a lever needs scoring.
+
+  **The original gate, for the record:** build it when a batch runs on a
+  workload where the bare arm actually thrashes. The prior project's evidence says where to look — turn
   counts of 12.6 and 14.8 on AgentClinic phases 2 and 3 against 7.8 on phase
   1, and `docs/section-3-sdd/research/2026-07-28-phase3-run4-repeat-spiral-incident.md`
   on the `user-story-batch` branch, which traces **4 of 16 hangs in a single

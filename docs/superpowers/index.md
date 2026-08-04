@@ -155,6 +155,10 @@ cycle's argument.
   — ten findings this project paid to discover, each with a checked citation
   into the installed package, each labelled **read** or **run**, and each with
   what it cost.
+- [Phase 5, cycle 4 — the user-story suite, and two arms at zero](research/2026-08-04-phase5-cycle4-user-story-arms.md)
+  — bare Pi read the spec, restated it correctly, and stopped to ask what to
+  do, in all 16 runs; orchestration restored agency but not correctness. One
+  run spent 261 turns running `ls -R` 245 times.
 - [Phase 5, cycle 2 — what the orchestration cost](research/2026-08-04-phase5-cycle2-cost-answer.md)
   — the handoff-packet claim, finally tested with the instrument built for
   it: orchestration cost 8x the context and 2.5x the generation once the
@@ -271,4 +275,5 @@ research/2026-08-03-phase3-cycle2-pi-gotchas
 research/2026-08-04-phase4-cycle1-what-the-second-suite-cost
 research/2026-08-04-phase5-cycle1-delegation-spike
 research/2026-08-04-phase5-cycle2-cost-answer
+research/2026-08-04-phase5-cycle4-user-story-arms
 ```

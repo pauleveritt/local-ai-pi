@@ -275,16 +275,33 @@ def run_suite(
         # shows untracked files, and the model's new files (app.py, etc.)
         # start out untracked. `git add -A` first, then diff the initial
         # commit against the index, so new files appear as additions.
-        subprocess.run(
-            ["git", "add", "-A"], cwd=workspace, check=True, capture_output=True
-        )
-        diff = subprocess.run(
-            ["git", "diff", "--cached", initial_commit],
-            cwd=workspace,
-            check=True,
-            capture_output=True,
-            text=True,
-        ).stdout
+        #
+        # Best-effort, because the diff is *diagnostic* and the verdict does
+        # not depend on it -- `grade` copies allowlisted files into a fresh
+        # directory and never reads this. A model that runs `git init` in a
+        # subdirectory makes `git add -A` fail outright ("does not have a
+        # commit checked out", exit 128), and before phase 5 cycle 4 that
+        # aborted the whole batch: one completed run discarded, every queued
+        # run cancelled, over a step that only produces a record of what was
+        # written. Observed live on the user-story suite, whose spec names no
+        # file layout, so scaffolding a repo is a reasonable thing to try.
+        try:
+            subprocess.run(
+                ["git", "add", "-A"], cwd=workspace, check=True, capture_output=True
+            )
+            diff = subprocess.run(
+                ["git", "diff", "--cached", initial_commit],
+                cwd=workspace,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout
+        except subprocess.CalledProcessError as error:
+            # Recorded rather than swallowed: a run whose diff is missing must
+            # say so in the checkpoint, or a later reader counts it as a run
+            # that wrote nothing.
+            stderr = (error.stderr or b"").decode(errors="replace").strip()
+            diff = f"<diff unavailable: {' '.join(error.cmd)} exited {error.returncode}: {stderr}>"
 
         grade_result = grade(
             workspace,
