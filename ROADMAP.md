@@ -44,13 +44,6 @@ orchestrated arm. Phase 3 is not: its orchestration cycles were withdrawn to
 the Backlog. Those Phase 2 assets are real and still useful — they are simply
 owed to the deferred orchestration-cost experiment, not to this phase.)*
 
-**Phase 4 — Prove the engine generalizes beyond one workload.** In
-progress. Three phases built the engine against a single workload, so the
-parameters standing where hardcodes used to be had exactly one caller
-apiece — which `BRIEF.md` names as the one thing that actually cost the
-previous project. Cycle 1 adds a second suite and demonstrates the spec
-and grading seams with a real second caller.
-
 *(Withdrawn framing, kept for the record — corrected 2026-08-02. An earlier
 pass, written at cycle 1's close, gave Phase 2 three steps: "step 1 builds
 the instrument; step 2 brings back a hello-world Pi extension teaching
@@ -73,6 +66,13 @@ structure for them. That's a real question, but it's downstream of having a
 working engine and real suites to write about; it isn't Phase 1's job. See
 `BRIEF.md`, "First decision for the new session.")*
 
+**Phase 4 — Prove the engine generalizes beyond one workload.** In
+progress. Three phases built the engine against a single workload, so the
+parameters standing where hardcodes used to be had exactly one caller
+apiece — which `BRIEF.md` names as the one thing that actually cost the
+previous project. Cycle 1 adds a second suite and demonstrates the spec
+and grading seams with a real second caller.
+
 ## Concept budget
 
 *Every term below is a cost against a 5–10 h/wk volunteer's ability to hold
@@ -87,7 +87,7 @@ not by being convenient shorthand.*
 | suite | one workload the harness can run: its prompt, its acceptance contract, and its source allowlist (`harness.runner.Suite`) | cycle 1; **redefined phase 4 cycle 1** — it previously meant only the acceptance test suite a solution is graded against, which is now called the *acceptance* (the parameter name in `grade()`) |
 | fixture | a known-good or known-broken example solution, used to prove the grader itself | cycle 1 |
 | workspace | a disposable, git-initialized directory the model writes into. Read by the grader, never graded directly — see *grading directory* | cycle 2 |
-| grading directory | a fresh directory holding only allowlisted files copied out of the workspace, plus the suite; what pytest actually runs against | cycle 9 |
+| grading directory | a fresh directory holding only allowlisted files copied out of the workspace, plus the acceptance file; what pytest actually runs against | cycle 9 |
 | hermetic | graded with controlled model-written files and caller configuration, so those inputs cannot affect the verdict | cycle 2 |
 | grader | the code that turns a workspace into a verdict (`harness/grading.py`) | cycle 1 |
 | harness | the eval harness as a whole (`harness/` package) | kickoff |
@@ -159,7 +159,7 @@ occurrences either. Both revive if and when the experiment is scheduled.
 | 6 | AgentClinic task spec — transplanted **Phase 1's section only** of the detailed roadmap to `examples/agentclinic/specs/roadmap.md`, the document the trusted number was produced against, resolving a citation cycle 1's suite had carried since. Deliberately *not* a variant choice: see the Backlog note. Also fixed the grading regression the transplant made reachable. | [spec](docs/superpowers/specs/2026-07-30-phase1-cycle6-task-spec-design.md) | [plan](docs/superpowers/plans/2026-07-30-phase1-cycle6-task-spec.md) | Done |
 | 7 | Model-server liveness check — `check_model_server_alive` GETs `/v1/models` on the `omlx` server (`127.0.0.1:8001` default, a seam) and raises `ModelServerDown` on anything but a 200; proven against a stub HTTP server, not a real model, with two distinct down-modes (nothing listening; a completed exchange with a bad status) so the raise isn't just "catch anything." | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle7-liveness-check-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle7-liveness-check.md) | Done |
 | 8 | First real run — `run_agentclinic_phase1()` invokes `pi` against a fresh, literally-empty workspace, captures a diff against the workspace's initial commit, and grades hermetically via cycles 3–6's grader. The task spec is passed as `pi`'s prompt text, never placed in the workspace. **Actually run, live, against the real `omlx` server, once the harness code and three bugs invisible to fixture-only testing were fixed** (see below): the model built a working AgentClinic Phase 1 app and it graded `accepted=True, tests_executed=tests_expected=4, returncode=0`. | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle8-first-real-run-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle8-first-real-run.md) | Done |
-| 9 | Source allowlist — `grade()` now copies only allowlisted paths (`app.py`, `templates`, default) plus the suite into a fresh grading directory and runs pytest there, instead of `cwd=workspace`. Closes the sys.path-shadowing threat by construction: a model-written `harness/` package or `pytest.py` is never copied in, so it can never be imported in place of the real thing. Proven with a verified-first exploit — a rogue `harness/grading_plugin.py` that crashed collection and leaked into `stderr` under the old code, confirmed inert after the fix. | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle9-source-allowlist-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle9-source-allowlist.md) | Done |
+| 9 | Source allowlist — `grade()` now copies only allowlisted paths plus the acceptance file into a fresh grading directory and runs pytest there, instead of `cwd=workspace`. Closes the sys.path-shadowing threat by construction: a model-written `harness/` package or `pytest.py` is never copied in, so it can never be imported in place of the real thing. Proven with a verified-first exploit — a rogue `harness/grading_plugin.py` that crashed collection and leaked into `stderr` under the old code, confirmed inert after the fix. *(Corrected phase 4 cycle 1: this cell named the allowlist's contents as `app.py`, `templates` and called them a "default", and said "plus the suite". There is no default any more — `source_allowlist` is required, and each suite carries its own — and "suite" here meant the acceptance file, which is now what it is called.)* | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle9-source-allowlist-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle9-source-allowlist.md) | Done |
 | 10 | Checkpoint recording — `harness/checkpoint.py`'s `append_checkpoint`/`load_checkpoint` persist a `RunResult` per completed run as JSONL, resuming by position (the Nth valid line is run N). `load_checkpoint` tolerates a truncated final line (a process that died mid-write); `append_checkpoint` cleans up that same dangling fragment before writing its own record, so resuming more than once stays safe — a real corruption bug Fable's review caught before implementation, where the naive version would have concatenated onto the fragment instead. | [spec](docs/superpowers/specs/2026-07-31-phase1-cycle10-checkpoint-recording-design.md) | [plan](docs/superpowers/plans/2026-07-31-phase1-cycle10-checkpoint-recording.md) | Done |
 | 11 | Corrective hardening — checkpoint append preserves complete final records and never rewrites valid prefixes; grading uses a controlled child environment; workspace setup is independent of hooks/global Git config and supports a literally empty workspace; missing proof regressions are added. | [spec](docs/superpowers/specs/2026-08-01-phase1-cycle11-corrective-hardening-design.md) | [plan](docs/superpowers/plans/2026-08-01-phase1-cycle11-corrective-hardening.md) | Done |
 | 12 | Hang tolerance — Pi and pytest timeouts terminate their entire process groups, yield bounded rejected results with partial output, and let a later batch attempt continue. | [spec](docs/superpowers/specs/2026-08-01-phase1-cycle12-hang-tolerance-design.md) | [plan](docs/superpowers/plans/2026-08-01-phase1-cycle12-hang-tolerance.md) | Done |

@@ -57,14 +57,28 @@ From `BRIEF.md`:
 
 This is non-negotiable and applies per suite. The pattern already exists
 for AgentClinic at `tests/test_grading.py:239` and `:269`; the new suite
-gets the same pair, and both are parameterized over the two suites.
+gets the same pair.
+
+*(Corrected 2026-08-04, after implementation. This paragraph and
+Deliverable 4 below both said the floor tests would be "parameterized over
+the two suites". They are not: planning chose a separate
+`tests/test_duration_suite.py`, leaving AgentClinic's pair standalone in
+`tests/test_grading.py`. The evidence is equivalent — each suite's grader
+accepts its known-good and rejects its known-broken solution — but this
+spec is what a later cycle rereads as the authority, so it must describe
+what exists.)*
 
 ## Design
 
 ### The `Suite` descriptor
 
-The three constants at `harness/runner.py:13-14` become fields of one
-frozen dataclass:
+*Line numbers in this document are anchored to the branch base,
+`0643e5b` — it describes the state before the change. The research
+record's citations are anchored to the merged result instead.*
+
+Two constants at `harness/runner.py:13-14` (`PHASE_1`, `TASK_SPEC`) and
+`grade()`'s `source_allowlist` default at `harness/grading.py:79` become
+fields of one frozen dataclass:
 
 ```python
 @dataclass(frozen=True)
@@ -216,7 +230,7 @@ examples/duration/
     spec.md                          # the prompt
     acceptance/test_acceptance.py    # harness-owned
     reference/duration.py            # known-good
-    broken/duration.py               # known-bad: one table row wrong
+    broken/duration.py               # known-bad: one defect, two rows fail
 ```
 
 Flatter than AgentClinic's, which nests under `phase-1/` because
@@ -316,7 +330,9 @@ against.
    `run_batch(suite=...)` in `harness/runner.py`.
 2. `grade()`'s parameter renamed to `acceptance`.
 3. `examples/duration/` — four files.
-4. Floor tests parameterized over both suites, plus three new tests:
+4. A floor test pair per suite (see the correction under "The evidence
+   floor" — these shipped as a separate module, not parameterized), plus
+   three new tests:
    `_conditions` differs between suites; `run_batch` refuses a
    cross-suite checkpoint; duration's reference/broken pair.
 5. One `SATYRN_LIVE`-gated end-to-end run of the duration suite.
