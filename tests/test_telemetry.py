@@ -4,6 +4,9 @@ from pathlib import Path
 from harness.telemetry import ToolCall, read_telemetry
 
 FIXTURE = Path(__file__).parent / "fixtures" / "pi-run-0.82.0.jsonl"
+DELEGATION_FIXTURE = (
+    Path(__file__).parent / "fixtures" / "pi-run-0.83.0-delegation.jsonl"
+)
 
 
 def _real_run() -> str:
@@ -221,3 +224,195 @@ def test_a_missing_custom_entry_does_not_make_a_run_incomplete():
     # The extension observes. It must never fail a run the model
     # actually completed.
     assert read_telemetry(_real_run()).complete is True
+
+
+def _delegation_end(call_id: str, **usage) -> str:
+    """One successful `subagent` end event carrying the given child usage."""
+    return json.dumps(
+        {
+            "type": "tool_execution_end",
+            "toolCallId": call_id,
+            "toolName": "subagent",
+            "result": {
+                "details": {
+                    "results": [
+                        {"agent": "implementer", "exitCode": 0, "usage": usage}
+                    ]
+                }
+            },
+        }
+    )
+
+
+def test_a_delegated_run_reports_the_childs_cost():
+    """The regression this cycle exists for. Phase 5 cycle 2 published a
+    1.15x cost ratio when the true figure was 8.11x, because telemetry
+    counted the parent and the child did most of the work. Asserted
+    against a real trimmed payload, not a synthetic one."""
+    telemetry = read_telemetry(DELEGATION_FIXTURE.read_text())
+
+    assert len(telemetry.delegations) == 1
+    assert telemetry.delegations[0].agent == "implementer"
+    assert telemetry.child_turns > telemetry.turns
+    assert telemetry.total_context_processed > 3 * telemetry.context_processed
+
+
+def test_totals_are_parent_plus_child():
+    telemetry = read_telemetry(DELEGATION_FIXTURE.read_text())
+
+    assert telemetry.total_turns == telemetry.turns + telemetry.child_turns
+    assert telemetry.total_context_processed == (
+        telemetry.context_processed + telemetry.child_context_processed
+    )
+    assert telemetry.total_output_tokens == (
+        telemetry.output_tokens + telemetry.child_output_tokens
+    )
+
+
+def test_a_run_with_no_delegation_totals_to_its_parent():
+    """A bare run's totals must equal its parent figures exactly, or every
+    number published before this cycle silently changes meaning. `turn` is
+    a pinned term; this is what pins it."""
+    telemetry = read_telemetry(_real_run())
+
+    assert telemetry.delegations == ()
+    assert telemetry.total_turns == telemetry.turns
+    assert telemetry.total_context_processed == telemetry.context_processed
+    assert telemetry.total_output_tokens == telemetry.output_tokens
+
+
+def test_child_context_processed_includes_both_cache_fields():
+    """Same definition as the parent's: input + cacheRead + cacheWrite.
+    cacheRead dominates a delegated run -- cycle 2's first child read
+    173,056 cached tokens against 23,955 fresh input -- so dropping it
+    would understate the cost by most of it."""
+    telemetry = read_telemetry(
+        _delegation_end("c1", input=100, output=10, cacheRead=1000, cacheWrite=7, turns=3)
+    )
+
+    assert telemetry.child_context_processed == 1107
+    assert telemetry.child_output_tokens == 10
+    assert telemetry.child_turns == 3
+
+
+def test_child_reasoning_tokens_are_folded_into_output():
+    """Mirrors the parent's rule, so a future reasoning-capable child's
+    tokens cannot vanish silently."""
+    telemetry = read_telemetry(
+        _delegation_end("c1", input=1, output=10, reasoning=5, turns=1)
+    )
+
+    assert telemetry.child_output_tokens == 15
+
+
+def test_a_failed_delegation_is_not_counted_as_a_free_success():
+    """Cycle 1 found a delegation whose result was the string 'Tool
+    subagent not found'. It carries no usage, and counting it as a
+    zero-cost delegation would make a broken arm look efficient -- which
+    is exactly how a silently unorchestrated batch would read."""
+    line = json.dumps(
+        {
+            "type": "tool_execution_end",
+            "toolCallId": "c1",
+            "toolName": "subagent",
+            "isError": True,
+            "result": {
+                "content": [{"type": "text", "text": "Tool subagent not found"}],
+                "details": {},
+            },
+        }
+    )
+
+    telemetry = read_telemetry(line)
+
+    assert telemetry.delegations == ()
+    assert telemetry.child_context_processed == 0
+
+
+def test_two_delegations_in_one_run_are_both_counted():
+    """Cycle 2's runs 4 and 10 each made three delegations; run 4's
+    children totalled 128 turns."""
+    stream = "\n".join(
+        [
+            _delegation_end("c1", input=5, output=1, turns=4),
+            _delegation_end("c2", input=5, output=1, turns=6),
+        ]
+    )
+
+    telemetry = read_telemetry(stream)
+
+    assert len(telemetry.delegations) == 2
+    assert telemetry.child_turns == 10
+
+
+def test_a_delegation_with_no_usage_payload_is_skipped_not_crashed():
+    """Pi's payload shape is not ours and may change with an upgrade. An
+    end event carrying a results list but no usage must not raise."""
+    line = json.dumps(
+        {
+            "type": "tool_execution_end",
+            "toolCallId": "c1",
+            "toolName": "subagent",
+            "result": {"details": {"results": [{"agent": "implementer"}]}},
+        }
+    )
+
+    telemetry = read_telemetry(line)
+
+    assert telemetry.delegations == ()
+    assert telemetry.child_context_processed == 0
+
+
+def test_a_non_subagent_tool_is_never_read_as_a_delegation():
+    """`bash` results carry no usage, but a future tool might. Only
+    `subagent` ends are delegations."""
+    line = json.dumps(
+        {
+            "type": "tool_execution_end",
+            "toolCallId": "c1",
+            "toolName": "bash",
+            "result": {
+                "details": {
+                    "results": [{"agent": "x", "usage": {"input": 9, "turns": 9}}]
+                }
+            },
+        }
+    )
+
+    assert read_telemetry(line).delegations == ()
+
+
+def test_a_failed_delegation_carrying_usage_is_still_not_counted():
+    """The `isError` guard, exercised directly.
+
+    Cycle 1's real failure carried an empty `details`, so a test built
+    from it passes with or without the guard -- the mutation check caught
+    that. A child that errors *after* doing work is plausible and would
+    carry usage; its cost belongs in a failure analysis, not in a
+    delegation total that a cost ratio is computed from.
+    """
+    line = json.dumps(
+        {
+            "type": "tool_execution_end",
+            "toolCallId": "c1",
+            "toolName": "subagent",
+            "isError": True,
+            "result": {
+                "details": {
+                    "results": [
+                        {
+                            "agent": "implementer",
+                            "exitCode": 1,
+                            "usage": {"input": 500, "output": 40, "turns": 7},
+                        }
+                    ]
+                }
+            },
+        }
+    )
+
+    telemetry = read_telemetry(line)
+
+    assert telemetry.delegations == ()
+    assert telemetry.child_context_processed == 0
+    assert telemetry.child_turns == 0
