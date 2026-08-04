@@ -1,3 +1,4 @@
+import dataclasses
 import hashlib
 import json
 import os
@@ -51,6 +52,65 @@ def test_the_two_suites_use_different_allowlists():
     shows it is a parameter rather than decoration."""
     assert runner.AGENTCLINIC_PHASE_1.source_allowlist == ("app.py", "templates")
     assert runner.DURATION.source_allowlist == ("duration.py",)
+
+
+def test_conditions_differ_between_the_two_suites(monkeypatch):
+    """`task_spec_sha256` is the only field of RunConditions that
+    distinguishes two suites -- everything else is shared, and
+    `pi_command` normalizes the prompt away. If `_conditions` ever hashes
+    a module-level constant again instead of the suite it was handed,
+    this is what catches it."""
+    monkeypatch.setattr(
+        runner.subprocess,
+        "run",
+        lambda command, **kwargs: SimpleNamespace(stdout="stub\n"),
+    )
+    monkeypatch.setattr(runner, "_extension_digest", lambda path: "digest")
+
+    agentclinic = runner._conditions(
+        runner.AGENTCLINIC_PHASE_1, "model", ["pi", "prompt"], 600
+    )
+    duration = runner._conditions(runner.DURATION, "model", ["pi", "prompt"], 600)
+
+    assert agentclinic.task_spec_sha256 != duration.task_spec_sha256
+    assert agentclinic != duration
+    # Non-vacuity: the two differ *only* there. Were another field to
+    # start varying, this assertion would fail and the claim in the
+    # docstring above would need rewriting rather than quietly rotting.
+    assert dataclasses.replace(
+        agentclinic, task_spec_sha256=duration.task_spec_sha256
+    ) == duration
+
+
+def test_run_batch_refuses_a_checkpoint_recorded_under_another_suite(
+    tmp_path, monkeypatch
+):
+    """The failure this cycle exists to prevent: a duration batch resuming
+    an AgentClinic checkpoint, accumulating runs graded against different
+    contracts in one file that looks like data."""
+    checkpoint = tmp_path / "runs.jsonl"
+    agentclinic_conditions = RunConditions(
+        "model", ("pi",), runner.EXPECTED_PI_VERSION, "agentclinic-sha",
+        "rev", 600, 30, ("digest",),
+    )
+    duration_conditions = dataclasses.replace(
+        agentclinic_conditions, task_spec_sha256="duration-sha"
+    )
+    append_checkpoint(
+        checkpoint,
+        RunResult("diff", _grade_result(), "", "", 0, conditions=agentclinic_conditions),
+    )
+
+    monkeypatch.setattr(runner, "_conditions", lambda *args: duration_conditions)
+    monkeypatch.setattr(
+        runner, "preflight_model", lambda model: pytest.fail("preflight called")
+    )
+    monkeypatch.setattr(
+        runner, "run_suite", lambda suite, **kwargs: pytest.fail("run called")
+    )
+
+    with pytest.raises(ValueError, match="conditions"):
+        runner.run_batch(checkpoint, suite=runner.DURATION, target=2, model="model")
 
 
 @pytest.mark.parametrize(
@@ -400,6 +460,30 @@ def test_run_suite_produces_live_model_evidence():
     assert result.pi_stdout.strip()
     assert result.grade.accepted is True
     assert result.grade.tests_executed == result.grade.tests_expected == 4
+
+
+@pytest.mark.skipif(
+    os.environ.get("SATYRN_LIVE") != "1",
+    reason="set SATYRN_LIVE=1 to require an actual Pi/model run",
+)
+def test_run_suite_produces_live_model_evidence_for_the_duration_suite():
+    """The second suite end-to-end through a real Pi invocation: the
+    seam's proof, as opposed to the offline floor tests' proof that the
+    grader discriminates. No assertion on acceptance -- whether a 12B
+    local model solves this on any given attempt is a measurement, and
+    this cycle claims no number."""
+    result = run_suite(runner.DURATION)
+
+    assert result.pi_returncode == 0
+    assert result.pi_stdout.strip()
+    assert result.grade.tests_expected == 6
+    assert result.conditions is not None
+    assert (
+        result.conditions.task_spec_sha256
+        != runner._conditions(
+            runner.AGENTCLINIC_PHASE_1, runner.DEFAULT_MODEL, ["pi", "x"], 600
+        ).task_spec_sha256
+    )
 
 
 def test_pi_command_emits_one_extension_flag_per_path_in_order():
