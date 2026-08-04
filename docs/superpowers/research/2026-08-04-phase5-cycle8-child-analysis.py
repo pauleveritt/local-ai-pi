@@ -34,6 +34,8 @@ ARMS = {
     "cycle 7 — tech stack": EVIDENCE / "satyrn-phase5-cycle7-stack-n6-t300.jsonl",
     "cycle 8 — + stop rule": EVIDENCE / "satyrn-phase5-cycle8-childfix-n6-t300.jsonl",
     "cycle 9 — hermetic child": EVIDENCE / "satyrn-phase5-cycle9-hermetic-n6-t300.jsonl",
+    "cycle 10 — n=16 at 600 s": EVIDENCE
+    / "satyrn-phase5-cycle10-hermetic-n16-t600.jsonl",
 }
 
 
