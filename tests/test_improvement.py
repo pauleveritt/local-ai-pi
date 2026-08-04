@@ -556,3 +556,55 @@ def test_the_orchestrator_prompt_leaks_no_stack_or_module():
 
     for leaked in ("fastapi", "jinja", "httpx", "starlette", "uvicorn", "app.py"):
         assert leaked not in text, f"orchestrator prompt leaks {leaked!r}"
+
+
+def test_run_batch_records_and_uses_the_timeout_it_was_given(tmp_path, monkeypatch):
+    """`run_batch` computed its `requested` conditions with a hardcoded 600
+    while `run_suite` recorded whatever it was handed, so a batch at any
+    other cap aborted on its first run with "run conditions changed during
+    batch". The refusal was correct; the gap was that the cap could not be
+    expressed at all.
+
+    Found 2026-08-04 by phase 5 cycle 5's pilot, whose own plan called for
+    n=6 at 300 s -- machinery the committed testing-economics section
+    depended on and the harness did not have.
+
+    Asserts both halves of the wiring, because either alone leaves the
+    mismatch that caused the abort: the cap must reach `_conditions` (so
+    the batch compares against what it will actually do) *and* reach the
+    child process.
+    """
+    from harness.grading import GradeResult
+    from harness.processes import ProcessResult
+    from tests.support import make_conditions
+
+    seen = {}
+
+    def fake_conditions(suite, model, command, timeout, extensions=None, improvement=None):
+        seen.setdefault("conditions_timeout", timeout)
+        return make_conditions(
+            pi_version=runner.EXPECTED_PI_VERSION, run_timeout=timeout
+        )
+
+    def fake_process(command, **kwargs):
+        seen["process_timeout"] = kwargs["timeout"]
+        return ProcessResult(0, "", "", False)
+
+    monkeypatch.setattr(runner, "check_model_server_alive", lambda: None)
+    monkeypatch.setattr(runner, "preflight_model", lambda model: None)
+    monkeypatch.setattr(runner, "_conditions", fake_conditions)
+    monkeypatch.setattr(runner, "run_process", fake_process)
+    monkeypatch.setattr(
+        runner,
+        "grade",
+        lambda *args, **kwargs: GradeResult(True, 1, 1, 0, "1 passed", "", ()),
+    )
+
+    records = runner.run_batch(
+        tmp_path / "pilot.jsonl", suite=runner.DURATION, target=1, timeout=300
+    )
+
+    assert seen["conditions_timeout"] == 300, "the cap must reach _conditions"
+    assert seen["process_timeout"] == 300, "the cap must reach the child"
+    assert records[0].conditions is not None
+    assert records[0].conditions.run_timeout == 300

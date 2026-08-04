@@ -364,7 +364,7 @@ def test_run_batch_runs_remaining_attempts_and_appends_each(tmp_path, monkeypatc
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
     monkeypatch.setattr(runner, "preflight_model", lambda model: calls.append("preflight"))
 
-    def fake_run(suite, *, model, improvement=None):
+    def fake_run(suite, *, model, improvement=None, timeout=600):
         calls.append("run")
         return RunResult("diff", _grade_result(), "out", "", 0, conditions=conditions)
 
@@ -405,7 +405,7 @@ def test_run_batch_forwards_the_given_suite_throughout(tmp_path, monkeypatch):
         conditions_suites_seen.append(suite)
         return conditions
 
-    def fake_run_suite(suite, *, model, improvement=None):
+    def fake_run_suite(suite, *, model, improvement=None, timeout=600):
         run_suite_suites_seen.append(suite)
         return RunResult("diff", _grade_result(), "out", "", 0, conditions=conditions)
 
@@ -436,7 +436,7 @@ def test_run_batch_resumes_after_existing_records(tmp_path, monkeypatch):
     monkeypatch.setattr(
         runner,
         "run_suite",
-        lambda suite, *, model, improvement=None: (calls.append("run") or RunResult(
+        lambda suite, *, model, improvement=None, timeout=600: (calls.append("run") or RunResult(
             "second", _grade_result(), "out", "", 0, conditions=conditions
         )),
     )
@@ -459,7 +459,7 @@ def test_run_batch_refuses_a_record_without_matching_conditions(tmp_path, monkey
     ),
     )
     monkeypatch.setattr(runner, "preflight_model", lambda model: pytest.fail("preflight called"))
-    monkeypatch.setattr(runner, "run_suite", lambda suite, *, model, improvement=None: pytest.fail("run called"))
+    monkeypatch.setattr(runner, "run_suite", lambda suite, *, model, improvement=None, timeout=600: pytest.fail("run called"))
 
     with pytest.raises(ValueError, match="conditions"):
         runner.run_batch(checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1)
@@ -477,7 +477,7 @@ def test_run_batch_preflight_failure_leaves_checkpoint_unchanged(tmp_path, monke
 
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
     monkeypatch.setattr(runner, "preflight_model", fail_preflight)
-    monkeypatch.setattr(runner, "run_suite", lambda suite, *, model, improvement=None: pytest.fail("run called"))
+    monkeypatch.setattr(runner, "run_suite", lambda suite, *, model, improvement=None, timeout=600: pytest.fail("run called"))
 
     with pytest.raises(RuntimeError, match="down"):
         runner.run_batch(checkpoint, target=1, model="model", suite=runner.AGENTCLINIC_PHASE_1)
@@ -498,7 +498,7 @@ def test_run_batch_does_not_preflight_when_target_is_already_reached(tmp_path, m
         )
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
     monkeypatch.setattr(runner, "preflight_model", lambda model: pytest.fail("preflight called"))
-    monkeypatch.setattr(runner, "run_suite", lambda suite, *, model, improvement=None: pytest.fail("run called"))
+    monkeypatch.setattr(runner, "run_suite", lambda suite, *, model, improvement=None, timeout=600: pytest.fail("run called"))
 
     assert len(runner.run_batch(checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1)) == 2
 
@@ -513,7 +513,7 @@ def test_run_batch_appends_rejected_attempt_before_continuing(tmp_path, monkeypa
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
     monkeypatch.setattr(runner, "preflight_model", lambda model: None)
 
-    def fake_run(suite, *, model, improvement=None):
+    def fake_run(suite, *, model, improvement=None, timeout=600):
         calls.append(len(load_checkpoint(checkpoint)))
         if len(calls) == 1:
             return RunResult(

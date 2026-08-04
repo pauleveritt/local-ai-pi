@@ -484,6 +484,7 @@ def run_batch(
     target: int = 16,
     model: str = DEFAULT_MODEL,
     improvement: Improvement | None = None,
+    timeout: int = 600,
 ) -> list[RunResult]:
     """Run sequential attempts until the requested checkpoint length.
 
@@ -496,6 +497,16 @@ def run_batch(
     `improvement` is defaulted, unlike `suite`, because "no improvement"
     is a real and common condition rather than an unnamed one, and it is
     recorded explicitly as `improvement_name="none"`.
+
+    `timeout` must reach both `_conditions` and `run_suite`. It was
+    hardcoded to 600 here while `run_suite` recorded whatever it was
+    handed, so a batch at any other cap aborted on its first run with
+    "run conditions changed during batch" -- the guard working correctly
+    on a mismatch this function created. A reduced cap could not be
+    expressed at all, which the phase 5 testing-economics plan depended
+    on. `run_timeout` is part of `RunConditions`, so batches at different
+    caps remain non-comparable by construction; this makes the cheap one
+    *possible*, not equivalent.
     """
     from harness.checkpoint import append_checkpoint, load_checkpoint
 
@@ -505,7 +516,7 @@ def run_batch(
     extensions = EXTENSIONS + (() if improvement is None else improvement.extensions)
     system_prompt = None if improvement is None else improvement.system_prompt
     command = _pi_command(model, suite.task_spec.read_text(), extensions, system_prompt)
-    requested = _conditions(suite, model, command, 600, extensions, improvement)
+    requested = _conditions(suite, model, command, timeout, extensions, improvement)
     if requested.pi_version != EXPECTED_PI_VERSION:
         raise RuntimeError(
             f"this harness pins Pi {EXPECTED_PI_VERSION}, but {requested.pi_version} "
@@ -524,7 +535,9 @@ def run_batch(
 
     preflight_model(model)
     while len(records) < target:
-        result = run_suite(suite, model=model, improvement=improvement)
+        result = run_suite(
+            suite, model=model, timeout=timeout, improvement=improvement
+        )
         if result.conditions != requested:
             raise RuntimeError("run conditions changed during batch")
         append_checkpoint(checkpoint_path, result)

@@ -964,8 +964,16 @@ things over.
   makes any of these provable, and it recomputes over batches already
   recorded, so a lever can be scored against this batch without rerunning it.
 
-- **`run_batch` cannot express a reduced timeout — a corrective owed.
-  Found 2026-08-04 by cycle 5's pilot.** It computes the conditions it
+- **`run_batch` cannot express a reduced timeout — done 2026-08-04.**
+  `run_batch` now takes `timeout`, passes it to both `_conditions` and
+  `run_suite`, and a test asserts both halves — either alone leaves exactly
+  the mismatch that caused the abort. Two mutation checks, each reverting one
+  half, each killed by that test. `run_timeout` remains part of
+  `RunConditions`, so batches at different caps stay non-comparable by
+  construction; this makes the cheap one *possible*, not equivalent. The
+  original entry follows.
+
+  **Found 2026-08-04 by cycle 5's pilot.** It computes the conditions it
   enforces with a hardcoded 600 s and takes no `timeout` parameter, while
   `run_suite` records whatever it was given, so a pilot at a shorter cap
   aborts with `"run conditions changed during batch"`. The refusal is
