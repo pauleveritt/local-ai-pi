@@ -66,12 +66,56 @@ structure for them. That's a real question, but it's downstream of having a
 working engine and real suites to write about; it isn't Phase 1's job. See
 `BRIEF.md`, "First decision for the new session.")*
 
-**Phase 4 — Prove the engine generalizes beyond one workload.** In
-progress. Three phases built the engine against a single workload, so the
+**Phase 4 — Prove the engine generalizes beyond one workload.
+Complete.** Three phases built the engine against a single workload, so the
 parameters standing where hardcodes used to be had exactly one caller
 apiece — which `BRIEF.md` names as the one thing that actually cost the
-previous project. Cycle 1 adds a second suite and demonstrates the spec
+previous project. Cycle 1 added a second suite and demonstrated the spec
 and grading seams with a real second caller.
+
+*(Closed 2026-08-04 at one cycle. The phase's claim — two suites through one
+code path, each grader floor-proven — was delivered whole by cycle 1, and
+stretching it across a third and fourth suite was judged thin: the seam is
+either proved by a second caller or it isn't, and further callers buy
+repetition rather than evidence.)*
+
+**Phase 5 — The improvement loop.** Next. Four phases produced an engine
+that measures one unmodified model against a fixed workload. Nothing in it
+can yet express *"this run had something applied to it"* — so an idea about
+how to steer a small model can be argued but not weighed. Phase 5 makes an
+improvement a named, digested artifact the harness records, and runs the
+loop once end to end: propose, measure against the unchanged baseline, keep
+or drop. The orchestrator/implementer pair is improvement #1 and stays
+optional; a contributor who finds SDD too formal is never obliged to adopt
+it. The phase ends pointed at something installable — `BRIEF.md` promises "a
+Pi extension (not a fork of Pi) plus an eval harness," and four phases have
+built harness.
+
+**Two roadmap flavors, because they ask different questions.** On
+AgentClinic's detailed roadmap the success rate is saturated — bare Pi
+scored 16/16 in Phase 1, and the prior project's orchestrated arm also
+scored 16/16 — so nothing about *benefit* is observable there and the only
+things that can move are turns and `context_processed`. That makes it the
+clean control for what orchestration **costs**, which is the handoff-packet
+claim `harness/telemetry.py` was built for and has never been used on. The
+user-story variant of the same roadmap ranges 1/16 to 15/16 in that prior
+series, so it is where an improvement's **benefit** is visible. Every number
+in that series is a *prediction to be replicated, not a result*: its source
+carries a `PENDING RULE 8 REVIEW` banner and is explicitly not citable.
+
+**This reverses two recorded decisions, deliberately.** The orchestrator was
+withdrawn from Phase 2 on 2026-08-02 ("**the orchestrator is not being built
+in this phase**") and its cycles were withdrawn from Phase 3 on 2026-08-03 as
+work the Backlog had already deferred. Both withdrawals were right at the
+time and neither was a promise never to schedule it. What changed is that the
+debt is now nameable and payable: the cost arm runs on a workload already in
+the repository with its grader floor already proven, so testing the claim
+costs a batch rather than a construction project. The Backlog's own condition
+survives intact — the experiment is proved against small disposable arms, one
+improvement at a time, with comparison done by hand. Automated comparison is
+deliberately **not** in this phase; running the loop manually twice is how we
+learn what a comparison must refuse, and building the refusal first is the
+machinery-ahead-of-its-contract move `BRIEF.md` warns against.
 
 ## Concept budget
 
@@ -109,6 +153,9 @@ not by being convenient shorthand.*
 | tool call | one tool Pi invoked during a run, correlated start-to-end by `toolCallId` — borrowed from Pi's vocabulary, not coined | phase 2 cycle 1 |
 | context processed | `input + cacheRead + cacheWrite` — a cumulative *workload* measure, not a context-window size, and not latency or cost. Adopted from the prior effort's metrics report rather than invented, so its numbers stay comparable | phase 2 cycle 1 |
 | gotcha | a non-obvious Pi behavior, found by this project, costing time and frustration to discover, and invisible in Pi's own documentation — recorded with its price and a citation so it is remembered | phase 3 cycle 2 |
+| improvement | a named, optional change to how a run is steered — agent files, prompts, supporting spec documents — applied to a run as one unit and digested into its conditions. A run has exactly one improvement or none | phase 5 cycle 1 |
+| orchestrator | the parent Pi session that reads a task spec and delegates to a specialist child instead of writing the solution itself | phase 2 cycle 1; retired 2026-08-02 unspent, **revived phase 5** |
+| handoff packet | the structured brief an orchestrator hands a specialist — task, allowed files, acceptance strings, validation command. What the cost claim is about | phase 2 cycle 1; retired 2026-08-02 unspent, **revived phase 5** |
 
 **Redefined, phase 4 cycle 1.** Three terms above were narrowed to the
 first workload without anyone noticing: *suite* meant an acceptance file,
@@ -138,6 +185,23 @@ cycle 1's spec and in the Backlog entries that describe the deferred
 experiment; that is the same status `oracle` has, so don't "fix" those
 occurrences either. Both revive if and when the experiment is scheduled.
 
+**Revived 2026-08-04, on that note's own terms.** Phase 5 schedules the
+experiment, so `orchestrator` and `handoff packet` move back into the table
+above. The retirement note anticipated exactly this — "Both revive if and
+when the experiment is scheduled" — which is why the revival is a
+restoration rather than a reversal. Their definitions are unchanged from
+what phase 2 cycle 1 spent them on; nothing was redefined in absentia.
+
+**Phase 5 spends one genuinely new term: `improvement`.** It earns its place
+by naming the thing the phase exists to make measurable, and the alternatives
+were both worse. *Intervention* is more precise and less legible to a 5-h/wk
+contributor. *Arm* is the prior project's word and would be honest, but it
+arrives carrying the fourth-attempt story `BRIEF.md` tells — six arms in a
+single day — and the discipline this phase binds itself to (one improvement
+at a time, comparison by hand) is easier to hold under a word that does not
+already mean a matrix. Recorded so the choice is visible rather than
+defaulted.
+
 ## Phases
 
 | # | Phase | Direction (one sentence) | Status |
@@ -145,7 +209,8 @@ occurrences either. Both revive if and when the experiment is scheduled.
 | 1 | Reproduce AgentClinic Phase 1 | One trustworthy, hermetically-graded run; n=16 reproducing ~15/16 | complete |
 | 2 | Measurement we can trust, cheaply enough to repeat | Instrument a run, characterize its precision, make the environment honest, and impose a discipline on published numbers | complete; the n=100 affordability target was retired 2026-08-02 by the phase's own findings — see "Now" |
 | 3 | Build the extension half | The product is "a Pi extension plus an eval harness"; two phases built the harness. Make the extension observable, then teach the mechanics and record the gotchas. *(This row previously read "Specialize Pi's shipped subagent, then test the handoff-packet cost claim" — withdrawn 2026-08-03 as orchestration work the Backlog had already deferred.)* | complete |
-| 4 | Prove the engine generalizes beyond one workload | A second, differently-shaped suite runs through the same harness, each grader having accepted a known-good and rejected a known-broken solution | in progress |
+| 4 | Prove the engine generalizes beyond one workload | A second, differently-shaped suite runs through the same harness, each grader having accepted a known-good and rejected a known-broken solution | complete; closed at one cycle 2026-08-04 — see "Now" |
+| 5 | The improvement loop | Make an improvement a named artifact the harness digests, then run the loop once end to end — what orchestration costs on a saturated workload, what it buys on one with headroom — and finish pointed at something installable | next |
 
 ### Phase 1 feature cycles
 
@@ -440,6 +505,36 @@ expensive to re-derive.
 |-------|---------|-------|
 | 1 | A second eval suite — a stdlib-only duration parser under `examples/duration/`, so the spec and grading seams have a real second caller instead of a parameter with one caller and a workload-shaped default. Dissolves `PHASE_1`, `TASK_SPEC`, and `run_agentclinic_phase1` into a `Suite` descriptor; makes `grade()`'s `source_allowlist` required; makes `_conditions` hash the suite it was handed, which is load-bearing because `task_spec_sha256` is the only `RunConditions` field distinguishing two suites. Claims no number and runs no batch. [spec](docs/superpowers/specs/2026-08-04-phase4-cycle1-second-suite-design.md), [plan](docs/superpowers/plans/2026-08-04-phase4-cycle1-second-suite.md), [research](docs/superpowers/research/2026-08-04-phase4-cycle1-what-the-second-suite-cost.md) | Done |
 
+### Phase 5 feature cycles
+
+| Cycle | Summary | State |
+|-------|---------|-------|
+| 1 | The improvement mechanism, and the cost answer — adds a frozen `Improvement` descriptor and `run_batch(suite=…, improvement=…)`, with the orchestrator/implementer pair as improvement #1. Breaks `RunConditions` once rather than twice: the improvement digest plus the two digests the Backlog already owed (the acceptance file's contents, the allowlist), all sentinel-loading like `extension_digests`. Runs two batches on AgentClinic Phase 1 — bare and orchestrated — where success is expected to stay pinned and the readable signal is turns and `context_processed`. Touches no suite. | Planned |
+| 2 | The user-story suite and its floor — the user-story roadmap variant as a third `Suite`, with its own task-spec file, its own known-good and known-broken fixtures, tests proving the grader accepts one and rejects the other, and `norecursedirs` / `extend-exclude` entries. Then the as-shipped orchestrator arm on it. Touches no mechanism. | Planned |
+| 3+ | Improvements against the user-story arm, one at a time — tech-stack and mission first, then a domain document for the data model. Each pre-registers its prediction before its batch runs. | Planned |
+
+**Why this order.** Cycle 1 touches no suite and cycle 2 touches no
+mechanism, so neither can hide a defect in the other. The cost arm is first
+because it needs nothing new: AgentClinic Phase 1 is in the repository with
+its grader floor already proven, so the phase's first evidence costs a batch.
+The benefit arm is second because a suite with headroom is real work — a
+number from it is not citable until its floor exists, which is a fixture pair
+and its tests, not a line item.
+
+**Every prior number is a prediction here.** Cycle 1 pre-registers that
+success stays at 16/16 on both arms, and cycle 2 pre-registers ~1/16 with
+wrong-framework as the dominant failure mode. Those come from a series
+carrying a `PENDING RULE 8 REVIEW` banner; replicating or falsifying them is
+the point, and neither may be written as a result before its batch runs.
+
+**One observation rides along in cycle 1.** The Backlog gates building our
+own minimal subagent tool on "a measured run shows the shipped extension
+contaminating or losing a measurement" — the shipped extension can put
+parallel children on a single-threaded local server. Cycle 1 is the first
+measured orchestrated run this project has ever made, so it records whether
+that happens. If it fires, the gate opens and the ~150-line tool is the
+honest path to something installable.
+
 ### Deferred candidates
 
 *Things a cycle's brainstorming considered and passed over — usually the
@@ -668,6 +763,19 @@ things over.
   sentinel pattern (`runner.py:65-68`) is the precedent — old checkpoints
   become unresumable-but-readable, not lost.
 
+  **Pulled forward to phase 5 cycle 1, 2026-08-04 — before either gate
+  condition fired.** The gate above asks for a triggering event; none has
+  occurred. What changed is the price. Cycle 1 adds an improvement digest to
+  `RunConditions` for its own reasons, which breaks every existing
+  checkpoint's resumability whether or not these two digests come with it.
+  Paying a recorded debt at the moment its marginal cost is zero is a better
+  trade than holding it until the gate fires and paying a *second* break for
+  the same evidence. The rule this bends — no machinery ahead of its
+  contract — is about building mechanisms nobody needs yet; here the
+  mechanism is being built regardless and the question is only what rides
+  along. Recorded as a deliberate early payment rather than a satisfied gate,
+  so nobody later reads it as evidence the gate worked.
+
 - **A run that dies leaves no trace in the harness's own records.**
   Found 2026-08-04 during phase 4 cycle 1, when a live single run was
   hard-killed mid-flight. Nothing was written anywhere: no checkpoint
@@ -854,6 +962,21 @@ things over.
   argument for scheduling the experiment deliberately some day, not for
   smuggling it into a phase about something else.
 
+  **Scheduled as Phase 5, 2026-08-04.** "Some day" is now, and deliberately
+  rather than smuggled: the phase is *named* for it, the two withdrawals are
+  cited in "Now," and both terms are revived in the concept budget on the
+  retirement note's own terms. Two conditions this entry set are honoured
+  literally — the arms stay small and disposable, and comparison stays
+  manual. One is honoured in substance but not in letter: the arm runs
+  against AgentClinic Phase 1, a real workload, not a synthetic example. The
+  reason to prefer synthetic examples was to avoid an engineering effort
+  about orchestration, and that risk is addressed more directly here — the
+  cost arm builds no orchestration machinery at all, since it runs Pi's
+  *shipped* subagent extension with two authored markdown files on a suite
+  whose grader floor already exists. A synthetic example would cost more to
+  build than the real workload already sitting in the repository, and would
+  produce a number about nothing. Recorded as a departure so it is visible.
+
 - **Investigate Recursive Language Models (RLM) and DSPy for constructing the
   handoff packet.** The deferred orchestration-cost experiment (above)
   assumes the orchestrator *writes* a packet: it reads the spec, decides what
@@ -937,6 +1060,20 @@ things over.
 
   Revisit as a deliberate experiment once a trusted number is in hand —
   not during Phase 1.
+
+  **Pulled forward to phase 5 cycle 2, 2026-08-04, with its condition met.**
+  The trusted number is in hand: Phase 1 closed at 16/16 and Phase 2 made the
+  environment honest. The question also changes shape here, and the change
+  matters. This entry framed it as *which* variant a model should build from —
+  a choice between two task specs. Phase 5 keeps both, because they measure
+  different things: the detailed variant is saturated and can only answer what
+  an improvement **costs**, and the user-story variant has the headroom to
+  answer what it **buys**. The evidence recorded above stays exactly as
+  useful, and its generalizable hazard — *grep a spec for the facts its
+  acceptance suite imports* — becomes a build step in cycle 2 rather than a
+  note, since the user-story suite needs its own acceptance file and the
+  1/16-vs-15/16 gap in the prior series was caused by one such silent
+  dependency.
 - Acceptance-suite rules beyond human-authorship (cumulative,
   contract-vs-implementation, non-vacuous, naming convention) — untouched,
   each needs its own argument when it becomes relevant.
