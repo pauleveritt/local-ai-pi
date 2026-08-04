@@ -33,11 +33,21 @@ EVIDENCE = Path.home() / "local-ai-pi-evidence"
 ARMS = {
     "cycle 7 — tech stack": EVIDENCE / "satyrn-phase5-cycle7-stack-n6-t300.jsonl",
     "cycle 8 — + stop rule": EVIDENCE / "satyrn-phase5-cycle8-childfix-n6-t300.jsonl",
+    "cycle 9 — hermetic child": EVIDENCE / "satyrn-phase5-cycle9-hermetic-n6-t300.jsonl",
 }
 
 
-def child_calls(pi_stdout: str) -> tuple[list[str], str | None, int]:
-    """(the child's tool calls as text, its stopReason, its message count).
+# The loop-breaker's refusal text, as the *child* sees it. Phase 5 cycle 9
+# proved the guard loads in the child (a threshold-0 copy refused the child's
+# first call) -- but `loop_broken` entries are appended in the child's own
+# session, and the parent's stream never carries them: the parent reported
+# zero while every child call was being blocked. So a child-side block is
+# only visible as the refusal arriving back as a tool result.
+BLOCK_MARKER = "Do not repeat it."
+
+
+def child_calls(pi_stdout: str) -> tuple[list[str], str | None, int, int]:
+    """(the child's tool calls, its stopReason, its message count, its blocks).
 
     Takes the *last* subagent update in the stream: each update carries the
     child's transcript so far, so the final one is the fullest view. Only
@@ -57,15 +67,20 @@ def child_calls(pi_stdout: str) -> tuple[list[str], str | None, int]:
         ):
             latest = event
     if latest is None:
-        return [], None, 0
+        return [], None, 0, 0
 
     results = (latest.get("partialResult", {}).get("details") or {}).get("results") or []
     if not results:
-        return [], None, 0
+        return [], None, 0, 0
     child = results[0]
 
     calls = []
+    blocks = 0
     for message in child.get("messages") or []:
+        if message.get("role") == "toolResult":
+            if BLOCK_MARKER in json.dumps(message.get("content")):
+                blocks += 1
+            continue
         if message.get("role") != "assistant":
             continue
         for block in message.get("content") or []:
@@ -80,7 +95,7 @@ def child_calls(pi_stdout: str) -> tuple[list[str], str | None, int]:
                 calls.append(f"bash: {args.get('command', '')}")
             else:
                 calls.append(f"{name}: {json.dumps(args, sort_keys=True)}")
-    return calls, child.get("stopReason"), len(child.get("messages") or [])
+    return calls, child.get("stopReason"), len(child.get("messages") or []), blocks
 
 
 def main() -> None:
@@ -98,22 +113,25 @@ def main() -> None:
         # than once and only the earlier call finished.
         print(
             "| # | run-accepted | grader-accepted | timed out | child turns | "
-            "child steps | child tool calls | worst repeat | that command | stopReason |"
+            "child steps | child tool calls | blocked | worst repeat | "
+            "that command | stopReason |"
         )
-        print("|---|---|---|---|---|---|---|---|---|---|")
+        print("|---|---|---|---|---|---|---|---|---|---|---|")
 
         worsts = []
+        blocked_total = 0
         for i, record in enumerate(records, 1):
             telemetry = read_telemetry(record.pi_stdout)
-            calls, stop, steps = child_calls(record.pi_stdout)
+            calls, stop, steps, blocks = child_calls(record.pi_stdout)
             counts = Counter(calls)
             command, worst = counts.most_common(1)[0] if counts else ("—", 0)
             worsts.append(worst)
+            blocked_total += blocks
             shown = command if len(command) <= 44 else command[:41] + "..."
             print(
                 f"| {i} | {record.accepted} | {record.grade.accepted} | "
                 f"{record.pi_timed_out} | {telemetry.child_turns} | {steps} | "
-                f"{len(calls)} | "
+                f"{len(calls)} | {blocks} | "
                 f"{worst} | `{shown}` | {stop} |"
             )
         print()
@@ -129,6 +147,7 @@ def main() -> None:
                 f"median across runs {statistics.median(worsts):.0f}"
             )
             print(f"- runs repeating one command >=5 times: {sum(1 for w in worsts if w >= 5)}")
+        print(f"- child calls refused by the loop breaker: {blocked_total}")
         print()
 
 

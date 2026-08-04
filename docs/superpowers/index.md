@@ -165,6 +165,11 @@ cycle's argument.
   supply a *fact* have worked twice; this one supplied a *rule of conduct* and
   did not. The research it forced found something larger: the delegated child
   had never been hermetic.
+- [Phase 5, cycle 9 — the contamination was the pathology](research/2026-08-04-phase5-cycle9-hermetic-child.md)
+  — stopping the delegated child from loading the operator's own Pi extensions
+  took timeouts from 2/6 to 0/6 and the worst repeated command from 178 to 5.
+  The loop-breaker refused nothing: the runaway stopped happening rather than
+  being caught.
 - [Phase 5, cycle 6 — a loop-breaker that did not fire](research/2026-08-04-phase5-cycle6-loop-breaker.md)
   — the extension works, proven live, and never engaged in the pilot because
   cycle 5's prompt line had already removed the loop. Its value rests on
@@ -304,4 +309,5 @@ research/2026-08-04-phase5-cycle5-orchestrator-corrections
 research/2026-08-04-phase5-cycle6-loop-breaker
 research/2026-08-04-phase5-cycle7-tech-stack
 research/2026-08-04-phase5-cycle8-child-runaway
+research/2026-08-04-phase5-cycle9-hermetic-child
 ```
