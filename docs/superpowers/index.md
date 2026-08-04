@@ -182,6 +182,7 @@ specs/2026-08-02-phase3-cycle1-observable-extension-design
 specs/2026-08-03-phase3-cycle2-specialized-subagent-design
 specs/2026-08-03-phase3-cycle2-extension-mechanics-design
 specs/2026-08-03-pi-version-pin-design
+specs/2026-08-04-phase4-cycle1-second-suite-design
 ```
 
 ```{toctree}
