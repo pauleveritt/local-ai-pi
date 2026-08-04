@@ -523,7 +523,10 @@ expensive to re-derive.
 | 2 | The cost answer — two n=16 batches on AgentClinic Phase 1, bare and orchestrated, where success is expected to stay pinned and the only readable signal is turns and `context_processed`. The handoff-packet claim, tested with the instrument built for it. Every orchestrated run is checked for a *successful* delegation before its cost counts, because cycle 1 showed a silently unorchestrated run still grades accepted. Touches no suite. **Result: orchestration cost 8.24x the context, 2.57x the output and 3.29x the turns, and was less reliable — 12/16 against a bare 16/16, with three hangs where the bare arm had none, two of them after a correct solution was already written.** The handoff-packet claim is confirmed and not close. The pre-registered 16/16 for the orchestrated arm was falsified. Max concurrent children was 1 in all 16 runs, so the Backlog's own-subagent-tool gate did not fire. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle2-cost-answer-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle2-cost-answer.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle2-cost-answer.md) | Done |
 | 3 | Telemetry counts the delegated child — `read_telemetry` reads the parent's own events only, so a delegated run's turns and `context_processed` omit the arm's dominant cost. Cycle 2 published a wrong headline on exactly that, and the fix belongs in the instrument rather than in one research script. Pi's shipped subagent extension already surfaces the child's usage in the parent's `tool_execution_end` under `details.results[].usage`, so this is parsing that is already in the stream, not new measurement. Recomputes retroactively over every batch already banked, cycle 2's included. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle3-child-telemetry-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle3-child-telemetry.md) | Done |
 | 4 | The user-story suite and its floor — the user-story roadmap variant as a third `Suite`, with its own task-spec file, its own known-good and known-broken fixtures, tests proving the grader accepts one and rejects the other, and `norecursedirs` / `extend-exclude` entries. Then the as-shipped orchestrator arm on it. Touches no mechanism. **Result: both arms 0/16 — a floor, not the headroom the phase needed.** Bare Pi read the spec, restated it accurately and stopped to ask what to do in all 16 runs, writing nothing; the orchestrator prompt restored agency (11/16 wrote files) but not correctness, and the arm thrashed — 15/16 runs repeating an identical tool call, six timeouts, one run at 261 turns. Also found and fixed a harness bug that let a model-created nested git repo abort a whole batch. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle4-user-story-suite-design.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle4-user-story-arms.md) | Done |
-| 5+ | Improvements against the user-story arm, one at a time — tech-stack and mission first, then a domain document for the data model. Each pre-registers its prediction before its batch runs. | Planned |
+| 5 | Correct the orchestrator's instructions — prompt-only, no mechanism. `orchestrator.md` never names a `subagent` mode, so the model guesses: three cycle-2 runs and one cycle-4 run were answered `"Invalid parameters. Provide exactly one mode."` with no child running. It also never states that the workspace starts empty, which is the most economical account of both cycle-4 arms — bare Pi asked a human which file to begin with, orchestrated Pi ran `ls -R` 245 times looking for files that do not exist. A **correction to a demonstrably broken artifact, not a lever**: tuning from a broken baseline measures the wrong thing. | Planned |
+| 6 | The loop-breaker extension — the phase's installable artifact. Pi ships no turn cap, no loop detection and no tool-call budget, and upstream closed the requests pointing users at extensions (#1898, #5248, and #6158, which reports this exact scenario on a small quantized local model). `pi.on("tool_call")` returning `{block: true, reason}` is present in installed 0.83.0 (`docs/extensions.md:70-73`, verified). A ring buffer over `(toolName, args)` that trips on repeats **regardless of whether the call succeeded** — the property the local unmerged `pi-circuit-breaker` branch lacks, since it excludes successful repeats and so would not have caught 245 successful `ls -R` calls. | Planned |
+| 7 | The tech-stack lever, against a corrected and guarded baseline — the first lever proper. Prior evidence predicts supplying the technology stack moves the user-story arm off the floor; until something does, that suite discriminates nothing. One improvement, pre-registered. | Planned |
+| 8 | One publishable arm — a single n=16 batch at the 600 s timeout on whatever configuration survives, comparable with cycles 2 and 4. The only number the phase publishes from here. | Planned |
 
 **Cycle 1 spent one term: `improvement`**, as budgeted above. `Improvement`,
 `improvement_digest`, `pi_package_root`, and the `"<pre-phase5>"` sentinel are
@@ -584,6 +587,21 @@ failed to apply, and one left the suite green because the guard it targeted
 was untested speculation. The check was run at close against the spec, the
 code, and this row.
 
+**Re-planned 2026-08-04, after cycles 2 and 4 and an adversarial audit.**
+The phase was going to spend cycles 5+ pulling levers. It now spends them
+making the orchestrator *usable first*, because the audit established the
+baseline is broken in three named, cheap ways rather than broadly weak: it is
+never told the tool's mode, never told the workspace is empty, and has no
+guard against repetition. Two are prompt lines and one is an extension. The
+target the owner set for the phase is to emerge with **a useful baseline
+orchestrator rather than an unusably broken one**, and levers pulled before
+that would be tuning against noise.
+
+Worth keeping in view: the orchestrator is *not* uniformly broken. On the
+detailed roadmap it delegated on 15 of 16 runs and produced solutions the
+grader accepted 12 times. It falls apart on a spec that names no files, which
+is a narrower and more fixable problem than cycle 4's 0/16 first suggested.
+
 **Why this order, revised 2026-08-04 after cycle 2.** Cycle 1 touches no
 suite, cycle 4 touches no mechanism, and cycle 2 sits between them producing
 the phase's first number, so no cycle can hide a defect in another. Cycle 3
@@ -599,12 +617,41 @@ cycle 5's first lever is what moves it off the floor, not optional polish
 afterwards. The check was run at close against the spec, the code, and this
 row.
 
+**How these cycles get tested, because 88 minutes a batch is the real
+constraint.** Cycle 4's orchestrated arm cost ~88 minutes, of which **60 were
+the six hangs sitting out a 600 s timeout**; the runs that work are cheap,
+half finishing inside 71 s (p50 70.9 s, p90 226 s, over all 55 completed runs
+banked so far). Four measures, cheapest first:
+
+- **Replay over banked streams.** Anything derivable from a recorded run
+  needs no model at all. Cycle 6's detector is pure logic over
+  `(toolName, args)` sequences, and four batches retaining full `pi_stdout`
+  are already on disk — *would it trip, on which call, and would it have
+  stopped run 1 at call 6 instead of 245?* Zero model time, real data, and
+  the same replay is the regression suite.
+- **Static assertions.** Cycle 5's mode fix is partly a property of a file:
+  assert `orchestrator.md` names a mode the shipped schema accepts. That
+  catches the "Invalid parameters" class in milliseconds, rather than in a
+  batch discovered weeks later — which is how it *was* found.
+- **Pilots at n=6, `run_timeout=300`.** Worst case 30 minutes, typically
+  12–15, enough to see a gross effect: rejections 3→0, files written 0→n,
+  loop tripped or not. Stated honestly: 4 of 55 completed runs exceeded
+  300 s, so a shorter cap inflates the apparent hang rate, and `run_timeout`
+  is part of `RunConditions` — **a pilot is never comparable with an n=16
+  arm and never published as the number.**
+- **One-run smokes.** Phase 5 cycle 1's spike caught the `--extension`
+  directory bug for the price of a single run. Any prompt or extension change
+  gets one before a pilot.
+
+The 600 s timeout stays on published arms. Cycle 4's hang rate is a finding,
+and shortening the cap there would quietly manufacture a better-looking one.
+
 **The levers stay later, deliberately.** The orchestrator prompt, the packet
 format, and the implementer specialist all have obvious knobs, and cycle 2
 makes it tempting to start turning them. That would be tuning on a workload
 where bare Pi already scores 16/16 — the best reachable outcome is parity with
 doing nothing, at eight times the cost. Orchestration is not supposed to earn
-its keep on a task the model already passes. The knobs get pulled in cycle 5+,
+its keep on a task the model already passes. The knobs get pulled in cycle 7,
 against the arm where bare Pi fails, where an improvement can demonstrate
 benefit rather than minimise damage. Mechanism before batch follows Phase 4 cycle
 1's precedent of a cycle that claims no number: a batch costs a cross-session
