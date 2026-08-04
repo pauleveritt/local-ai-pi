@@ -763,6 +763,49 @@ things over.
 
 ## Backlog
 
+- **Git-as-transaction: Pi ships the facility, and the Engine has no entry
+  for it. Recorded 2026-08-04 after the owner asked.** Four shipped example
+  extensions treat git as a savepoint mechanism, all via `pi.exec("git", …)`:
+  `git-checkpoint.ts` runs `git stash create` on every `turn_start`, keys the
+  resulting ref by session entry id, and offers `git stash apply <ref>` on
+  `session_before_fork`; `auto-commit-on-exit.ts` commits everything on
+  `session_shutdown`; `dirty-repo-guard.ts` gates on `git status --porcelain`;
+  `git-merge-and-resolve.ts` drives a real merge.
+
+  **The primitive worth knowing is `git stash create`.** It writes a commit
+  object and prints its ref *without* touching the stash stack or the working
+  tree. That matters here specifically: this project's operating rule is never
+  to `git stash`, because the stack is shared across worktrees — and that rule
+  does not apply to `stash create`, which pushes nothing. Per-turn savepoints
+  are therefore available without the hazard the rule exists to avoid.
+
+  **What it would actually buy, stated honestly.** Not run atomicity: a run is
+  already atomic in the way that matters, since the workspace is freshly
+  `git init`-ed and removed in a `finally`, so it either produces a graded
+  workspace or nothing. What is genuinely new is **telemetry of the artifact
+  rather than of the stream**. Today the harness keeps one initial commit and
+  one final diff, so a run's *middle* is invisible: we cannot say when the
+  solution became correct, whether the model thrashed, or whether it had a
+  passing solution and then broke it. A stash-create per turn would give a
+  turn-indexed history of the workspace, correlatable with the `turn_end`
+  events `harness/telemetry.py` already counts.
+
+  **Where the project's real atomicity pain is, which this does not touch.**
+  Both open gaps are batch-level, not run-level: a run that dies leaves no
+  trace in the harness's records, and a commit in the batch's working
+  directory strands the checkpoint by moving `harness_revision`. The
+  checkpoint is already the transaction log — append-only, tolerant of a
+  truncated final line — and in-workspace git does nothing for either.
+
+  **The gate, and a hazard to carry in.** This is an *improvement* in phase 5's
+  sense, or a telemetry cycle, and it must not ride along in a measured arm:
+  loading another extension changes `extension_digests`, and an extension that
+  shells git on every turn adds work to the very thing a cost comparison
+  measures. Take it up when someone names a question a turn-indexed workspace
+  history would answer. Note also that `git-checkpoint.ts` returns early when
+  `!ctx.hasUI`, so its restore half is inert under `--print`; only the
+  savepoint half would function here, which is the same shape as gotcha 9.
+
 - **`RunConditions` does not record the acceptance contract or the
   allowlist — a real gap, deliberately left open.** Phase 4 cycle 1 made
   `task_spec_sha256` the field that distinguishes two suites, and tests
