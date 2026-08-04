@@ -522,7 +522,7 @@ expensive to re-derive.
 | 1 | The improvement mechanism — a frozen `Improvement` descriptor (seed directory, extra extensions, system prompt) and `run_batch(suite=…, improvement=…)`, with the orchestrator/implementer pair as improvement #1. Breaks `RunConditions` once rather than twice: the improvement digest plus the two digests the Backlog already owed (the acceptance file's contents, the allowlist), all sentinel-loading like `extension_digests`. Decides how a *directory* extension is digested, which `_extension_digest` explicitly deferred to "the cycle that needs it". Ends with one live delegation observed under this harness's flags. **Claims no number and runs no batch.** The spike found that `--extension` needs the entry-point *file*: pointed at the `subagent/` directory it fails silently and the run still grades accepted. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle1-improvement-mechanism-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle1-improvement-mechanism.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle1-delegation-spike.md) | Done |
 | 2 | The cost answer — two n=16 batches on AgentClinic Phase 1, bare and orchestrated, where success is expected to stay pinned and the only readable signal is turns and `context_processed`. The handoff-packet claim, tested with the instrument built for it. Every orchestrated run is checked for a *successful* delegation before its cost counts, because cycle 1 showed a silently unorchestrated run still grades accepted. Touches no suite. **Result: orchestration cost 8.11x the context, 2.49x the output and 3.14x the turns, and was less reliable — 12/16 against a bare 16/16, with three hangs where the bare arm had none, two of them after a correct solution was already written.** The handoff-packet claim is confirmed and not close. The pre-registered 16/16 for the orchestrated arm was falsified. Max concurrent children was 1 in all 16 runs, so the Backlog's own-subagent-tool gate did not fire. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle2-cost-answer-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle2-cost-answer.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle2-cost-answer.md) | Done |
 | 3 | Telemetry counts the delegated child — `read_telemetry` reads the parent's own events only, so a delegated run's turns and `context_processed` omit the arm's dominant cost. Cycle 2 published a wrong headline on exactly that, and the fix belongs in the instrument rather than in one research script. Pi's shipped subagent extension already surfaces the child's usage in the parent's `tool_execution_end` under `details.results[].usage`, so this is parsing that is already in the stream, not new measurement. Recomputes retroactively over every batch already banked, cycle 2's included. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle3-child-telemetry-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle3-child-telemetry.md) | Done |
-| 4 | The user-story suite and its floor — the user-story roadmap variant as a third `Suite`, with its own task-spec file, its own known-good and known-broken fixtures, tests proving the grader accepts one and rejects the other, and `norecursedirs` / `extend-exclude` entries. Then the as-shipped orchestrator arm on it. Touches no mechanism. | Planned |
+| 4 | The user-story suite and its floor — the user-story roadmap variant as a third `Suite`, with its own task-spec file, its own known-good and known-broken fixtures, tests proving the grader accepts one and rejects the other, and `norecursedirs` / `extend-exclude` entries. Then the as-shipped orchestrator arm on it. Touches no mechanism. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle4-user-story-suite-design.md) | In progress |
 | 5+ | Improvements against the user-story arm, one at a time — tech-stack and mission first, then a domain document for the data model. Each pre-registers its prediction before its batch runs. | Planned |
 
 **Cycle 1 spent one term: `improvement`**, as budgeted above. `Improvement`,
@@ -823,6 +823,44 @@ Nothing else is currently deferred. Add to this list as later cycles pass
 things over.
 
 ## Backlog
+
+- **Community subagent extensions exist, and one is designed for our exact
+  constraint. Researched 2026-08-04 at the owner's prompt; a third option
+  the fork decision never considered.** That decision framed the choice as
+  *use Pi's shipped example* versus *write our own ~150 lines*. There is a
+  live third-party ecosystem, reached through Pi's own first-party installer
+  (`pi install npm:<pkg>` / `git:<repo>`) and gallery at `pi.dev/packages`,
+  which indexes the `pi-package` npm keyword.
+
+  Verified directly against `registry.npmjs.org` — **not** taken from the
+  research agent's summary, which warned that its own web fetches returned
+  inconsistently-shaped results between calls and may have been fabricated:
+
+  | Package | Repo | Latest | Published |
+  |---|---|---|---|
+  | `@mjasnikovs/pi-task` | `mjasnikovs/pi-task` | 0.28.3 | 2026-08-04 |
+  | `@tintinweb/pi-subagents` | `tintinweb/pi-subagents` | 0.14.3 | 2026-07-23 |
+  | `pi-subagents` | `nicobailon/pi-subagents` | 0.40.0 | 2026-08-01 |
+  | `@narumitw/pi-subagents` | `narumiruna/pi-extensions` | 0.47.0 | 2026-08-03 |
+
+  **Why this matters here specifically.** The gate for writing our own tool
+  is that the shipped example puts parallel children on a single-threaded
+  server. Cycle 2 measured max concurrency of 1 in all 16 runs, so that gate
+  did not fire — but the risk was never that it *always* happens, only that
+  the schema permits it. Two of these reportedly address it directly:
+  `@mjasnikovs/pi-task` is described as targeting local single-GPU backends
+  with parallelism off by default, and `@tintinweb/pi-subagents` reportedly
+  exposes a `maxConcurrent` setting that can be set to 1. **Both claims are
+  from the research agent reading READMEs and are unverified by us.**
+
+  **The gate, unchanged in spirit.** Adopting one is an *improvement* in
+  phase 5's sense: it competes with `sdd-orchestrator` on measured results,
+  not on stars or README quality. It also enlarges the substrate-drift
+  problem the fork decision was about — a third-party package moves on
+  someone else's schedule, and `extension_digests` would catch that only for
+  files we point at directly. Take it up when a measured arm shows the
+  shipped example limiting a result, and evaluate at most one alternative
+  per cycle.
 
 - **The orchestrator's levers — an inventory, not a plan. Recorded
   2026-08-04 at the owner's prompt, who notes from prior work that "this

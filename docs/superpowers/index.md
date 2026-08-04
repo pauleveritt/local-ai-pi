@@ -207,6 +207,7 @@ specs/2026-08-04-phase4-cycle1-second-suite-design
 specs/2026-08-04-phase5-cycle1-improvement-mechanism-design
 specs/2026-08-04-phase5-cycle2-cost-answer-design
 specs/2026-08-04-phase5-cycle3-child-telemetry-design
+specs/2026-08-04-phase5-cycle4-user-story-suite-design
 ```
 
 ```{toctree}

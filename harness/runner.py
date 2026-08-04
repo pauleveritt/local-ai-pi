@@ -45,6 +45,20 @@ AGENTCLINIC_PHASE_1 = Suite(
     source_allowlist=("app.py", "templates"),
 )
 
+AGENTCLINIC_PHASE_1_USER_STORY = Suite(
+    name="agentclinic-phase-1-user-story",
+    task_spec=EXAMPLES / "agentclinic" / "specs" / "roadmap-user-story.md",
+    # Deliberately the *same* acceptance file and allowlist as
+    # AGENTCLINIC_PHASE_1. The user-story document describes the identical
+    # application, so grading both against one contract is what makes the
+    # two comparable: the description varies and nothing else. Only
+    # `task_spec_sha256` distinguishes their conditions, which is the
+    # property `test_every_suites_task_spec_digest_is_pairwise_distinct`
+    # exists to protect.
+    acceptance=EXAMPLES / "agentclinic" / "phase-1" / "acceptance" / "test_acceptance.py",
+    source_allowlist=("app.py", "templates"),
+)
+
 DURATION = Suite(
     name="duration",
     task_spec=EXAMPLES / "duration" / "spec.md",

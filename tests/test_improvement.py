@@ -406,3 +406,46 @@ def test_the_subagent_extension_is_a_file_not_a_directory():
 
     assert extension.is_file()
     assert extension.name == "index.ts"
+
+
+def test_the_user_story_suite_shares_agentclinics_contract():
+    """The two AgentClinic suites must grade against one contract, or the
+    comparison measures two different targets rather than two descriptions
+    of one. Conditions still differ, because the task spec does."""
+    detailed = runner.AGENTCLINIC_PHASE_1
+    user_story = runner.AGENTCLINIC_PHASE_1_USER_STORY
+
+    assert user_story.acceptance == detailed.acceptance
+    assert user_story.source_allowlist == detailed.source_allowlist
+    assert user_story.task_spec != detailed.task_spec
+
+
+def test_the_user_story_spec_names_no_framework_and_no_module():
+    """The leak this suite exists to avoid. `agentclinic-phase-1`'s spec
+    names FastAPI, Jinja2, httpx, and `app.py`; the acceptance suite
+    imports `from app import app`. Supplying the technology stack is the
+    single strongest lever the prior project found -- it is a cycle 5+
+    improvement, and if it leaks in here there is nothing left to improve.
+    """
+    spec = runner.AGENTCLINIC_PHASE_1_USER_STORY.task_spec.read_text().lower()
+
+    for leaked in ("fastapi", "jinja", "httpx", "starlette", "app.py", "uvicorn"):
+        assert leaked not in spec, f"user-story spec leaks {leaked!r}"
+
+
+def test_the_user_story_spec_still_states_the_environment():
+    """Phase 2 cycle 3 found environment friction was ~95% of turn-count
+    variance. Dropping the environment note to avoid the leak would trade
+    one confound for a worse one."""
+    spec = runner.AGENTCLINIC_PHASE_1_USER_STORY.task_spec.read_text()
+
+    assert "already installed" in spec
+    assert "python -m pytest" in spec
+
+
+def test_the_user_story_spec_quotes_the_tagline_verbatim():
+    """The acceptance suite asserts the tagline character for character.
+    A spec that paraphrased it would be testing a fact it never stated."""
+    tagline = "Come in. Sit down. Tell us about your human."
+
+    assert tagline in runner.AGENTCLINIC_PHASE_1_USER_STORY.task_spec.read_text()
