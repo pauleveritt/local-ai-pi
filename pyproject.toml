@@ -27,13 +27,18 @@ docs = [
 # including the preserved pre-restructure project, whose acceptance
 # suites do `from app import app` and only collect inside a grading
 # directory. They are another checkout, not this one's tests.
-norecursedirs = ["examples/agentclinic", "docs/_build", ".worktrees"]
+#
+# examples/duration's acceptance suite does `from duration import
+# parse_duration` the same way -- it only collects inside a grading
+# workspace where source_allowlist has copied duration.py alongside it.
+norecursedirs = ["examples/agentclinic", "examples/duration", "docs/_build", ".worktrees"]
 
 [tool.ruff]
-# examples/agentclinic holds fixtures that are deliberately broken or
-# hostile -- they are data for the grader, not project source, and must
-# not be linted as if they were.
-extend-exclude = ["examples/agentclinic"]
+# examples/agentclinic and examples/duration hold fixtures that are
+# deliberately broken or hostile, or reference solutions with imports
+# that only resolve inside a grading workspace -- they are data for the
+# grader, not project source, and must not be linted as if they were.
+extend-exclude = ["examples/agentclinic", "examples/duration"]
 
 [tool.ruff.lint]
 # Proportionate, not maximalist: correctness and clarity rules a
