@@ -15,12 +15,12 @@ from harness.checkpoint import append_checkpoint, load_checkpoint
 from harness.grading import GradeResult
 from harness.processes import ProcessResult
 from harness.runner import (
-    RunConditions,
     RunResult,
     _pi_command,
     preflight_model,
     run_suite,
 )
+from tests.support import make_conditions
 
 
 def _grade_result() -> GradeResult:
@@ -55,17 +55,26 @@ def test_the_two_suites_use_different_allowlists():
 
 
 def test_conditions_differ_between_the_two_suites(monkeypatch):
-    """`task_spec_sha256` is the only field of RunConditions that
-    distinguishes two suites -- everything else is shared, and
-    `pi_command` normalizes the prompt away. If `_conditions` ever hashes
-    a module-level constant again instead of the suite it was handed,
-    this is what catches it."""
+    """Three fields of `RunConditions` come from the suite and so can
+    distinguish two of them: `task_spec_sha256`, `acceptance_sha256`, and
+    `source_allowlist`. Everything else is shared, and `pi_command`
+    normalizes the prompt away. If `_conditions` ever hashes a
+    module-level constant again instead of the suite it was handed, this
+    is what catches it.
+
+    **Rewritten phase 5 cycle 1**, when the non-vacuity assertion below
+    failed exactly as its own comment predicted it would. It previously
+    read "`task_spec_sha256` is the only field ... that distinguishes two
+    suites", which was true until `acceptance_sha256` and
+    `source_allowlist` were added. The comment said such a change should
+    force a rewrite rather than let the claim quietly rot; this is that
+    rewrite."""
     monkeypatch.setattr(
         runner.subprocess,
         "run",
         lambda command, **kwargs: SimpleNamespace(stdout="stub\n"),
     )
-    monkeypatch.setattr(runner, "_extension_digest", lambda path: "digest")
+    monkeypatch.setattr(runner, "_path_digest", lambda path: "digest")
 
     agentclinic = runner._conditions(
         runner.AGENTCLINIC_PHASE_1, "model", ["pi", "prompt"], 600
@@ -74,24 +83,38 @@ def test_conditions_differ_between_the_two_suites(monkeypatch):
 
     assert agentclinic.task_spec_sha256 != duration.task_spec_sha256
     assert agentclinic != duration
-    # Non-vacuity: the two differ *only* there. Were another field to
-    # start varying, this assertion would fail and the claim in the
-    # docstring above would need rewriting rather than quietly rotting.
+    assert agentclinic.acceptance_sha256 != duration.acceptance_sha256
+    assert agentclinic.source_allowlist != duration.source_allowlist
+    # Non-vacuity: the two differ in those three fields and nothing else.
+    # Were a fourth to start varying, this assertion fails and the claim
+    # in the docstring above gets rewritten rather than quietly rotting --
+    # which is exactly what happened in phase 5 cycle 1.
     assert dataclasses.replace(
-        agentclinic, task_spec_sha256=duration.task_spec_sha256
+        agentclinic,
+        task_spec_sha256=duration.task_spec_sha256,
+        acceptance_sha256=duration.acceptance_sha256,
+        source_allowlist=duration.source_allowlist,
     ) == duration
 
 
 def test_every_suites_task_spec_digest_is_pairwise_distinct():
-    """`task_spec_sha256` is the only `RunConditions` field that
-    discriminates two suites (see `test_conditions_differ_between_the_two_suites`
-    above): `pi_command` normalizes the prompt away, and model, Pi version,
+    """Two `Suite` instances pointing at the same task-spec file are
+    harder to tell apart than they look, and how much harder is a property
+    of the suites' *data* rather than of the mechanism meant to keep them
+    apart. `pi_command` normalizes the prompt away, and model, Pi version,
     harness revision, both timeouts, and the extension digests are shared
-    across suites by construction. Two `Suite` instances that happen to
-    point at the same task-spec file therefore produce byte-identical
-    `RunConditions`, and their checkpoints become mutually resumable with
-    no refusal catching it -- a property of the current suites' *data*,
-    not of the mechanism that is supposed to keep them apart.
+    across suites by construction.
+
+    **Weakened, not retired, phase 5 cycle 1.** When this test was written
+    `task_spec_sha256` was the only discriminating field, so a shared
+    task-spec file meant byte-identical `RunConditions` and mutually
+    resumable checkpoints. `acceptance_sha256` and `source_allowlist` now
+    also come from the suite, so two suites sharing a task spec are
+    normally still distinguished by one of those. The invariant is kept
+    anyway: it is nearly free, it fails loudly at the point of the
+    mistake rather than after a batch, and relying on the other two would
+    make discrimination depend on a suite author *also* not reusing an
+    acceptance file -- a second data property, layered on the first.
 
     This is not hypothetical. `AGENTCLINIC_PHASE_1.task_spec` is
     `examples/agentclinic/specs/roadmap.md`, and the design spec's Layout
@@ -129,9 +152,9 @@ def test_run_batch_refuses_a_checkpoint_recorded_under_another_suite(
     an AgentClinic checkpoint, accumulating runs graded against different
     contracts in one file that looks like data."""
     checkpoint = tmp_path / "runs.jsonl"
-    agentclinic_conditions = RunConditions(
-        "model", ("pi",), runner.EXPECTED_PI_VERSION, "agentclinic-sha",
-        "rev", 600, 30, ("digest",),
+    agentclinic_conditions = make_conditions(
+        pi_version=runner.EXPECTED_PI_VERSION,
+        task_spec_sha256="agentclinic-sha",
     )
     duration_conditions = dataclasses.replace(
         agentclinic_conditions, task_spec_sha256="duration-sha"
@@ -332,7 +355,10 @@ def test_preflight_rejects_user_message_content_as_assistant_output(monkeypatch)
 
 def test_run_batch_runs_remaining_attempts_and_appends_each(tmp_path, monkeypatch):
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions("model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",))
+    conditions = make_conditions(
+        pi_version=runner.EXPECTED_PI_VERSION,
+        task_spec_sha256="sha",
+    )
     calls = []
 
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
@@ -361,8 +387,9 @@ def test_run_batch_forwards_the_given_suite_throughout(tmp_path, monkeypatch):
     what each collaborator actually received.
     """
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions(
-        "model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",)
+    conditions = make_conditions(
+        pi_version=runner.EXPECTED_PI_VERSION,
+        task_spec_sha256="sha",
     )
     prompts_seen = []
     conditions_suites_seen = []
@@ -394,7 +421,10 @@ def test_run_batch_forwards_the_given_suite_throughout(tmp_path, monkeypatch):
 
 def test_run_batch_resumes_after_existing_records(tmp_path, monkeypatch):
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions("model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",))
+    conditions = make_conditions(
+        pi_version=runner.EXPECTED_PI_VERSION,
+        task_spec_sha256="sha",
+    )
     first = RunResult("first", _grade_result(), "out", "", 0, conditions=conditions)
     append_checkpoint(checkpoint, first)
     calls = []
@@ -421,9 +451,10 @@ def test_run_batch_refuses_a_record_without_matching_conditions(tmp_path, monkey
     monkeypatch.setattr(
         runner,
         "_conditions",
-        lambda *args: RunConditions(
-            "model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",)
-        ),
+        lambda *args: make_conditions(
+        pi_version=runner.EXPECTED_PI_VERSION,
+        task_spec_sha256="sha",
+    ),
     )
     monkeypatch.setattr(runner, "preflight_model", lambda model: pytest.fail("preflight called"))
     monkeypatch.setattr(runner, "run_suite", lambda suite, *, model: pytest.fail("run called"))
@@ -434,7 +465,10 @@ def test_run_batch_refuses_a_record_without_matching_conditions(tmp_path, monkey
 
 def test_run_batch_preflight_failure_leaves_checkpoint_unchanged(tmp_path, monkeypatch):
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions("model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",))
+    conditions = make_conditions(
+        pi_version=runner.EXPECTED_PI_VERSION,
+        task_spec_sha256="sha",
+    )
 
     def fail_preflight(model):
         raise RuntimeError("down")
@@ -451,7 +485,10 @@ def test_run_batch_preflight_failure_leaves_checkpoint_unchanged(tmp_path, monke
 
 def test_run_batch_does_not_preflight_when_target_is_already_reached(tmp_path, monkeypatch):
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions("model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",))
+    conditions = make_conditions(
+        pi_version=runner.EXPECTED_PI_VERSION,
+        task_spec_sha256="sha",
+    )
     for _ in range(2):
         append_checkpoint(
             checkpoint,
@@ -466,7 +503,10 @@ def test_run_batch_does_not_preflight_when_target_is_already_reached(tmp_path, m
 
 def test_run_batch_appends_rejected_attempt_before_continuing(tmp_path, monkeypatch):
     checkpoint = tmp_path / "runs.jsonl"
-    conditions = RunConditions("model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",))
+    conditions = make_conditions(
+        pi_version=runner.EXPECTED_PI_VERSION,
+        task_spec_sha256="sha",
+    )
     calls = []
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
     monkeypatch.setattr(runner, "preflight_model", lambda model: None)
@@ -572,25 +612,25 @@ def test_the_extension_emits_an_evidence_entry_into_captured_stdout():
     )
 
 
-def test_extension_digest_changes_with_file_content(tmp_path):
+def test_path_digest_changes_with_file_content(tmp_path):
     extension = tmp_path / "ext.ts"
     extension.write_text("one")
-    first = runner._extension_digest(extension)
+    first = runner._path_digest(extension)
     extension.write_text("two")
 
-    assert runner._extension_digest(extension) != first
+    assert runner._path_digest(extension) != first
 
 
-def test_extension_digest_raises_on_a_directory(tmp_path):
+def test_path_digest_raises_on_a_directory(tmp_path):
     # Pi's shipped subagent extension is a directory. Cycle 2 must
     # decide how a tree is hashed, not inherit a plausible wrong answer.
     with pytest.raises(ValueError, match="directory"):
-        runner._extension_digest(tmp_path)
+        runner._path_digest(tmp_path)
 
 
-def test_extension_digest_raises_on_a_missing_file(tmp_path):
+def test_path_digest_raises_on_a_missing_file(tmp_path):
     with pytest.raises(FileNotFoundError):
-        runner._extension_digest(tmp_path / "absent.ts")
+        runner._path_digest(tmp_path / "absent.ts")
 
 
 def test_conditions_record_a_digest_per_extension(monkeypatch, tmp_path):
@@ -638,7 +678,7 @@ def test_conditions_digests_the_extension_set_it_is_given_not_the_default(
         hashlib.sha256(b"second contents").hexdigest(),
     )
     assert conditions.extension_digests != tuple(
-        runner._extension_digest(path) for path in runner.EXTENSIONS
+        runner._path_digest(path) for path in runner.EXTENSIONS
     )
 
 
@@ -648,8 +688,8 @@ def test_run_batch_refuses_a_record_recorded_under_a_different_extension(
     from harness.checkpoint import append_checkpoint
 
     checkpoint = tmp_path / "checkpoint.jsonl"
-    recorded = RunConditions(
-        "model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("old-digest",)
+    recorded = make_conditions(
+        pi_version=runner.EXPECTED_PI_VERSION, extension_digests=("old-digest",)
     )
     append_checkpoint(
         checkpoint,
@@ -658,8 +698,8 @@ def test_run_batch_refuses_a_record_recorded_under_a_different_extension(
     monkeypatch.setattr(
         runner,
         "_conditions",
-        lambda *args: RunConditions(
-            "model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("new-digest",)
+        lambda *args: make_conditions(
+            pi_version=runner.EXPECTED_PI_VERSION, extension_digests=("new-digest",)
         ),
     )
 
@@ -673,9 +713,7 @@ def test_run_batch_refuses_a_pi_version_other_than_the_pinned_one(
     # Two contributors on different Pi versions would each produce an
     # internally valid batch, and those batches would be compared as
     # though they were comparable. They are not.
-    conditions = RunConditions(
-        "model", ("pi",), "0.1.0-not-pinned", "sha", "rev", 600, 30, ("digest",)
-    )
+    conditions = make_conditions(pi_version="0.1.0-not-pinned")
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
     # Before the check exists, run_batch falls through to preflight_model,
     # which probes the live server and shells a real `pi`. The red phase
@@ -687,9 +725,7 @@ def test_run_batch_refuses_a_pi_version_other_than_the_pinned_one(
 
 
 def test_the_refusal_names_the_version_it_expected(tmp_path, monkeypatch):
-    conditions = RunConditions(
-        "model", ("pi",), "0.1.0-not-pinned", "sha", "rev", 600, 30, ("digest",)
-    )
+    conditions = make_conditions(pi_version="0.1.0-not-pinned")
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
     monkeypatch.setattr(runner, "preflight_model", lambda *args, **kwargs: None)
 
@@ -708,8 +744,9 @@ def test_the_version_refusal_precedes_the_checkpoint_conditions_check(
     # neither exercises the ordering -- move the check below the loop and
     # they stay green while this scenario silently regresses.
     checkpoint = tmp_path / "checkpoint.jsonl"
-    recorded = RunConditions(
-        "model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",)
+    recorded = make_conditions(
+        pi_version=runner.EXPECTED_PI_VERSION,
+        task_spec_sha256="sha",
     )
     append_checkpoint(
         checkpoint,
@@ -718,9 +755,7 @@ def test_the_version_refusal_precedes_the_checkpoint_conditions_check(
     monkeypatch.setattr(
         runner,
         "_conditions",
-        lambda *args: RunConditions(
-            "model", ("pi",), "0.1.0-not-pinned", "sha", "rev", 600, 30, ("digest",)
-        ),
+        lambda *args: make_conditions(pi_version="0.1.0-not-pinned"),
     )
     monkeypatch.setattr(runner, "preflight_model", lambda *args, **kwargs: None)
 
@@ -733,9 +768,9 @@ def test_the_version_refusal_precedes_the_checkpoint_conditions_check(
 def test_run_batch_proceeds_on_the_pinned_version(tmp_path, monkeypatch):
     # Without this the check could be refusing every batch and the two
     # tests above would still pass.
-    conditions = RunConditions(
-        "model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30,
-        ("digest",),
+    conditions = make_conditions(
+        pi_version=runner.EXPECTED_PI_VERSION,
+        task_spec_sha256="sha",
     )
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
 

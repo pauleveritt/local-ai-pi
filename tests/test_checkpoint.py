@@ -5,7 +5,8 @@ import pytest
 
 from harness.checkpoint import append_checkpoint, load_checkpoint
 from harness.grading import GradeResult
-from harness.runner import RunConditions, RunResult
+from harness.runner import RunResult
+from tests.support import make_conditions
 
 
 def _sample_result(accepted: bool = True) -> RunResult:
@@ -204,14 +205,11 @@ def test_checkpoint_round_trips_timeout_flags(tmp_path):
 
 def test_checkpoint_round_trips_run_conditions(tmp_path):
     path = tmp_path / "checkpoint.jsonl"
-    conditions = RunConditions(
-        model="model",
+    conditions = make_conditions(
         pi_command=("pi", "--mode", "json", "<task-spec>"),
         pi_version="0.82.0",
         task_spec_sha256="abc",
         harness_revision="def",
-        run_timeout=600,
-        grade_timeout=30,
         extension_digests=("abc123",),
     )
     result = replace(_sample_result(), conditions=conditions)
@@ -230,14 +228,10 @@ def test_a_checkpoint_predating_extension_digests_still_loads(tmp_path):
     path = tmp_path / "checkpoint.jsonl"
     record = json.loads(json.dumps(asdict(replace(
         _sample_result(),
-        conditions=RunConditions(
-            model="model",
-            pi_command=("pi",),
+        conditions=make_conditions(
             pi_version="0.82.0",
             task_spec_sha256="abc",
             harness_revision="def",
-            run_timeout=600,
-            grade_timeout=30,
             extension_digests=("unused",),
         ),
     ))))

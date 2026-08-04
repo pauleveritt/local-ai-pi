@@ -53,6 +53,34 @@ DURATION = Suite(
 
 
 @dataclass(frozen=True)
+class Improvement:
+    """A named, optional change to how a run is steered.
+
+    A descriptor rather than a manifest file, following `Suite`: a parser,
+    a schema, and an error path have no present caller. If a contributor
+    ever needs to add an improvement without editing Python, that is the
+    cycle that adds the manifest.
+
+    `seed_dir` is copied into the workspace *before* git-init, so the files
+    it carries land in the initial commit and never appear in the run diff.
+    That is what makes `.pi/agents/implementer.md` placeable without
+    polluting the record of what the model wrote.
+
+    `system_prompt` is passed by flag and must **not** live under
+    `.pi/agents/`: any `.md` there carrying `name:`/`description:`
+    frontmatter is discovered as a callable specialist, so an orchestrator
+    kept there could delegate to itself with no depth cap.
+
+    A run has exactly one improvement or none. Nothing composes two.
+    """
+
+    name: str
+    seed_dir: Path | None
+    extensions: tuple[Path, ...]
+    system_prompt: Path | None
+
+
+@dataclass(frozen=True)
 class RunConditions:
     """The conditions a run happened under, compared for equality by
     `run_batch` before resuming a checkpoint.
@@ -66,6 +94,20 @@ class RunConditions:
     `("<pre-cycle1>",)`. They stay readable and recomputable; no
     SHA-256 can equal the sentinel, so `run_batch` refuses to resume
     them. Unreadable is a different, worse failure than unresumable.
+
+    The four phase-5 fields follow that precedent with `"<pre-phase5>"`
+    (and `("<pre-phase5>",)` for the allowlist). They were added in one
+    break rather than two: every added field costs the existing evidence
+    its resumability, so the improvement digest -- which this cycle needed
+    -- carried the two the Backlog already owed while the price was zero.
+
+    `acceptance_sha256` and `source_allowlist` close a gap
+    `harness_revision` cannot. It is `git rev-parse HEAD`, so an
+    *uncommitted* edit to an acceptance file, or a changed allowlist,
+    would otherwise leave these conditions byte-identical while the
+    contract being graded against had moved. The allowlist is recorded
+    verbatim rather than digested: it is a handful of short strings, and a
+    reader of a checkpoint should be able to see them.
     """
 
     model: str
@@ -76,6 +118,10 @@ class RunConditions:
     run_timeout: int
     grade_timeout: int | float
     extension_digests: tuple[str, ...]
+    improvement_name: str
+    improvement_digest: str
+    acceptance_sha256: str
+    source_allowlist: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -173,7 +219,7 @@ def _pi_command(
     return command
 
 
-def _extension_digest(path: Path) -> str:
+def _path_digest(path: Path) -> str:
     """SHA-256 of one extension file.
 
     Raises on a directory rather than hashing something plausible: Pi's
@@ -185,23 +231,50 @@ def _extension_digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _improvement_digest(improvement: Improvement | None) -> str:
+    """Contents of everything an improvement carries, as one digest.
+
+    The improvement's *extensions* are deliberately absent: they already
+    reach `RunConditions` through `extension_digests`, and hashing them
+    twice would make one edit look like two changes.
+    """
+    if improvement is None:
+        return "<none>"
+    parts = [
+        _path_digest(path)
+        for path in (improvement.seed_dir, improvement.system_prompt)
+        if path is not None
+    ]
+    return hashlib.sha256("\n".join(parts).encode()).hexdigest()
+
+
 def _conditions(
     suite: Suite,
     model: str,
     command: list[str],
     timeout: int,
     extensions: tuple[Path, ...] = EXTENSIONS,
+    improvement: Improvement | None = None,
 ) -> RunConditions:
     """The conditions a run of `suite` happens under.
 
     `suite.task_spec`'s digest is load-bearing beyond recording the
-    prompt: it is the **only** field of `RunConditions` that differs
-    between two suites. `pi_command` normalizes the prompt away to
-    `"<task-spec>"`, and model, Pi version, harness revision, both
-    timeouts, and the extension digests are shared. Hash the suite that
-    was passed in, never a module-level constant -- otherwise two suites'
-    checkpoints become mutually resumable and runs graded against
-    different contracts accumulate in one file looking like data.
+    prompt, because `pi_command` normalizes the prompt away to
+    `"<task-spec>"`. Hash the suite that was passed in, never a
+    module-level constant -- otherwise two suites' checkpoints become
+    mutually resumable and runs graded against different contracts
+    accumulate in one file looking like data.
+
+    **Corrected phase 5 cycle 1.** This docstring previously said
+    `task_spec_sha256` was the *only* field distinguishing two suites.
+    That was true when written and is not any more: `acceptance_sha256`
+    and `source_allowlist` also come from the suite, so two suites now
+    differ in three fields rather than one. The correction matters because
+    the old claim was the stated reason several tests asserted what they
+    did, and a reader reasoning from it would conclude that a shared
+    task-spec file makes two suites indistinguishable. It no longer does
+    on its own -- it makes them *less* distinguishable, which is still
+    worth preventing.
     """
     revision = subprocess.run(
         ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
@@ -214,7 +287,11 @@ def _conditions(
         model=model, pi_command=normalized, pi_version=version,
         task_spec_sha256=hashlib.sha256(suite.task_spec.read_bytes()).hexdigest(),
         harness_revision=revision, run_timeout=timeout, grade_timeout=30,
-        extension_digests=tuple(_extension_digest(path) for path in extensions),
+        extension_digests=tuple(_path_digest(path) for path in extensions),
+        improvement_name="none" if improvement is None else improvement.name,
+        improvement_digest=_improvement_digest(improvement),
+        acceptance_sha256=hashlib.sha256(suite.acceptance.read_bytes()).hexdigest(),
+        source_allowlist=suite.source_allowlist,
     )
 
 
@@ -259,9 +336,14 @@ def run_batch(
     """Run sequential attempts until the requested checkpoint length.
 
     `suite` is required and undefaulted on purpose. A default would let a
-    caller record a batch under a workload they never named, and since
-    `task_spec_sha256` is the only condition that distinguishes two
-    suites, that mistake produces a checkpoint that looks valid.
+    caller record a batch under a workload they never named, and the
+    conditions that distinguish two suites all come *from* the suite --
+    `task_spec_sha256`, `acceptance_sha256`, and `source_allowlist` --
+    so that mistake produces a checkpoint that looks valid.
+
+    `improvement` is defaulted, unlike `suite`, because "no improvement"
+    is a real and common condition rather than an unnamed one, and it is
+    recorded explicitly as `improvement_name="none"`.
     """
     from harness.checkpoint import append_checkpoint, load_checkpoint
 

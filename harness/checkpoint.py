@@ -68,6 +68,20 @@ def load_checkpoint(path: Path) -> list[RunResult]:
                                 "extension_digests", ("<pre-cycle1>",)
                             )
                         ),
+                        improvement_name=data["conditions"].get(
+                            "improvement_name", "<pre-phase5>"
+                        ),
+                        improvement_digest=data["conditions"].get(
+                            "improvement_digest", "<pre-phase5>"
+                        ),
+                        acceptance_sha256=data["conditions"].get(
+                            "acceptance_sha256", "<pre-phase5>"
+                        ),
+                        source_allowlist=tuple(
+                            data["conditions"].get(
+                                "source_allowlist", ("<pre-phase5>",)
+                            )
+                        ),
                     )
                     if data.get("conditions") is not None
                     else None
