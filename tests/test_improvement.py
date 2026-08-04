@@ -490,3 +490,69 @@ def test_a_model_created_nested_repo_does_not_abort_the_run(tmp_path, monkeypatc
     assert graded["ran"] is True, "grading must still happen"
     assert result.diff.startswith("<diff unavailable:")
     assert "128" in result.diff
+
+
+def _subagent_schema_keys() -> set[str]:
+    """Parameter names the installed subagent tool actually declares.
+
+    Read from Pi's own `SubagentParams` rather than hardcoded, so the test
+    fails loudly if an upgrade renames them instead of rotting into a
+    check of names nobody uses any more.
+    """
+    source = (
+        runner.pi_package_root()
+        / "examples" / "extensions" / "subagent" / "index.ts"
+    ).read_text()
+    block = source.split("const SubagentParams = Type.Object({", 1)[1].split("});", 1)[0]
+    return {
+        line.split(":", 1)[0].strip()
+        for line in block.splitlines()
+        if ":" in line and not line.strip().startswith("//")
+    }
+
+
+def test_the_orchestrator_prompt_names_the_tools_real_parameters():
+    """Four calls across cycles 2 and 4 sent `{agentScope, task}` and
+    omitted `agent`, so `hasSingle` was false, `modeCount` was 0, and the
+    tool answered "Invalid parameters. Provide exactly one mode." No child
+    ran. The prompt named the specialist in prose and never said which
+    parameter carries it.
+
+    The rejection is returned as a *non-error* end with an empty
+    `results[]`, so no `isError` check can catch it -- which is why this
+    is asserted statically instead of being left to a batch to discover.
+    """
+    prompt = runner.sdd_orchestrator().system_prompt
+    assert prompt is not None
+    text = prompt.read_text()
+    declared = _subagent_schema_keys()
+
+    for parameter in ("agent", "task", "agentScope"):
+        assert parameter in declared, f"{parameter!r} is no longer in Pi's schema"
+        assert f"`{parameter}`" in text, f"prompt does not name the {parameter!r} parameter"
+    assert '"implementer"' in text
+
+
+def test_the_orchestrator_prompt_says_the_workspace_is_empty():
+    """Cycle 4: bare Pi asked a human which file to start with in all 16
+    runs, and one orchestrated run ran `ls -R` 245 times against a
+    genuinely empty directory. Both are consistent with a model that
+    believes it is joining an existing project."""
+    prompt = runner.sdd_orchestrator().system_prompt
+    assert prompt is not None
+    text = prompt.read_text().lower()
+
+    assert "workspace is empty" in text
+    assert "must be created" in text or "created from nothing" in text
+
+
+def test_the_orchestrator_prompt_leaks_no_stack_or_module():
+    """Supplying the technology stack is cycle 7's lever. Leaking it into
+    the orchestrator prompt would hand the user-story arm the fact whose
+    absence that suite exists to measure."""
+    prompt = runner.sdd_orchestrator().system_prompt
+    assert prompt is not None
+    text = prompt.read_text().lower()
+
+    for leaked in ("fastapi", "jinja", "httpx", "starlette", "uvicorn", "app.py"):
+        assert leaked not in text, f"orchestrator prompt leaks {leaked!r}"
