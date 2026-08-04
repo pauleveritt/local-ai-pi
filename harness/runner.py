@@ -10,11 +10,46 @@ from harness.processes import run_process
 from harness.workspace import prepare_workspace
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-PHASE_1 = REPO_ROOT / "examples" / "agentclinic" / "phase-1"
-TASK_SPEC = REPO_ROOT / "examples" / "agentclinic" / "specs" / "roadmap.md"
+EXAMPLES = REPO_ROOT / "examples"
 EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / ".pi" / "extensions" / "hello-world.ts",)
 DEFAULT_MODEL = "omlx/gemma-4-12B-it-MLX-8bit"
 EXPECTED_PI_VERSION = "0.83.0"
+
+
+@dataclass(frozen=True)
+class Suite:
+    """One workload the harness can run: the prompt a model is given, the
+    harness-owned contract it is graded against, and which model-written
+    paths are copied out of the workspace for grading.
+
+    Known-good and known-broken solutions are deliberately absent. A *run*
+    never needs them; only the evidence-floor tests do, and those name the
+    paths directly. `Suite` carries what a run requires and nothing else.
+
+    Seeding is likewise absent. `prepare_workspace` already accepts a
+    `source_dir`, but no suite uses it, and a field no caller sets is
+    machinery ahead of the contract it serves.
+    """
+
+    name: str
+    task_spec: Path
+    acceptance: Path
+    source_allowlist: tuple[str, ...]
+
+
+AGENTCLINIC_PHASE_1 = Suite(
+    name="agentclinic-phase-1",
+    task_spec=EXAMPLES / "agentclinic" / "specs" / "roadmap.md",
+    acceptance=EXAMPLES / "agentclinic" / "phase-1" / "acceptance" / "test_acceptance.py",
+    source_allowlist=("app.py", "templates"),
+)
+
+DURATION = Suite(
+    name="duration",
+    task_spec=EXAMPLES / "duration" / "spec.md",
+    acceptance=EXAMPLES / "duration" / "acceptance" / "test_acceptance.py",
+    source_allowlist=("duration.py",),
+)
 
 
 @dataclass(frozen=True)
@@ -58,7 +93,9 @@ class RunResult:
         return not self.pi_timed_out and self.pi_returncode == 0 and self.grade.accepted
 
 
-def run_agentclinic_phase1(
+def run_suite(
+    suite: Suite,
+    *,
     model: str = DEFAULT_MODEL,
     timeout: int = 600,
 ) -> RunResult:
@@ -73,10 +110,10 @@ def run_agentclinic_phase1(
             text=True,
         ).stdout.strip()
 
-        prompt = TASK_SPEC.read_text()
+        prompt = suite.task_spec.read_text()
         extensions = EXTENSIONS
         command = _pi_command(model, prompt, extensions)
-        conditions = _conditions(model, command, timeout, extensions)
+        conditions = _conditions(suite, model, command, timeout, extensions)
         pi_proc = run_process(
             command,
             timeout=timeout,
@@ -98,7 +135,11 @@ def run_agentclinic_phase1(
             text=True,
         ).stdout
 
-        grade_result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")
+        grade_result = grade(
+            workspace,
+            suite.acceptance,
+            source_allowlist=suite.source_allowlist,
+        )
 
     return RunResult(
         diff=diff,
@@ -145,11 +186,23 @@ def _extension_digest(path: Path) -> str:
 
 
 def _conditions(
+    suite: Suite,
     model: str,
     command: list[str],
     timeout: int,
     extensions: tuple[Path, ...] = EXTENSIONS,
 ) -> RunConditions:
+    """The conditions a run of `suite` happens under.
+
+    `suite.task_spec`'s digest is load-bearing beyond recording the
+    prompt: it is the **only** field of `RunConditions` that differs
+    between two suites. `pi_command` normalizes the prompt away to
+    `"<task-spec>"`, and model, Pi version, harness revision, both
+    timeouts, and the extension digests are shared. Hash the suite that
+    was passed in, never a module-level constant -- otherwise two suites'
+    checkpoints become mutually resumable and runs graded against
+    different contracts accumulate in one file looking like data.
+    """
     revision = subprocess.run(
         ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
     ).stdout.strip()
@@ -159,7 +212,7 @@ def _conditions(
     normalized = tuple("<task-spec>" if item == command[-1] else item for item in command)
     return RunConditions(
         model=model, pi_command=normalized, pi_version=version,
-        task_spec_sha256=hashlib.sha256(TASK_SPEC.read_bytes()).hexdigest(),
+        task_spec_sha256=hashlib.sha256(suite.task_spec.read_bytes()).hexdigest(),
         harness_revision=revision, run_timeout=timeout, grade_timeout=30,
         extension_digests=tuple(_extension_digest(path) for path in extensions),
     )
@@ -199,18 +252,25 @@ def _has_assistant_content(output: str) -> bool:
 def run_batch(
     checkpoint_path: Path,
     *,
+    suite: Suite,
     target: int = 16,
     model: str = DEFAULT_MODEL,
 ) -> list[RunResult]:
-    """Run sequential attempts until the requested checkpoint length."""
+    """Run sequential attempts until the requested checkpoint length.
+
+    `suite` is required and undefaulted on purpose. A default would let a
+    caller record a batch under a workload they never named, and since
+    `task_spec_sha256` is the only condition that distinguishes two
+    suites, that mistake produces a checkpoint that looks valid.
+    """
     from harness.checkpoint import append_checkpoint, load_checkpoint
 
     if target < 0:
         raise ValueError("target must not be negative")
     records = load_checkpoint(checkpoint_path)
     extensions = EXTENSIONS
-    command = _pi_command(model, TASK_SPEC.read_text(), extensions)
-    requested = _conditions(model, command, 600, extensions)
+    command = _pi_command(model, suite.task_spec.read_text(), extensions)
+    requested = _conditions(suite, model, command, 600, extensions)
     if requested.pi_version != EXPECTED_PI_VERSION:
         raise RuntimeError(
             f"this harness pins Pi {EXPECTED_PI_VERSION}, but {requested.pi_version} "
@@ -229,7 +289,7 @@ def run_batch(
 
     preflight_model(model)
     while len(records) < target:
-        result = run_agentclinic_phase1(model=model)
+        result = run_suite(suite, model=model)
         if result.conditions != requested:
             raise RuntimeError("run conditions changed during batch")
         append_checkpoint(checkpoint_path, result)

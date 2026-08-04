@@ -74,11 +74,12 @@ def _verdict(
 
 def grade(
     workspace: Path,
-    suite: Path,
+    acceptance: Path,
     timeout: int | float = 30,
-    source_allowlist: tuple[str, ...] = ("app.py", "templates"),
+    *,
+    source_allowlist: tuple[str, ...],
 ) -> GradeResult:
-    """Copy source_allowlist paths (and the suite) from workspace into a
+    """Copy source_allowlist paths (and the acceptance file) from workspace into a
     fresh grading directory, run pytest there with the grading plugin
     loaded, and return the verdict read from the results file the
     plugin's hooks wrote. Refuses before doing any of that, when the
@@ -88,8 +89,14 @@ def grade(
     itself means a model-written module can never shadow anything on
     sys.path -- including harness.grading_plugin -- since only
     allowlisted paths are ever present for pytest's cwd to see.
+
+    `source_allowlist` is required rather than defaulted. It used to
+    default to `("app.py", "templates")` -- the first workload's shape --
+    which is precisely the hardcode-wearing-a-parameter's-clothes that
+    `BRIEF.md` names as the previous project's one real cost. Every caller
+    now states which workload it is grading.
     """
-    tests_expected = _test_count(suite)
+    tests_expected = _test_count(acceptance)
     refused = _refused_config(workspace)
     if refused:
         return GradeResult(
@@ -119,7 +126,7 @@ def grade(
             else:
                 shutil.copy2(source_path, dest_path)
 
-        shutil.copy2(suite, grading_dir / suite.name)
+        shutil.copy2(acceptance, grading_dir / acceptance.name)
 
         repo_root = Path(__file__).resolve().parents[1]
         env = _grading_environment(repo_root, grading_dir, results_path)
@@ -136,7 +143,7 @@ def grade(
                 # tells it to write tests/test_app.py) inflated
                 # tests_executed past tests_expected and a correct solution
                 # was rejected.
-                suite.name,
+                acceptance.name,
             ],
             timeout=timeout,
             cwd=grading_dir,
@@ -156,7 +163,7 @@ def grade(
         shutil.rmtree(grading_dir, ignore_errors=True)
 
 
-def _test_count(suite: Path) -> int:
+def _test_count(acceptance: Path) -> int:
     """How many tests the suite declares, counted from its source.
 
     Counts module-level `def test_*` and `async def test_*`. Class-grouped
@@ -170,7 +177,7 @@ def _test_count(suite: Path) -> int:
     Phase 1 exists to prevent. Async was missed until a review caught it,
     and would have bitten the first suite written against an async client.
     """
-    tree = ast.parse(suite.read_text(), filename=str(suite))
+    tree = ast.parse(acceptance.read_text(), filename=str(acceptance))
     return sum(
         isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
         and node.name.startswith("test_")

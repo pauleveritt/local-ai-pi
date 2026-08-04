@@ -14,6 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PHASE_1 = REPO_ROOT / "examples" / "agentclinic" / "phase-1"
 BROKEN = PHASE_1 / "broken"
 SUITE = PHASE_1 / "acceptance" / "test_acceptance.py"
+ALLOWLIST = ("app.py", "templates")
 
 
 def _attack_with_collect_only(tmp_path: Path) -> Path:
@@ -52,7 +53,7 @@ def test_collect_only_attack_is_refused_before_any_exit_code_exists(tmp_path):
     where the same unattacked solution exits nonzero.
     """
     with prepare_workspace(_attack_with_collect_only(tmp_path)) as workspace:
-        result = grade(workspace, SUITE)
+        result = grade(workspace, SUITE, source_allowlist=ALLOWLIST)
 
     assert result.returncode is None
     assert result.accepted is False
@@ -68,7 +69,7 @@ def test_exit_at_import_attack_defeats_the_exit_code_but_not_the_verdict(tmp_pat
     where the same unattacked solution exits nonzero.
     """
     with prepare_workspace(_attack_with_exit_at_import(tmp_path)) as workspace:
-        result = grade(workspace, SUITE)
+        result = grade(workspace, SUITE, source_allowlist=ALLOWLIST)
 
     assert result.returncode == 0
     assert result.accepted is False

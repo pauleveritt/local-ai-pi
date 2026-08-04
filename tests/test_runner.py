@@ -18,7 +18,7 @@ from harness.runner import (
     RunResult,
     _pi_command,
     preflight_model,
-    run_agentclinic_phase1,
+    run_suite,
 )
 
 
@@ -34,7 +34,7 @@ def _grade_result() -> GradeResult:
     )
 
 
-def test_run_agentclinic_phase1_calls_pi_and_returns_its_result(tmp_path, monkeypatch):
+def test_run_suite_calls_pi_and_returns_its_result(tmp_path, monkeypatch):
     workspace = tmp_path / "workspace"
     workspace.mkdir()
     events = []
@@ -66,10 +66,11 @@ def test_run_agentclinic_phase1_calls_pi_and_returns_its_result(tmp_path, monkey
         assert kwargs["cwd"] == workspace
         return ProcessResult(0, "model output", "model diagnostics", timed_out=False)
 
-    def fake_grade(actual_workspace, suite):
+    def fake_grade(actual_workspace, acceptance, *, source_allowlist):
         events.append("grade")
         assert actual_workspace == workspace
-        assert suite == runner.PHASE_1 / "acceptance" / "test_acceptance.py"
+        assert acceptance == runner.AGENTCLINIC_PHASE_1.acceptance
+        assert source_allowlist == ("app.py", "templates")
         return _grade_result()
 
     monkeypatch.setattr(runner, "check_model_server_alive", fake_liveness)
@@ -78,10 +79,10 @@ def test_run_agentclinic_phase1_calls_pi_and_returns_its_result(tmp_path, monkey
     monkeypatch.setattr(runner, "run_process", fake_process)
     monkeypatch.setattr(runner, "grade", fake_grade)
     monkeypatch.setattr(
-        runner, "_conditions", lambda model, command, timeout, extensions: None
+        runner, "_conditions", lambda suite, model, command, timeout, extensions: None
     )
 
-    result = run_agentclinic_phase1()
+    result = run_suite(runner.AGENTCLINIC_PHASE_1)
 
     assert events == [
         "liveness",
@@ -213,13 +214,13 @@ def test_run_batch_runs_remaining_attempts_and_appends_each(tmp_path, monkeypatc
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
     monkeypatch.setattr(runner, "preflight_model", lambda model: calls.append("preflight"))
 
-    def fake_run(model):
+    def fake_run(suite, *, model):
         calls.append("run")
         return RunResult("diff", _grade_result(), "out", "", 0, conditions=conditions)
 
-    monkeypatch.setattr(runner, "run_agentclinic_phase1", fake_run)
+    monkeypatch.setattr(runner, "run_suite", fake_run)
 
-    records = runner.run_batch(checkpoint, target=2, model="model")
+    records = runner.run_batch(checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1)
 
     assert len(records) == 2
     assert calls == ["preflight", "run", "run"]
@@ -237,13 +238,13 @@ def test_run_batch_resumes_after_existing_records(tmp_path, monkeypatch):
     monkeypatch.setattr(runner, "preflight_model", lambda model: calls.append("preflight"))
     monkeypatch.setattr(
         runner,
-        "run_agentclinic_phase1",
-        lambda model: (calls.append("run") or RunResult(
+        "run_suite",
+        lambda suite, *, model: (calls.append("run") or RunResult(
             "second", _grade_result(), "out", "", 0, conditions=conditions
         )),
     )
 
-    records = runner.run_batch(checkpoint, target=2, model="model")
+    records = runner.run_batch(checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1)
 
     assert [record.diff for record in records] == ["first", "second"]
     assert calls == ["preflight", "run"]
@@ -260,10 +261,10 @@ def test_run_batch_refuses_a_record_without_matching_conditions(tmp_path, monkey
         ),
     )
     monkeypatch.setattr(runner, "preflight_model", lambda model: pytest.fail("preflight called"))
-    monkeypatch.setattr(runner, "run_agentclinic_phase1", lambda model: pytest.fail("run called"))
+    monkeypatch.setattr(runner, "run_suite", lambda suite, *, model: pytest.fail("run called"))
 
     with pytest.raises(ValueError, match="conditions"):
-        runner.run_batch(checkpoint, target=2, model="model")
+        runner.run_batch(checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1)
 
 
 def test_run_batch_preflight_failure_leaves_checkpoint_unchanged(tmp_path, monkeypatch):
@@ -275,10 +276,10 @@ def test_run_batch_preflight_failure_leaves_checkpoint_unchanged(tmp_path, monke
 
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
     monkeypatch.setattr(runner, "preflight_model", fail_preflight)
-    monkeypatch.setattr(runner, "run_agentclinic_phase1", lambda model: pytest.fail("run called"))
+    monkeypatch.setattr(runner, "run_suite", lambda suite, *, model: pytest.fail("run called"))
 
     with pytest.raises(RuntimeError, match="down"):
-        runner.run_batch(checkpoint, target=1, model="model")
+        runner.run_batch(checkpoint, target=1, model="model", suite=runner.AGENTCLINIC_PHASE_1)
 
     assert not checkpoint.exists()
 
@@ -293,9 +294,9 @@ def test_run_batch_does_not_preflight_when_target_is_already_reached(tmp_path, m
         )
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
     monkeypatch.setattr(runner, "preflight_model", lambda model: pytest.fail("preflight called"))
-    monkeypatch.setattr(runner, "run_agentclinic_phase1", lambda model: pytest.fail("run called"))
+    monkeypatch.setattr(runner, "run_suite", lambda suite, *, model: pytest.fail("run called"))
 
-    assert len(runner.run_batch(checkpoint, target=2, model="model")) == 2
+    assert len(runner.run_batch(checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1)) == 2
 
 
 def test_run_batch_appends_rejected_attempt_before_continuing(tmp_path, monkeypatch):
@@ -305,7 +306,7 @@ def test_run_batch_appends_rejected_attempt_before_continuing(tmp_path, monkeypa
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
     monkeypatch.setattr(runner, "preflight_model", lambda model: None)
 
-    def fake_run(model):
+    def fake_run(suite, *, model):
         calls.append(len(load_checkpoint(checkpoint)))
         if len(calls) == 1:
             return RunResult(
@@ -314,9 +315,9 @@ def test_run_batch_appends_rejected_attempt_before_continuing(tmp_path, monkeypa
             )
         return RunResult("accepted", _grade_result(), "out", "", 0, conditions=conditions)
 
-    monkeypatch.setattr(runner, "run_agentclinic_phase1", fake_run)
+    monkeypatch.setattr(runner, "run_suite", fake_run)
 
-    records = runner.run_batch(checkpoint, target=2, model="model")
+    records = runner.run_batch(checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1)
 
     assert calls == [0, 1]
     assert records[0].accepted is False
@@ -327,8 +328,8 @@ def test_run_batch_appends_rejected_attempt_before_continuing(tmp_path, monkeypa
     os.environ.get("SATYRN_LIVE") != "1",
     reason="set SATYRN_LIVE=1 to require an actual Pi/model run",
 )
-def test_run_agentclinic_phase1_produces_live_model_evidence():
-    result = run_agentclinic_phase1()
+def test_run_suite_produces_live_model_evidence():
+    result = run_suite(runner.AGENTCLINIC_PHASE_1)
 
     assert result.pi_returncode == 0
     assert result.pi_stdout.strip()
@@ -367,7 +368,7 @@ def test_the_extension_emits_an_evidence_entry_into_captured_stdout():
     # otherwise crash this test instead of failing it -- and a crash
     # reads as a broken test rather than a falsified hypothesis.
     appended = []
-    for line in run_agentclinic_phase1().pi_stdout.split("\n"):
+    for line in run_suite(runner.AGENTCLINIC_PHASE_1).pi_stdout.split("\n"):
         try:
             event = json.loads(line)
         except json.JSONDecodeError:
@@ -417,7 +418,7 @@ def test_conditions_record_a_digest_per_extension(monkeypatch, tmp_path):
         lambda *args, **kwargs: SimpleNamespace(stdout="stubbed\n"),
     )
 
-    conditions = runner._conditions("model", ["pi"], 600, (extension,))
+    conditions = runner._conditions(runner.AGENTCLINIC_PHASE_1, "model", ["pi"], 600, (extension,))
 
     assert conditions.extension_digests == (
         hashlib.sha256(b"contents").hexdigest(),
@@ -441,7 +442,7 @@ def test_conditions_digests_the_extension_set_it_is_given_not_the_default(
         lambda *args, **kwargs: SimpleNamespace(stdout="stubbed\n"),
     )
 
-    conditions = runner._conditions("model", ["pi"], 600, (first, second))
+    conditions = runner._conditions(runner.AGENTCLINIC_PHASE_1, "model", ["pi"], 600, (first, second))
 
     assert conditions.extension_digests == (
         hashlib.sha256(b"first contents").hexdigest(),
@@ -474,7 +475,7 @@ def test_run_batch_refuses_a_record_recorded_under_a_different_extension(
     )
 
     with pytest.raises(ValueError, match="checkpoint conditions do not match"):
-        runner.run_batch(checkpoint, target=1, model="model")
+        runner.run_batch(checkpoint, target=1, model="model", suite=runner.AGENTCLINIC_PHASE_1)
 
 
 def test_run_batch_refuses_a_pi_version_other_than_the_pinned_one(
@@ -493,7 +494,7 @@ def test_run_batch_refuses_a_pi_version_other_than_the_pinned_one(
     monkeypatch.setattr(runner, "preflight_model", lambda *args, **kwargs: None)
 
     with pytest.raises(RuntimeError, match="0.1.0-not-pinned"):
-        runner.run_batch(tmp_path / "checkpoint.jsonl", target=1, model="model")
+        runner.run_batch(tmp_path / "checkpoint.jsonl", target=1, model="model", suite=runner.AGENTCLINIC_PHASE_1)
 
 
 def test_the_refusal_names_the_version_it_expected(tmp_path, monkeypatch):
@@ -504,7 +505,7 @@ def test_the_refusal_names_the_version_it_expected(tmp_path, monkeypatch):
     monkeypatch.setattr(runner, "preflight_model", lambda *args, **kwargs: None)
 
     with pytest.raises(RuntimeError, match=runner.EXPECTED_PI_VERSION):
-        runner.run_batch(tmp_path / "checkpoint.jsonl", target=1, model="model")
+        runner.run_batch(tmp_path / "checkpoint.jsonl", target=1, model="model", suite=runner.AGENTCLINIC_PHASE_1)
 
 
 def test_the_version_refusal_precedes_the_checkpoint_conditions_check(
@@ -537,7 +538,7 @@ def test_the_version_refusal_precedes_the_checkpoint_conditions_check(
     # ValueError is not a RuntimeError, so this fails rather than passes if
     # the checkpoint comparison gets there first.
     with pytest.raises(RuntimeError, match="0.1.0-not-pinned"):
-        runner.run_batch(checkpoint, target=1, model="model")
+        runner.run_batch(checkpoint, target=1, model="model", suite=runner.AGENTCLINIC_PHASE_1)
 
 
 def test_run_batch_proceeds_on_the_pinned_version(tmp_path, monkeypatch):
@@ -549,7 +550,7 @@ def test_run_batch_proceeds_on_the_pinned_version(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
 
-    records = runner.run_batch(tmp_path / "checkpoint.jsonl", target=0)
+    records = runner.run_batch(tmp_path / "checkpoint.jsonl", target=0, suite=runner.AGENTCLINIC_PHASE_1)
 
     assert records == []
 

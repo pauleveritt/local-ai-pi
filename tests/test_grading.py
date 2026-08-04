@@ -19,6 +19,7 @@ from harness.workspace import prepare_workspace
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PHASE_1 = REPO_ROOT / "examples" / "agentclinic" / "phase-1"
+ALLOWLIST = ("app.py", "templates")
 
 
 # ---------------------------------------------------------------------
@@ -238,7 +239,9 @@ def _shadow_attack_source(tmp_path):
 
 def test_grade_accepts_the_reference_solution():
     with prepare_workspace(PHASE_1 / "reference") as workspace:
-        result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")
+        result = grade(
+            workspace, PHASE_1 / "acceptance" / "test_acceptance.py", source_allowlist=ALLOWLIST
+        )
 
     assert result.accepted is True
     assert result.tests_executed == result.tests_expected == 4
@@ -248,7 +251,9 @@ def test_grade_ignores_ambient_collect_only_option(monkeypatch):
     monkeypatch.setenv("PYTEST_ADDOPTS", "--collect-only")
 
     with prepare_workspace(PHASE_1 / "reference") as workspace:
-        result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")
+        result = grade(
+            workspace, PHASE_1 / "acceptance" / "test_acceptance.py", source_allowlist=ALLOWLIST
+        )
 
     assert result.accepted is True
     assert result.tests_executed == result.tests_expected == 4
@@ -259,7 +264,7 @@ def test_grade_returns_a_timed_out_rejection(tmp_path):
     suite.write_text("import time\n\n\ndef test_blocks():\n    time.sleep(30)\n")
 
     with prepare_workspace(PHASE_1 / "reference") as workspace:
-        result = grade(workspace, suite, timeout=0.1)
+        result = grade(workspace, suite, timeout=0.1, source_allowlist=ALLOWLIST)
 
     assert result.accepted is False
     assert result.timed_out is True
@@ -268,7 +273,9 @@ def test_grade_returns_a_timed_out_rejection(tmp_path):
 
 def test_grade_rejects_the_broken_solution():
     with prepare_workspace(PHASE_1 / "broken") as workspace:
-        result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")
+        result = grade(
+            workspace, PHASE_1 / "acceptance" / "test_acceptance.py", source_allowlist=ALLOWLIST
+        )
 
     assert result.accepted is False
     # Pins the contrast tests/test_subversion.py cites: unattacked, this
@@ -304,7 +311,9 @@ def test_grade_ignores_model_written_tests_and_grades_the_suite_alone(tmp_path):
     )
 
     with prepare_workspace(source) as workspace:
-        result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")
+        result = grade(
+            workspace, PHASE_1 / "acceptance" / "test_acceptance.py", source_allowlist=ALLOWLIST
+        )
 
     assert result.accepted is True
     assert result.tests_executed == result.tests_expected == 4
@@ -326,7 +335,9 @@ def test_grade_is_not_shadowed_by_a_workspace_root_harness_package(tmp_path):
     source = _shadow_attack_source(tmp_path)
 
     with prepare_workspace(source) as workspace:
-        result = grade(workspace, PHASE_1 / "acceptance" / "test_acceptance.py")
+        result = grade(
+            workspace, PHASE_1 / "acceptance" / "test_acceptance.py", source_allowlist=ALLOWLIST
+        )
 
     assert result.accepted is False
     assert result.tests_executed == 4
