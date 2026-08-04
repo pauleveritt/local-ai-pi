@@ -155,6 +155,11 @@ cycle's argument.
   — ten findings this project paid to discover, each with a checked citation
   into the installed package, each labelled **read** or **run**, and each with
   what it cost.
+- [Phase 5, cycle 7 — one fact, and the suite stopped scoring zero](research/2026-08-04-phase5-cycle7-tech-stack.md)
+  — naming FastAPI and `app.py` took the user-story suite from four arms at
+  zero to 5/6 grader-accepted. The runs had been writing Flask, a WSGI
+  framework, against an ASGI test client; nobody read the grade output until
+  this cycle needed to scope the lever.
 - [Phase 5, cycle 6 — a loop-breaker that did not fire](research/2026-08-04-phase5-cycle6-loop-breaker.md)
   — the extension works, proven live, and never engaged in the pilot because
   cycle 5's prompt line had already removed the loop. Its value rests on
@@ -290,4 +295,5 @@ research/2026-08-04-phase5-cycle2-cost-answer
 research/2026-08-04-phase5-cycle4-user-story-arms
 research/2026-08-04-phase5-cycle5-orchestrator-corrections
 research/2026-08-04-phase5-cycle6-loop-breaker
+research/2026-08-04-phase5-cycle7-tech-stack
 ```
