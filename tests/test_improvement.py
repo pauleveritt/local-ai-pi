@@ -388,3 +388,21 @@ def test_the_implementer_is_seeded_where_pi_looks_for_it():
     relative = (seed / ".pi" / "agents" / "implementer.md").relative_to(seed)
 
     assert relative.as_posix() == ".pi/agents/implementer.md"
+
+
+def test_the_subagent_extension_is_a_file_not_a_directory():
+    """Pi's `--extension` needs the entry-point *file*. Pointing it at the
+    `subagent/` directory produces no error and no stderr; the tool simply
+    never registers, and the only symptom is `"Tool subagent not found"`
+    when the model finally calls it -- by which point the parent has often
+    done the work itself and the run grades accepted.
+
+    Verified by two live runs on 2026-08-04: directory -> isError true,
+    `index.ts` -> isError false. This test is cheap insurance against the
+    path quietly reverting to the directory, which no unit test would
+    otherwise notice.
+    """
+    (extension,) = runner.sdd_orchestrator().extensions
+
+    assert extension.is_file()
+    assert extension.name == "index.ts"

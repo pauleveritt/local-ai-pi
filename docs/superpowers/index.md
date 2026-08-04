@@ -155,6 +155,10 @@ cycle's argument.
   — ten findings this project paid to discover, each with a checked citation
   into the installed package, each labelled **read** or **run**, and each with
   what it cost.
+- [Phase 5, cycle 1 — what one live delegation showed](research/2026-08-04-phase5-cycle1-delegation-spike.md)
+  — `--extension` needs the entry-point file, not the extension's
+  directory; pointed at the directory it fails silently and the run still
+  grades accepted.
 - [Phase 4, cycle 1 — what the second suite cost](research/2026-08-04-phase4-cycle1-what-the-second-suite-cost.md)
   — every `harness/` change a second workload forced, labelled *seam
   extraction* or *genuine gap*; what was already general; and what is still
@@ -253,4 +257,5 @@ research/2026-08-02-phase2-remaining-plan
 research/2026-08-02-phase3-cycle1-event-vocabulary
 research/2026-08-03-phase3-cycle2-pi-gotchas
 research/2026-08-04-phase4-cycle1-what-the-second-suite-cost
+research/2026-08-04-phase5-cycle1-delegation-spike
 ```

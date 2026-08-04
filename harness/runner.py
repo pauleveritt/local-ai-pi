@@ -136,11 +136,35 @@ def sdd_orchestrator() -> Improvement:
     install location, and a constant would make `import harness.runner`
     fail on a machine without Pi. The suite must stay runnable for a
     contributor who has not installed it.
+
+    **The extension is `index.ts`, not the `subagent/` directory.** This
+    cost a live run to learn, on 2026-08-04. Pointing `--extension` at the
+    directory produces no error, no stderr, and no warning -- Pi starts
+    normally, our own hello-world extension still loads and emits its
+    entry, and the only symptom appears much later, when the model calls
+    the tool and gets `"Tool subagent not found"` with `isError: true`.
+    The same probe with `index.ts` registered the tool and the delegation
+    succeeded. Pi's own README for the example documents installation by
+    symlinking `index.ts` into `~/.pi/agent/extensions/subagent/` and never
+    mentions passing a directory.
+
+    **Known residual gap.** `extension_digests` therefore covers
+    `index.ts` only, while the extension really is a tree -- `index.ts`
+    imports `agents.ts` beside it, and neither `agents/` nor `prompts/`
+    is hashed. Left open deliberately rather than papered over with a
+    guess about which parent directory to hash: the shipped tree changes
+    only when Pi itself changes, and `EXPECTED_PI_VERSION` already refuses
+    a batch on a different Pi. That is a different mechanism from a
+    digest, and a weaker one -- it would miss a contributor editing the
+    installed package in place -- so it is recorded here as a gap rather
+    than claimed as coverage.
     """
     return Improvement(
         name="sdd-orchestrator",
         seed_dir=IMPROVEMENTS / "sdd-orchestrator" / "seed",
-        extensions=(pi_package_root() / "examples" / "extensions" / "subagent",),
+        extensions=(
+            pi_package_root() / "examples" / "extensions" / "subagent" / "index.ts",
+        ),
         system_prompt=IMPROVEMENTS / "sdd-orchestrator" / "orchestrator.md",
     )
 

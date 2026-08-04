@@ -509,10 +509,33 @@ expensive to re-derive.
 
 | Cycle | Summary | State |
 |-------|---------|-------|
-| 1 | The improvement mechanism — a frozen `Improvement` descriptor (seed directory, extra extensions, system prompt) and `run_batch(suite=…, improvement=…)`, with the orchestrator/implementer pair as improvement #1. Breaks `RunConditions` once rather than twice: the improvement digest plus the two digests the Backlog already owed (the acceptance file's contents, the allowlist), all sentinel-loading like `extension_digests`. Decides how a *directory* extension is digested, which `_extension_digest` explicitly deferred to "the cycle that needs it". Ends with one live delegation observed under this harness's flags. **Claims no number and runs no batch.** [spec](docs/superpowers/specs/2026-08-04-phase5-cycle1-improvement-mechanism-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle1-improvement-mechanism.md) | In progress |
+| 1 | The improvement mechanism — a frozen `Improvement` descriptor (seed directory, extra extensions, system prompt) and `run_batch(suite=…, improvement=…)`, with the orchestrator/implementer pair as improvement #1. Breaks `RunConditions` once rather than twice: the improvement digest plus the two digests the Backlog already owed (the acceptance file's contents, the allowlist), all sentinel-loading like `extension_digests`. Decides how a *directory* extension is digested, which `_extension_digest` explicitly deferred to "the cycle that needs it". Ends with one live delegation observed under this harness's flags. **Claims no number and runs no batch.** The spike found that `--extension` needs the entry-point *file*: pointed at the `subagent/` directory it fails silently and the run still grades accepted. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle1-improvement-mechanism-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle1-improvement-mechanism.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle1-delegation-spike.md) | Done |
 | 2 | The cost answer — two n=16 batches on AgentClinic Phase 1, bare and orchestrated, where success is expected to stay pinned and the only readable signal is turns and `context_processed`. The handoff-packet claim, tested with the instrument built for it. Touches no suite. | Planned |
 | 3 | The user-story suite and its floor — the user-story roadmap variant as a third `Suite`, with its own task-spec file, its own known-good and known-broken fixtures, tests proving the grader accepts one and rejects the other, and `norecursedirs` / `extend-exclude` entries. Then the as-shipped orchestrator arm on it. Touches no mechanism. | Planned |
 | 4+ | Improvements against the user-story arm, one at a time — tech-stack and mission first, then a domain document for the data model. Each pre-registers its prediction before its batch runs. | Planned |
+
+**Cycle 1 spent one term: `improvement`**, as budgeted above. `Improvement`,
+`improvement_digest`, `pi_package_root`, and the `"<pre-phase5>"` sentinel are
+type, field, and function names rather than concepts a contributor must hold.
+The check was run at close against the spec, the code, and this row.
+
+**What cycle 1 cost, and what it bought.** It bought the mechanism and one
+finding that would have poisoned cycle 2 silently: pointing `--extension` at
+the shipped extension's *directory* registers no tool, reports nothing on
+stderr, exits 0 — and the run still grades **accepted**, because the parent
+writes the solution itself once the delegation errors. Sixteen such runs would
+have been labelled `improvement_name="sdd-orchestrator"` while comparing a
+bare arm against a bare arm. That is the model-server hazard `docs/setup.md`
+records, one layer over, and it is the argument for having split the mechanism
+cycle from the batch cycle rather than bundling them.
+
+It also cost three mutation checks that *survived* on first run — the
+acceptance-digest deletion proving only that a field was required, a vacuous
+ordering test, and a dropped `improvement` argument that left the suite green.
+Each was answered by a new test rather than by an assumption. That is now the
+third and fourth instance of one shape (test the collaborator, miss the
+caller) since Phase 4 cycle 1, and it is worth a discipline cycle's attention
+if it appears again.
 
 **Why this order.** Cycle 1 touches no suite, cycle 3 touches no mechanism,
 and cycle 2 sits between them producing the phase's first number, so no cycle
