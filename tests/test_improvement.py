@@ -652,3 +652,37 @@ def test_the_loop_breaker_trips_on_successful_repeats():
     assert "block: true" in source
     assert "isError" not in source, "the hook fires before execution; success is unknowable"
     assert 'pi.appendEntry("loop_broken"' in source
+
+
+def test_the_stack_prompt_is_the_guarded_prompt_plus_a_section():
+    """Two prompt files that share a base drift apart silently. Asserting
+    the stack variant *starts with* the base verbatim is cheaper than
+    conditional includes and fails the moment someone edits one only."""
+    guarded = runner.sdd_orchestrator_guarded().system_prompt
+    stack = runner.sdd_orchestrator_guarded_stack().system_prompt
+    assert guarded is not None and stack is not None
+
+    assert stack != guarded
+    assert stack.read_text().startswith(guarded.read_text())
+
+
+def test_the_stack_prompt_names_the_framework_and_the_module():
+    """The lever is exactly two facts, and the record must be able to say
+    which. FastAPI, because every run that wrote app.py failed with
+    `TypeError: Flask.__call__()` -- the suite drives ASGI and the model
+    chose WSGI. `app.py`, because `source_allowlist` copies that path and
+    a solution under `app/main.py` never reaches the grader."""
+    text = runner.sdd_orchestrator_guarded_stack().system_prompt.read_text()
+
+    assert "FastAPI" in text
+    assert "`app.py`" in text
+    assert "Jinja2" in text
+
+
+def test_the_stack_lever_does_not_leak_into_the_suite():
+    """The lever lives in the improvement. If it reached the task spec it
+    would be a different workload, not a steered run of the same one."""
+    spec = runner.AGENTCLINIC_PHASE_1_USER_STORY.task_spec.read_text().lower()
+
+    for leaked in ("fastapi", "jinja", "app.py", "flask"):
+        assert leaked not in spec

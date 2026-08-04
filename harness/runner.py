@@ -202,6 +202,31 @@ def sdd_orchestrator_guarded() -> Improvement:
     )
 
 
+def sdd_orchestrator_guarded_stack() -> Improvement:
+    """Improvement #3: the guarded orchestrator, told the technology stack.
+
+    Phase 5 cycle 7's lever. Identical to `sdd_orchestrator_guarded` except
+    for the system prompt, which is that prompt verbatim plus a Technology
+    section naming FastAPI and `app.py`.
+
+    Those are the two facts the acceptance contract genuinely requires. The
+    suite disclaims file layout in its own docstring and couples only to
+    `from app import app`; every run that wrote `app.py` and still failed did
+    so with `TypeError: Flask.__call__() missing 1 required positional
+    argument: 'start_response'`, because the model chose a WSGI framework and
+    the suite drives ASGI. The module name is required separately because
+    `source_allowlist` copies `app.py` and `templates` only -- a solution
+    under `app/main.py` never reaches the grading directory at all.
+    """
+    base = sdd_orchestrator_guarded()
+    return Improvement(
+        name="sdd-orchestrator-guarded-stack",
+        seed_dir=base.seed_dir,
+        extensions=base.extensions,
+        system_prompt=IMPROVEMENTS / "sdd-orchestrator" / "orchestrator-with-stack.md",
+    )
+
+
 @dataclass(frozen=True)
 class RunConditions:
     """The conditions a run happened under, compared for equality by

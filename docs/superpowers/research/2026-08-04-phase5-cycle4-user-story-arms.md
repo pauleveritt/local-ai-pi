@@ -6,6 +6,20 @@
 **Suite:** `agentclinic-phase-1-user-story` — same acceptance contract as
 `agentclinic-phase-1`, different task spec
 
+> **CORRECTED 2026-08-04 by cycle 7's investigation.** This record attributes
+> the failures to file layout — `index.html` versus `home.html`,
+> `test_app.py` at the root. **That is wrong.** The acceptance file states in
+> its own docstring: *"Do not assert on internal function names or file
+> layout — a correct-but-different solution must pass."* Its only structural
+> coupling is `from app import app`. The real cause, read from the grade
+> output of every run that wrote `app.py`, is
+> `TypeError: Flask.__call__() missing 1 required positional argument:
+> 'start_response'` — the model wrote a **Flask** (WSGI) application and the
+> suite drives it with Starlette's ASGI `TestClient`. Layout mattered only
+> for runs that wrote `app/main.py`, which `source_allowlist` never copies,
+> so the module was simply absent. The failure-mode table below is left as
+> written; this note supersedes its interpretation.
+
 ## The short version
 
 **Both arms scored 0/16.** That is not the headroom this phase needed — it is

@@ -64,12 +64,17 @@ it — which is cycle 6's argument, unchanged by this.
 ## Result 3 — acceptance is still zero, as predicted
 
 0/6 accepted, and **5/6 wrote files** (cycle 4: 11/16). The runs are producing
-plausible applications and failing on the facts the spec withholds:
-`templates/index.html` and `layout.html` where the acceptance suite wants
-`home.html` and `base.html`, `test_app.py` at the root rather than under
-`tests/`, and `requirements.txt` against an instruction to install nothing.
+plausible applications and failing on one fact the spec withholds.
 
-Run 1 wrote `templates/home.html` — the correct name — and still failed.
+**Corrected 2026-08-04 by cycle 7's investigation.** This section originally
+blamed file layout — `index.html` versus `home.html`, `test_app.py` placement.
+The acceptance file disclaims layout explicitly and its only structural
+coupling is `from app import app`. Every pilot run that wrote `app.py` failed
+with `TypeError: Flask.__call__() missing 1 required positional argument:
+'start_response'`: the model chose **Flask**, a WSGI framework, and the suite
+drives it with Starlette's ASGI `TestClient`. Five of six pilot runs failed
+this way, identically. The withheld fact that matters is the *framework*, not
+the filenames.
 
 **Prediction 3 said acceptance would stay at or near zero, and that a pilot
 showing rejections gone with acceptance unchanged is a success for this
