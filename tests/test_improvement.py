@@ -672,7 +672,9 @@ def test_the_stack_prompt_names_the_framework_and_the_module():
     `TypeError: Flask.__call__()` -- the suite drives ASGI and the model
     chose WSGI. `app.py`, because `source_allowlist` copies that path and
     a solution under `app/main.py` never reaches the grader."""
-    text = runner.sdd_orchestrator_guarded_stack().system_prompt.read_text()
+    prompt = runner.sdd_orchestrator_guarded_stack().system_prompt
+    assert prompt is not None
+    text = prompt.read_text()
 
     assert "FastAPI" in text
     assert "`app.py`" in text
