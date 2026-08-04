@@ -62,7 +62,15 @@ def delegation(pi_stdout: str) -> tuple[int, int, int]:
             concurrent = max(concurrent, len(open_ids))
         elif event.get("type") == "tool_execution_end":
             open_ids.discard(call_id)
-            if event.get("isError"):
+            # `isError` alone is not enough. Pi's subagent extension rejects a
+            # malformed call with `"Invalid parameters. Provide exactly one
+            # mode."` as a **non-error** end carrying an empty `results[]` --
+            # no child ran. Counting those as successes inflated this column
+            # and produced the claim "0 failed delegations, 16/16 successful"
+            # when cycle 2 run 13's only completed call was a rejection.
+            # A delegation succeeded only if a child's usage came back.
+            details = event.get("result", {}).get("details") or {}
+            if event.get("isError") or not (details.get("results") or []):
                 failed += 1
             else:
                 succeeded += 1

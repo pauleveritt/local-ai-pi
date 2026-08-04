@@ -24,6 +24,18 @@ numbers.
 > The prompt for the recheck was the owner asking whether machine contention
 > explained the result; it did not, but looking answered a question nobody
 > had asked.
+>
+> **CORRECTED AGAIN 2026-08-04, after an adversarial audit.** Pi's subagent
+> extension rejects a malformed call with `"Invalid parameters. Provide
+> exactly one mode."` as a **non-error** `tool_execution_end` carrying an
+> empty `results[]` — no child ever ran. The recompute script counted any
+> non-error end as a success, so this record claimed *"16/16 successful, 0
+> failed."* The truth is **15/16 successful, 3 rejections**: run 13's only
+> completed subagent call was a rejection, so it delegated nothing at all.
+> Excluding it from the cost pool moves the ratios slightly — 8.11x → 8.24x,
+> 2.49x → 2.57x, 3.14x → 3.29x — and changes no conclusion. `telemetry.py`
+> was *not* wrong here; it already returns zero delegations for a rejection.
+> The defect was in this document's own script.
 
 ## The short version
 
@@ -45,7 +57,7 @@ never results.
 |---|---|---|
 | 1 | Both arms accept 16/16 | **FALSIFIED.** Bare 16/16, orchestrated 12/16. |
 | 2 | Orchestrated `context_processed` is higher | **REPLICATED, and by far more than expected.** 8.11× median once the child is counted (1.15× parent-only). |
-| 3 | Delegation occurs on 16/16 orchestrated runs | **REPLICATED.** 16/16 successful, 0 failed. |
+| 3 | Delegation occurs on 16/16 orchestrated runs | **FALSIFIED, narrowly.** 15/16. Run 13's only completed call was a parameter rejection; its real delegation never returned. |
 
 Prediction 1 came from the prior project's detailed-roadmap orchestrated arm
 scoring 16/16. **That number did not replicate here.** This is n=16 against
@@ -61,16 +73,18 @@ measurement was wrong.
 | accepted | **16/16** | **12/16** |
 | timed out | 0/16 | **3/16** |
 | tool errors, total | 0 | 3 (all in one run) |
-| runs with ≥1 successful delegation | 0/16 | 16/16 |
-| runs with a failed delegation | 0 | 0 |
+| runs with ≥1 successful delegation | 0/16 | **15/16** |
+| runs with a failed delegation | 0 | **3** (parameter rejections) |
 | max concurrent `subagent` calls, any run | 0 | **1** |
 | **total** turns — median (min–max) | 7 (7–10) | **22 (2–137)** |
 | **total** `context_processed` | 16,298 (16,189–26,058) | **132,218 (5,015–3,802,853)** |
 | **total** `output_tokens` | 965 (907–1,119) | **2,399 (432–13,142)** |
 | parent-only `context_processed` | 16,298 | 18,680 |
 
-Ratios, orchestrated ÷ bare: **total turns 3.14×, total `context_processed`
-8.11×, total `output_tokens` 2.49×.** Parent-only context is 1.15×, which is
+Ratios, orchestrated ÷ bare, over the 15 runs that actually delegated:
+**total turns 3.29×, total `context_processed` 8.24×, total `output_tokens`
+2.57×.** (Over all 16, including the run that delegated nothing: 3.14×,
+8.11×, 2.49×.) Parent-only context is 1.15×, which is
 what the uncorrected version of this record reported as the whole answer.
 
 ## The cost answer
@@ -113,6 +127,22 @@ otherwise-good runs purely by failing to terminate.
 16,189–26,058, a factor of 1.6. Orchestrated spans 5,015–3,802,853, a factor
 of **759**. The bare arm is remarkably uniform — 13 of 16 runs took exactly 7
 turns. The orchestrated arm is not remotely.
+
+## The rejection nobody predicted
+
+Three runs contain a `subagent` call answered with **`"Invalid parameters.
+Provide exactly one mode."`** The shipped extension exposes `single`,
+`parallel`, and `chain` modes; our `orchestrator.md` never mentions modes at
+all, so the model guesses and sometimes guesses wrong. No child runs, and
+because the rejection is reported as a *non-error*, nothing in an
+`isError`-based check can ever see it.
+
+Two consequences. For this record: the delegation check it claimed to have
+passed was measuring the wrong thing, which is why the audit caught it and
+the cycle's own verification did not. For the design: a small model is being
+asked to satisfy a three-mode schema it was never told about — evidence for
+the Backlog's own-minimal-tool entry, whose whole argument was removing
+`parallel` and `chain` from the model-facing surface.
 
 ## The observation that decides a Backlog gate
 
