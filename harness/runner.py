@@ -13,6 +13,7 @@ from harness.workspace import prepare_workspace
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = REPO_ROOT / "examples"
 EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / ".pi" / "extensions" / "hello-world.ts",)
+LOOP_BREAKER = REPO_ROOT / ".pi" / "extensions" / "loop-breaker.ts"
 DEFAULT_MODEL = "omlx/gemma-4-12B-it-MLX-8bit"
 EXPECTED_PI_VERSION = "0.83.0"
 
@@ -180,6 +181,24 @@ def sdd_orchestrator() -> Improvement:
             pi_package_root() / "examples" / "extensions" / "subagent" / "index.ts",
         ),
         system_prompt=IMPROVEMENTS / "sdd-orchestrator" / "orchestrator.md",
+    )
+
+
+def sdd_orchestrator_guarded() -> Improvement:
+    """Improvement #2: `sdd-orchestrator` plus the loop-breaker extension.
+
+    A separate improvement rather than a composition mechanism. The phase's
+    binding rule is that a run has exactly one improvement or none, and
+    `Improvement.extensions` is already a tuple -- so carrying two
+    extensions needs no new machinery, and the unguarded improvement stays
+    available as the comparison cycle 8 needs.
+    """
+    base = sdd_orchestrator()
+    return Improvement(
+        name="sdd-orchestrator-guarded",
+        seed_dir=base.seed_dir,
+        extensions=base.extensions + (LOOP_BREAKER,),
+        system_prompt=base.system_prompt,
     )
 
 

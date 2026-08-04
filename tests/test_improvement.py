@@ -608,3 +608,47 @@ def test_run_batch_records_and_uses_the_timeout_it_was_given(tmp_path, monkeypat
     assert seen["process_timeout"] == 300, "the cap must reach the child"
     assert records[0].conditions is not None
     assert records[0].conditions.run_timeout == 300
+
+
+def test_the_guarded_improvement_carries_both_extensions():
+    """`Improvement.extensions` is a tuple, so two extensions need no
+    composition machinery and the phase's one-improvement-per-run rule
+    stays intact. The unguarded improvement must survive: cycle 8 needs it
+    as the comparison."""
+    plain = runner.sdd_orchestrator()
+    guarded = runner.sdd_orchestrator_guarded()
+
+    assert guarded.name != plain.name
+    assert set(plain.extensions) < set(guarded.extensions)
+    assert runner.LOOP_BREAKER in guarded.extensions
+    assert guarded.seed_dir == plain.seed_dir
+    assert guarded.system_prompt == plain.system_prompt
+
+
+def test_the_guarded_improvement_has_its_own_digest():
+    """Two improvements differing only in an extension must not produce
+    equal conditions, or their checkpoints become mutually resumable."""
+    assert runner.LOOP_BREAKER.is_file()
+    plain = runner.sdd_orchestrator()
+    guarded = runner.sdd_orchestrator_guarded()
+
+    # The loop breaker rides in `extensions`, which reaches conditions via
+    # `extension_digests` rather than `improvement_digest` -- the latter
+    # covers the seed and prompt, which are shared by design.
+    assert runner._improvement_digest(plain) == runner._improvement_digest(guarded)
+    assert [runner._path_digest(p) for p in plain.extensions] != [
+        runner._path_digest(p) for p in guarded.extensions
+    ]
+
+
+def test_the_loop_breaker_trips_on_successful_repeats():
+    """The property the unmerged `pi-circuit-breaker` branch lacks: it
+    counts only *failing* identical calls, and all 245 of cycle 4's `ls -R`
+    calls succeeded. `tool_call` fires before execution, so success is not
+    even knowable here -- the source must not reference it."""
+    source = runner.LOOP_BREAKER.read_text()
+
+    assert 'pi.on("tool_call"' in source
+    assert "block: true" in source
+    assert "isError" not in source, "the hook fires before execution; success is unknowable"
+    assert 'pi.appendEntry("loop_broken"' in source
