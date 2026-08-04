@@ -155,6 +155,11 @@ cycle's argument.
   — ten findings this project paid to discover, each with a checked citation
   into the installed package, each labelled **read** or **run**, and each with
   what it cost.
+- [Phase 5, cycle 6 — a loop-breaker that did not fire](research/2026-08-04-phase5-cycle6-loop-breaker.md)
+  — the extension works, proven live, and never engaged in the pilot because
+  cycle 5's prompt line had already removed the loop. Its value rests on
+  replay: 239 of 261 calls prevented on evidence already recorded, zero false
+  positives across 55 healthy runs.
 - [Phase 5, cycle 5 — what two prompt lines changed](research/2026-08-04-phase5-cycle5-orchestrator-corrections.md)
   — naming the tool's `agent` parameter closed a defect that had silently
   destroyed four runs; stating that the workspace is empty coincided with the
@@ -283,4 +288,5 @@ research/2026-08-04-phase5-cycle1-delegation-spike
 research/2026-08-04-phase5-cycle2-cost-answer
 research/2026-08-04-phase5-cycle4-user-story-arms
 research/2026-08-04-phase5-cycle5-orchestrator-corrections
+research/2026-08-04-phase5-cycle6-loop-breaker
 ```
