@@ -1,5 +1,12 @@
 """Recompute phase 5 cycle 2's tables from the two checkpoints.
 
+Child costs come from `harness.telemetry` as of phase 5 cycle 3. They were
+briefly computed by a helper local to this file, which is how cycle 2's
+1.15x error was corrected -- but a workaround living in one research script
+protects one document, so the parsing moved into the instrument. The numbers
+are unchanged by that move, and the plan required checking rather than
+assuming it.
+
 Committed so the published table cannot silently diverge from its source,
 per phase 2 cycle 4's claim discipline. Run it and paste; do not hand-edit
 the numbers in the research record.
@@ -62,45 +69,6 @@ def delegation(pi_stdout: str) -> tuple[int, int, int]:
     return succeeded, failed, concurrent
 
 
-def child_usage(pi_stdout: str) -> tuple[int, int, int, int]:
-    """(child context_processed, child output, child turns, child count).
-
-    **The child's cost is in the parent's stream and is easy to miss.** Pi's
-    shipped subagent extension aggregates the child's `message_end` usage and
-    surfaces it in the parent's `tool_execution_end` result under
-    `details.results[].usage`. `harness/telemetry.py` parses the parent's own
-    events only, so a delegated run's telemetry counts the parent and nothing
-    else. The first version of this script did exactly that and reported an
-    orchestrated arm that was *cheaper* than bare, which is the opposite of
-    the truth: the child does most of the work.
-
-    `contextTokens` in that payload is a context-window size, not a workload
-    measure, and is deliberately ignored -- `context_processed` is
-    `input + cacheRead + cacheWrite`, matching the definition phase 2 cycle 1
-    pinned.
-    """
-    context = output = turns = count = 0
-    for line in pi_stdout.split("\n"):
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if event.get("type") != "tool_execution_end" or event.get("toolName") != "subagent":
-            continue
-        details = event.get("result", {}).get("details") or {}
-        for result in details.get("results") or []:
-            usage = result.get("usage") or {}
-            context += (
-                usage.get("input", 0)
-                + usage.get("cacheRead", 0)
-                + usage.get("cacheWrite", 0)
-            )
-            output += usage.get("output", 0) + usage.get("reasoning", 0)
-            turns += usage.get("turns", 0)
-            count += 1
-    return context, output, turns, count
-
-
 def main() -> None:
     summaries = {}
     for arm, path in ARMS.items():
@@ -119,11 +87,15 @@ def main() -> None:
         for i, record in enumerate(records, 1):
             t = read_telemetry(record.pi_stdout)
             ok, bad, conc = delegation(record.pi_stdout)
-            cctx, cout, cturns, _ = child_usage(record.pi_stdout)
+            cctx, cout, cturns = (
+                t.child_context_processed,
+                t.child_output_tokens,
+                t.child_turns,
+            )
             total = dict(
-                turns=t.turns + cturns,
-                ctx=t.context_processed + cctx,
-                out=t.output_tokens + cout,
+                turns=t.total_turns,
+                ctx=t.total_context_processed,
+                out=t.total_output_tokens,
             )
             rows.append((record.accepted, t, ok, bad, conc, cctx, cout, cturns, total))
             print(

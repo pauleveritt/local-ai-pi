@@ -186,6 +186,13 @@ Checkpoints:
 Raw, outside Git, retaining full `pi_stdout` — so every number here is
 recomputable, and so are metrics nobody has written yet.
 
+*Provenance, phase 5 cycle 3:* the child figures now come from
+`harness.telemetry`'s `Delegation` parsing rather than a helper local to the
+recompute script. The script was re-run after that move and every figure above
+is unchanged — checked rather than assumed, because a disagreement between the
+instrument and the workaround would have meant this record was wrong a second
+time.
+
 ## Per-run tables
 
 ### bare — n=16
