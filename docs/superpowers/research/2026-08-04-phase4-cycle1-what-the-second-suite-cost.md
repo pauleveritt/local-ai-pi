@@ -119,6 +119,19 @@ a seam on paper.
 - The plan's model-server check was `omlx diagnose`, which is not a valid
   invocation — that subcommand requires a target argument. Corrected in the
   plan itself to `curl -s -m 10 http://127.0.0.1:8001/v1/models`.
+
+  **This one is worse than it looks, and it is the more useful finding.**
+  The same gotcha was already recorded two days earlier, in
+  `docs/superpowers/plans/2026-08-02-phase3-cycle1-observable-extension.md`
+  line 146: "`omlx diagnose` is not the check: the installed CLI requires a
+  target argument". The knowledge existed, in this repository, in a document
+  of the same kind. It simply did not reach the next plan, and the next plan
+  was written without grepping for it. This is the fourth instance of the
+  pattern the Backlog already tracks — a correction lands where the current
+  task points and not everywhere the same fact is written — and it is the
+  first instance where the earlier correction was one `grep` away from the
+  person reintroducing the error. The three prior instances were caught by
+  review; so was this one. Nothing structural has ever caught one.
 - The plan told the implementer to "expect one to ten minutes" for the live
   run. That invited backgrounding the command, and the controlling process
   then tore it down mid-flight. A plan that predicts a duration invites that
