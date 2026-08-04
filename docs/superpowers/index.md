@@ -155,6 +155,11 @@ cycle's argument.
   — ten findings this project paid to discover, each with a checked citation
   into the installed package, each labelled **read** or **run**, and each with
   what it cost.
+- [Phase 5, cycle 2 — what the orchestration cost](research/2026-08-04-phase5-cycle2-cost-answer.md)
+  — the handoff-packet claim, finally tested with the instrument built for
+  it: orchestration emitted a third less and read 15% more context, and was
+  *less reliable* — 12/16 against a bare 16/16, with three hangs where the
+  bare arm had none.
 - [Phase 5, cycle 1 — what one live delegation showed](research/2026-08-04-phase5-cycle1-delegation-spike.md)
   — `--extension` needs the entry-point file, not the extension's
   directory; pointed at the directory it fails silently and the run still
@@ -260,4 +265,5 @@ research/2026-08-02-phase3-cycle1-event-vocabulary
 research/2026-08-03-phase3-cycle2-pi-gotchas
 research/2026-08-04-phase4-cycle1-what-the-second-suite-cost
 research/2026-08-04-phase5-cycle1-delegation-spike
+research/2026-08-04-phase5-cycle2-cost-answer
 ```

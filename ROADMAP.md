@@ -103,6 +103,16 @@ series, so it is where an improvement's **benefit** is visible. Every number
 in that series is a *prediction to be replicated, not a result*: its source
 carries a `PENDING RULE 8 REVIEW` banner and is explicitly not citable.
 
+**The long-term goal this phase serves, stated so it is not confused with
+what any one cycle measures.** The hope is that steering keeps a small model
+*on track* — not repeating work, not spiralling into loops — rather than that
+it is cheaper. Those two can come apart: an arm can cost more per run and
+still be the one worth shipping, because it finishes instead of hanging. Cost
+is what cycle 2 measures because the Backlog owed that debt and the
+instrument exists for it; staying on track is the direction the phase is
+walking toward, over more cycles than this phase contains. Neither cycle 2's
+ratio nor cycle 3's success rate should be read as evidence for or against it.
+
 **This reverses two recorded decisions, deliberately.** The orchestrator was
 withdrawn from Phase 2 on 2026-08-02 ("**the orchestrator is not being built
 in this phase**") and its cycles were withdrawn from Phase 3 on 2026-08-03 as
@@ -510,7 +520,7 @@ expensive to re-derive.
 | Cycle | Summary | State |
 |-------|---------|-------|
 | 1 | The improvement mechanism — a frozen `Improvement` descriptor (seed directory, extra extensions, system prompt) and `run_batch(suite=…, improvement=…)`, with the orchestrator/implementer pair as improvement #1. Breaks `RunConditions` once rather than twice: the improvement digest plus the two digests the Backlog already owed (the acceptance file's contents, the allowlist), all sentinel-loading like `extension_digests`. Decides how a *directory* extension is digested, which `_extension_digest` explicitly deferred to "the cycle that needs it". Ends with one live delegation observed under this harness's flags. **Claims no number and runs no batch.** The spike found that `--extension` needs the entry-point *file*: pointed at the `subagent/` directory it fails silently and the run still grades accepted. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle1-improvement-mechanism-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle1-improvement-mechanism.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle1-delegation-spike.md) | Done |
-| 2 | The cost answer — two n=16 batches on AgentClinic Phase 1, bare and orchestrated, where success is expected to stay pinned and the only readable signal is turns and `context_processed`. The handoff-packet claim, tested with the instrument built for it. Every orchestrated run is checked for a *successful* delegation before its cost counts, because cycle 1 showed a silently unorchestrated run still grades accepted. Touches no suite. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle2-cost-answer-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle2-cost-answer.md) | In progress |
+| 2 | The cost answer — two n=16 batches on AgentClinic Phase 1, bare and orchestrated, where success is expected to stay pinned and the only readable signal is turns and `context_processed`. The handoff-packet claim, tested with the instrument built for it. Every orchestrated run is checked for a *successful* delegation before its cost counts, because cycle 1 showed a silently unorchestrated run still grades accepted. Touches no suite. **Result: orchestration emitted ~a third less and read ~15% more context, and was less reliable — 12/16 against a bare 16/16, with three hangs where the bare arm had none, two of them after a correct solution was already written.** The pre-registered 16/16 for the orchestrated arm was falsified. Max concurrent children was 1 in all 16 runs, so the Backlog's own-subagent-tool gate did not fire. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle2-cost-answer-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle2-cost-answer.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle2-cost-answer.md) | Done |
 | 3 | The user-story suite and its floor — the user-story roadmap variant as a third `Suite`, with its own task-spec file, its own known-good and known-broken fixtures, tests proving the grader accepts one and rejects the other, and `norecursedirs` / `extend-exclude` entries. Then the as-shipped orchestrator arm on it. Touches no mechanism. | Planned |
 | 4+ | Improvements against the user-story arm, one at a time — tech-stack and mission first, then a domain document for the data model. Each pre-registers its prediction before its batch runs. | Planned |
 
@@ -536,6 +546,22 @@ Each was answered by a new test rather than by an assumption. That is now the
 third and fourth instance of one shape (test the collaborator, miss the
 caller) since Phase 4 cycle 1, and it is worth a discipline cycle's attention
 if it appears again.
+
+**Cycle 2 spent nothing.** It runs batches with cycle 1's vocabulary and adds
+no mechanism. The check was run at close against the spec, the recompute
+script, and this row.
+
+**What cycle 2 settled, and what it did not.** It paid the debt open since
+Phase 2 cycle 1: the handoff-packet claim has now been tested with the
+instrument built for it, and the answer is two-sided — orchestration emits
+about a third less and reads about 15% more, so which resource it costs
+depends on what is scarce. On a single-threaded local server that is
+generation, which makes the orchestrated arm look *cheaper* on the axis that
+hurts. The reliability result outweighs it: 12/16 against 16/16, with three
+hangs against none, and two of those three hung *after* writing a solution
+the grader accepted. It settles nothing about keeping a model on track, since
+the bare arm on this workload does not thrash — that is the Backlog's
+thrash-metrics entry, and it needs a workload with headroom.
 
 **Why this order.** Cycle 1 touches no suite, cycle 3 touches no mechanism,
 and cycle 2 sits between them producing the phase's first number, so no cycle
@@ -762,6 +788,44 @@ Nothing else is currently deferred. Add to this list as later cycles pass
 things over.
 
 ## Backlog
+
+- **Thrash metrics: hang rate, repeated tool calls, turn-count tail.
+  Recorded 2026-08-04, gated, and deliberately not built.** The phase's
+  long-term goal is keeping a small model on track rather than making it
+  cheaper, and nothing in `harness/telemetry.py` measures *off* track
+  directly. `tool_errors` and `complete` are the two nearest things.
+
+  **What a measurement would add:** an incomplete/hung rate, and a count of
+  repeated *identical* tool calls — same `toolName` and same arguments,
+  which is what a loop looks like from outside. Prototyped ad hoc while
+  cycle 2 ran: roughly ten lines over the retained `pi_stdout`, so it
+  recomputes over every batch this project has ever recorded, cycle 2's
+  included, without rerunning anything. That property is why there is no
+  hurry — the data is already banked.
+
+  **Why not now.** AgentClinic Phase 1 with the detailed roadmap shows
+  essentially no thrash to measure: cycle 2's bare arm was 16/16 accepted,
+  0 tool errors across all sixteen runs, 2 runs with a single repeated call
+  each, no incomplete runs, turns 7–10. A metric introduced here would be
+  reporting a floor. That is a third ceiling on this workload, alongside the
+  saturated success rate and the saturated turn count.
+
+  **The gate:** build it when a batch runs on a workload where the bare arm
+  actually thrashes. The prior project's evidence says where to look — turn
+  counts of 12.6 and 14.8 on AgentClinic phases 2 and 3 against 7.8 on phase
+  1, and `docs/section-3-sdd/research/2026-07-28-phase3-run4-repeat-spiral-incident.md`
+  on the `user-story-batch` branch, which traces **4 of 16 hangs in a single
+  batch to one root cause**: the delegated implementer verifying its work
+  with a self-invented `TestClient` probe instead of the packet's stated
+  validation command.
+
+  **Carry this into any such cycle:** that spiral happened *under*
+  delegation. Orchestration is not automatically protective, and there the
+  implementer's freelancing is what caused it. Improvement #1's
+  `implementer.md` already instructs running the packet's validation command
+  and reporting what it printed, which is aimed at exactly this failure — but
+  that is an untested guess, not a result, and must not be written up as
+  though the incident had been addressed.
 
 - **Rewind: git-as-savepoint as a feature of the shipped extension.
   Recorded 2026-08-04 after the owner asked, and scoped to the *product*
