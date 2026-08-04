@@ -160,6 +160,11 @@ cycle's argument.
   zero to 5/6 grader-accepted. The runs had been writing Flask, a WSGI
   framework, against an ASGI test client; nobody read the grade output until
   this cycle needed to scope the lever.
+- [Phase 5, cycle 8 — the prompt did not hold the child](research/2026-08-04-phase5-cycle8-child-runaway.md)
+  — three pre-registered predictions, three falsified. Prompt corrections that
+  supply a *fact* have worked twice; this one supplied a *rule of conduct* and
+  did not. The research it forced found something larger: the delegated child
+  had never been hermetic.
 - [Phase 5, cycle 6 — a loop-breaker that did not fire](research/2026-08-04-phase5-cycle6-loop-breaker.md)
   — the extension works, proven live, and never engaged in the pilot because
   cycle 5's prompt line had already removed the loop. Its value rests on
@@ -230,6 +235,7 @@ specs/2026-08-04-phase5-cycle5-orchestrator-corrections-design
 specs/2026-08-04-phase5-cycle6-loop-breaker-design
 specs/2026-08-04-phase5-cycle7-tech-stack-design
 specs/2026-08-04-phase5-cycle8-child-runaway-design
+specs/2026-08-04-phase5-cycle9-hermetic-child-design
 ```
 
 ```{toctree}
@@ -297,4 +303,5 @@ research/2026-08-04-phase5-cycle4-user-story-arms
 research/2026-08-04-phase5-cycle5-orchestrator-corrections
 research/2026-08-04-phase5-cycle6-loop-breaker
 research/2026-08-04-phase5-cycle7-tech-stack
+research/2026-08-04-phase5-cycle8-child-runaway
 ```

@@ -14,8 +14,33 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = REPO_ROOT / "examples"
 EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / ".pi" / "extensions" / "hello-world.ts",)
 LOOP_BREAKER = REPO_ROOT / ".pi" / "extensions" / "loop-breaker.ts"
+AGENT_DIR = REPO_ROOT / "pi-agent-dir"
 DEFAULT_MODEL = "omlx/gemma-4-12B-it-MLX-8bit"
 EXPECTED_PI_VERSION = "0.83.0"
+
+
+def pi_env() -> dict[str, str]:
+    """The environment every Pi process the harness starts runs under.
+
+    `PI_CODING_AGENT_DIR` points Pi at `pi-agent-dir/` instead of
+    `~/.pi/agent`. The parent does not need this -- it already passes
+    `--no-extensions --no-skills --no-prompt-templates --no-themes
+    --no-context-files` and is hermetic. **The child does.**
+
+    The delegated child is spawned by Pi's shipped subagent extension as
+    `pi --mode json -p --no-session [...]`, carrying none of those flags,
+    and user-scope resources load unconditionally -- so before phase 5
+    cycle 9 the child loaded the operator's own `~/.pi/agent/extensions/`
+    and packages. That was not a theory: recorded child transcripts show
+    `ls -R` returning the output of `rtk ls -R`, because the operator's
+    `rtk.ts` rewrites bash commands on `tool_call`.
+
+    An environment variable is the only seam that reaches the child. The
+    shipped extension calls `spawn` without an `env` argument, so the child
+    inherits ours; its *arguments* are fixed and its project-local resources
+    are trust-gated away in a headless run.
+    """
+    return {**os.environ, "PI_CODING_AGENT_DIR": str(AGENT_DIR)}
 
 
 @dataclass(frozen=True)
@@ -255,6 +280,13 @@ class RunConditions:
     contract being graded against had moved. The allowlist is recorded
     verbatim rather than digested: it is a handful of short strings, and a
     reader of a checkpoint should be able to see them.
+
+    `agent_dir_digest` (phase 5 cycle 9, sentinel `"<pre-cycle9>"`) records
+    the tree `PI_CODING_AGENT_DIR` points at. It closes the widest gap this
+    dataclass has had: the *child's* resources were never a recorded
+    condition at all, so two runs could differ by an extension the operator
+    happened to have installed while every field here stayed byte-identical.
+    They did differ that way -- see `pi_env`.
     """
 
     model: str
@@ -269,6 +301,7 @@ class RunConditions:
     improvement_digest: str
     acceptance_sha256: str
     source_allowlist: tuple[str, ...]
+    agent_dir_digest: str
 
 
 @dataclass(frozen=True)
@@ -313,6 +346,7 @@ def run_suite(
             command,
             timeout=timeout,
             cwd=workspace,
+            env=pi_env(),
         )
 
         # Stage everything before diffing: plain `git diff <commit>` never
@@ -487,6 +521,7 @@ def _conditions(
         improvement_digest=_improvement_digest(improvement),
         acceptance_sha256=hashlib.sha256(suite.acceptance.read_bytes()).hexdigest(),
         source_allowlist=suite.source_allowlist,
+        agent_dir_digest=_path_digest(AGENT_DIR),
     )
 
 
@@ -494,7 +529,12 @@ def preflight_model(model: str = "omlx/gemma-4-12B-it-MLX-8bit") -> None:
     """Require one real assistant message from the final Pi invocation."""
     check_model_server_alive()
     with prepare_workspace() as workspace:
-        result = run_process(_pi_command(model, "Reply with exactly SATYRN."), cwd=workspace, timeout=60)
+        result = run_process(
+            _pi_command(model, "Reply with exactly SATYRN."),
+            cwd=workspace,
+            timeout=60,
+            env=pi_env(),
+        )
     if result.timed_out or result.returncode != 0 or not _has_assistant_content(result.stdout):
         raise RuntimeError("model preflight produced no usable assistant output")
 

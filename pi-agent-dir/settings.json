@@ -1,0 +1,10 @@
+{
+  "compaction": {
+    "enabled": true,
+    "reserveTokens": 16384
+  },
+  "defaultProvider": "omlx",
+  "defaultModel": "gemma-4-12B-it-MLX-8bit",
+  "defaultThinkingLevel": "high",
+  "defaultProjectTrust": "never"
+}

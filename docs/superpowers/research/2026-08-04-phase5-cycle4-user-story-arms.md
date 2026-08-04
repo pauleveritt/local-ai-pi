@@ -20,6 +20,24 @@
 > so the module was simply absent. The failure-mode table below is left as
 > written; this note supersedes its interpretation.
 
+> **Corrected 2026-08-04 by phase 5 cycle 9.** The delegated child in the
+> orchestrated arm was **not hermetic.** Pi's shipped subagent extension spawns
+> the child without the parent's suppression flags, and user-scope resources
+> load unconditionally, so the child loaded the operator's own
+> `~/.pi/agent/extensions/` and packages -- including `rtk.ts`, which rewrites
+> bash commands. Recorded child transcripts show `ls -R` returning the output
+> of `rtk ls -R`.
+>
+> **This record compares a bare arm against an orchestrated one, so the
+> contamination is not constant across the comparison** -- the bare arm has no
+> child and was clean. It lands specifically on the orchestrated arm, and rtk
+> exists to *reduce* tokens, so any cost ratio here is if anything a
+> **lower bound** on what the orchestration cost. The direction of the headline
+> finding is unaffected; its magnitude is not defended.
+>
+> `RunConditions` gained `agent_dir_digest` in cycle 9 so this can never again
+> be silent.
+
 ## The short version
 
 **Both arms scored 0/16.** That is not the headroom this phase needed — it is

@@ -8,6 +8,18 @@
 > **Publishes no number.** An n=6 pilot at `run_timeout=300`, not comparable
 > with any n=16/600 s arm. Cycle 8 buys the comparable one.
 
+> **Corrected 2026-08-04 by phase 5 cycle 9.** The delegated child in this
+> arm was **not hermetic.** Pi's shipped subagent extension spawns the child
+> without the parent's suppression flags, and user-scope resources load
+> unconditionally, so the child loaded the operator's own
+> `~/.pi/agent/extensions/` and packages -- including `rtk.ts`, which rewrites
+> bash commands. Recorded child transcripts here show `ls -R` returning the
+> output of `rtk ls -R`. The comparisons in this record stand, because the
+> contamination was constant across the arms compared; what it means is that
+> the orchestrated arm measured **this orchestrator plus the operator's
+> toolbelt**, not the orchestrator alone. `RunConditions` gained
+> `agent_dir_digest` in cycle 9 so this can never again be silent.
+
 ## The short version
 
 The extension works — proven end to end on a live run — and **it never fired

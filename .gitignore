@@ -7,3 +7,15 @@ docs/_build/
 # Local workspace state
 .worktrees/
 .superpowers/
+
+# Runtime state Pi writes into the harness-owned agent dir. Everything the
+# harness *owns* there is listed explicitly above it in git; anything Pi
+# creates at startup (an empty auth.json, sessions, caches) is not ours and
+# must never be committed -- auth.json especially, since that is where a
+# credential would land if a provider ever needed one.
+pi-agent-dir/*
+!pi-agent-dir/README.md
+!pi-agent-dir/settings.json
+!pi-agent-dir/models.json
+!pi-agent-dir/extensions/
+!pi-agent-dir/extensions/*.ts

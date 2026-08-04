@@ -1,0 +1,26 @@
+{
+  "providers": {
+    "omlx": {
+      "name": "oMLX",
+      "baseUrl": "http://127.0.0.1:8001/v1",
+      "api": "openai-completions",
+      "apiKey": "not-needed",
+      "models": [
+        {
+          "id": "gemma-4-12B-it-MLX-8bit",
+          "name": "Gemma 4 12B IT (MLX 8-bit)",
+          "reasoning": false,
+          "input": ["text"],
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "contextWindow": 262144,
+          "maxTokens": 8192
+        }
+      ]
+    }
+  }
+}

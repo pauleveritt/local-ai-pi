@@ -36,6 +36,7 @@ _DEFAULTS = RunConditions(
     improvement_digest="<none>",
     acceptance_sha256="acceptance-sha",
     source_allowlist=("app.py",),
+    agent_dir_digest="agent-dir-digest",
 )
 
 

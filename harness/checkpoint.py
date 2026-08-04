@@ -77,6 +77,9 @@ def load_checkpoint(path: Path) -> list[RunResult]:
                         acceptance_sha256=data["conditions"].get(
                             "acceptance_sha256", "<pre-phase5>"
                         ),
+                        agent_dir_digest=data["conditions"].get(
+                            "agent_dir_digest", "<pre-cycle9>"
+                        ),
                         source_allowlist=tuple(
                             data["conditions"].get(
                                 "source_allowlist", ("<pre-phase5>",)
