@@ -155,6 +155,10 @@ cycle's argument.
   — ten findings this project paid to discover, each with a checked citation
   into the installed package, each labelled **read** or **run**, and each with
   what it cost.
+- [Phase 5, cycle 5 — what two prompt lines changed](research/2026-08-04-phase5-cycle5-orchestrator-corrections.md)
+  — naming the tool's `agent` parameter closed a defect that had silently
+  destroyed four runs; stating that the workspace is empty coincided with the
+  exploration spiral vanishing, 245 repetitions down to 1.
 - [Phase 5, cycle 4 — the user-story suite, and two arms at zero](research/2026-08-04-phase5-cycle4-user-story-arms.md)
   — bare Pi read the spec, restated it correctly, and stopped to ask what to
   do, in all 16 runs; orchestration restored agency but not correctness. One
@@ -277,4 +281,5 @@ research/2026-08-04-phase4-cycle1-what-the-second-suite-cost
 research/2026-08-04-phase5-cycle1-delegation-spike
 research/2026-08-04-phase5-cycle2-cost-answer
 research/2026-08-04-phase5-cycle4-user-story-arms
+research/2026-08-04-phase5-cycle5-orchestrator-corrections
 ```
