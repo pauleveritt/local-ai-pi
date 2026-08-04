@@ -229,6 +229,7 @@ specs/2026-08-04-phase5-cycle4-user-story-suite-design
 specs/2026-08-04-phase5-cycle5-orchestrator-corrections-design
 specs/2026-08-04-phase5-cycle6-loop-breaker-design
 specs/2026-08-04-phase5-cycle7-tech-stack-design
+specs/2026-08-04-phase5-cycle8-child-runaway-design
 ```
 
 ```{toctree}

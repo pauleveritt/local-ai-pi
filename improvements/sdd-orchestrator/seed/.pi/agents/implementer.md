@@ -16,6 +16,11 @@ exactly what it specifies.
   alternatives. Do not read files that are not listed.
 - Run the command under Validation before you report completion, and say
   what it printed.
+- **Do not run the same command over and over.** If validation fails twice
+  with the same output, running it a third time will print the same thing
+  again. Change the code, or report the failure and stop. A recorded run once
+  spent 83 of its 103 commands re-running one failing test.
+- Once validation passes, report and stop. Do not keep working.
 
 Report what you built and what validation printed. Do not claim a success
 you have not observed.

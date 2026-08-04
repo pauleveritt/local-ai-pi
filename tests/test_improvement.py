@@ -688,3 +688,23 @@ def test_the_stack_lever_does_not_leak_into_the_suite():
 
     for leaked in ("fastapi", "jinja", "app.py", "flask"):
         assert leaked not in spec
+
+
+def test_the_implementer_is_told_to_stop_repeating_a_failing_command():
+    """Phase 5 cycle 8. Two of cycle 7's six runs were killed with the
+    delegated child still going at 98 and 103 turns; one made 83 identical
+    `pytest` calls out of 103 bash calls. The specialist said "run
+    validation before you report completion" and nothing about what to do
+    when it fails, and the child obeyed that literally and forever.
+
+    The loop-breaker cannot help: it runs in the parent, and a
+    child-style invocation does not load project-local extensions -- 
+    verified with a probe, `--approve` included.
+    """
+    seed = runner.sdd_orchestrator().seed_dir
+    assert seed is not None
+    text = (seed / ".pi" / "agents" / "implementer.md").read_text().lower()
+
+    assert "same command over and over" in text
+    assert "fails twice" in text
+    assert "report and stop" in text

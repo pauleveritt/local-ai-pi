@@ -1041,6 +1041,41 @@ things over.
   that is an untested guess, not a result, and must not be written up as
   though the incident had been addressed.
 
+- **Deep dive: how Pi actually decides to load an extension. Owner, 2026-08-04:
+  "this has happened before."** It has, three times, each costing a live run
+  or a wrong conclusion:
+
+  1. **`--extension <dir>` loads nothing** — it needs the entry-point *file*.
+     No error, no stderr, exit 0, other extensions still loading; the only
+     symptom was `"Tool subagent not found"` much later, and the run still
+     graded *accepted* (phase 5 cycle 1).
+  2. **An entry appended during `session_start` is dropped** — print mode
+     attaches its json subscriber only after `bindExtensions` returns, so 80
+     recorded runs emitted nothing observable (phase 3 cycle 1).
+  3. **Project-local `.pi/extensions/` is not loaded by a child-style
+     invocation**, verified 2026-08-04 with a probe extension appending an
+     entry on `agent_start`: `pi --mode json -p --no-session` with the
+     extension in `cwd/.pi/extensions/` produced no entry, **and adding
+     `--approve` changed nothing**. Note the asymmetry with agents:
+     `.pi/agents/` *is* discovered from cwd when `agentScope: "both"` is
+     passed, which is how this project's implementer specialist reaches the
+     child at all.
+
+  **Why it matters now, concretely.** Phase 5 cycle 8 needs a guard inside the
+  delegated child, which is a separate `pi` process the shipped subagent
+  extension spawns with args we do not control. Seeding our loop-breaker into
+  the workspace was the obvious cheap fix and finding (3) closes it. Every
+  remaining option is more expensive, so the loading rules are now
+  load-bearing for a design decision rather than merely annoying.
+
+  **What a deep dive should answer**, from the installed source rather than
+  by experiment where possible: the full precedence order (`--extension`,
+  `~/.pi/agent/extensions`, project-local, `pi install`); exactly what
+  `--no-extensions` and `--approve` each govern; whether project-local
+  extensions are gated on trust, on a UI, or simply not consulted; and what,
+  if anything, a spawned child inherits. Output belongs in the gotchas record
+  with `file:line` citations anchored to a named revision.
+
 - **Rewind: git-as-savepoint as a feature of the shipped extension.
   Recorded 2026-08-04 after the owner asked, and scoped to the *product*
   rather than the harness.** `BRIEF.md` says what we are building is a Pi
