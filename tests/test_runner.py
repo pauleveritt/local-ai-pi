@@ -34,7 +34,29 @@ def _grade_result() -> GradeResult:
     )
 
 
-def test_run_suite_calls_pi_and_returns_its_result(tmp_path, monkeypatch):
+def test_both_suites_point_at_files_that_exist():
+    """A Suite whose paths are wrong fails at run time, inside a live
+    invocation, where the failure is expensive and reads like a model
+    problem. Catch it here instead."""
+    for suite in (runner.AGENTCLINIC_PHASE_1, runner.DURATION):
+        assert suite.task_spec.is_file(), f"{suite.name}: {suite.task_spec}"
+        assert suite.acceptance.is_file(), f"{suite.name}: {suite.acceptance}"
+        assert suite.source_allowlist
+
+
+def test_the_two_suites_use_different_allowlists():
+    """The allowlist is the seam BRIEF.md names by example
+    (`_SOURCE_FILES = ("app.py", "models.py")`). Two suites differing in
+    both arity and kind -- file+directory versus a single file -- is what
+    shows it is a parameter rather than decoration."""
+    assert runner.AGENTCLINIC_PHASE_1.source_allowlist == ("app.py", "templates")
+    assert runner.DURATION.source_allowlist == ("duration.py",)
+
+
+@pytest.mark.parametrize(
+    "suite", [runner.AGENTCLINIC_PHASE_1, runner.DURATION], ids=lambda s: s.name
+)
+def test_run_suite_calls_pi_and_returns_its_result(suite, tmp_path, monkeypatch):
     workspace = tmp_path / "workspace"
     workspace.mkdir()
     events = []
@@ -69,8 +91,8 @@ def test_run_suite_calls_pi_and_returns_its_result(tmp_path, monkeypatch):
     def fake_grade(actual_workspace, acceptance, *, source_allowlist):
         events.append("grade")
         assert actual_workspace == workspace
-        assert acceptance == runner.AGENTCLINIC_PHASE_1.acceptance
-        assert source_allowlist == ("app.py", "templates")
+        assert acceptance == suite.acceptance
+        assert source_allowlist == suite.source_allowlist
         return _grade_result()
 
     monkeypatch.setattr(runner, "check_model_server_alive", fake_liveness)
@@ -79,10 +101,12 @@ def test_run_suite_calls_pi_and_returns_its_result(tmp_path, monkeypatch):
     monkeypatch.setattr(runner, "run_process", fake_process)
     monkeypatch.setattr(runner, "grade", fake_grade)
     monkeypatch.setattr(
-        runner, "_conditions", lambda suite, model, command, timeout, extensions: None
+        runner,
+        "_conditions",
+        lambda passed_suite, model, command, timeout, extensions: None,
     )
 
-    result = run_suite(runner.AGENTCLINIC_PHASE_1)
+    result = run_suite(suite)
 
     assert events == [
         "liveness",
@@ -225,6 +249,47 @@ def test_run_batch_runs_remaining_attempts_and_appends_each(tmp_path, monkeypatc
     assert len(records) == 2
     assert calls == ["preflight", "run", "run"]
     assert len(load_checkpoint(checkpoint)) == 2
+
+
+def test_run_batch_forwards_the_given_suite_throughout(tmp_path, monkeypatch):
+    """`suite` is threaded through three call sites inside `run_batch`:
+    the prompt handed to `_pi_command`, the suite handed to `_conditions`,
+    and the suite handed to `run_suite`. A mutant that swaps any one of
+    those for the module-level `AGENTCLINIC_PHASE_1` constant must fail
+    this test -- so it runs against `runner.DURATION`, whose task_spec
+    content and identity both differ from AgentClinic's, and captures
+    what each collaborator actually received.
+    """
+    checkpoint = tmp_path / "runs.jsonl"
+    conditions = RunConditions(
+        "model", ("pi",), runner.EXPECTED_PI_VERSION, "sha", "rev", 600, 30, ("digest",)
+    )
+    prompts_seen = []
+    conditions_suites_seen = []
+    run_suite_suites_seen = []
+
+    def fake_pi_command(model, prompt, extensions=runner.EXTENSIONS):
+        prompts_seen.append(prompt)
+        return ["pi", "stub"]
+
+    def fake_conditions(suite, model, command, timeout, extensions=runner.EXTENSIONS):
+        conditions_suites_seen.append(suite)
+        return conditions
+
+    def fake_run_suite(suite, *, model):
+        run_suite_suites_seen.append(suite)
+        return RunResult("diff", _grade_result(), "out", "", 0, conditions=conditions)
+
+    monkeypatch.setattr(runner, "_pi_command", fake_pi_command)
+    monkeypatch.setattr(runner, "_conditions", fake_conditions)
+    monkeypatch.setattr(runner, "preflight_model", lambda model: None)
+    monkeypatch.setattr(runner, "run_suite", fake_run_suite)
+
+    runner.run_batch(checkpoint, target=1, model="model", suite=runner.DURATION)
+
+    assert prompts_seen == [runner.DURATION.task_spec.read_text()]
+    assert conditions_suites_seen == [runner.DURATION]
+    assert run_suite_suites_seen == [runner.DURATION]
 
 
 def test_run_batch_resumes_after_existing_records(tmp_path, monkeypatch):
