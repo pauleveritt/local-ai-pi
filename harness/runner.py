@@ -220,14 +220,34 @@ def _pi_command(
 
 
 def _path_digest(path: Path) -> str:
-    """SHA-256 of one extension file.
+    """SHA-256 of one file, or of a directory tree's contents.
 
-    Raises on a directory rather than hashing something plausible: Pi's
-    shipped subagent extension is a directory tree, and how a tree is
-    hashed is a decision for the cycle that needs it.
+    A tree is hashed as the sorted list of `<relative path> <file digest>`
+    lines. Each half of that is load-bearing:
+
+    - **Sorted**, because filesystem iteration order is not guaranteed and
+      the same extension must digest identically on two machines.
+    - **Relative to the tree root**, because Pi's shipped subagent
+      extension lives at a different absolute path on every contributor's
+      machine and moves on every Pi upgrade. An absolute-path-sensitive
+      digest would report drift that is not there, and `run_batch` would
+      refuse to resume a checkpoint that is still valid.
+    - **Path *and* digest**, because two trees holding the same bytes at
+      different paths are different extensions. Hashing the file digests
+      alone would call them equal.
+
+    Phase 4 cycle 1 raised on a directory and left the decision to "the
+    cycle that needs it". This is that cycle: the shipped subagent
+    extension is a directory, and an improvement's seed is one too.
     """
     if path.is_dir():
-        raise ValueError(f"extension is a directory, not a file: {path}")
+        entries = sorted(
+            f"{child.relative_to(path).as_posix()} "
+            f"{hashlib.sha256(child.read_bytes()).hexdigest()}"
+            for child in path.rglob("*")
+            if child.is_file()
+        )
+        return hashlib.sha256("\n".join(entries).encode()).hexdigest()
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 

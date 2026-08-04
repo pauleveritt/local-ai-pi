@@ -621,11 +621,19 @@ def test_path_digest_changes_with_file_content(tmp_path):
     assert runner._path_digest(extension) != first
 
 
-def test_path_digest_raises_on_a_directory(tmp_path):
-    # Pi's shipped subagent extension is a directory. Cycle 2 must
-    # decide how a tree is hashed, not inherit a plausible wrong answer.
-    with pytest.raises(ValueError, match="directory"):
-        runner._path_digest(tmp_path)
+def test_path_digest_accepts_a_directory(tmp_path):
+    """**Replaced phase 5 cycle 1.** This test previously asserted that
+    `_path_digest` *raises* on a directory, deliberately, so that phase 3
+    cycle 1 could not inherit a plausible wrong answer about how a tree
+    should be hashed. Phase 5 cycle 1 is the cycle that needed the answer
+    -- Pi's shipped subagent extension is a directory, and an
+    improvement's seed is one too -- so the refusal has been replaced by a
+    decision. What that decision guarantees (sorted, relative-path,
+    path-and-digest) is proved in `tests/test_improvement.py`; this only
+    holds the line that a directory is no longer rejected."""
+    (tmp_path / "index.ts").write_text("export const x = 1\n")
+
+    assert len(runner._path_digest(tmp_path)) == 64
 
 
 def test_path_digest_raises_on_a_missing_file(tmp_path):
