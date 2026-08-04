@@ -7,12 +7,16 @@ for this suite. They need no model and no Pi.
 from pathlib import Path
 
 from harness.grading import grade
+from harness.runner import DURATION as DURATION_SUITE
 from harness.workspace import prepare_workspace
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DURATION = REPO_ROOT / "examples" / "duration"
-ACCEPTANCE = DURATION / "acceptance" / "test_acceptance.py"
-ALLOWLIST = ("duration.py",)
+# Consumed from harness.runner.DURATION, the suite a real run actually uses,
+# rather than restated here -- so changing the suite's allowlist can never
+# leave these floor tests certifying a configuration no run is graded under.
+ACCEPTANCE = DURATION_SUITE.acceptance
+ALLOWLIST = DURATION_SUITE.source_allowlist
 
 
 def test_grade_accepts_the_duration_reference_solution():

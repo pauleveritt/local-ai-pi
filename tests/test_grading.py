@@ -15,11 +15,19 @@ from harness.grading_plugin import (
     pytest_runtest_logreport,
     pytest_sessionfinish,
 )
+from harness.runner import AGENTCLINIC_PHASE_1 as AGENTCLINIC_SUITE
 from harness.workspace import prepare_workspace
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PHASE_1 = REPO_ROOT / "examples" / "agentclinic" / "phase-1"
-ALLOWLIST = ("app.py", "templates")
+# ACCEPTANCE and ALLOWLIST are consumed from harness.runner.AGENTCLINIC_PHASE_1,
+# the suite a real run actually uses, rather than restated here -- so changing
+# the suite's allowlist can never leave these floor tests certifying a
+# configuration no run is graded under. PHASE_1 above stays a local path: only
+# the fixtures' reference/broken directories are addressed through it, and
+# Suite carries neither.
+ACCEPTANCE = AGENTCLINIC_SUITE.acceptance
+ALLOWLIST = AGENTCLINIC_SUITE.source_allowlist
 
 
 # ---------------------------------------------------------------------
@@ -170,8 +178,8 @@ def test_verdict_rejects_on_nonzero_returncode_even_if_everything_else_passed():
 
 
 def test_test_count_includes_module_level_async_tests(tmp_path):
-    suite = tmp_path / "test_async_suite.py"
-    suite.write_text(
+    acceptance = tmp_path / "test_async_suite.py"
+    acceptance.write_text(
         "def test_sync():\n"
         "    pass\n"
         "\n"
@@ -182,7 +190,7 @@ def test_test_count_includes_module_level_async_tests(tmp_path):
         "    pass\n"
     )
 
-    assert _test_count(suite) == 2
+    assert _test_count(acceptance) == 2
 
 
 def test_grading_environment_excludes_ambient_pytest_settings(tmp_path, monkeypatch):
@@ -240,7 +248,7 @@ def _shadow_attack_source(tmp_path):
 def test_grade_accepts_the_reference_solution():
     with prepare_workspace(PHASE_1 / "reference") as workspace:
         result = grade(
-            workspace, PHASE_1 / "acceptance" / "test_acceptance.py", source_allowlist=ALLOWLIST
+            workspace, ACCEPTANCE, source_allowlist=ALLOWLIST
         )
 
     assert result.accepted is True
@@ -252,7 +260,7 @@ def test_grade_ignores_ambient_collect_only_option(monkeypatch):
 
     with prepare_workspace(PHASE_1 / "reference") as workspace:
         result = grade(
-            workspace, PHASE_1 / "acceptance" / "test_acceptance.py", source_allowlist=ALLOWLIST
+            workspace, ACCEPTANCE, source_allowlist=ALLOWLIST
         )
 
     assert result.accepted is True
@@ -260,11 +268,11 @@ def test_grade_ignores_ambient_collect_only_option(monkeypatch):
 
 
 def test_grade_returns_a_timed_out_rejection(tmp_path):
-    suite = tmp_path / "test_timeout.py"
-    suite.write_text("import time\n\n\ndef test_blocks():\n    time.sleep(30)\n")
+    acceptance = tmp_path / "test_timeout.py"
+    acceptance.write_text("import time\n\n\ndef test_blocks():\n    time.sleep(30)\n")
 
     with prepare_workspace(PHASE_1 / "reference") as workspace:
-        result = grade(workspace, suite, timeout=0.1, source_allowlist=ALLOWLIST)
+        result = grade(workspace, acceptance, timeout=0.1, source_allowlist=ALLOWLIST)
 
     assert result.accepted is False
     assert result.timed_out is True
@@ -274,7 +282,7 @@ def test_grade_returns_a_timed_out_rejection(tmp_path):
 def test_grade_rejects_the_broken_solution():
     with prepare_workspace(PHASE_1 / "broken") as workspace:
         result = grade(
-            workspace, PHASE_1 / "acceptance" / "test_acceptance.py", source_allowlist=ALLOWLIST
+            workspace, ACCEPTANCE, source_allowlist=ALLOWLIST
         )
 
     assert result.accepted is False
@@ -284,7 +292,7 @@ def test_grade_rejects_the_broken_solution():
     assert result.returncode != 0
 
 
-def test_grade_ignores_model_written_tests_and_grades_the_suite_alone(tmp_path):
+def test_grade_ignores_model_written_tests_and_grades_the_acceptance_file_alone(tmp_path):
     """The AgentClinic roadmap tells the model to write its own smoke test
     in tests/test_app.py, so a correct solution ships extra test files.
     Those must not count toward the verdict: pytest is given the
@@ -312,7 +320,7 @@ def test_grade_ignores_model_written_tests_and_grades_the_suite_alone(tmp_path):
 
     with prepare_workspace(source) as workspace:
         result = grade(
-            workspace, PHASE_1 / "acceptance" / "test_acceptance.py", source_allowlist=ALLOWLIST
+            workspace, ACCEPTANCE, source_allowlist=ALLOWLIST
         )
 
     assert result.accepted is True
@@ -336,7 +344,7 @@ def test_grade_is_not_shadowed_by_a_workspace_root_harness_package(tmp_path):
 
     with prepare_workspace(source) as workspace:
         result = grade(
-            workspace, PHASE_1 / "acceptance" / "test_acceptance.py", source_allowlist=ALLOWLIST
+            workspace, ACCEPTANCE, source_allowlist=ALLOWLIST
         )
 
     assert result.accepted is False
@@ -360,7 +368,7 @@ def test_the_shadow_attack_payload_really_forges_when_it_is_reachable(tmp_path):
     with prepare_workspace(source) as workspace:
         result = grade(
             workspace,
-            PHASE_1 / "acceptance" / "test_acceptance.py",
+            ACCEPTANCE,
             source_allowlist=("app.py", "templates", "harness"),
         )
 

@@ -43,10 +43,15 @@ worth more than a claim.
 **Does not claim** a number. This cycle runs no batch. See "Verification".
 
 **Scope of the generality claim:** the *task-spec* and *grading* seams.
-The chosen workload starts from an empty workspace, so
-`prepare_workspace(source_dir=...)` keeps zero real callers and the
-seeding seam is untouched. Say "the spec and grading seams", never "the
-seams".
+The chosen workload starts from an empty workspace, so no *run* starts
+from a seeded workspace and the seeding seam is untested in anger. Say
+"the spec and grading seams", never "the seams".
+
+*(Corrected: this paragraph previously said `prepare_workspace(source_dir=...)`
+"keeps zero real callers". That was imprecise — the floor tests in
+`tests/test_grading.py` and `tests/test_workspace.py` call it with a source
+dir and always have. What is actually untried is a model run starting from
+seeded code; the runner path calls `prepare_workspace()` bare.)*
 
 ## The evidence floor
 

@@ -82,6 +82,46 @@ def test_conditions_differ_between_the_two_suites(monkeypatch):
     ) == duration
 
 
+def test_every_suites_task_spec_digest_is_pairwise_distinct():
+    """`task_spec_sha256` is the only `RunConditions` field that
+    discriminates two suites (see `test_conditions_differ_between_the_two_suites`
+    above): `pi_command` normalizes the prompt away, and model, Pi version,
+    harness revision, both timeouts, and the extension digests are shared
+    across suites by construction. Two `Suite` instances that happen to
+    point at the same task-spec file therefore produce byte-identical
+    `RunConditions`, and their checkpoints become mutually resumable with
+    no refusal catching it -- a property of the current suites' *data*,
+    not of the mechanism that is supposed to keep them apart.
+
+    This is not hypothetical. `AGENTCLINIC_PHASE_1.task_spec` is
+    `examples/agentclinic/specs/roadmap.md`, and the design spec's Layout
+    section says AgentClinic nests under `phase-1/` "because AgentClinic
+    genuinely has phases and one roadmap file covers several of them." The
+    obvious way to add an AgentClinic Phase 2 suite -- extending that same
+    roadmap file -- would violate this invariant with no test noticing.
+
+    Stated as an invariant over every `Suite` the module declares, found by
+    inspecting `harness.runner`'s module members, rather than as an
+    assertion about this particular pair -- so a third suite is covered
+    automatically, not by convention.
+    """
+    suites = [
+        member for member in vars(runner).values() if isinstance(member, runner.Suite)
+    ]
+    assert len(suites) >= 2, "expected at least two module-level Suite instances"
+
+    digests = {
+        suite.name: hashlib.sha256(suite.task_spec.read_bytes()).hexdigest()
+        for suite in suites
+    }
+    for i, left in enumerate(suites):
+        for right in suites[i + 1 :]:
+            assert digests[left.name] != digests[right.name], (
+                f"{left.name!r} and {right.name!r} share a task_spec digest -- "
+                "their checkpoints would be mutually resumable"
+            )
+
+
 def test_run_batch_refuses_a_checkpoint_recorded_under_another_suite(
     tmp_path, monkeypatch
 ):

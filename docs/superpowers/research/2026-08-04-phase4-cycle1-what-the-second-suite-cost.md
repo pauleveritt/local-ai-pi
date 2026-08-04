@@ -182,10 +182,15 @@ tests under `tests/` parametrize freely.
 A list of what was *not* general enough is worth more to a future reader
 than any claim that things are.
 
-- **Seeding.** `prepare_workspace(source_dir=...)` still has zero real
-  callers, and `Suite` has no seed field. The generality demonstrated here
-  covers the spec and grading seams only. A workload that needs the model
-  to start from existing code has not been tried.
+- **Seeding.** `Suite` has no seed field, and no *run* has ever started
+  from a seeded workspace — the runner calls `prepare_workspace()` bare.
+  The generality demonstrated here covers the spec and grading seams only.
+  A workload that needs the model to start from existing code has not been
+  tried. *(Corrected: this bullet previously said `prepare_workspace(source_dir=...)`
+  "still has zero real callers". That was imprecise — the floor tests in
+  `tests/test_grading.py` and `tests/test_workspace.py` call it with a source
+  dir and always have. What is untried is a model run starting from seeded
+  code, not the parameter itself.)*
 - **The grading subprocess's dependencies.** `harness/grading.py:211` sets
   `PYTHONPATH` to the repo root, so an acceptance suite can only import
   what the harness's own venv provides. AgentClinic's imports `starlette`
@@ -199,6 +204,22 @@ than any claim that things are.
   file leaves conditions byte-identical. Between suites, discrimination is
   now locked by tests. Within one, it is not. Deliberately left open;
   see the Backlog for why and for the gate.
+- **Between-suite discrimination assumes distinct task-spec files, and
+  that is a property of the current two suites' data, not of the
+  mechanism.** `task_spec_sha256` is the only `RunConditions` field that
+  distinguishes two suites (see above). Two `Suite` instances pointing at
+  the same task-spec file would produce byte-identical conditions, and
+  their checkpoints would become mutually resumable with no refusal
+  catching it. This is not hypothetical: `AGENTCLINIC_PHASE_1.task_spec`
+  is `examples/agentclinic/specs/roadmap.md`, and this cycle's own "Layout"
+  section notes AgentClinic nests under `phase-1/` because one roadmap
+  file covers several phases. The obvious way to add an AgentClinic Phase
+  2 suite — extending that same roadmap file — would violate the
+  invariant. A test now enforces it:
+  `tests/test_runner.py::test_every_suites_task_spec_digest_is_pairwise_distinct`
+  discovers every module-level `Suite` in `harness.runner` and asserts
+  their `task_spec` digests are pairwise distinct, so a third suite is
+  covered automatically rather than by convention.
 
 ## What this cycle does not claim
 

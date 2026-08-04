@@ -164,12 +164,12 @@ def grade(
 
 
 def _test_count(acceptance: Path) -> int:
-    """How many tests the suite declares, counted from its source.
+    """How many tests the acceptance file declares, counted from its source.
 
     Counts module-level `def test_*` and `async def test_*`. Class-grouped
-    tests are deliberately unsupported: no suite uses them, and counting
-    them would mean deciding what pytest would collect rather than reading
-    what the file declares.
+    tests are deliberately unsupported: no acceptance file uses them, and
+    counting them would mean deciding what pytest would collect rather than
+    reading what the file declares.
 
     Undercounting here is not a cosmetic bug. `tests_expected` feeds the
     `tests_executed == tests_expected` condition, so a miscount rejects a

@@ -525,7 +525,8 @@ was chosen to make impossible.
 filename to pytest, so only the suite is collected — restoring what the
 old harness got from `tests/test_acceptance.py` in its argv, and what the
 trusted number was produced under. Pinned by
-`tests/test_grading.py::test_grade_ignores_model_written_tests_and_grades_the_suite_alone`.
+`tests/test_grading.py::test_grade_ignores_model_written_tests_and_grades_the_acceptance_file_alone`
+(renamed phase 4 cycle 1 fix-up; same test).
 
 Two alternatives were considered and rejected. Editing the smoke-test
 bullet out of the transplanted spec would work, and is the wrong
@@ -648,7 +649,11 @@ things over.
   acceptance file, or a changed allowlist, leaves conditions
   byte-identical and a batch resumes a checkpoint graded under a different
   contract. This is exactly the bug class `extension_digests` was added to
-  close in phase 3 cycle 1 — the same mistake, one layer over.
+  close in phase 3 cycle 1 — the same mistake, one layer over. Between-suite
+  discrimination is itself conditional on distinct suites having distinct
+  task-spec files — a property of the current suites' data, not of the
+  mechanism — which is now enforced by
+  `tests/test_runner.py::test_every_suites_task_spec_digest_is_pairwise_distinct`.
 
   **Why it was not fixed there.** Every field added to `RunConditions`
   makes existing checkpoints non-matching, and the recorded evidence lives
@@ -657,10 +662,11 @@ things over.
   checkpoints' resumability.
 
   **The gate:** fix it when a second contributor's evidence has to be
-  compared against ours, or the first time an acceptance file is edited
-  mid-batch. The `("<pre-cycle1>",)` sentinel pattern (`runner.py:65-68`)
-  is the precedent — old checkpoints become unresumable-but-readable, not
-  lost.
+  compared against ours, or the first time such an edit is *discovered* to
+  have happened. Nothing detects the edit itself as it occurs — the gap is
+  found only after the fact, by some other means. The `("<pre-cycle1>",)`
+  sentinel pattern (`runner.py:65-68`) is the precedent — old checkpoints
+  become unresumable-but-readable, not lost.
 
 - **A run that dies leaves no trace in the harness's own records.**
   Found 2026-08-04 during phase 4 cycle 1, when a live single run was
