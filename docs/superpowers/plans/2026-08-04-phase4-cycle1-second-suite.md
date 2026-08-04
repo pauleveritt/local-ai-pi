@@ -812,8 +812,14 @@ First confirm the server returns real output — when it is down, `pi`
 exits 0 with empty stderr and the harness records a fabricated result:
 
 ```bash
-/Users/pauleveritt/.omlx/bin/omlx diagnose
+curl -s -m 10 http://127.0.0.1:8001/v1/models
 ```
+
+That lists the models the server is actually serving; an empty or failed
+response means it is not up. *(Corrected 2026-08-04: this step originally
+said `/Users/pauleveritt/.omlx/bin/omlx diagnose`, which is not a valid
+invocation — that subcommand requires a target argument, so it is not a
+liveness check.)*
 
 If it is not serving, start it with `/Users/pauleveritt/.omlx/bin/omlx start`
 and re-check. Then:

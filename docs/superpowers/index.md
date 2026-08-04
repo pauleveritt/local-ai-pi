@@ -149,6 +149,10 @@ cycle's argument.
   — ten findings this project paid to discover, each with a checked citation
   into the installed package, each labelled **read** or **run**, and each with
   what it cost.
+- [Phase 4, cycle 1 — what the second suite cost](research/2026-08-04-phase4-cycle1-what-the-second-suite-cost.md)
+  — every `harness/` change a second workload forced, labelled *seam
+  extraction* or *genuine gap*; what was already general; and what is still
+  not.
 
 ```{toctree}
 :hidden:
@@ -240,4 +244,5 @@ research/2026-08-02-phase2-cycle3-clean-baseline
 research/2026-08-02-phase2-remaining-plan
 research/2026-08-02-phase3-cycle1-event-vocabulary
 research/2026-08-03-phase3-cycle2-pi-gotchas
+research/2026-08-04-phase4-cycle1-what-the-second-suite-cost
 ```

@@ -185,9 +185,13 @@ grading for a reason that looks like a model error. Acceptance imports
 
 The contract is a literal table, so nothing is invented by us and nothing
 is left for the model to interpret — the same property that made
-AgentClinic's tagline a contract literal. The broken variant gets one row
-wrong: `"1h30m"` → `3600`, stopping at the first unit. Nothing else
-differs.
+AgentClinic's tagline a contract literal. The broken variant has one *defect* — it stops at the first unit — which
+fails the two multi-unit rows: `"1h30m"` → `3600` and `"2h15m30s"` →
+`7200`. The four single-unit and unparseable rows still pass, so the
+fixture proves the grader discriminates on behavior rather than rejecting
+anything that merely looks different. *(Corrected 2026-08-04: this
+paragraph previously said "one row wrong", which was wrong — one defect is
+not one row.)*
 
 ### Rejected workloads
 

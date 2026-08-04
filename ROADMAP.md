@@ -31,7 +31,7 @@ spec. What the phase actually delivered is the first half of that sentence:
 measurement you can trust. The second half turned out to be answering a
 question nobody had asked yet.)*
 
-**Phase 3 — Build the extension half.** In progress; see the cycles below.
+**Phase 3 — Build the extension half. Complete.**
 Cycle 1 made the project's Pi extension observable — an entry it appends now
 reaches captured stdout and the telemetry reader. Cycle 2 teaches the
 mechanics and records the gotchas.
@@ -43,6 +43,13 @@ gets compared against." That described a phase that was going to run an
 orchestrated arm. Phase 3 is not: its orchestration cycles were withdrawn to
 the Backlog. Those Phase 2 assets are real and still useful — they are simply
 owed to the deferred orchestration-cost experiment, not to this phase.)*
+
+**Phase 4 — Prove the engine generalizes beyond one workload.** In
+progress. Three phases built the engine against a single workload, so the
+parameters standing where hardcodes used to be had exactly one caller
+apiece — which `BRIEF.md` names as the one thing that actually cost the
+previous project. Cycle 1 adds a second suite and demonstrates the spec
+and grading seams with a real second caller.
 
 *(Withdrawn framing, kept for the record — corrected 2026-08-02. An earlier
 pass, written at cycle 1's close, gave Phase 2 three steps: "step 1 builds
@@ -77,7 +84,7 @@ not by being convenient shorthand.*
 |---|---|---|
 | feature cycle | the unit of work within a phase — one small, provable thing | kickoff |
 | phase | groups feature cycles; one direction at a time | kickoff |
-| suite | the acceptance test suite a solution is graded against | cycle 1 |
+| suite | one workload the harness can run: its prompt, its acceptance contract, and its source allowlist (`harness.runner.Suite`) | cycle 1; **redefined phase 4 cycle 1** — it previously meant only the acceptance test suite a solution is graded against, which is now called the *acceptance* (the parameter name in `grade()`) |
 | fixture | a known-good or known-broken example solution, used to prove the grader itself | cycle 1 |
 | workspace | a disposable, git-initialized directory the model writes into. Read by the grader, never graded directly — see *grading directory* | cycle 2 |
 | grading directory | a fresh directory holding only allowlisted files copied out of the workspace, plus the suite; what pytest actually runs against | cycle 9 |
@@ -88,10 +95,10 @@ not by being convenient shorthand.*
 | hook | the pytest hook that writes the real per-test outcomes to a results file | cycle 3 |
 | vacuous / non-vacuity | a test that passes without testing what it claims to — this project's recurring hazard | cycle 3 |
 | refusal | the grader declines to certify a run before pytest ever executes | cycle 5 |
-| task spec | the AgentClinic roadmap document a model builds a solution from | cycle 6 |
+| task spec | the document a model builds a solution from — AgentClinic's roadmap, the duration suite's `spec.md` | cycle 6; generalized phase 4 cycle 1 |
 | seam | a parameter standing in for a value that could change, so nothing has to change if it does — not a hardcode | `BRIEF.md`, reused cycle 7 |
 | liveness (check) | confirming the model server responds before a run is even attempted | cycle 7 |
-| allowlist | which model-written paths (`app.py`, `templates`) get copied into a fresh directory and graded at all | cycle 5's close, implemented cycle 9 |
+| allowlist | which model-written paths get copied into a fresh directory and graded at all; per-suite, and required rather than defaulted since phase 4 cycle 1 | cycle 5's close, implemented cycle 9 |
 | checkpoint | an append-only JSONL record of completed runs; resumes by counting valid lines, tolerant of a truncated last line on both read and write | cycle 2's deferrals, implemented cycle 10 |
 | run | one invocation of Pi against one fresh workspace, followed by its grade | cycle 8 |
 | batch | a fixed, sequential set of runs under one declared set of conditions | cycle 11's re-plan |
@@ -102,6 +109,14 @@ not by being convenient shorthand.*
 | tool call | one tool Pi invoked during a run, correlated start-to-end by `toolCallId` — borrowed from Pi's vocabulary, not coined | phase 2 cycle 1 |
 | context processed | `input + cacheRead + cacheWrite` — a cumulative *workload* measure, not a context-window size, and not latency or cost. Adopted from the prior effort's metrics report rather than invented, so its numbers stay comparable | phase 2 cycle 1 |
 | gotcha | a non-obvious Pi behavior, found by this project, costing time and frustration to discover, and invisible in Pi's own documentation — recorded with its price and a citation so it is remembered | phase 3 cycle 2 |
+
+**Redefined, phase 4 cycle 1.** Three terms above were narrowed to the
+first workload without anyone noticing: *suite* meant an acceptance file,
+*task spec* meant AgentClinic's roadmap specifically, and *allowlist*
+named `app.py` and `templates` in its own definition. A second workload
+made all three read as wrong. A redefinition costs a contributor *more*
+than a new term — they must unlearn something — so it is recorded here
+rather than quietly edited. The count of terms is unchanged.
 
 **Retired, not currently spent:** `oracle` — dropped from the engine's
 vocabulary, since "grader"/"verdict" cover the same ground without a term
@@ -129,7 +144,8 @@ occurrences either. Both revive if and when the experiment is scheduled.
 |---|-------|--------------------------|--------|
 | 1 | Reproduce AgentClinic Phase 1 | One trustworthy, hermetically-graded run; n=16 reproducing ~15/16 | complete |
 | 2 | Measurement we can trust, cheaply enough to repeat | Instrument a run, characterize its precision, make the environment honest, and impose a discipline on published numbers | complete; the n=100 affordability target was retired 2026-08-02 by the phase's own findings — see "Now" |
-| 3 | Build the extension half | The product is "a Pi extension plus an eval harness"; two phases built the harness. Make the extension observable, then teach the mechanics and record the gotchas. *(This row previously read "Specialize Pi's shipped subagent, then test the handoff-packet cost claim" — withdrawn 2026-08-03 as orchestration work the Backlog had already deferred.)* | in progress |
+| 3 | Build the extension half | The product is "a Pi extension plus an eval harness"; two phases built the harness. Make the extension observable, then teach the mechanics and record the gotchas. *(This row previously read "Specialize Pi's shipped subagent, then test the handoff-packet cost claim" — withdrawn 2026-08-03 as orchestration work the Backlog had already deferred.)* | complete |
+| 4 | Prove the engine generalizes beyond one workload | A second, differently-shaped suite runs through the same harness, each grader having accepted a known-good and rejected a known-broken solution | in progress |
 
 ### Phase 1 feature cycles
 
@@ -418,6 +434,12 @@ passes without warnings.
 The research survives in the Backlog entry — it is worth keeping and
 expensive to re-derive.
 
+### Phase 4 feature cycles
+
+| Cycle | Summary | State |
+|-------|---------|-------|
+| 1 | A second eval suite — a stdlib-only duration parser under `examples/duration/`, so the spec and grading seams have a real second caller instead of a parameter with one caller and a workload-shaped default. Dissolves `PHASE_1`, `TASK_SPEC`, and `run_agentclinic_phase1` into a `Suite` descriptor; makes `grade()`'s `source_allowlist` required; makes `_conditions` hash the suite it was handed, which is load-bearing because `task_spec_sha256` is the only `RunConditions` field distinguishing two suites. Claims no number and runs no batch. [spec](docs/superpowers/specs/2026-08-04-phase4-cycle1-second-suite-design.md), [plan](docs/superpowers/plans/2026-08-04-phase4-cycle1-second-suite.md), [research](docs/superpowers/research/2026-08-04-phase4-cycle1-what-the-second-suite-cost.md) | Done |
+
 ### Deferred candidates
 
 *Things a cycle's brainstorming considered and passed over — usually the
@@ -615,6 +637,58 @@ Nothing else is currently deferred. Add to this list as later cycles pass
 things over.
 
 ## Backlog
+
+- **`RunConditions` does not record the acceptance contract or the
+  allowlist — a real gap, deliberately left open.** Phase 4 cycle 1 made
+  `task_spec_sha256` the field that distinguishes two suites, and tests
+  now lock that. Discrimination *within* a suite is a different matter:
+  nothing records the acceptance file's *contents* or the
+  `source_allowlist`, and `harness_revision` is `git rev-parse HEAD`
+  (`harness/runner.py:206-207`), so an **uncommitted** edit to an
+  acceptance file, or a changed allowlist, leaves conditions
+  byte-identical and a batch resumes a checkpoint graded under a different
+  contract. This is exactly the bug class `extension_digests` was added to
+  close in phase 3 cycle 1 — the same mistake, one layer over.
+
+  **Why it was not fixed there.** Every field added to `RunConditions`
+  makes existing checkpoints non-matching, and the recorded evidence lives
+  outside version control in `~/local-ai-pi-evidence/`. Cycle 1's claim
+  did not need it, and paying for it would have cost the existing
+  checkpoints' resumability.
+
+  **The gate:** fix it when a second contributor's evidence has to be
+  compared against ours, or the first time an acceptance file is edited
+  mid-batch. The `("<pre-cycle1>",)` sentinel pattern (`runner.py:65-68`)
+  is the precedent — old checkpoints become unresumable-but-readable, not
+  lost.
+
+- **A run that dies leaves no trace in the harness's own records.**
+  Found 2026-08-04 during phase 4 cycle 1, when a live single run was
+  hard-killed mid-flight. Nothing was written anywhere: no checkpoint
+  line, no log, no partial record. The only evidence the run had ever
+  happened was an orphaned temp directory under `/var/folders/...`, and
+  diagnosing it depended on knowing that `prepare_workspace` removes the
+  workspace in a `finally` block (`harness/workspace.py:76-77`) — so a
+  *surviving* workspace means the process was hard-killed rather than
+  that a test failed or an exception was raised. That inference is
+  reliable but it is folklore, not instrumentation.
+
+  **Why it was not fixed here.** At n=1 it cost one diagnosis and no
+  data. The cycle claimed no number, so nothing was lost.
+
+  **The gate:** fix it when a batch first dies partway. `run_batch`
+  appends per completed run, so a death between appends is invisible —
+  the checkpoint simply has fewer lines than the operator remembers
+  requesting, with nothing distinguishing "the batch was stopped" from
+  "a run died and was skipped". That ambiguity is the actual cost, and
+  it only bites at batch scale.
+
+  **Not to be confused with a project defect in that incident.** The
+  kill had an external cause outside the engine — a controlling process
+  tearing down a long-running command it had backgrounded. No OOM or
+  jetsam kill was logged and memory was 77% free, so resource
+  contention was ruled out rather than assumed. The engine did nothing
+  wrong; it simply recorded nothing.
 
 - **Pin the Pi version the harness runs against — gate satisfied; done.**
   Discovered the hard way on 2026-08-03: Pi went from 0.82.0 to 0.83.0
