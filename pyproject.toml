@@ -31,14 +31,14 @@ docs = [
 # examples/duration's acceptance suite does `from duration import
 # parse_duration` the same way -- it only collects inside a grading
 # workspace where source_allowlist has copied duration.py alongside it.
-norecursedirs = ["examples/agentclinic", "examples/duration", "docs/_build", ".worktrees"]
+norecursedirs = ["examples/agentclinic", "examples/duration", "improvements", "docs/_build", ".worktrees"]
 
 [tool.ruff]
 # examples/agentclinic and examples/duration hold fixtures that are
 # deliberately broken or hostile, or reference solutions with imports
 # that only resolve inside a grading workspace -- they are data for the
 # grader, not project source, and must not be linted as if they were.
-extend-exclude = ["examples/agentclinic", "examples/duration"]
+extend-exclude = ["examples/agentclinic", "examples/duration", "improvements"]
 
 [tool.ruff.lint]
 # Proportionate, not maximalist: correctness and clarity rules a

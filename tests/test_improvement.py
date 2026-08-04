@@ -348,3 +348,43 @@ def test_run_suite_forwards_the_improvement_to_conditions(tmp_path, monkeypatch)
 
     assert seen["improvement"] is improvement
     assert result.conditions is not None
+
+
+def test_pi_package_root_contains_the_shipped_subagent_extension():
+    """The delegation mechanism is Pi's, not ours. If this fails, the
+    improvement is pointing at nothing and every orchestrated run would
+    quietly be a bare run."""
+    subagent = runner.pi_package_root() / "examples" / "extensions" / "subagent"
+
+    assert (subagent / "index.ts").is_file()
+    assert (subagent / "agents").is_dir()
+
+
+def test_sdd_orchestrator_points_at_files_that_exist():
+    improvement = runner.sdd_orchestrator()
+
+    assert improvement.seed_dir is not None
+    assert (improvement.seed_dir / ".pi" / "agents" / "implementer.md").is_file()
+    assert improvement.system_prompt is not None
+    assert improvement.system_prompt.is_file()
+    assert improvement.extensions
+    assert all(path.exists() for path in improvement.extensions)
+
+
+def test_the_orchestrator_prompt_is_not_a_discoverable_specialist():
+    """Any `.md` under `.pi/agents/` carrying name/description frontmatter
+    is discovered as a *callable* specialist. An orchestrator kept there
+    could delegate to itself, with no depth cap on the nesting."""
+    system_prompt = runner.sdd_orchestrator().system_prompt
+    assert system_prompt is not None
+    assert ".pi/agents" not in system_prompt.as_posix()
+
+
+def test_the_implementer_is_seeded_where_pi_looks_for_it():
+    """Pi scans `.pi/agents/` relative to its cwd, which is the workspace.
+    A specialist seeded anywhere else is never found."""
+    seed = runner.sdd_orchestrator().seed_dir
+    assert seed is not None
+    relative = (seed / ".pi" / "agents" / "implementer.md").relative_to(seed)
+
+    assert relative.as_posix() == ".pi/agents/implementer.md"

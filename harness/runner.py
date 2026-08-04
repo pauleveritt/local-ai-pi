@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -78,6 +79,70 @@ class Improvement:
     seed_dir: Path | None
     extensions: tuple[Path, ...]
     system_prompt: Path | None
+
+
+IMPROVEMENTS = REPO_ROOT / "improvements"
+
+
+def pi_package_root() -> Path:
+    """Where Pi's installed package lives, so its shipped examples can be
+    referenced by path rather than forked.
+
+    **Not** resolved from `$(which pi)`, which is the recipe the prior
+    project published. Under volta -- this project's setup -- `which pi`
+    returns a shim: verified 2026-08-04, it gave
+    `~/.volta/bin/pi`, whose realpath is `~/.volta/bin/volta-shim`, a
+    binary that says nothing about which package it dispatches to.
+    `npm root -g` is no better; it answered
+    `~/.volta/tools/image/node/25.8.1/lib/node_modules`, which does not
+    contain the package at all.
+
+    Checked in order: `$SATYRN_PI_PACKAGE`, then volta's package layout.
+    Both are paths rather than discovery logic, because a wrong answer here
+    is expensive and silent -- the improvement would point at nothing and
+    every orchestrated run would quietly be a bare run.
+    """
+    override = os.environ.get("SATYRN_PI_PACKAGE")
+    if override:
+        return Path(override)
+    volta = (
+        Path.home() / ".volta" / "tools" / "image" / "packages"
+        / "@earendil-works" / "pi-coding-agent" / "lib" / "node_modules"
+        / "@earendil-works" / "pi-coding-agent"
+    )
+    if volta.is_dir():
+        return volta
+    raise RuntimeError(
+        "cannot locate Pi's installed package. Set SATYRN_PI_PACKAGE to the "
+        "directory containing examples/extensions/subagent -- find it with "
+        "`find ~ -maxdepth 8 -type d -name pi-coding-agent`. Resolving from "
+        "`which pi` does not work under volta, and `npm root -g` points at "
+        "the node image rather than the package."
+    )
+
+
+def sdd_orchestrator() -> Improvement:
+    """Improvement #1: delegate to an `implementer` specialist instead of
+    writing the solution directly.
+
+    Two authored markdown files plus Pi's *shipped* subagent extension. No
+    TypeScript, and no fork -- the fork was proposed and rejected on
+    2026-08-03 because it freezes our copy against a substrate that keeps
+    moving. Referencing the shipped tree by path and digesting its contents
+    means a Pi upgrade changes the digest and `run_batch` refuses to
+    resume, so drift is loud rather than silent.
+
+    A function rather than a module-level constant: it resolves Pi's
+    install location, and a constant would make `import harness.runner`
+    fail on a machine without Pi. The suite must stay runnable for a
+    contributor who has not installed it.
+    """
+    return Improvement(
+        name="sdd-orchestrator",
+        seed_dir=IMPROVEMENTS / "sdd-orchestrator" / "seed",
+        extensions=(pi_package_root() / "examples" / "extensions" / "subagent",),
+        system_prompt=IMPROVEMENTS / "sdd-orchestrator" / "orchestrator.md",
+    )
 
 
 @dataclass(frozen=True)
