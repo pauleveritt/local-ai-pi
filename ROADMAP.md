@@ -520,7 +520,7 @@ expensive to re-derive.
 | Cycle | Summary | State |
 |-------|---------|-------|
 | 1 | The improvement mechanism — a frozen `Improvement` descriptor (seed directory, extra extensions, system prompt) and `run_batch(suite=…, improvement=…)`, with the orchestrator/implementer pair as improvement #1. Breaks `RunConditions` once rather than twice: the improvement digest plus the two digests the Backlog already owed (the acceptance file's contents, the allowlist), all sentinel-loading like `extension_digests`. Decides how a *directory* extension is digested, which `_extension_digest` explicitly deferred to "the cycle that needs it". Ends with one live delegation observed under this harness's flags. **Claims no number and runs no batch.** The spike found that `--extension` needs the entry-point *file*: pointed at the `subagent/` directory it fails silently and the run still grades accepted. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle1-improvement-mechanism-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle1-improvement-mechanism.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle1-delegation-spike.md) | Done |
-| 2 | The cost answer — two n=16 batches on AgentClinic Phase 1, bare and orchestrated, where success is expected to stay pinned and the only readable signal is turns and `context_processed`. The handoff-packet claim, tested with the instrument built for it. Every orchestrated run is checked for a *successful* delegation before its cost counts, because cycle 1 showed a silently unorchestrated run still grades accepted. Touches no suite. **Result: orchestration emitted ~a third less and read ~15% more context, and was less reliable — 12/16 against a bare 16/16, with three hangs where the bare arm had none, two of them after a correct solution was already written.** The pre-registered 16/16 for the orchestrated arm was falsified. Max concurrent children was 1 in all 16 runs, so the Backlog's own-subagent-tool gate did not fire. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle2-cost-answer-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle2-cost-answer.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle2-cost-answer.md) | Done |
+| 2 | The cost answer — two n=16 batches on AgentClinic Phase 1, bare and orchestrated, where success is expected to stay pinned and the only readable signal is turns and `context_processed`. The handoff-packet claim, tested with the instrument built for it. Every orchestrated run is checked for a *successful* delegation before its cost counts, because cycle 1 showed a silently unorchestrated run still grades accepted. Touches no suite. **Result: orchestration cost 8.11x the context, 2.49x the output and 3.14x the turns, and was less reliable — 12/16 against a bare 16/16, with three hangs where the bare arm had none, two of them after a correct solution was already written.** The handoff-packet claim is confirmed and not close. The pre-registered 16/16 for the orchestrated arm was falsified. Max concurrent children was 1 in all 16 runs, so the Backlog's own-subagent-tool gate did not fire. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle2-cost-answer-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle2-cost-answer.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle2-cost-answer.md) | Done |
 | 3 | The user-story suite and its floor — the user-story roadmap variant as a third `Suite`, with its own task-spec file, its own known-good and known-broken fixtures, tests proving the grader accepts one and rejects the other, and `norecursedirs` / `extend-exclude` entries. Then the as-shipped orchestrator arm on it. Touches no mechanism. | Planned |
 | 4+ | Improvements against the user-story arm, one at a time — tech-stack and mission first, then a domain document for the data model. Each pre-registers its prediction before its batch runs. | Planned |
 
@@ -553,15 +553,26 @@ script, and this row.
 
 **What cycle 2 settled, and what it did not.** It paid the debt open since
 Phase 2 cycle 1: the handoff-packet claim has now been tested with the
-instrument built for it, and the answer is two-sided — orchestration emits
-about a third less and reads about 15% more, so which resource it costs
-depends on what is scarce. On a single-threaded local server that is
-generation, which makes the orchestrated arm look *cheaper* on the axis that
-hurts. The reliability result outweighs it: 12/16 against 16/16, with three
-hangs against none, and two of those three hung *after* writing a solution
-the grader accepted. It settles nothing about keeping a model on track, since
-the bare arm on this workload does not thrash — that is the Backlog's
-thrash-metrics entry, and it needs a workload with headroom.
+instrument built for it, and it is **confirmed, by roughly 8x in context and
+2.5x in generation**. The orchestrator itself is frugal — fewer turns, a third
+less output — but the implementer child it delegates to ran a median 16 turns
+and ~113,000 extra tokens behind a single packet. Reliability points the same
+way: 12/16 against 16/16, three hangs against none, two of them *after* a
+correct solution was already written. It settles nothing about keeping a model
+on track, since the bare arm on this workload does not thrash — that is the
+Backlog's thrash-metrics entry, and it needs a workload with headroom.
+
+**The record was corrected the same day, and the correction is the more useful
+lesson.** Its first version counted only the parent's tokens and reported the
+orchestrated arm as *cheaper* — 1.15x context, 0.69x output. Pi's shipped
+subagent extension surfaces the child's usage in the parent's
+`tool_execution_end` under `details.results[].usage`, and
+`harness/telemetry.py` reads the parent's own events only, so a delegated
+run's telemetry silently omits the arm's dominant cost. Cycle 2's own spec had
+written "the parent's `tool_execution_end` carries what this question needs"
+and then not read it. The error surfaced only because the owner asked an
+unrelated question — whether machine contention explained the numbers — which
+is a thin thread for catching a wrong headline claim.
 
 **Why this order.** Cycle 1 touches no suite, cycle 3 touches no mechanism,
 and cycle 2 sits between them producing the phase's first number, so no cycle

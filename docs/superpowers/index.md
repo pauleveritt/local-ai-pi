@@ -157,9 +157,11 @@ cycle's argument.
   what it cost.
 - [Phase 5, cycle 2 — what the orchestration cost](research/2026-08-04-phase5-cycle2-cost-answer.md)
   — the handoff-packet claim, finally tested with the instrument built for
-  it: orchestration emitted a third less and read 15% more context, and was
-  *less reliable* — 12/16 against a bare 16/16, with three hangs where the
-  bare arm had none.
+  it: orchestration cost 8x the context and 2.5x the generation once the
+  delegated child is counted, and was *less reliable* — 12/16 against a bare
+  16/16, with three hangs where the bare arm had none. Carries a same-day
+  correction: the first version counted only the parent and reported the
+  opposite.
 - [Phase 5, cycle 1 — what one live delegation showed](research/2026-08-04-phase5-cycle1-delegation-spike.md)
   — `--extension` needs the entry-point file, not the extension's
   directory; pointed at the directory it fails silently and the run still

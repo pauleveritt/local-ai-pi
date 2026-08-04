@@ -62,6 +62,45 @@ def delegation(pi_stdout: str) -> tuple[int, int, int]:
     return succeeded, failed, concurrent
 
 
+def child_usage(pi_stdout: str) -> tuple[int, int, int, int]:
+    """(child context_processed, child output, child turns, child count).
+
+    **The child's cost is in the parent's stream and is easy to miss.** Pi's
+    shipped subagent extension aggregates the child's `message_end` usage and
+    surfaces it in the parent's `tool_execution_end` result under
+    `details.results[].usage`. `harness/telemetry.py` parses the parent's own
+    events only, so a delegated run's telemetry counts the parent and nothing
+    else. The first version of this script did exactly that and reported an
+    orchestrated arm that was *cheaper* than bare, which is the opposite of
+    the truth: the child does most of the work.
+
+    `contextTokens` in that payload is a context-window size, not a workload
+    measure, and is deliberately ignored -- `context_processed` is
+    `input + cacheRead + cacheWrite`, matching the definition phase 2 cycle 1
+    pinned.
+    """
+    context = output = turns = count = 0
+    for line in pi_stdout.split("\n"):
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") != "tool_execution_end" or event.get("toolName") != "subagent":
+            continue
+        details = event.get("result", {}).get("details") or {}
+        for result in details.get("results") or []:
+            usage = result.get("usage") or {}
+            context += (
+                usage.get("input", 0)
+                + usage.get("cacheRead", 0)
+                + usage.get("cacheWrite", 0)
+            )
+            output += usage.get("output", 0) + usage.get("reasoning", 0)
+            turns += usage.get("turns", 0)
+            count += 1
+    return context, output, turns, count
+
+
 def main() -> None:
     summaries = {}
     for arm, path in ARMS.items():
@@ -71,18 +110,26 @@ def main() -> None:
         records = load_checkpoint(path)
         print(f"## {arm} — n={len(records)}\n")
         print(
-            "| # | accepted | turns | tool calls | tool errors | "
-            "context_processed | subagent ok | subagent failed | max concurrent |"
+            "| # | accepted | parent turns | child turns | total turns | "
+            "parent ctx | child ctx | total ctx | total output | "
+            "subagent ok | failed | max concurrent |"
         )
-        print("|---|---|---|---|---|---|---|---|---|")
+        print("|---|---|---|---|---|---|---|---|---|---|---|---|")
         rows = []
         for i, record in enumerate(records, 1):
             t = read_telemetry(record.pi_stdout)
             ok, bad, conc = delegation(record.pi_stdout)
-            rows.append((record.accepted, t, ok, bad, conc))
+            cctx, cout, cturns, _ = child_usage(record.pi_stdout)
+            total = dict(
+                turns=t.turns + cturns,
+                ctx=t.context_processed + cctx,
+                out=t.output_tokens + cout,
+            )
+            rows.append((record.accepted, t, ok, bad, conc, cctx, cout, cturns, total))
             print(
-                f"| {i} | {record.accepted} | {t.turns} | {len(t.tool_calls)} | "
-                f"{t.tool_errors} | {t.context_processed} | {ok} | {bad} | {conc} |"
+                f"| {i} | {record.accepted} | {t.turns} | {cturns} | {total['turns']} | "
+                f"{t.context_processed} | {cctx} | {total['ctx']} | {total['out']} | "
+                f"{ok} | {bad} | {conc} |"
             )
         print()
 
@@ -93,9 +140,10 @@ def main() -> None:
         print(f"- runs with a failed delegation: {sum(1 for r in rows if r[3] > 0)}")
         print(f"- max concurrent subagent calls, any run: {max((r[4] for r in rows), default=0)}")
         for label, values in (
-            ("turns", [r[1].turns for r in rows]),
-            ("context_processed", [r[1].context_processed for r in rows]),
-            ("output_tokens", [r[1].output_tokens for r in rows]),
+            ("total turns (parent+child)", [r[8]["turns"] for r in rows]),
+            ("total context_processed", [r[8]["ctx"] for r in rows]),
+            ("total output_tokens", [r[8]["out"] for r in rows]),
+            ("parent-only context_processed", [r[1].context_processed for r in rows]),
         ):
             print(
                 f"- {label}: median {statistics.median(values):.0f}, "
@@ -115,9 +163,10 @@ def main() -> None:
         note = "delegated runs only" if orch_delegated else "ALL runs (none delegated)"
         print(f"Orchestrated arm pool: {note}, n={len(pool)}\n")
         for label, get in (
-            ("turns", lambda r: r[1].turns),
-            ("context_processed", lambda r: r[1].context_processed),
-            ("output_tokens", lambda r: r[1].output_tokens),
+            ("total turns", lambda r: r[8]["turns"]),
+            ("total context_processed", lambda r: r[8]["ctx"]),
+            ("total output_tokens", lambda r: r[8]["out"]),
+            ("parent-only context_processed", lambda r: r[1].context_processed),
         ):
             b = statistics.median([get(r) for r in bare_rows])
             o = statistics.median([get(r) for r in pool])
