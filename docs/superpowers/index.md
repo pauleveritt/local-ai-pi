@@ -92,6 +92,12 @@ motivated cycle 1's metric choices remains true and worth testing
 eventually; building the orchestrator itself is deferred to the Backlog,
 not scheduled within this phase.)*
 
+*("Eventually" arrived on 2026-08-04: the claim is scheduled as **Phase 5**,
+which is named for it. This paragraph stays as written because it records
+what Phase 2 decided and why, and that decision was right for Phase 2. Only
+the last clause has gone out of date — the orchestrator is no longer sitting
+in the Backlog.)*
+
 | # | Cycle | Spec | Plan |
 |---|---|---|---|
 | 1 | Telemetry reader | [spec](specs/2026-08-02-phase2-cycle1-telemetry-reader-design.md) | [plan](plans/2026-08-02-phase2-cycle1-telemetry-reader.md) |
@@ -187,6 +193,7 @@ specs/2026-08-03-phase3-cycle2-specialized-subagent-design
 specs/2026-08-03-phase3-cycle2-extension-mechanics-design
 specs/2026-08-03-pi-version-pin-design
 specs/2026-08-04-phase4-cycle1-second-suite-design
+specs/2026-08-04-phase5-cycle1-improvement-mechanism-design
 ```
 
 ```{toctree}

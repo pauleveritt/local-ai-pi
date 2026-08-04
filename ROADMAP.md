@@ -509,29 +509,35 @@ expensive to re-derive.
 
 | Cycle | Summary | State |
 |-------|---------|-------|
-| 1 | The improvement mechanism, and the cost answer — adds a frozen `Improvement` descriptor and `run_batch(suite=…, improvement=…)`, with the orchestrator/implementer pair as improvement #1. Breaks `RunConditions` once rather than twice: the improvement digest plus the two digests the Backlog already owed (the acceptance file's contents, the allowlist), all sentinel-loading like `extension_digests`. Runs two batches on AgentClinic Phase 1 — bare and orchestrated — where success is expected to stay pinned and the readable signal is turns and `context_processed`. Touches no suite. | Planned |
-| 2 | The user-story suite and its floor — the user-story roadmap variant as a third `Suite`, with its own task-spec file, its own known-good and known-broken fixtures, tests proving the grader accepts one and rejects the other, and `norecursedirs` / `extend-exclude` entries. Then the as-shipped orchestrator arm on it. Touches no mechanism. | Planned |
-| 3+ | Improvements against the user-story arm, one at a time — tech-stack and mission first, then a domain document for the data model. Each pre-registers its prediction before its batch runs. | Planned |
+| 1 | The improvement mechanism — a frozen `Improvement` descriptor (seed directory, extra extensions, system prompt) and `run_batch(suite=…, improvement=…)`, with the orchestrator/implementer pair as improvement #1. Breaks `RunConditions` once rather than twice: the improvement digest plus the two digests the Backlog already owed (the acceptance file's contents, the allowlist), all sentinel-loading like `extension_digests`. Decides how a *directory* extension is digested, which `_extension_digest` explicitly deferred to "the cycle that needs it". Ends with one live delegation observed under this harness's flags. **Claims no number and runs no batch.** [spec](docs/superpowers/specs/2026-08-04-phase5-cycle1-improvement-mechanism-design.md) | Planned |
+| 2 | The cost answer — two n=16 batches on AgentClinic Phase 1, bare and orchestrated, where success is expected to stay pinned and the only readable signal is turns and `context_processed`. The handoff-packet claim, tested with the instrument built for it. Touches no suite. | Planned |
+| 3 | The user-story suite and its floor — the user-story roadmap variant as a third `Suite`, with its own task-spec file, its own known-good and known-broken fixtures, tests proving the grader accepts one and rejects the other, and `norecursedirs` / `extend-exclude` entries. Then the as-shipped orchestrator arm on it. Touches no mechanism. | Planned |
+| 4+ | Improvements against the user-story arm, one at a time — tech-stack and mission first, then a domain document for the data model. Each pre-registers its prediction before its batch runs. | Planned |
 
-**Why this order.** Cycle 1 touches no suite and cycle 2 touches no
-mechanism, so neither can hide a defect in the other. The cost arm is first
-because it needs nothing new: AgentClinic Phase 1 is in the repository with
-its grader floor already proven, so the phase's first evidence costs a batch.
-The benefit arm is second because a suite with headroom is real work — a
-number from it is not citable until its floor exists, which is a fixture pair
-and its tests, not a line item.
+**Why this order.** Cycle 1 touches no suite, cycle 3 touches no mechanism,
+and cycle 2 sits between them producing the phase's first number, so no cycle
+can hide a defect in another. Mechanism before batch follows Phase 4 cycle
+1's precedent of a cycle that claims no number: a batch costs a cross-session
+commit freeze and hours of sequential wall time, and discovering a mechanism
+defect after paying that is the expensive order. The cost arm precedes the
+benefit arm because it needs nothing new — AgentClinic Phase 1 is already in
+the repository with its grader floor proven — while a suite with headroom is
+real work, and no number from it is citable until its fixture pair and their
+tests exist.
 
-**Every prior number is a prediction here.** Cycle 1 pre-registers that
-success stays at 16/16 on both arms, and cycle 2 pre-registers ~1/16 with
-wrong-framework as the dominant failure mode. Those come from a series
-carrying a `PENDING RULE 8 REVIEW` banner; replicating or falsifying them is
-the point, and neither may be written as a result before its batch runs.
+**Every prior number is a prediction here.** Cycle 1's spec pre-registers, in
+advance of the mechanism existing, that cycle 2 finds 16/16 on both arms with
+higher `context_processed` on the orchestrated one; cycle 3 pre-registers
+~1/16 with wrong-framework as the dominant failure mode. Those come from a
+series carrying a `PENDING RULE 8 REVIEW` banner; replicating or falsifying
+them is the point, and none may be written as a result before its batch runs.
+A null result on the cost claim is as publishable as a positive one.
 
-**One observation rides along in cycle 1.** The Backlog gates building our
+**One observation rides along in cycle 2.** The Backlog gates building our
 own minimal subagent tool on "a measured run shows the shipped extension
 contaminating or losing a measurement" — the shipped extension can put
-parallel children on a single-threaded local server. Cycle 1 is the first
-measured orchestrated run this project has ever made, so it records whether
+parallel children on a single-threaded local server. Cycle 2 is the first
+measured orchestrated batch this project has ever run, so it records whether
 that happens. If it fires, the gate opens and the ~150-line tool is the
 honest path to something installable.
 
