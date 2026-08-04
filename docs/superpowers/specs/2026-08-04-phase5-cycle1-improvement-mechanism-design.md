@@ -226,7 +226,7 @@ self-imposed.
 - **Parent/child telemetry attribution.** The parent's `tool_execution_end`
   already carries what this cycle's question needs.
 - **Our own subagent tool.** Gated on the observation above.
-- **A second suite.** Cycle 3.
+- **A second suite.** Cycle 3. *(Renumbered 2026-08-04: a telemetry cycle was inserted as cycle 3, so the suite is cycle 4 and tuning is cycle 5+.)*
 - **More specialists** (`validator`, `scout`). They are improvements #2 and
   #3, which is the point of the mechanism.
 

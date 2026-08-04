@@ -25,7 +25,7 @@ or `context_processed` is attributable to the orchestration rather than to one
 arm solving more of the problem than the other.
 
 What an improvement *buys* is not observable here and belongs to cycle 3's
-suite, which has headroom.
+suite, which has headroom. *(Renumbered 2026-08-04: a telemetry cycle was inserted as cycle 3, so the suite is cycle 4 and tuning is cycle 5+.)*
 
 ## Pre-registered predictions
 
@@ -100,4 +100,4 @@ discipline, so the published table cannot silently diverge from its source.
 - Parent/child cost attribution: the parent's `tool_execution_end` carries
   what this question needs.
 - Any prompt or packet tuning. If the orchestrated arm performs badly, that is
-  the result. Tuning is cycle 4+, under fresh pre-registration.
+  the result. Tuning is cycle 4+, under fresh pre-registration. *(Renumbered 2026-08-04: a telemetry cycle was inserted as cycle 3, so the suite is cycle 4 and tuning is cycle 5+.)*

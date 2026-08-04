@@ -164,7 +164,8 @@ record is not citable.
 
 **It is one configuration, not orchestration in general.** A different
 orchestrator prompt or implementer specialist could plausibly close the 12/16
-gap. Cycle 2 deliberately did no tuning; tuning is cycle 4+, under fresh
+gap. Cycle 2 deliberately did no tuning; tuning is cycle 5+ (renumbered
+2026-08-04), under fresh
 pre-registration.
 
 ## Method notes

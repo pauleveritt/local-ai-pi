@@ -521,8 +521,9 @@ expensive to re-derive.
 |-------|---------|-------|
 | 1 | The improvement mechanism — a frozen `Improvement` descriptor (seed directory, extra extensions, system prompt) and `run_batch(suite=…, improvement=…)`, with the orchestrator/implementer pair as improvement #1. Breaks `RunConditions` once rather than twice: the improvement digest plus the two digests the Backlog already owed (the acceptance file's contents, the allowlist), all sentinel-loading like `extension_digests`. Decides how a *directory* extension is digested, which `_extension_digest` explicitly deferred to "the cycle that needs it". Ends with one live delegation observed under this harness's flags. **Claims no number and runs no batch.** The spike found that `--extension` needs the entry-point *file*: pointed at the `subagent/` directory it fails silently and the run still grades accepted. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle1-improvement-mechanism-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle1-improvement-mechanism.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle1-delegation-spike.md) | Done |
 | 2 | The cost answer — two n=16 batches on AgentClinic Phase 1, bare and orchestrated, where success is expected to stay pinned and the only readable signal is turns and `context_processed`. The handoff-packet claim, tested with the instrument built for it. Every orchestrated run is checked for a *successful* delegation before its cost counts, because cycle 1 showed a silently unorchestrated run still grades accepted. Touches no suite. **Result: orchestration cost 8.11x the context, 2.49x the output and 3.14x the turns, and was less reliable — 12/16 against a bare 16/16, with three hangs where the bare arm had none, two of them after a correct solution was already written.** The handoff-packet claim is confirmed and not close. The pre-registered 16/16 for the orchestrated arm was falsified. Max concurrent children was 1 in all 16 runs, so the Backlog's own-subagent-tool gate did not fire. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle2-cost-answer-design.md), [plan](docs/superpowers/plans/2026-08-04-phase5-cycle2-cost-answer.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle2-cost-answer.md) | Done |
-| 3 | The user-story suite and its floor — the user-story roadmap variant as a third `Suite`, with its own task-spec file, its own known-good and known-broken fixtures, tests proving the grader accepts one and rejects the other, and `norecursedirs` / `extend-exclude` entries. Then the as-shipped orchestrator arm on it. Touches no mechanism. | Planned |
-| 4+ | Improvements against the user-story arm, one at a time — tech-stack and mission first, then a domain document for the data model. Each pre-registers its prediction before its batch runs. | Planned |
+| 3 | Telemetry counts the delegated child — `read_telemetry` reads the parent's own events only, so a delegated run's turns and `context_processed` omit the arm's dominant cost. Cycle 2 published a wrong headline on exactly that, and the fix belongs in the instrument rather than in one research script. Pi's shipped subagent extension already surfaces the child's usage in the parent's `tool_execution_end` under `details.results[].usage`, so this is parsing that is already in the stream, not new measurement. Recomputes retroactively over every batch already banked, cycle 2's included. | Planned |
+| 4 | The user-story suite and its floor — the user-story roadmap variant as a third `Suite`, with its own task-spec file, its own known-good and known-broken fixtures, tests proving the grader accepts one and rejects the other, and `norecursedirs` / `extend-exclude` entries. Then the as-shipped orchestrator arm on it. Touches no mechanism. | Planned |
+| 5+ | Improvements against the user-story arm, one at a time — tech-stack and mission first, then a domain document for the data model. Each pre-registers its prediction before its batch runs. | Planned |
 
 **Cycle 1 spent one term: `improvement`**, as budgeted above. `Improvement`,
 `improvement_digest`, `pi_package_root`, and the `"<pre-phase5>"` sentinel are
@@ -574,9 +575,23 @@ and then not read it. The error surfaced only because the owner asked an
 unrelated question — whether machine contention explained the numbers — which
 is a thin thread for catching a wrong headline claim.
 
-**Why this order.** Cycle 1 touches no suite, cycle 3 touches no mechanism,
-and cycle 2 sits between them producing the phase's first number, so no cycle
-can hide a defect in another. Mechanism before batch follows Phase 4 cycle
+**Why this order, revised 2026-08-04 after cycle 2.** Cycle 1 touches no
+suite, cycle 4 touches no mechanism, and cycle 2 sits between them producing
+the phase's first number, so no cycle can hide a defect in another. Cycle 3
+was inserted after cycle 2 closed: the instrument cannot see a delegated run's
+dominant cost, and every future orchestrated batch would carry the same trap.
+It goes before the suite work because it is small, because it recomputes
+retroactively over evidence already banked, and because the alternative is
+discovering the same omission a second time on a workload that matters more.
+
+**The levers stay later, deliberately.** The orchestrator prompt, the packet
+format, and the implementer specialist all have obvious knobs, and cycle 2
+makes it tempting to start turning them. That would be tuning on a workload
+where bare Pi already scores 16/16 — the best reachable outcome is parity with
+doing nothing, at eight times the cost. Orchestration is not supposed to earn
+its keep on a task the model already passes. The knobs get pulled in cycle 5+,
+against the arm where bare Pi fails, where an improvement can demonstrate
+benefit rather than minimise damage. Mechanism before batch follows Phase 4 cycle
 1's precedent of a cycle that claims no number: a batch costs a cross-session
 commit freeze and hours of sequential wall time, and discovering a mechanism
 defect after paying that is the expensive order. The cost arm precedes the
@@ -799,6 +814,29 @@ Nothing else is currently deferred. Add to this list as later cycles pass
 things over.
 
 ## Backlog
+
+- **The orchestrator's levers — an inventory, not a plan. Recorded
+  2026-08-04 at the owner's prompt, who notes from prior work that "this
+  orchestrator work and handoff packet has plenty of levers."** Naming them
+  here keeps them from being pulled opportunistically, one at a time, in
+  whatever cycle happens to be open — which is how the fourth prior attempt
+  reached six arms in a single day.
+
+  Known knobs, from this project and the prior one: the packet's shape (its
+  four sections, and whether verbatim acceptance strings help or invite
+  copying); how much of the task spec the orchestrator forwards versus
+  summarises; whether supporting documents (tech stack, mission, domain)
+  reach the packet at all; the implementer's tool allowlist; whether the
+  orchestrator verifies the child's report or trusts it; and how many phases
+  go in one packet.
+
+  **The binding constraint is where they get pulled, not whether.** Cycle 2
+  measured the orchestrated arm on a workload where bare Pi scores 16/16, so
+  any tuning there optimises toward parity with doing nothing at eight times
+  the cost. Levers belong on an arm where the bare model fails and an
+  improvement has something to buy — phase 5 cycle 5+, on the user-story
+  suite. One lever per cycle, each pre-registering its prediction, per the
+  phase's binding one-improvement-at-a-time rule.
 
 - **Thrash metrics: hang rate, repeated tool calls, turn-count tail.
   Recorded 2026-08-04, gated, and deliberately not built.** The phase's
