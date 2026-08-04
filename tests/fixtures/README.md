@@ -86,3 +86,26 @@ treating the two checkpoints as one comparable batch are in
 - Fixture SHA-256: `a384468da474952e0035f1c977a5a4323eb99bb1170eea8b12bf6608d464b153`
 - Turn-count distribution: 6×20, 8×9, 9×7, 10×4, 11×7, 12×1
 - All 48 runs accepted, `returncode=0`, not timed out, `complete=True`
+
+## `pi-run-0.83.0-delegation.jsonl`
+
+One **orchestrated** run's stream, trimmed. Source: run 1 of
+`~/local-ai-pi-evidence/satyrn-phase5-cycle2-sdd-orchestrator-n16.jsonl`
+(phase 5 cycle 2's `sdd-orchestrator` arm), Pi 0.83.0,
+`omlx/gemma-4-12B-it-MLX-8bit`.
+
+Kept: every `turn_end`, and the `subagent` `tool_execution_start` /
+`tool_execution_end` pair. **Dropped from the end payload:** each result's
+`messages` and `task` fields, which are hundreds of KB of prose nothing
+parses. `agent`, `agentSource`, `exitCode`, `usage`, `model` and
+`stopReason` are untouched.
+
+Trimmed *real* output rather than a synthetic payload, deliberately. Phase 5
+cycle 2 published a wrong headline because telemetry counted only the parent;
+a hand-written fixture would keep passing while Pi's actual payload shape
+drifted underneath it, which is precisely the failure being guarded against.
+
+- Fixture SHA-256: `9850e7ac7e427d3f7212af84107f3fedb1d8f0b1fc6858ca5d0470996d5d4ee7`
+- Parent: 6 turns, 18,553 `context_processed`
+- Child, as the parent's stream reports it: 29 turns, 197,011 context
+  processed — about 10.6x the parent, which is why the distinction matters
