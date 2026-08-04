@@ -144,10 +144,11 @@ def run_suite(
     *,
     model: str = DEFAULT_MODEL,
     timeout: int = 600,
+    improvement: Improvement | None = None,
 ) -> RunResult:
     check_model_server_alive()
 
-    with prepare_workspace() as workspace:
+    with prepare_workspace(None if improvement is None else improvement.seed_dir) as workspace:
         initial_commit = subprocess.run(
             ["git", "rev-parse", "HEAD"],
             cwd=workspace,
@@ -157,9 +158,10 @@ def run_suite(
         ).stdout.strip()
 
         prompt = suite.task_spec.read_text()
-        extensions = EXTENSIONS
-        command = _pi_command(model, prompt, extensions)
-        conditions = _conditions(suite, model, command, timeout, extensions)
+        extensions = EXTENSIONS + (() if improvement is None else improvement.extensions)
+        system_prompt = None if improvement is None else improvement.system_prompt
+        command = _pi_command(model, prompt, extensions, system_prompt)
+        conditions = _conditions(suite, model, command, timeout, extensions, improvement)
         pi_proc = run_process(
             command,
             timeout=timeout,
@@ -199,7 +201,10 @@ def run_suite(
 
 
 def _pi_command(
-    model: str, prompt: str, extensions: tuple[Path, ...] = EXTENSIONS
+    model: str,
+    prompt: str,
+    extensions: tuple[Path, ...] = EXTENSIONS,
+    system_prompt: Path | None = None,
 ) -> list[str]:
     command = [
         "pi", "--print", "--mode", "json", "--no-session", "--model", model,
@@ -214,8 +219,14 @@ def _pi_command(
     # `.pi/extensions/*.ts` in the workspace loadable.
     command += [
         "--no-skills", "--no-prompt-templates", "--no-themes",
-        "--no-context-files", "--approve", prompt,
+        "--no-context-files", "--approve",
     ]
+    # Before the prompt, never after: `_conditions` normalizes the *last*
+    # element to "<task-spec>", so a flag appended after the prompt would
+    # be hashed as the prompt and the real prompt recorded verbatim.
+    if system_prompt is not None:
+        command += ["--append-system-prompt", str(system_prompt)]
+    command.append(prompt)
     return command
 
 
@@ -352,6 +363,7 @@ def run_batch(
     suite: Suite,
     target: int = 16,
     model: str = DEFAULT_MODEL,
+    improvement: Improvement | None = None,
 ) -> list[RunResult]:
     """Run sequential attempts until the requested checkpoint length.
 
@@ -370,9 +382,10 @@ def run_batch(
     if target < 0:
         raise ValueError("target must not be negative")
     records = load_checkpoint(checkpoint_path)
-    extensions = EXTENSIONS
-    command = _pi_command(model, suite.task_spec.read_text(), extensions)
-    requested = _conditions(suite, model, command, 600, extensions)
+    extensions = EXTENSIONS + (() if improvement is None else improvement.extensions)
+    system_prompt = None if improvement is None else improvement.system_prompt
+    command = _pi_command(model, suite.task_spec.read_text(), extensions, system_prompt)
+    requested = _conditions(suite, model, command, 600, extensions, improvement)
     if requested.pi_version != EXPECTED_PI_VERSION:
         raise RuntimeError(
             f"this harness pins Pi {EXPECTED_PI_VERSION}, but {requested.pi_version} "
@@ -391,7 +404,7 @@ def run_batch(
 
     preflight_model(model)
     while len(records) < target:
-        result = run_suite(suite, model=model)
+        result = run_suite(suite, model=model, improvement=improvement)
         if result.conditions != requested:
             raise RuntimeError("run conditions changed during batch")
         append_checkpoint(checkpoint_path, result)

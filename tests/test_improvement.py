@@ -147,3 +147,204 @@ def test_tree_digest_notices_a_file_moving_within_the_tree(tmp_path):
     (second / "prompts" / "one.md").write_text("body\n")
 
     assert runner._path_digest(first) != runner._path_digest(second)
+
+
+def _seed_with_implementer(root: Path) -> Path:
+    (root / ".pi" / "agents").mkdir(parents=True)
+    (root / ".pi" / "agents" / "implementer.md").write_text(
+        "---\nname: implementer\n---\nBuild exactly the packet.\n"
+    )
+    return root
+
+
+def test_pi_command_appends_the_system_prompt_before_the_task_spec(tmp_path):
+    """`_conditions` normalizes the *last* command element to
+    "<task-spec>". A flag appended after the prompt would be hashed as the
+    prompt, and the real prompt would be recorded as a bare argument."""
+    orchestrator = tmp_path / "orchestrator.md"
+    orchestrator.write_text("You orchestrate.\n")
+
+    command = runner._pi_command("model", "build a thing", system_prompt=orchestrator)
+
+    assert command[-1] == "build a thing"
+    assert command[command.index("--append-system-prompt") + 1] == str(orchestrator)
+
+
+def test_pi_command_omits_the_flag_without_a_system_prompt():
+    """A run with no improvement must produce byte-identical arguments to
+    every run recorded before this cycle, or the bare arm stops being
+    comparable with Phase 1's evidence."""
+    assert "--append-system-prompt" not in runner._pi_command("model", "build a thing")
+
+
+def test_seeded_files_do_not_appear_in_the_run_diff(tmp_path):
+    """`prepare_workspace` copies *before* git-init and commits, so seeded
+    files are in the initial commit. If that order ever flips, every
+    orchestrated run's diff carries the improvement's own files and the
+    record of what the *model* wrote is polluted."""
+    import subprocess as sp
+
+    from harness.workspace import prepare_workspace
+
+    with prepare_workspace(_seed_with_implementer(tmp_path / "seed")) as workspace:
+        assert (workspace / ".pi" / "agents" / "implementer.md").is_file()
+        head = sp.run(
+            ["git", "rev-parse", "HEAD"], cwd=workspace,
+            check=True, capture_output=True, text=True,
+        ).stdout.strip()
+        sp.run(["git", "add", "-A"], cwd=workspace, check=True, capture_output=True)
+        diff = sp.run(
+            ["git", "diff", "--cached", head], cwd=workspace,
+            check=True, capture_output=True, text=True,
+        ).stdout
+
+    assert "implementer.md" not in diff
+
+
+def test_run_suite_seeds_the_workspace_from_the_improvement(tmp_path, monkeypatch):
+    """Goes through `run_suite` rather than calling `prepare_workspace`
+    directly. A test that exercises the collaborator instead of the caller
+    stays green when the caller stops passing `seed_dir` -- which is the
+    near-miss phase 4 cycle 1 recorded, arriving here one layer over.
+
+    Pi discovers project-local specialists under `.pi/agents/` relative to
+    its cwd, which is the workspace. Without seeding no delegation is
+    possible at all, and the arm would silently measure a bare run.
+    """
+    from harness.grading import GradeResult
+    from harness.processes import ProcessResult
+
+    seen = {}
+
+    monkeypatch.setattr(runner, "check_model_server_alive", lambda: None)
+    monkeypatch.setattr(
+        runner,
+        "run_process",
+        lambda command, **kwargs: seen.update(
+            agent=(kwargs["cwd"] / ".pi" / "agents" / "implementer.md").is_file()
+        )
+        or ProcessResult(0, "", "", False),
+    )
+    monkeypatch.setattr(
+        runner,
+        "grade",
+        lambda *args, **kwargs: GradeResult(True, 1, 1, 0, "1 passed", "", ()),
+    )
+
+    improvement = runner.Improvement(
+        "sdd-orchestrator", _seed_with_implementer(tmp_path / "seed"), (), None
+    )
+    runner.run_suite(runner.DURATION, improvement=improvement)
+
+    assert seen["agent"] is True
+
+
+def test_editing_a_seeded_file_changes_conditions(tmp_path, monkeypatch):
+    """The improvement is data. Editing that data must change the
+    conditions, or a batch resumes a checkpoint recorded under different
+    steering -- the bug `extension_digests` closed, one layer over."""
+    monkeypatch.setattr(
+        runner.subprocess,
+        "run",
+        lambda command, **kwargs: SimpleNamespace(stdout="stub\n"),
+    )
+    suite = _suite(tmp_path)
+    seed = _seed_with_implementer(tmp_path / "seed")
+    improvement = runner.Improvement("sdd-orchestrator", seed, (), None)
+
+    before = runner._conditions(
+        suite, "model", ["pi", "p"], 600, runner.EXTENSIONS, improvement
+    )
+    (seed / ".pi" / "agents" / "implementer.md").write_text(
+        "---\nname: implementer\n---\nBuild whatever you like.\n"
+    )
+    after = runner._conditions(
+        suite, "model", ["pi", "p"], 600, runner.EXTENSIONS, improvement
+    )
+
+    assert before.improvement_digest != after.improvement_digest
+    assert before.improvement_name == after.improvement_name == "sdd-orchestrator"
+    assert before != after
+
+
+def test_run_batch_refuses_a_pre_phase5_checkpoint(tmp_path, monkeypatch):
+    """Old evidence stays readable but must not be resumed: those runs
+    recorded no improvement, and no real value can equal the sentinel."""
+    import pytest
+
+    from harness.checkpoint import append_checkpoint
+    from harness.grading import GradeResult
+    from harness.runner import RunResult
+    from tests.support import PRE_PHASE5, make_conditions
+
+    checkpoint = tmp_path / "runs.jsonl"
+    append_checkpoint(
+        checkpoint,
+        RunResult(
+            "diff",
+            GradeResult(True, 1, 1, 0, "1 passed", "", ()),
+            "", "", 0,
+            conditions=make_conditions(
+                pi_version=runner.EXPECTED_PI_VERSION,
+                improvement_name=PRE_PHASE5,
+                improvement_digest=PRE_PHASE5,
+                acceptance_sha256=PRE_PHASE5,
+                source_allowlist=(PRE_PHASE5,),
+            ),
+        ),
+    )
+
+    monkeypatch.setattr(
+        runner,
+        "_conditions",
+        lambda *args, **kwargs: make_conditions(pi_version=runner.EXPECTED_PI_VERSION),
+    )
+    monkeypatch.setattr(
+        runner, "preflight_model", lambda model: pytest.fail("preflight called")
+    )
+    monkeypatch.setattr(
+        runner, "run_suite", lambda suite, **kwargs: pytest.fail("run called")
+    )
+
+    with pytest.raises(ValueError, match="checkpoint conditions do not match"):
+        runner.run_batch(checkpoint, suite=runner.AGENTCLINIC_PHASE_1, target=2)
+
+
+def test_run_suite_forwards_the_improvement_to_conditions(tmp_path, monkeypatch):
+    """`test_editing_a_seeded_file_changes_conditions` proves `_conditions`
+    *uses* an improvement; this proves `run_suite` actually *hands* it one.
+
+    Both are needed. Dropping the argument from the `run_suite` call site
+    left the whole suite green when the mutation was run -- the third time
+    this shape has appeared, after phase 4 cycle 1's `suite.*` near-miss
+    and this cycle's own vacuous ordering test. Testing the collaborator is
+    not testing the caller.
+    """
+    from harness.grading import GradeResult
+    from harness.processes import ProcessResult
+    from tests.support import make_conditions
+
+    seen = {}
+
+    def fake_conditions(suite, model, command, timeout, extensions, improvement=None):
+        seen["improvement"] = improvement
+        return make_conditions()
+
+    monkeypatch.setattr(runner, "check_model_server_alive", lambda: None)
+    monkeypatch.setattr(runner, "_conditions", fake_conditions)
+    monkeypatch.setattr(
+        runner, "run_process", lambda command, **kwargs: ProcessResult(0, "", "", False)
+    )
+    monkeypatch.setattr(
+        runner,
+        "grade",
+        lambda *args, **kwargs: GradeResult(True, 1, 1, 0, "1 passed", "", ()),
+    )
+
+    improvement = runner.Improvement(
+        "sdd-orchestrator", _seed_with_implementer(tmp_path / "seed"), (), None
+    )
+    result = runner.run_suite(runner.DURATION, improvement=improvement)
+
+    assert seen["improvement"] is improvement
+    assert result.conditions is not None
