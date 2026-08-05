@@ -15,9 +15,12 @@
 > `~/.pi/agent/extensions/` and packages -- including `rtk.ts`, which rewrites
 > bash commands. Recorded child transcripts here show `ls -R` returning the
 > output of `rtk ls -R`. The comparisons in this record stand, because the
-> contamination was constant across the arms compared; what it means is that
-> the orchestrated arm measured **this orchestrator plus the operator's
-> toolbelt**, not the orchestrator alone. `RunConditions` gained
+> contamination was present in every arm compared; what it means is that the
+> orchestrated arm measured **this orchestrator plus the operator's toolbelt**,
+> not the orchestrator alone. Presence is verified from the transcripts;
+> byte-identity across pilots is **not**, and cannot be — the operator's
+> `~/.pi` contents were never recorded, which is precisely the gap cycle 9
+> closed. `RunConditions` gained
 > `agent_dir_digest` in cycle 9 so this can never again be silent.
 
 ## The result

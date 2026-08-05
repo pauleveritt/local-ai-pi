@@ -22,6 +22,7 @@ this reports what it could not find rather than failing silently.
 """
 
 import json
+import re
 import statistics
 from collections import Counter
 from pathlib import Path
@@ -31,6 +32,8 @@ from harness.telemetry import read_telemetry
 
 EVIDENCE = Path.home() / "local-ai-pi-evidence"
 ARMS = {
+    "cycle 4 — as-shipped orchestrator": EVIDENCE
+    / "satyrn-phase5-cycle4-user-story-sdd-n16.jsonl",
     "cycle 7 — tech stack": EVIDENCE / "satyrn-phase5-cycle7-stack-n6-t300.jsonl",
     "cycle 8 — + stop rule": EVIDENCE / "satyrn-phase5-cycle8-childfix-n6-t300.jsonl",
     "cycle 9 — hermetic child": EVIDENCE / "satyrn-phase5-cycle9-hermetic-n6-t300.jsonl",
@@ -51,13 +54,19 @@ BLOCK_MARKER = "Do not repeat it."
 def child_calls(pi_stdout: str) -> tuple[list[str], str | None, int, int]:
     """(the child's tool calls, its stopReason, its message count, its blocks).
 
-    Takes the *last* subagent update in the stream: each update carries the
-    child's transcript so far, so the final one is the fullest view. Only
-    the first result is read -- every arm here delegates one task at a time,
-    and a multi-result call would need its own treatment rather than a
-    silent flattening.
+    Each update carries that delegation's transcript so far, so the last
+    update *per `toolCallId`* is the fullest view of it. Every delegation in
+    a run is read, and every result within each.
     """
-    latest = None
+    # One entry per `toolCallId`, holding that delegation's latest update.
+    # Keeping only the stream-final event would drop every earlier
+    # delegation: cycle 4 run 7 made six, and cycle 7 runs 4 and 5 made two
+    # apiece. No published number moved when this was corrected -- the worst
+    # repeats happened to live in the last stream -- but "the final update is
+    # the fullest view" is true per call and false across calls, which is the
+    # same silent-narrowing shape as the rejection-counted-as-success bug an
+    # earlier audit found. Found by review, 2026-08-04.
+    latest: dict[str, dict] = {}
     for line in pi_stdout.split("\n"):
         try:
             event = json.loads(line)
@@ -67,37 +76,38 @@ def child_calls(pi_stdout: str) -> tuple[list[str], str | None, int, int]:
             event.get("type") == "tool_execution_update"
             and event.get("toolName") == "subagent"
         ):
-            latest = event
-    if latest is None:
-        return [], None, 0, 0
+            latest[event.get("toolCallId")] = event
 
-    results = (latest.get("partialResult", {}).get("details") or {}).get("results") or []
-    if not results:
-        return [], None, 0, 0
-    child = results[0]
-
-    calls = []
+    calls: list[str] = []
     blocks = 0
-    for message in child.get("messages") or []:
-        if message.get("role") == "toolResult":
-            if BLOCK_MARKER in json.dumps(message.get("content")):
-                blocks += 1
-            continue
-        if message.get("role") != "assistant":
-            continue
-        for block in message.get("content") or []:
-            if block.get("type") != "toolCall":
-                continue
-            name = block.get("name")
-            args = block.get("arguments") or {}
-            # `bash` is where the loop lives, and its `command` is the thing
-            # repeated. Other tools are keyed by their whole argument set so
-            # a repeated write is visible too.
-            if name == "bash":
-                calls.append(f"bash: {args.get('command', '')}")
-            else:
-                calls.append(f"{name}: {json.dumps(args, sort_keys=True)}")
-    return calls, child.get("stopReason"), len(child.get("messages") or []), blocks
+    steps = 0
+    stop = None
+    for event in latest.values():
+        details = event.get("partialResult", {}).get("details") or {}
+        for child in details.get("results") or []:
+            messages = child.get("messages") or []
+            steps += len(messages)
+            stop = child.get("stopReason") or stop
+            for message in messages:
+                if message.get("role") == "toolResult":
+                    if BLOCK_MARKER in json.dumps(message.get("content")):
+                        blocks += 1
+                    continue
+                if message.get("role") != "assistant":
+                    continue
+                for block in message.get("content") or []:
+                    if block.get("type") != "toolCall":
+                        continue
+                    name = block.get("name")
+                    args = block.get("arguments") or {}
+                    # `bash` is where the loop lives, and its `command` is the
+                    # thing repeated. Other tools are keyed by their whole
+                    # argument set so a repeated write is visible too.
+                    if name == "bash":
+                        calls.append(f"bash: {args.get('command', '')}")
+                    else:
+                        calls.append(f"{name}: {json.dumps(args, sort_keys=True)}")
+    return calls, stop, steps, blocks
 
 
 def main() -> None:
@@ -150,7 +160,54 @@ def main() -> None:
             )
             print(f"- runs repeating one command >=5 times: {sum(1 for w in worsts if w >= 5)}")
         print(f"- child calls refused by the loop breaker: {blocked_total}")
+        _cost_table(records)
         print()
+
+
+def _cost_table(records) -> None:
+    """The size, context, turn and throughput figures cycles 8-10 publish.
+
+    Added after review found that roughly half of those cycles' tables had
+    no recompute path, while the records claimed every figure recomputed
+    from this script. Emitting them here makes the claim true rather than
+    softening it.
+
+    **Throughput is a crude wall-clock proxy** and is labelled as such
+    wherever it is used. Output tokens ride on `turn_end`, which a killed
+    run never emits, so a timed-out run contributes its full duration and
+    none of its tokens. Both figures are printed: a run that times out
+    depresses the all-runs number, so the comparison that matters excludes
+    them.
+    """
+    stamps = re.compile(r'"timestamp":\s*(\d{13})')
+
+    def wall_seconds(record) -> float:
+        found = [int(value) for value in stamps.findall(record.pi_stdout)]
+        return (max(found) - min(found)) / 1000 if len(found) >= 2 else 0.0
+
+    megabytes = [len(r.pi_stdout) / 1e6 for r in records]
+    contexts = [read_telemetry(r.pi_stdout).total_context_processed for r in records]
+    turns = [read_telemetry(r.pi_stdout).total_turns for r in records]
+
+    def throughput(pool) -> str:
+        seconds = sum(wall_seconds(r) for r in pool)
+        tokens = sum(read_telemetry(r.pi_stdout).total_output_tokens for r in pool)
+        return f"{tokens / seconds:.2f}" if seconds else "n/a"
+
+    finished = [r for r in records if not r.pi_timed_out]
+    print(
+        f"- run transcript MB: median {statistics.median(megabytes):.2f}, "
+        f"max {max(megabytes):.2f}"
+    )
+    print(
+        f"- total context_processed: median {statistics.median(contexts):,.0f}, "
+        f"max {max(contexts):,.0f}"
+    )
+    print(f"- total turns: median {statistics.median(turns):.1f}, max {max(turns)}")
+    print(
+        f"- throughput tok/s: {throughput(records)} all runs, "
+        f"{throughput(finished)} excluding timeouts"
+    )
 
 
 if __name__ == "__main__":

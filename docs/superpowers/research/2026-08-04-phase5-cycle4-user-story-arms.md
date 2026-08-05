@@ -30,10 +30,10 @@
 >
 > **This record compares a bare arm against an orchestrated one, so the
 > contamination is not constant across the comparison** -- the bare arm has no
-> child and was clean. It lands specifically on the orchestrated arm, and rtk
-> exists to *reduce* tokens, so any cost ratio here is if anything a
-> **lower bound** on what the orchestration cost. The direction of the headline
-> finding is unaffected; its magnitude is not defended.
+> child and was clean. It lands specifically on the orchestrated arm. This
+> record publishes no cost ratio, so nothing here needs restating as a bound;
+> what it means is that the orchestrated arm's 0/16 was scored under a child
+> that was not the one described.
 >
 > `RunConditions` gained `agent_dir_digest` in cycle 9 so this can never again
 > be silent.

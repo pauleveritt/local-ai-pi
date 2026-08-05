@@ -15,6 +15,12 @@ EXAMPLES = REPO_ROOT / "examples"
 EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / ".pi" / "extensions" / "hello-world.ts",)
 LOOP_BREAKER = REPO_ROOT / ".pi" / "extensions" / "loop-breaker.ts"
 AGENT_DIR = REPO_ROOT / "pi-agent-dir"
+AGENT_DIR_FILES: tuple[str, ...] = (
+    "README.md",
+    "settings.json",
+    "models.json",
+    "extensions/loop-breaker.ts",
+)
 DEFAULT_MODEL = "omlx/gemma-4-12B-it-MLX-8bit"
 EXPECTED_PI_VERSION = "0.83.0"
 
@@ -460,6 +466,39 @@ def _path_digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _agent_dir_digest() -> str:
+    """`AGENT_DIR`'s digest over the files the *harness* owns.
+
+    `_path_digest` cannot be used directly here. Pi **writes into** the
+    directory it is pointed at: the first invocation under a fresh agent dir
+    creates an empty `auth.json`, and a run configured differently could
+    leave sessions or caches. Hashing the whole tree therefore digests Pi's
+    own runtime state alongside the resources this field exists to pin.
+
+    Found by review before it cost a batch, and it would have. `run_batch`
+    computes the conditions it enforces *before* `preflight_model`, so on any
+    machine without that `auth.json` yet, the preflight would create it and
+    run 1 would abort with "run conditions changed during batch". A
+    checkpoint recorded on one machine would also be unresumable on a clean
+    clone. Cycles 9 and 10 escaped only because the file already existed with
+    constant contents before either batch started, which is luck rather than
+    design.
+
+    The owned files are **declared** in `AGENT_DIR_FILES` rather than
+    discovered, so this stays a pure function of the filesystem: no
+    subprocess, and no way for a file appearing in the directory to change a
+    recorded condition by accident. `test_the_declared_agent_dir_files_are_
+    exactly_what_git_tracks` cross-checks the declaration against
+    `git ls-files`, so adding a file without declaring it fails a test rather
+    than going silently unhashed.
+    """
+    entries = sorted(
+        f"{name} {hashlib.sha256((AGENT_DIR / name).read_bytes()).hexdigest()}"
+        for name in AGENT_DIR_FILES
+    )
+    return hashlib.sha256("\n".join(entries).encode()).hexdigest()
+
+
 def _improvement_digest(improvement: Improvement | None) -> str:
     """Contents of everything an improvement carries, as one digest.
 
@@ -521,7 +560,7 @@ def _conditions(
         improvement_digest=_improvement_digest(improvement),
         acceptance_sha256=hashlib.sha256(suite.acceptance.read_bytes()).hexdigest(),
         source_allowlist=suite.source_allowlist,
-        agent_dir_digest=_path_digest(AGENT_DIR),
+        agent_dir_digest=_agent_dir_digest(),
     )
 
 

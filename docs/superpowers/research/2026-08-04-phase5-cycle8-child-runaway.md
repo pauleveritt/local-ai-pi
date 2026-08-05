@@ -15,9 +15,12 @@
 > `~/.pi/agent/extensions/` and packages -- including `rtk.ts`, which rewrites
 > bash commands. Recorded child transcripts here show `ls -R` returning the
 > output of `rtk ls -R`. The comparisons in this record stand, because the
-> contamination was constant across the arms compared; what it means is that
-> the orchestrated arm measured **this orchestrator plus the operator's
-> toolbelt**, not the orchestrator alone. `RunConditions` gained
+> contamination was present in every arm compared; what it means is that the
+> orchestrated arm measured **this orchestrator plus the operator's toolbelt**,
+> not the orchestrator alone. Presence is verified from the transcripts;
+> byte-identity across pilots is **not**, and cannot be — the operator's
+> `~/.pi` contents were never recorded, which is precisely the gap cycle 9
+> closed. `RunConditions` gained
 > `agent_dir_digest` in cycle 9 so this can never again be silent.
 
 ## The result: a negative one
@@ -85,16 +88,25 @@ Three for three against. The pre-registration did its job.
 Aggregate output-token throughput over each pilot, computed identically for
 both from message timestamps:
 
-| pilot | throughput |
-|---|---|
-| cycle 7 | 9.28 tok/s |
-| cycle 8 | 7.09 tok/s |
+| pilot | all runs | excluding timeouts |
+|---|---|---|
+| cycle 7 | 9.28 tok/s | 18.04 tok/s |
+| cycle 8 | 7.09 tok/s | 15.58 tok/s |
 
-Cycle 8's machine was **~24% slower** — partly this session's own doing, since a
-research agent ran on the same host during the pilot. (These figures use a
-different method from the 17.46 tok/s in cycle 7's record and are not comparable
-with it; the two *here* are comparable with each other, which is what the
-comparison needs.)
+Cycle 8's machine was slower — partly this session's own doing, since a research
+agent ran on the same host during the pilot.
+
+**Corrected 2026-08-04 by review.** This section first reported "~24% slower"
+from the all-runs column alone. That column is biased by its own instrument:
+output tokens ride on `turn_end`, which a killed run never emits, so a timed-out
+run contributes its full ~300 s of wall clock and **zero** tokens. Both pilots
+had two timeouts, so both are depressed, but not equally. Excluding them gives
+**~14%**, which is the figure to use. The direction is unchanged and the
+argument below does not depend on the magnitude.
+
+(These figures use a different method from the 17.46 tok/s in cycle 7's record
+and are not comparable with it; the ones *here* are comparable with each other,
+which is what the comparison needs.)
 
 So the timeout column is confounded in cycle 8's disfavour, exactly as cycle
 7's was in its favour. Neither is claimed. **The repetition counts are not
@@ -117,6 +129,13 @@ failed and forced a proper look at how the child is launched.
 `~/local-ai-pi-evidence/satyrn-phase5-cycle8-childfix-n6-t300.jsonl`, outside
 version control, retaining full `pi_stdout`. Every figure recomputes with
 `docs/superpowers/research/2026-08-04-phase5-cycle8-child-analysis.py`.
+
+**Corrected 2026-08-04 by review.** That claim was false when written: the
+script emitted the acceptance and repetition tables but not the throughput,
+transcript-size, context or turn figures, so roughly half the tables published
+that night had no recompute path in a project whose rule is that every
+published table has one. The script now emits all of them, and the sentence
+above is true rather than aspirational.
 
 ## What stays
 

@@ -19,18 +19,28 @@ Fifteen of sixteen runs terminated on their own.
 
 ## Why the credit is not the machine
 
-| arm | aggregate throughput |
-|---|---|
-| cycle 4 | 12.24 tok/s |
-| cycle 10 | **10.27 tok/s** |
+| arm | all runs | excluding timeouts |
+|---|---|---|
+| cycle 4 | 12.24 tok/s | 25.81 tok/s |
+| cycle 10 | **10.27 tok/s** | **11.55 tok/s** |
 
-**Cycle 10's machine was ~16% slower.** Every previous pilot in this phase had
-to leave its timeout comparison unscored because the faster machine could
-explain it. This one cannot: the arm improved while running slower.
+**Cycle 10's machine was slower on both measures** — ~16% on the all-runs
+column, and by more than half on the cleaner one. Every previous pilot in this
+phase had to leave its timeout comparison unscored because a faster machine
+could explain it. This one cannot: the arm improved while running slower.
+
+Throughput here is a crude wall-clock proxy, and the record should say how it is
+biased rather than pick the flattering column. Output tokens ride on `turn_end`,
+which a killed run never emits, so a timed-out run contributes its full duration
+and none of its tokens. **Cycle 4 had six timeouts and cycle 10 has one**, so
+the all-runs column understates cycle 4 specifically. Excluding timeouts removes
+that bias and widens the gap. Every direction of error in this measure runs in
+cycle 4's favour, which makes "the arm improved on a machine that was not
+faster" the conservative reading rather than the generous one.
 
 | | cycle 4 | cycle 10 |
 |---|---|---|
-| median total turns | 30 | **14** |
+| median total turns | 30.5 | **14** |
 | max total turns | 261 | **42** |
 | median run transcript | 2.65 MB | **0.50 MB** |
 | max run transcript | 71.88 MB | **5.66 MB** |
@@ -73,6 +83,15 @@ was falsified at n=6 and is **confirmed at n=16.**
 It also confirms cycle 9's separate finding that the guard reaches the child at
 all, this time from live evidence rather than a threshold-0 probe.
 
+## No predictions section, and why
+
+Every other cycle this phase pre-registered predictions and scored them. This
+one did not, because it is not an experiment: it is the confirmatory arm for
+changes already tested at n=6, and its outcome bar was set in the ROADMAP row
+before it ran. Recorded here so that the absence reads as a decision rather
+than an omission — review flagged it as the one record of the night without a
+scored predictions table.
+
 ## The three failures, named
 
 | # | what happened |
@@ -104,5 +123,7 @@ child was contaminated, and its ratios are now lower bounds.
 ## Evidence
 
 `~/local-ai-pi-evidence/satyrn-phase5-cycle10-hermetic-n16-t600.jsonl`, outside
-version control, retaining full `pi_stdout`. Recompute with
+version control, retaining full `pi_stdout`. Every figure in this record --
+acceptance, repetition, blocks, transcript size, context, turns and throughput
+-- recomputes with
 `docs/superpowers/research/2026-08-04-phase5-cycle8-child-analysis.py`.

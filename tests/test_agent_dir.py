@@ -84,7 +84,32 @@ def test_conditions_record_the_agent_dir(tmp_path, monkeypatch):
     conditions = runner._conditions(suite, "model", ["pi", "prompt"], 600)
 
     assert conditions.agent_dir_digest not in ("", "<pre-cycle9>")
-    assert conditions.agent_dir_digest == runner._path_digest(runner.AGENT_DIR)
+    assert conditions.agent_dir_digest == runner._agent_dir_digest()
+
+
+def test_the_digest_ignores_what_pi_writes_into_the_agent_dir(tmp_path, monkeypatch):
+    """The defect this pins would have cost a batch on any fresh machine.
+
+    Pi creates an empty `auth.json` in whatever agent dir it is pointed at.
+    `run_batch` computes the conditions it enforces *before* the preflight
+    that creates it, so a whole-tree digest changes between the batch's
+    expectation and run 1, and the batch aborts with "run conditions changed
+    during batch". Cycles 9 and 10 escaped only because the file already
+    existed with constant contents.
+    """
+    before = runner._agent_dir_digest()
+    intruder = runner.AGENT_DIR / "auth.json"
+    original = intruder.read_bytes() if intruder.exists() else None
+    try:
+        intruder.write_text('{"provider": "written by pi at startup"}')
+
+        assert runner._agent_dir_digest() == before
+        assert runner._path_digest(runner.AGENT_DIR) != before
+    finally:
+        if original is None:
+            intruder.unlink()
+        else:
+            intruder.write_bytes(original)
 
 
 def test_the_agent_dir_names_no_packages_or_skills():
@@ -130,11 +155,17 @@ def test_pi_runtime_state_in_the_agent_dir_is_not_committed():
     ).stdout.split()
 
     assert set(tracked) == {
-        "pi-agent-dir/README.md",
-        "pi-agent-dir/settings.json",
-        "pi-agent-dir/models.json",
-        "pi-agent-dir/extensions/loop-breaker.ts",
+        f"pi-agent-dir/{name}" for name in runner.AGENT_DIR_FILES
     }
+
+
+def test_the_declared_agent_dir_files_are_exactly_what_is_on_disk():
+    """`AGENT_DIR_FILES` is declared rather than discovered, so that the
+    digest is a pure function and cannot absorb a file Pi wrote. The cost of
+    declaring is drift; this and the git check above are what pay it.
+    """
+    for name in runner.AGENT_DIR_FILES:
+        assert (runner.AGENT_DIR / name).is_file(), name
 
 
 def test_the_agent_dir_serves_the_model_the_harness_runs():
@@ -158,6 +189,15 @@ def test_the_child_and_parent_loop_breakers_are_the_same_file():
     child_copy = runner.AGENT_DIR / "extensions" / "loop-breaker.ts"
 
     assert child_copy.read_bytes() == runner.LOOP_BREAKER.read_bytes()
+
+
+def test_the_loop_breaker_is_a_text_file():
+    """A single literal NUL in the source made git classify the guard as
+    **binary**, so its diffs were invisible in every review it has ever had.
+    It was a separator inside a template literal and is now written `\\u0000`,
+    which is the same string with none of the consequences.
+    """
+    assert b"\x00" not in runner.LOOP_BREAKER.read_bytes()
 
 
 @pytest.mark.parametrize("name", ["settings.json", "models.json"])
