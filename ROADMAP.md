@@ -166,6 +166,39 @@ not by being convenient shorthand.*
 | improvement | a named, optional change to how a run is steered — agent files, prompts, supporting spec documents — applied to a run as one unit and digested into its conditions. A run has exactly one improvement or none | phase 5 cycle 1 |
 | orchestrator | the parent Pi session that reads a task spec and delegates to a specialist child instead of writing the solution itself | phase 2 cycle 1; retired 2026-08-02 unspent, **revived phase 5** |
 | handoff packet | the structured brief an orchestrator hands a specialist — task, allowed files, acceptance strings, validation command. What the cost claim is about | phase 2 cycle 1; retired 2026-08-02 unspent, **revived phase 5** |
+| arm | one batch run under one improvement, named for comparison — *bare*, *facts-only*, *orchestrated*. **Spent against cycle 1's explicit decision not to**; see below | phase 5 cycle 2 in practice, admitted cycle 13 |
+| delegation | one parent run handing a subtask to a child `pi` process, via Pi's shipped subagent extension. Countable: cycle 10's arm made exactly one per run | phase 5 cycle 3 |
+| delegated child | the separate `pi` process a delegation spawns. Its stdout is never seen directly — the parent's stream carries its transcript, which is the only view of it | phase 5 cycle 3 |
+| loop breaker | the project's Pi extension: refuses a tool call already made unchanged `THRESHOLD` times within a window of `WINDOW`. The phase's installable artifact | phase 5 cycle 6 |
+| agent dir | the directory `PI_CODING_AGENT_DIR` points a run at, holding its settings, models and user-scope extensions. **The only seam that reaches a delegated child**, since the subagent extension passes no environment of its own | phase 5 cycle 9 |
+| runaway | a run repeating one *identical* call — 245 `ls -R`, 77 identical `pytest`. What the loop breaker detects, because the key includes the arguments | phase 5 cycle 8 |
+| churn | a run rewriting the *same target* repeatedly with differing content — 27 versions of one template. **Not a runaway**, and the loop breaker mostly does not catch it, which is why the two are separate words | phase 5 cycle 11 |
+
+**Spent, phase 5 cycles 2–13 — seven terms, recorded late.** The table's
+newest entry stood at cycle 1 while twelve cycles ran. That is the failure
+this budget exists to prevent, so it is recorded as a lapse rather than
+backfilled silently: terms entered the working vocabulary by use, and were
+load-bearing in published records, before anyone weighed whether they earned
+their place.
+
+**`arm` was rejected at cycle 1 and then spent anyway.** The note below
+argues against it — it "arrives carrying the fourth-attempt story `BRIEF.md`
+tells" — and chooses `improvement` instead. Cycles 11 and 13 then use *arm*
+in nearly every sentence, because the two words are not synonyms and the
+cycles needed the one that was refused: an *improvement* is the change, an
+*arm* is a batch run under it. Cycle 11 compares three arms of two
+improvements plus a bare baseline, which cannot be said in the cycle-1
+vocabulary at all. The word is admitted rather than the usage corrected,
+and cycle 1's concern stands as a caution: **one improvement at a time,
+comparison by hand**, no matrix.
+
+**`runaway` and `churn` are kept apart deliberately.** They looked like one
+concept for four cycles and are not. A runaway repeats an identical call and
+the loop breaker stops it; churn rewrites one target with differing content
+and mostly slips past, because the extension keys on arguments. Cycle 11
+found churn in *both* arms at comparable amplitude with every churning run
+still accepted — so the distinction is what keeps the phase from claiming a
+guard for a problem it does not address.
 
 **Redefined, phase 4 cycle 1.** Three terms above were narrowed to the
 first workload without anyone noticing: *suite* meant an acceptance file,
@@ -531,7 +564,7 @@ expensive to re-derive.
 | 10 | One publishable arm — a single n=16 batch at the 600 s timeout on whatever configuration survives, comparable with cycles 2 and 4. The only number the phase publishes from here. **Runs on the hermetic configuration**: publishing an arm whose child loads the operator's toolbelt, after discovering that it does, is not defensible. **Result: 13/16 run-accepted and 13/16 grader-accepted, against cycle 4's 0/16 at the same n and the same timeout, with timeouts 6/16 -> 1/16.** Not attributable to the machine: cycle 10 ran ~16% *slower* (10.27 vs 12.24 tok/s). Median total turns 30 -> 14, median run transcript 2.65 MB -> 0.50 MB. The loop-breaker fired in the child for the first time in a live run -- 12 refusals across two runs, both of which still passed -- confirming at n=16 the prediction cycle 9 falsified at n=6. No run was killed with a child still calling tools. [research](docs/superpowers/research/2026-08-04-phase5-cycle10-publishable-arm.md) | Done |
 | 11 | The control arms — cycle 10's headline was 13/16 against 0/16, but four changes separated those arms, so *orchestration works* and *we told it the framework* were not distinguishable. Two n=16 arms at 600 s on the hermetic config isolate them. **Bare: 0/16**, replicating cycle 4 — and more extreme than cycle 4 recorded: **15 of 16 runs made zero tool calls**, answering in prose, so the floor is a *stopped-to-ask* zero. **Facts-only: 15/16** — the empty-workspace fact and the `## Technology` section verbatim, nothing else, loop breaker kept so exactly one thing differs from cycle 10. **The two facts take the suite from 0/16 to 15/16 and orchestration's contribution is not distinguishable from zero** (15/16 vs 13/16 is Fisher p ≈ 0.6 — noise at this n, and not to be reported as a difference), while costing ~1.6× the turns and context and 1.9× the wall clock for the same 34k output tokens. The honest reading is that **this suite has no headroom left**, which is a statement about the workload, not a verdict on delegation. **The first attempt was withdrawn at 8 of 16 runs** because `stack.md` then carried only the Technology section and so differed from cycle 10 by *two* things; its checkpoint is kept as `...-PARTIAL8-withdrawn.jsonl`. **A retraction rides with this cycle**: its first reported cost figures were substring counts over the raw event stream, inflating each arm by a different factor (10.0× / 6.7× / 21.9×) because the subagent update protocol re-serializes the child's whole transcript per update. The real ratio is 1.33×, not 4.4×. [research](docs/superpowers/research/2026-08-05-phase5-cycle11-control-arms.md) | Done |
 | 12 | The installable extension — the phase promised to end "pointed at something installable" and `BRIEF.md` promises "a Pi extension (not a fork of Pi) plus an eval harness." The loop-breaker is that extension and now has live evidence behind it: 12 refusals in the child across two cycle-10 runs, both of which still passed. But it appears in **no** user-facing document — not `README.md`, not `docs/index.md`, not `docs/setup.md` — and has no install instructions, so today it is an internal harness artifact rather than a product. Scope: what it is and the number that justifies it, how to install it into `~/.pi/agent/extensions/` or a project, what `WINDOW` and `THRESHOLD` mean and when to change them, and the one thing a user must know that we paid to learn — that a delegated child does not load your project's extensions, only your user-scope ones. No new mechanism. **Done:** [`docs/loop-breaker.md`](docs/loop-breaker.md), wired into the docs toctree, the README's "Start here" table and both landing pages, with three tests pinning the page to the extension — its constants, its verbatim refusal text, and the subagent paragraph — all mutation-checked. | Done |
-| 13 | The pre-install sentence, and hardening the counting — cycle 11's largest clean signal was that the two arms emitted **the same output-token total to within 16 tokens** while the orchestrated arm spent **1,416 more seconds** producing it, with 28 child `pip install` invocations against the other arm's 2. Both stack prompts now state that FastAPI, Jinja2, pytest and httpx are installed and forbid installing anything — added to *both* so it is not a second variable, which is the mistake that withdrew cycle 11's first attempt. **The claim is true because a run inherits the harness's own environment through `pi_env()`**, and a test asserts it stays true from a directory that is not the repository, so the prompt cannot quietly become a lie. Prediction: child `pip install` calls fall to near zero and wall clock drops materially, with the accepted count unchanged at 13/16 ± noise. Also hardens the counting that cycle 11 got wrong: five tests over synthetic streams pin that a refusal echoed across five event types counts once, and that cumulative subagent updates do not multiply a child's call count. Both historical bugs — counting every event, and keeping only the final update — are mutation-checked as caught. | In progress |
+| 13 | The pre-install sentence, and hardening the counting — cycle 11 counted 28 child `pip install` invocations against the undelegated arm's 2, so both stack prompts now state that FastAPI, Jinja2, pytest and httpx are installed and forbid installing anything, added to *both* so it is not a second variable. **The claim is true** — a run inherits the harness's environment through `pi_env()` — and a test asserts it from outside the repository so the prompt cannot quietly become a lie. **All three predictions falsified.** Pip calls did not fall: the median held at 2 and the total *rose*, 28 to 37, with a widened tail (5, 6 and 7 in single runs against a cycle-10 max of 3). Turns and context are flat (14.0 median both; 39,760 vs 41,010). Accepted 11/16 against 13/16 is noise. The wall-clock prediction is **void, not failed**: this cycle's first batch drifted 27.3 → ~15 tok/s under unrelated machine load and is kept as `...-CONTAMINATED-...jsonl`, the quiet rerun holds 13.3–25.6, and cycle 10's own range is 3.7–25.0 — so the baseline was contaminated too. **The finding is that a single unambiguous sentence about a checkable fact does not change behaviour**, which is cycle 8's persuasion ceiling under the easiest possible conditions and cleanly separates the phase's five prompt interventions: the three that supplied a *fact* worked, the two that supplied a *rule of conduct* did not. Also hardens the counting cycle 11 got wrong (five tests over synthetic streams, both historical bugs mutation-checked), pays the concept budget's twelve-cycle debt with seven terms, and files the interleaving defect. [research](docs/superpowers/research/2026-08-05-phase5-cycle13-preinstall-sentence.md) | Done |
 
 **What the eight withdrawn runs bought, which was more than the arm they came
 from — corrected 2026-08-05 by review.** The paragraph below first read the
@@ -1695,6 +1728,32 @@ things over.
   hatch before it guards anything. (3) It only pays where environment setup
   is a real part of the task, and this suite's is pre-built — so it belongs
   with a harder workload, not this one.
+
+- **Interleave runs across arms within a batch — every wall-clock number
+  this project has published is biased, not merely noisy.** Found 2026-08-05
+  when the owner noted unrelated load on the machine mid-batch. The harness
+  runs each arm as one contiguous block, so any drift in machine conditions
+  falls entirely on whichever arm was running and presents as an arm effect.
+  It is not hypothetical: **cycle 10's own batch swings 3× internally**
+  (runs 7–9 at 3.7–4.6 tok/s, runs 10–16 at ~13.5), and cycle 13's rerun
+  drifted monotonically from 27.3 to ~15 tok/s. Cycle 11's "1,416 more
+  seconds" finding was withdrawn on this basis.
+
+  The fix is to interleave: run arm A run 1, arm B run 1, arm A run 2, and
+  so on, so drift becomes noise on both sides instead of bias on one. The
+  model server is single-threaded, so this costs nothing in throughput — it
+  is purely a change to run order.
+
+  **What makes it non-trivial**: `run_batch` resumes by counting valid lines
+  in one checkpoint per arm, so interleaving means either one checkpoint
+  carrying an arm label per record, or coordinated resume across several
+  files. The resume semantics are load-bearing and were hardened in phase 1
+  cycle 11, so this is a real change rather than a loop reordering.
+
+  **A precondition for any future timing claim.** Counts — turns, context,
+  executed tool calls — are unaffected and remain citable. Timeouts sit in
+  between: a timeout is a count, but the cap it counts against is wall
+  clock, so a contended machine manufactures them.
 
 ## Prior work
 

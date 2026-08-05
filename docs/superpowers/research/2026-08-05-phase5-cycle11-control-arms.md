@@ -15,12 +15,23 @@ Every figure below recomputes with
 extended this cycle with the two control arms and with a parent-side refusal
 counter. Run it with `PYTHONPATH=. uv run python <path>`.
 
-> **Retraction, same day.** This record's first reported numbers — a "4.4×
-> tool-call ratio" and refusal counts of 294 against 65 — were counted by
+> **Two retractions, same day.**
+>
+> **One — the counting.** This record's first reported numbers, a "4.4×
+> tool-call ratio" and refusal counts of 294 against 65, were counted by
 > matching substrings in the raw event stream. They are wrong, and wrong in
 > a direction that flattered the conclusion being drawn. What replaced them
 > is [below](#the-retracted-numbers-and-why-they-were-wrong). The corrected
 > ratio is 1.33×.
+>
+> **Two — the timing.** This record then called a 1,416-second wall-clock
+> gap the phase's largest clean signal. It is withdrawn: the arms were run
+> as contiguous blocks on a machine with varying load, and cycle 10's own
+> batch swings 3× internally. The token equality survives; the seconds do
+> not. See [the withdrawn section](#the-throughput-gap--withdrawn-the-arms-were-not-timed-comparably).
+>
+> Both errors have the same shape — a number that pointed the way the
+> argument was already going, published before it was checked.
 
 ## The arms
 
@@ -35,13 +46,24 @@ isolates the two facts.
 
 ## Results
 
-| arm | accepted | timeouts | turns med/max | context med/max | MB med/max | tok/s |
+| arm | accepted | timeouts | turns med/max | context med/max | MB med/max | ~~tok/s~~ |
 |---|---|---|---|---|---|---|
-| bare | 0/16 | 0 | 1.0 / 30 | 1,744 / 1,867,139 | 0.11 / 4.40 | 11.11 |
-| orchestrated | 13/16 | 1 | 14.0 / 42 | 39,760 / 674,945 | 0.50 / 5.66 | 11.55 |
-| **facts-only** | **15/16** | **0** | 9.0 / 29 | 25,446 / 204,290 | 0.37 / 2.29 | **22.20** |
+| bare | 0/16 | 0 | 1.0 / 30 | 1,744 / 1,867,139 | 0.11 / 4.40 | ~~11.11~~ |
+| orchestrated | 13/16 | 1 | 14.0 / 42 | 39,760 / 674,945 | 0.50 / 5.66 | ~~11.55~~ |
+| **facts-only** | **15/16** | **0** | 9.0 / 29 | 25,446 / 204,290 | 0.37 / 2.29 | ~~22.20~~ |
 
 Run-accepted and grader-accepted agree in all three arms.
+
+**The `tok/s` column is struck and must not be cited.** It divides by wall
+clock, and the arms were not timed comparably — see [the withdrawn
+section](#the-throughput-gap--withdrawn-the-arms-were-not-timed-comparably).
+It is left visible rather than deleted so that a reader meeting the figure
+elsewhere finds it withdrawn here. Every other column is a count and stands.
+
+**Timeouts are a partial casualty of the same problem.** A timeout is a
+count, but the 600 s cap it counts against is wall clock, so a contended
+machine converts slow runs into timeouts. Cycle 10's single timeout is
+reported as measured; it is not solid evidence of an arm difference.
 
 **The two facts take the suite from 0/16 to 15/16.** That is the cycle's
 result, and it replicates cycle 7 at four times the sample.
@@ -101,23 +123,37 @@ The excess decomposes into four things, none of them the ones assumed:
 16, every one ending `stopReason: stop`. **Fan-out and retry are both
 refuted** — neither occurs anywhere in the arm.
 
-### The throughput gap is dead wall clock, not extra work
+### The throughput gap — WITHDRAWN, the arms were not timed comparably
 
-| arm | output tokens | wall seconds | s/turn | tokens/turn |
-|---|---|---|---|---|
-| orchestrated | 34,096 | 2,951 | 11.4 | 131.6 |
-| facts-only | 34,080 | 1,535 | 7.8 | 173.0 |
+This section reported that the two arms generated **the same output-token
+total to within 16** (34,096 against 34,080) while the orchestrated arm
+spent **1,416 more seconds** producing it, and called that the phase's
+largest clean signal.
 
-**The two arms generated the same number of output tokens to within 16** —
-and the orchestrated arm spent 1,416 extra seconds doing it. Both drive the
-same single-threaded model server, so tokens per second is a property of the
-server; a 1.9× difference means time spent producing nothing. Child process
-startup and the 28 `pip install` invocations are the candidates, and the
-arithmetic fits at typical install durations.
+**The token equality stands. The seconds do not, and the conclusion drawn
+from them is withdrawn.**
 
-**Marked as inference, not measurement.** We have the install counts and the
-wall clock; we do not have per-call timings, so the attribution to pip is
-not established. Settling it costs one instrumented run.
+The comparison assumed both arms met comparable machine conditions, because
+they share one single-threaded model server. Per-run throughput refutes
+that. Within cycle 10's own batch, runs 7–9 ran at 3.7–4.6 tok/s while runs
+10–16 ran at ~13.5 — a **3× swing inside a single arm**. Cycle 13's rerun
+of the orchestrated arm then drifted monotonically from 27.3 to ~15 tok/s
+while the operator confirmed unrelated load on the machine.
+
+So between-arm wall clock is measuring the machine at least as much as the
+arm, and no part of the 1.9× can be attributed to delegation.
+
+**The defect is structural, not a bad batch.** The harness runs each arm as
+a contiguous block, so any drift in machine conditions lands entirely on one
+arm and presents as an arm effect. Every wall-clock comparison this phase
+has published shares that flaw. **Interleaving runs across arms within a
+batch** would turn drift into noise on both sides instead of bias on one;
+it is filed in the Backlog and is a precondition for any future timing
+claim.
+
+What this costs: the phase has **no trustworthy measurement of what
+delegation costs in time**. Turns and context and executed tool calls are
+counts and survive; seconds do not.
 
 ## The retracted numbers, and why they were wrong
 

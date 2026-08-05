@@ -196,9 +196,14 @@ def test_the_script_names_the_hazard_where_a_reader_will_meet_it():
     assert "tool_execution_end" in source
 
 
-def test_the_research_record_publishes_the_retraction():
+def test_the_research_record_publishes_both_retractions():
     """A retracted figure gets a banner, not a silent edit -- the rule this
-    project already had, and the one cycle 11 broke.
+    project already had, and the one cycle 11 broke twice.
+
+    Both retracted numbers are pinned *by value*, because the failure mode
+    is not deleting the banner but quietly dropping the wrong figure from
+    it: a banner that no longer names 4.4x or 1,416 does not warn the reader
+    who arrives holding one of them.
     """
     record = (
         runner.REPO_ROOT
@@ -208,5 +213,12 @@ def test_the_research_record_publishes_the_retraction():
         / "2026-08-05-phase5-cycle11-control-arms.md"
     ).read_text()
 
-    assert "Retraction" in record
+    assert "retraction" in record.lower()
+
+    # One: the substring counting. Both the wrong ratio and its replacement.
     assert "4.4" in record and "1.33" in record
+
+    # Two: the wall clock, withdrawn because the arms were run as
+    # contiguous blocks on a machine whose load varied under them.
+    assert "1,416" in record
+    assert "WITHDRAWN" in record
