@@ -533,7 +533,21 @@ expensive to re-derive.
 | 12 | The installable extension — the phase promised to end "pointed at something installable" and `BRIEF.md` promises "a Pi extension (not a fork of Pi) plus an eval harness." The loop-breaker is that extension and now has live evidence behind it: 12 refusals in the child across two cycle-10 runs, both of which still passed. But it appears in **no** user-facing document — not `README.md`, not `docs/index.md`, not `docs/setup.md` — and has no install instructions, so today it is an internal harness artifact rather than a product. Scope: what it is and the number that justifies it, how to install it into `~/.pi/agent/extensions/` or a project, what `WINDOW` and `THRESHOLD` mean and when to change them, and the one thing a user must know that we paid to learn — that a delegated child does not load your project's extensions, only your user-scope ones. No new mechanism. **Done:** [`docs/loop-breaker.md`](docs/loop-breaker.md), wired into the docs toctree, the README's "Start here" table and both landing pages, with three tests pinning the page to the extension — its constants, its verbatim refusal text, and the subagent paragraph — all mutation-checked. | Done |
 
 **What the eight withdrawn runs bought, which was more than the arm they came
-from.** With the two technology facts and no orchestration, the model does not
+from — corrected 2026-08-05 by review.** The paragraph below first read the
+three runs that had landed when it was written and concluded the model "fails
+to stop". A recount of all eight gives **7/8 grader-accepted and 6/8
+run-accepted**, with churn in only two runs and the single grading failure
+caused by stopping *too early* — three tool calls, nothing written. Churn is
+also present in the **orchestrated** arm at comparable amplitude (19x and 10x
+`app.py` in cycle 10's children, both accepted), so the handoff packet's
+definition of done does not prevent it either. The conclusion below is
+withdrawn: at 7/8 against 13/16, orchestration's measured contribution once the
+two facts are supplied is **indistinguishable from zero**, not termination.
+The in-flight n=16 facts-only arm settles it. What survives is that the loop
+breaker is the only intervention that has demonstrably arrested a runaway, in
+all four churning runs across both arms.
+
+**The original text, retained:** With the two technology facts and no orchestration, the model does not
 fail to *build* — two of the first three runs were graded accepted. It fails to
 *stop*. The dominant call in the longest run is the **same base template
 written 27 times**; another repeats one `<nav>` edit 7 times. Across those runs

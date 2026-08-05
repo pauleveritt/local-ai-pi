@@ -1,10 +1,19 @@
 # Enforcement over persuasion — the stopping condition
 
 **Date:** 2026-08-05
-**Status:** design
+**Status:** design — **substantially revised the same day, after review**
 **Phase:** 6 candidate — the deep dive this project pivoted to Pi for
 
-## The thesis, and the reason it needs stating
+> **What the first draft got wrong.** It claimed the facts-only arm "builds
+> correctly but never stops." A full recount of all eight withdrawn runs — the
+> first draft sampled three — gives **7/8 grader-accepted, 6/8 run-accepted**,
+> churn in only two runs, and the single grading failure caused by stopping
+> **too early**. The diagnosis is refuted by its own evidence. The thesis about
+> enforcement survives; the specific claim it was hung on does not. Sections
+> below are rewritten rather than annotated: a reader following a superseded
+> argument through footnotes is worse served than one reading the corrected one.
+
+## The thesis
 
 This project left OpenCode for Pi because Pi offers **machinery to control
 operations** rather than prose to persuade a model with. Phase 5 then spent
@@ -14,211 +23,210 @@ four cycles writing prose.
 |---|---|---|
 | 5 | prompt: the call shape | worked |
 | 5 | prompt: the workspace is empty | worked |
-| 6 | **mechanism: the loop breaker** | built; did not fire for two cycles |
+| 6 | **mechanism: the loop breaker** | built; idle until cycle 10 |
 | 7 | prompt: the technology stack | worked |
 | 8 | prompt: stop re-running a failing command | **failed, 3/3 predictions falsified** |
 
 The prompt wins share a property cycle 8's loss lacks: they supplied a **fact
 the model did not have**. Cycle 8 supplied a **rule of conduct**, and a 12B
-model does not keep one. That is the persuasion ceiling, found empirically and
-at a cycle's cost.
+model does not keep one. That is the persuasion ceiling, found empirically.
 
-Meanwhile the one mechanism we built is the only thing that has ever *stopped*
-a runaway: in cycle 11's withdrawn arm it refused **22 calls in a single run
-that still passed**, and in cycle 10 it refused 12 across two runs, both of
-which passed.
+The loop breaker's idle cycles were **not** a weakness of the mechanism: the
+parent had stopped looping and the child it could not reach was the one
+looping (cycle 8's finding). Once cycle 9 delivered it to the child, it fired.
+
+**It is now the only intervention that has demonstrably arrested a runaway.**
+In all four churning runs across both arms, the thing that intervened was the
+loop breaker — 10 and 2 refusals in cycle 10's children, 22 and 2 in the
+withdrawn arm. All four runs were grader-accepted.
 
 **The pivot's premise is correct and we have been under-using it.**
 
 ## What the model actually fails at, measured
 
-Three distinct runaway shapes, all recorded, all with different causes:
-
 | shape | evidence | closed by |
 |---|---|---|
-| **Exploration spiral** | 245 identical `ls -R` in one 261-turn run | a *fact* (cycle 5); gone from every later arm |
-| **Identical-call loop** | 83 of 103 child calls one `pytest`; 178× `ls -F` | a *mechanism* (loop breaker) — and by removing rtk (cycle 9) |
-| **Revision churn** | same base template written **27 times**; one `<nav>` edited 7× | **nothing yet** |
+| **Exploration spiral** | 245 identical `ls -R` in one cycle-4 run | a *fact* (cycle 5); gone from every later arm |
+| **Identical-call loop** | 77 identical `pytest` in one child; 178× `ls -F` | a *mechanism* (loop breaker), plus removing rtk (cycle 9) |
+| **Revision churn** | 27× one template; 19× `app.py` in an orchestrated child | the loop breaker, partially |
 
-The third is the subject. It is not a failure to build — two of the first
-three control-arm runs were **graded accepted**. It is a failure to *stop*.
+**Corrected from the first draft**, which wrote row 2 as "83 of 103 child calls
+one `pytest`". That is the *pre-correction* figure from cycle 8's design spec:
+83 was three different pytest spellings, only 77 identical. Cycle 8's research
+record already corrected it, and a project that publishes correction banners
+must not re-cite a number it retracted.
 
-**The diagnosis is concrete.** The orchestrated arm's handoff packet carries
-Allowed Files, Acceptance Strings, **Validation**, and the implementer's
-"once validation passes, report and stop." That is a definition of done. The
-control arm has the same two technology facts and no definition of done, and
-a user-story roadmap has no terminal condition — there is always another nav
-link to polish.
+### Churn is real, rarer than claimed, and does not separate the arms
 
-So orchestration's measured contribution is **termination, not correctness**.
-That is a weaker claim than phase 5 assumed and the exact claim `BRIEF.md`
-says this project exists to test.
+Recount of all eight runs of the withdrawn facts-only arm:
+
+| | facts-only (n=8, withdrawn) | orchestrated (n=16, cycle 10) |
+|---|---|---|
+| grader-accepted | **7/8** | 13/16 |
+| run-accepted | **6/8** | 13/16 |
+| runs with churn | **2** (27× and 7× one template) | **2** (19× and 10× `app.py`) |
+| churning runs that passed | 2 of 2 | 2 of 2 |
+
+Churn appears in **both** arms at comparable amplitude, and every churning run
+in both was accepted. The handoff packet's Allowed Files / Validation / "report
+and stop" — the definition of done the first draft credited — **does not
+prevent churn either.** That settles the open question the first draft raised,
+against the first draft.
+
+The facts-only arm's one grading failure, run 4, made **three tool calls**,
+announced it would create `app.py`, and halted with nothing written — the same
+announce-and-halt shape as the bare arm. **Its failure was failing to start.**
+
+## What this does to the orchestration claim
+
+The first draft concluded "orchestration contributes termination, not
+correctness." **That is unsupported.** At 7/8 against 13/16, once the two
+technology facts are supplied, orchestration's measured contribution is
+**indistinguishable from zero** — not termination, not correctness, neither.
+
+n=8 cannot establish that it *is* zero. It comfortably refutes the claim that
+it is specifically termination, because the arm without orchestration
+terminated in seven of eight runs.
+
+**The in-flight n=16 facts-only arm settles this, and this document should wait
+for it.** If that arm lands near 13/16, phase 5's honest headline is that
+**cycle 7's two sentences did nearly all the work** and the orchestrator is
+scaffolding. That is a real result, and not the one the phase assumed.
 
 ## What Pi can actually enforce
 
-Read from the v0.83.0 source at
-`/Users/pauleveritt/PycharmProjects/pi-v0.83.0`, whose
-`packages/coding-agent/examples/extensions/subagent/index.ts` is byte-identical
-to the installed package — so the source below is the source that produced
-every measurement we have banked.
+Read from the v0.83.0 source at `/Users/pauleveritt/PycharmProjects/pi-v0.83.0`,
+whose `packages/coding-agent/examples/extensions/subagent/index.ts` is
+byte-identical to the installed package.
 
-`packages/coding-agent/docs/extensions.md` documents 33 events. Four matter
-here, and two of them do more than observe:
+| hook | power |
+|---|---|
+| `tool_call` | **blocks** — `{block, reason}`; the block returns to the model as an error tool result and the loop continues |
+| `tool_result` | **patches** `content`/`details`/`isError`/`usage`, and the patched value enters the next request |
+| `message_end` | **replaces** the finalized message via `{message}` |
+| `context` | rewrites or injects messages before a request |
+| `pi.sendUserMessage` | injects steering as a user turn |
+| `turn_end` | observes only; `ctx.abort()` is the lever |
 
-| hook | power | use |
-|---|---|---|
-| `tool_call` | **blocks** — `{block, reason}` before execution | what the loop breaker uses today |
-| `tool_result` | **patches** `content`, `details`, `isError`, `usage` | put a fact in the channel the model trusts |
-| `message_end` | **replaces** the finalized message via `{ message }` | strongest and most invasive |
-| `turn_end` | observes `turnIndex`, `message`, `toolResults` | counting, with `ctx.abort()` as the lever |
+`tool_result` patches are **model-visible**, not merely recorded — the patched
+result becomes the `toolResult` message pushed into the live context. The
+premise "a model ignores prompt text and believes tool output" holds
+mechanically, not just rhetorically.
 
-`tool_result` is the one this project has never used and the one that fits the
-thesis best. **A model ignores system-prompt instructions and believes tool
-output.** Appending "validation passed — the task is complete, report and
-stop" to the *actual pytest output* is not persuasion in a prompt; it is a
-fact delivered where facts arrive.
+**Pi has no turn cap** at any level, and upstream closed #1898, #5248 and #6158
+without shipping one. `shouldStopAfterTurn` and per-tool `terminate` exist in
+agent-core but are unreachable from an extension in 0.83.0.
 
-**Pi has no turn cap** at any level — no CLI flag, settings key, or agent
-frontmatter — and upstream closed the request for one (#1898, #5248, #6158).
-Whatever we build, we build.
+## Candidates
 
-## Candidates, cheapest first
+**1. A graceful turn budget — smallest, and it fixes the only measured loss.**
+Past N turns, block every `tool_call` with a reason instructing the model to
+summarize and stop. The run ends with a normal `stopReason` and its output is
+salvaged.
 
-**1. The done-detector.** An extension that watches for the **model's own**
-validation command — the one the task spec names, `python -m pytest` from the
-project root — and, when it passes, patches that `tool_result` with an
-unambiguous completion statement, then blocks further `write`/`edit` calls
-with a reason pointing at the passing run.
+This dominates `ctx.abort()`, now **confirmed** to yield `stopReason:
+"aborted"`, which the shipped subagent classifies as a *failed* delegation
+(`index.ts:182-184`) — converting a runaway into a lost result. The first draft
+flagged this as unverified; it is verified, which is why abort is dropped
+rather than ranked.
 
-It never runs the harness's acceptance file and never learns anything the
-model did not already have; see the settled seam below, which is the reason
-this reads "the model's own" rather than "the acceptance command".
+**2. A path-keyed churn breaker.** Generalize the loop breaker from *identical*
+calls to *same-target* calls: N writes to one path in a window, regardless of
+content. The current key includes arguments, which is why 26 of the 27
+byte-identical template writes tripped it and the rest did not.
 
-This is the direct answer to the measured failure. It converts "definition of
-done" from prompt text the orchestrator supplies into a mechanism the harness
-enforces, and it works for a bare model with no orchestration at all — which,
-if it holds, means the orchestrator is *replaceable by a much smaller thing*.
+**3. The done-detector — demoted.** Watch for the model's own validation
+command passing, patch that `tool_result` with a completion statement, then
+block further `write`/`edit`. Three failure modes, the first disqualifying as a
+motivating case:
 
-**2. A revision-churn breaker.** Generalize the loop breaker from *identical*
-calls to *same-target* calls: N writes to one path within a window, regardless
-of content. The current `callKey` includes arguments, so a rewrite with
-different bytes is invisible to it — yet 22 refusals fired in that run anyway,
-meaning many rewrites were byte-identical. A path-keyed rule would have caught
-the rest.
+- **It would never have fired in its own flagship run.** The 27×-template run
+  ran `python -m pytest` once, at call 14 of 58: **`collected 0`, no tests
+  ran** — the model never wrote a test file. All 44 churning calls came after.
+  The first draft's "correct degradation" clause describes precisely the run
+  the design was motivated by. It would have helped the *other* churn run,
+  which reached `2 passed` and then churned 22 more calls.
+- **Premature fire.** A model writing tests incrementally gets blocked at the
+  first green pytest, possibly mid-build, turning a would-pass run into a fail.
+- **Bypass and fragility.** Blocking `write`/`edit` does not block `bash`; an
+  observed child created a test file with a `cat <<EOF >` heredoc. Validation
+  is invoked four different ways across banked runs, so exact-string matching
+  both misses and misfires.
 
-**3. A turn cap.** ~20 lines counting `turn_end` and calling `ctx.abort()`.
-The backstop, not the fix. **Unverified and load-bearing:** `ctx.abort()` is
-reported to yield `stopReason: "aborted"`, which the shipped subagent
-classifies as a *failed* delegation — converting a runaway into a lost result
-rather than a salvaged one. Check before building.
+**Both churning runs were graded accepted anyway**, so this detector would have
+changed **zero grades** in all observed data. Its benefit is wall clock and
+tokens — not the metric the comparison table uses.
 
-Ranked this way because 1 addresses the cause, 2 addresses the symptom, and 3
-only bounds the damage.
+Reordered from the first draft, which ranked the done-detector first on
+intuition. The evidence ranks it last.
 
 ## What this must not become
 
-The trap `BRIEF.md` names is machinery about orchestration outgrowing anyone's
-head. A done-detector that grows a rules engine, a policy language, or a
-scheduler has failed regardless of its numbers. **The target is one extension,
-one file, under ~150 lines, with constants at the top** — the loop breaker's
-shape, which is now documented, installed, and measured.
+One extension, one file, under ~150 lines, constants at the top — the loop
+breaker's shape, which is documented, installed, and measured.
 
 ## How it gets measured
 
-The comparison is already built and half-banked, all n=16 at 600 s, hermetic:
-
 | arm | status |
 |---|---|
-| bare | **0/16** — a stopped-to-ask zero |
-| tech-stack-only (both facts) | pending |
+| bare | **0/16** — a stopped-to-ask zero; the one run that built used Flask |
+| facts-only | **7/8 withdrawn**; n=16 in flight |
 | orchestrated | **13/16** |
 
-The new arm is **bare + facts + done-detector, no orchestration**. If it
-approaches 13/16, orchestration's benefit is reproducible by an extension a
-user can install in one file, which is the phase's installable promise
-arriving somewhere it was not expected.
+**No new arm should run until the facts-only n=16 lands.** If orchestration's
+contribution is near zero, the bar a mechanism must clear changes from "replace
+the orchestrator" to "beat the facts alone" — a different and much harder
+question.
 
-**Pre-registration comes with the cycle spec, not here.** This document names
-the question; a cycle that pre-registers its predictions before running is the
-discipline that caught cycle 8.
+Pre-registration comes with the cycle spec, not here.
 
 ## Settled before any code: the acceptance-command seam
 
-Candidate 1 needs a done-signal. The obvious source is the harness's
-acceptance suite, and the obvious worry is that reaching it leaks the grading
-contract into the workload. **Both the worry and the obvious design are
-wrong, in different directions.**
+### The contract is *nearly* public, not entirely
 
-### There is nothing secret to leak — on this suite
+The first draft claimed the contract asserts nothing the task spec already
+states. Refuted in three particulars:
 
-Comparing the two files directly: `examples/agentclinic/phase-1/acceptance/
-test_acceptance.py` asserts a 200 at `/`, the tagline verbatim, `"AgentClinic"`,
-a `Home` link to `/` and a `Complaints` link to `/complaints`, and an HTML5
-doctype with a declared language. The task spec the model is handed states
-**every one of those**, including the tagline word for word and both link
-targets.
+- **`lang` exact match.** The contract requires `lang` to casefold to exactly
+  `"en"`; the spec says "declared as English". `lang="en-US"` satisfies the
+  prose and fails the contract.
+- **Nav link text equality.** Link text must equal exactly `home` /
+  `complaints` after normalization; "Back to Home" satisfies the prose and
+  fails.
+- **The `templates/` directory is an unstated layout contract.** The allowlist
+  copies `app.py` and `templates` only, so HTML under `views/` passes locally
+  and fails grading — while `stack.md` says template filenames are not
+  prescribed and the contract's own docstring disclaims file layout.
 
-The only thing the contract adds is the structural coupling `from app import
-app` — and that module path is already given to these arms in `stack.md`'s
-Technology section, which is cycle 7's lever.
+None hurt an observed run. But "the only thing the contract adds is `from app
+import app`" was false as written, and the third is a genuine hidden coupling
+worth its own Backlog entry.
 
-So for this workload the contract is already public to the model. **This is a
-property of this suite, not a general licence**, and it must not become an
-assumption: a future suite whose contract is stricter than its prose would
-turn any detector that reads it into a channel.
+### The oracle argument stands, and it is the real reason
 
-### The real risk is the oracle, and hiding text does not fix it
+Running the harness's contract mid-run would give an arm a **perfect
+done-signal no earlier arm had**. That is a capability, not an information
+leak, and redacting failure text does not remove it — even one bit of "you are
+done" is an advantage cycle 10 lacked. The leak framing is the dangerous one
+precisely because it invites a fix that leaves the oracle intact.
 
-If the detector runs the harness's acceptance suite, the arm gains a **perfect
-done-signal that no previous arm had**. That is a capability, not an
-information leak, and suppressing the failure text does not remove it — even
-one bit of "you are done now" is an advantage cycle 10 did not have.
-Comparing such an arm against cycle 10 would measure *model plus oracle*
-against *model*, and every point of difference would be unattributable.
+### The decision, unchanged
 
-This is the more dangerous of the two problems and the easier one to miss,
-because the leak framing invites a fix (redact the output) that leaves it
-fully intact.
+**A detector must never touch the harness's acceptance file.** Its signal is
+the model's own validation command. A structural guarantee backs it: `grade()`
+copies allowlisted paths out to a fresh temp directory, so the acceptance file
+is never in the workspace during a run.
 
-### The decision
+One correction to the first draft's justification: it said the design gives the
+arm "no capability the others lacked." **Enforced write-blocking is a
+capability no other arm had** — that is the intervention under test, which is
+fine, but the sentence contradicted the capability-not-information logic beside
+it.
 
-**The detector never touches the harness's acceptance file.** Its done-signal
-is the *model's own* validation command — the one the task spec already names:
+## Open questions
 
-> Run the tests with `python -m pytest` from the project root.
-
-The detector enforces *"your declared validation passed, so stop"*. That is a
-mechanization of what the orchestrator's handoff packet does today with its
-Validation section and "report and stop" — using only information the model
-already had, and giving the arm no capability the others lacked.
-
-**A structural guarantee backs it up.** `grade()` copies allowlisted paths out
-of the workspace into a fresh temp directory and runs the contract *there*;
-the acceptance file is never present in the workspace during a run
-(`harness/grading.py`). So a detector confined to the workspace cannot read
-the contract even by mistake. The rule that keeps it that way: **the extension
-runs commands with cwd inside the workspace and reads no path outside it.**
-
-### What this costs, stated plainly
-
-The detector can certify *completion by the model's own standard*, never
-correctness. A model that writes weak tests will pass them, be told to stop,
-and be rejected by the grader.
-
-That exposure is real and it is **exactly the exposure the orchestrated arm
-already carries** — its packet names a validation command the model itself
-satisfies — and that arm scored 13/16. If the model writes no tests, the
-detector never fires and the run behaves as it does today, which is the
-correct degradation.
-
-This also keeps the claim honest and matches what phase 5 measured:
-orchestration contributes **termination, not correctness**, so a mechanism
-replacing it should promise termination and nothing more.
-
-## Open questions, honestly flagged
-
-- Does `ctx.abort()` produce a salvageable result or a failed delegation?
-  Unverified, and candidate 3 depends on it.
-- Is revision churn present in the *orchestrated* arm at lower amplitude, or
-  absent? Recomputable from banked checkpoints, and it decides whether
-  candidate 2 is a general win or a control-arm artifact.
+- Does revision churn cost anything measurable? In every observed case it was
+  survivable. If it costs only wall clock, it may not deserve a mechanism at
+  all — and this document should say so rather than build one.
+- Is the `templates/` allowlist coupling worth fixing in the suite, given it
+  contradicts the acceptance file's own docstring?
