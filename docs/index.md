@@ -54,6 +54,22 @@ The live model run and supervised batch both have recorded evidence.
 
 **Phase 2 is where new collaborators come in.**
 
+## The extension half
+
+`BRIEF.md` promises "a Pi extension (not a fork of Pi) plus an eval harness."
+The first extension is the [loop breaker](loop-breaker.md): it refuses a tool
+call the model has already made, unchanged, several times in a row.
+
+It exists because of a recorded run of 261 turns, 245 of them the identical
+command `ls -R` against an empty workspace. Replayed over five banked batches
+it produced **zero false positives in 55 healthy runs**; live in a 16-run
+batch it refused 12 calls across two runs, and **both of those runs still
+passed**.
+
+It installs by copying one file, and it is useful outside this project. If
+you delegate to subagents, read the section on where to put it — the child
+does not load your project's extensions.
+
 ## For new collaborators
 
 Start with [setup](setup.md) — most of this project's tests need nothing
@@ -69,6 +85,7 @@ verify-don't-assert — are what review will hold you to.
 
 setup
 sdd
+loop-breaker
 ```
 
 ```{toctree}

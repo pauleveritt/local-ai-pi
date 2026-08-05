@@ -27,11 +27,21 @@ accepted all 16 attempts.
 [the roadmap](ROADMAP.md) for what's planned and what's deliberately
 parked.
 
+**There is something installable.** The
+[loop breaker](docs/loop-breaker.md) is a small Pi extension that refuses a
+tool call the model has already made, unchanged, several times in a row. It
+came out of a recorded run of 261 turns, 245 of them the identical `ls -R`
+against an empty workspace. Replayed over five banked batches it produced
+zero false positives in 55 healthy runs; live in a 16-run batch it refused
+12 calls across two runs, and both of those runs still passed. One file,
+copied into place — and useful outside this project.
+
 ## Start here
 
 | If you want to… | Read |
 |---|---|
 | Understand why this project exists | [`BRIEF.md`](BRIEF.md) — the whole context, in one file |
+| Use the Pi extension in your own work | [`docs/loop-breaker.md`](docs/loop-breaker.md) |
 | Get your machine set up | [`docs/setup.md`](docs/setup.md) |
 | Understand how we work | [`docs/sdd.md`](docs/sdd.md) |
 | See what's planned | [`ROADMAP.md`](ROADMAP.md) |

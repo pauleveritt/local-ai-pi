@@ -720,10 +720,18 @@ def test_the_control_arm_carries_the_stack_facts_verbatim():
     orchestrated = runner.sdd_orchestrator_guarded_stack().system_prompt
     assert control is not None and orchestrated is not None
 
-    section = control.read_text()
+    text = control.read_text()
+    workspace, _, technology = text.partition("## Technology")
 
-    assert section.startswith("## Technology")
-    assert orchestrated.read_text().endswith(section)
+    # Two blocks, both verbatim in the orchestrator's prompt but not adjacent
+    # there: the empty-workspace fact opens that prompt and the Technology
+    # section closes it, with the orchestration in between. Checking the
+    # whole file as one string would fail for the right reason and stop
+    # anyone from noticing which half had drifted.
+    assert workspace.strip().startswith("**The workspace is empty.**")
+    assert technology.strip()
+    assert workspace.strip() in orchestrated.read_text()
+    assert ("## Technology" + technology) in orchestrated.read_text()
 
 
 def test_the_control_arm_delegates_nothing():

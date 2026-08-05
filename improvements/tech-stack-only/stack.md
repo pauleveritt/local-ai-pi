@@ -1,3 +1,9 @@
+**The workspace is empty.** No files exist yet. Nothing has been scaffolded,
+there is no existing project to join, and no code to read. Everything the
+specification describes must be created from nothing. Do not spend turns
+searching for files: listing the directory will keep returning nothing,
+because there is nothing there.
+
 ## Technology
 
 The solution is a **Python** web application built with **FastAPI**, rendering
