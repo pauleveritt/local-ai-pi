@@ -245,6 +245,7 @@ specs/2026-08-04-phase5-cycle6-loop-breaker-design
 specs/2026-08-04-phase5-cycle7-tech-stack-design
 specs/2026-08-04-phase5-cycle8-child-runaway-design
 specs/2026-08-04-phase5-cycle9-hermetic-child-design
+specs/2026-08-05-enforcement-over-persuasion-design
 ```
 
 ```{toctree}
