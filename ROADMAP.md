@@ -79,7 +79,7 @@ stretching it across a third and fourth suite was judged thin: the seam is
 either proved by a second caller or it isn't, and further callers buy
 repetition rather than evidence.)*
 
-**Phase 5 — The improvement loop.** Next. Four phases produced an engine
+**Phase 5 — The improvement loop. Complete.** Four phases produced an engine
 that measures one unmodified model against a fixed workload. Nothing in it
 can yet express *"this run had something applied to it"* — so an idea about
 how to steer a small model can be argued but not weighed. Phase 5 makes an
@@ -90,6 +90,58 @@ optional; a contributor who finds SDD too formal is never obliged to adopt
 it. The phase ends pointed at something installable — `BRIEF.md` promises "a
 Pi extension (not a fork of Pi) plus an eval harness," and four phases have
 built harness.
+
+*(Closed 2026-08-05, thirteen cycles. **The phase's aim was met and its
+headline is not the one it expected.** An improvement is now a named,
+digested artifact the harness records, and the loop ran end to end — which
+is what made the rest of this paragraph sayable at all.*
+
+*Cycle 1 built the `Improvement` descriptor and its three seams; cycles 2–4
+established the cost answer, child telemetry and the user-story suite with
+its floor. Cycles 5–7 found the three prompt facts that work. Cycle 6 built
+the loop breaker, the phase's installable artifact, which cycle 12
+documented for someone outside the project. Cycles 8–9 chased a runaway
+child and discovered **the delegated child had never been hermetic** — it
+was loading the operator's own toolbelt, proven byte-for-byte from recorded
+transcripts, and one environment variable took timeouts from 2/6 to 0/6.
+Cycle 10 published 13/16 against a bare 0/16.*
+
+***Then cycle 11's control arms undid the headline.* Facts-only scored
+15/16.** The empty-workspace fact and the technology stack — two sentences,
+cycle 5 and cycle 7 — take the suite from the floor to 15/16 on their own,
+and orchestration's contribution is indistinguishable from zero (15/16
+against 13/16 is Fisher p ≈ 0.6, and is recorded as noise rather than as a
+win for the control). The honest reading is that **this suite has no
+headroom left**, which is a fact about the workload, not a verdict on
+delegation.*
+
+*Cycle 13 then closed the phase's other question. A single unambiguous
+sentence about a fact the model could verify in one command changed nothing
+— pip calls held at a median of 2 and the total rose. **Five prompt
+interventions now separate cleanly: the three that supplied a fact the model
+lacked worked; the two that supplied a rule of conduct did not.** That is
+the most transferable thing the phase produced.*
+
+***Two published figures were retracted in one night, and both had the same
+shape.*** *A "4.4× tool-call ratio" and a "1,416 seconds" wall-clock gap
+were each published before being checked, and each pointed the way the
+argument was already going. The first was substring counting over an event
+stream that re-serializes a child's transcript, inflating the delegating arm
+21.9× against the bare arm's 10.0×; the second compared arms run as
+contiguous blocks on a machine whose load varied under them — cycle 10's own
+batch swings 3× internally. Counts survive; seconds do not, and the phase
+ends with **no trustworthy measurement of what delegation costs in time**.
+Interleaving runs across arms is filed as a precondition for any future
+timing claim.*
+
+*The concept budget was let fall twelve cycles behind and is now paid, seven
+terms, recorded as a lapse. `arm` was rejected at cycle 1 and spent anyway,
+because an improvement is the change and an arm is a batch run under it.*
+
+*What the phase does **not** establish: whether orchestration helps on any
+workload. Nothing here speaks to that — this suite left it nowhere to show.
+The enforcement-over-persuasion spec is parked unscheduled for the same
+reason: its bar would be "beat 15/16 on a suite with no room above it.")*
 
 **Two roadmap flavors, because they ask different questions.** On
 AgentClinic's detailed roadmap the success rate is saturated — bare Pi
@@ -253,7 +305,7 @@ defaulted.
 | 2 | Measurement we can trust, cheaply enough to repeat | Instrument a run, characterize its precision, make the environment honest, and impose a discipline on published numbers | complete; the n=100 affordability target was retired 2026-08-02 by the phase's own findings — see "Now" |
 | 3 | Build the extension half | The product is "a Pi extension plus an eval harness"; two phases built the harness. Make the extension observable, then teach the mechanics and record the gotchas. *(This row previously read "Specialize Pi's shipped subagent, then test the handoff-packet cost claim" — withdrawn 2026-08-03 as orchestration work the Backlog had already deferred.)* | complete |
 | 4 | Prove the engine generalizes beyond one workload | A second, differently-shaped suite runs through the same harness, each grader having accepted a known-good and rejected a known-broken solution | complete; closed at one cycle 2026-08-04 — see "Now" |
-| 5 | The improvement loop | Make an improvement a named artifact the harness digests, then run the loop once end to end — what orchestration costs on a saturated workload, what it buys on one with headroom — and finish pointed at something installable | next |
+| 5 | The improvement loop | Make an improvement a named artifact the harness digests, then run the loop once end to end — what orchestration costs on a saturated workload, what it buys on one with headroom — and finish pointed at something installable | complete |
 
 ### Phase 1 feature cycles
 
