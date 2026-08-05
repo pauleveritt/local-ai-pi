@@ -531,6 +531,7 @@ expensive to re-derive.
 | 10 | One publishable arm — a single n=16 batch at the 600 s timeout on whatever configuration survives, comparable with cycles 2 and 4. The only number the phase publishes from here. **Runs on the hermetic configuration**: publishing an arm whose child loads the operator's toolbelt, after discovering that it does, is not defensible. **Result: 13/16 run-accepted and 13/16 grader-accepted, against cycle 4's 0/16 at the same n and the same timeout, with timeouts 6/16 -> 1/16.** Not attributable to the machine: cycle 10 ran ~16% *slower* (10.27 vs 12.24 tok/s). Median total turns 30 -> 14, median run transcript 2.65 MB -> 0.50 MB. The loop-breaker fired in the child for the first time in a live run -- 12 refusals across two runs, both of which still passed -- confirming at n=16 the prediction cycle 9 falsified at n=6. No run was killed with a child still calling tools. [research](docs/superpowers/research/2026-08-04-phase5-cycle10-publishable-arm.md) | Done |
 | 11 | The control arms — cycle 10's headline was 13/16 against 0/16, but four changes separated those arms, so *orchestration works* and *we told it the framework* were not distinguishable. Two n=16 arms at 600 s on the hermetic config isolate them. **Bare: 0/16**, replicating cycle 4 — and more extreme than cycle 4 recorded: **15 of 16 runs made zero tool calls**, answering in prose, so the floor is a *stopped-to-ask* zero. **Facts-only: 15/16** — the empty-workspace fact and the `## Technology` section verbatim, nothing else, loop breaker kept so exactly one thing differs from cycle 10. **The two facts take the suite from 0/16 to 15/16 and orchestration's contribution is not distinguishable from zero** (15/16 vs 13/16 is Fisher p ≈ 0.6 — noise at this n, and not to be reported as a difference), while costing ~1.6× the turns and context and 1.9× the wall clock for the same 34k output tokens. The honest reading is that **this suite has no headroom left**, which is a statement about the workload, not a verdict on delegation. **The first attempt was withdrawn at 8 of 16 runs** because `stack.md` then carried only the Technology section and so differed from cycle 10 by *two* things; its checkpoint is kept as `...-PARTIAL8-withdrawn.jsonl`. **A retraction rides with this cycle**: its first reported cost figures were substring counts over the raw event stream, inflating each arm by a different factor (10.0× / 6.7× / 21.9×) because the subagent update protocol re-serializes the child's whole transcript per update. The real ratio is 1.33×, not 4.4×. [research](docs/superpowers/research/2026-08-05-phase5-cycle11-control-arms.md) | Done |
 | 12 | The installable extension — the phase promised to end "pointed at something installable" and `BRIEF.md` promises "a Pi extension (not a fork of Pi) plus an eval harness." The loop-breaker is that extension and now has live evidence behind it: 12 refusals in the child across two cycle-10 runs, both of which still passed. But it appears in **no** user-facing document — not `README.md`, not `docs/index.md`, not `docs/setup.md` — and has no install instructions, so today it is an internal harness artifact rather than a product. Scope: what it is and the number that justifies it, how to install it into `~/.pi/agent/extensions/` or a project, what `WINDOW` and `THRESHOLD` mean and when to change them, and the one thing a user must know that we paid to learn — that a delegated child does not load your project's extensions, only your user-scope ones. No new mechanism. **Done:** [`docs/loop-breaker.md`](docs/loop-breaker.md), wired into the docs toctree, the README's "Start here" table and both landing pages, with three tests pinning the page to the extension — its constants, its verbatim refusal text, and the subagent paragraph — all mutation-checked. | Done |
+| 13 | The pre-install sentence, and hardening the counting — cycle 11's largest clean signal was that the two arms emitted **the same output-token total to within 16 tokens** while the orchestrated arm spent **1,416 more seconds** producing it, with 28 child `pip install` invocations against the other arm's 2. Both stack prompts now state that FastAPI, Jinja2, pytest and httpx are installed and forbid installing anything — added to *both* so it is not a second variable, which is the mistake that withdrew cycle 11's first attempt. **The claim is true because a run inherits the harness's own environment through `pi_env()`**, and a test asserts it stays true from a directory that is not the repository, so the prompt cannot quietly become a lie. Prediction: child `pip install` calls fall to near zero and wall clock drops materially, with the accepted count unchanged at 13/16 ± noise. Also hardens the counting that cycle 11 got wrong: five tests over synthetic streams pin that a refusal echoed across five event types counts once, and that cumulative subagent updates do not multiply a child's call count. Both historical bugs — counting every event, and keeping only the final update — are mutation-checked as caught. | In progress |
 
 **What the eight withdrawn runs bought, which was more than the arm they came
 from — corrected 2026-08-05 by review.** The paragraph below first read the
@@ -1670,6 +1671,31 @@ things over.
   withdrawn cycle-14 design doc
   (`docs/superpowers/specs/2026-08-01-phase1-cycle14-live-server-execution-design.md`)
   is kept as the starting point.
+- **Move environment setup out of the model entirely — a venv agent, and
+  taking the ability away from everyone else.** Raised by the owner
+  2026-08-05, after cycle 11 measured **28 child `pip install` invocations
+  against the undelegated arm's 2**, for the same output-token total and
+  1,416 more seconds of wall clock. Cycle 13 answers that with a sentence in
+  the stack prompts ("already installed and importable, do not install
+  anything"), which is the cheap version and may be enough.
+
+  The idea beyond it is structural: one specialist owns 100% of the
+  environment, and `pip`/`uv`/`venv` are **denied to every other agent** —
+  enforcement rather than instruction, which is the pivot's premise and the
+  thing a `tool_call` hook can actually do. It is attractive because the
+  failure it removes is one no prompt can reliably prevent: a model that
+  believes its environment is broken will keep trying to fix it.
+
+  **Deliberately not scheduled, and the owner's own framing was "maybe,
+  maybe not."** Three things must land first. (1) See whether cycle 13's
+  sentence already removes the cost — if `pip` calls go to ~zero, a
+  mechanism buys nothing on this workload. (2) A denial has a failure mode
+  the instruction does not: when a package genuinely *is* missing, an agent
+  forbidden to install it cannot recover, so the guard needs a real escape
+  hatch before it guards anything. (3) It only pays where environment setup
+  is a real part of the task, and this suite's is pre-built — so it belongs
+  with a harder workload, not this one.
+
 ## Prior work
 
 The pre-restructure project lives on the `user-story-batch` branch, untouched.

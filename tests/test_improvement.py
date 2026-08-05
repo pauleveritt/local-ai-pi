@@ -744,3 +744,51 @@ def test_the_control_arm_delegates_nothing():
 
     assert control.seed_dir is None
     assert "orchestrat" not in control.system_prompt.read_text().lower()
+
+
+def test_the_preinstall_claim_is_true_of_the_environment_runs_actually_get():
+    """Phase 5 cycle 13. Both stack prompts now assert that FastAPI, Jinja2,
+    pytest and httpx are installed and tell the model not to install
+    anything. That is a claim about the environment, and a false claim is
+    worse than no claim: a model told not to install a missing package
+    cannot recover, where one left alone would have installed it.
+
+    Cycle 11 measured 28 child `pip install` invocations against the
+    undelegated arm's 2, for the same output-token total and 1,416 more
+    seconds of wall clock, which is what the sentence is meant to remove.
+
+    The claim holds because a run inherits the harness's own environment
+    through `pi_env()` -- `VIRTUAL_ENV` and `PATH` included -- and the
+    workspace itself is bare. So this asserts the thing the prompt promises,
+    in a directory that is not the repository, exactly as a run sees it.
+    """
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as elsewhere:
+        probe = subprocess.run(
+            ["python", "-c", "import fastapi, jinja2, pytest, httpx"],
+            cwd=elsewhere,
+            env=runner.pi_env(),
+            capture_output=True,
+            text=True,
+        )
+
+    assert probe.returncode == 0, (
+        "A stack prompt tells the model these are installed and forbids "
+        f"installing anything, but importing them fails:\n{probe.stderr}"
+    )
+
+
+def test_both_stack_prompts_forbid_installing():
+    """The sentence has to reach both arms or it becomes a second variable
+    between them, which is the mistake that withdrew cycle 11's first
+    attempt. The verbatim-section drift test already pins them together;
+    this one fails with a message about *why* if the section is ever split.
+    """
+    for improvement in (runner.tech_stack_only(), runner.sdd_orchestrator_guarded_stack()):
+        prompt = improvement.system_prompt
+        assert prompt is not None
+        text = prompt.read_text()
+
+        assert "already installed and importable" in text, improvement.name
+        assert "Do not install anything." in text, improvement.name

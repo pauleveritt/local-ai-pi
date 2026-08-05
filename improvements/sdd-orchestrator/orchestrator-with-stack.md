@@ -57,6 +57,11 @@ The solution is a **Python** web application built with **FastAPI**, rendering
 application through an ASGI test client, and a WSGI framework such as Flask
 will fail before any assertion runs.
 
+**FastAPI, Jinja2, pytest and httpx are already installed and importable.**
+Do not install anything. `python` and `python -m pytest` are on the path and
+resolve to the environment that has them; `pip install` is unnecessary and
+will cost you turns for nothing.
+
 The graded module is **`app.py` at the project root**, exposing a module-level
 object named `app`. It may import from other files, but that module must exist
 at that path under that name.
