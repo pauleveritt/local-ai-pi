@@ -143,6 +143,35 @@ workload. Nothing here speaks to that — this suite left it nowhere to show.
 The enforcement-over-persuasion spec is parked unscheduled for the same
 reason: its bar would be "beat 15/16 on a suite with no room above it.")*
 
+**Phase 6 — Enforcement over persuasion. In progress.** Phase 5 found the
+persuasion ceiling: of five prompt interventions, the three that supplied a
+*fact* worked and the two that supplied a *rule of conduct* did not. That is a
+re-derivation of `LESSONS.md` §1 from the prior project — "a rule such as
+'repair at most twice' still relies on the SLM to count its own loop; a
+mechanical stop does not" — and of Tainie's first principle, that the model
+never decides scope. This project left OpenCode for Pi because Pi offers
+machinery to control operations rather than prose to persuade with, and four
+phases of harness plus one of prose have under-used it. So: one at a time, add
+a guard to the extension, each drawn from prior experience and each proven
+against a recorded failure before it ships.
+
+Two things this phase deliberately does **not** do, stated once so no cycle
+re-litigates them. It does not try to raise acceptance — the user-story suite
+is at 15/16 facts-only and has no headroom, so a guard measured there can only
+fail to show anything. And it publishes no wall-clock number, because Phase 5
+retracted two figures in one night and filed interleaved arms as the
+precondition for any timing claim. A guard's claim is *what it prevents*,
+proven by replay fixture at zero model cost.
+
+Hypotheses are allowed and bounded. A cycle may propose a guard with no banked
+failure behind it, if the prediction is pre-registered; it ends either with the
+failure recorded (and the guard then earning its fixtures like any other) or
+falsified and dropped, written up the way cycle 8's 3/3 falsification was.
+**Nothing enters the shipped extension on a hypothesis alone** — a phase whose
+unit of work is "add a feature" walks toward `BRIEF.md`'s trap by construction,
+and that rule is what keeps speculation costing a cycle rather than a permanent
+line of code. [spec](docs/superpowers/specs/2026-08-05-phase6-guards-design.md)
+
 **Two roadmap flavors, because they ask different questions.** On
 AgentClinic's detailed roadmap the success rate is saturated — bare Pi
 scored 16/16 in Phase 1, and the prior project's orchestrated arm also
@@ -225,6 +254,8 @@ not by being convenient shorthand.*
 | agent dir | the directory `PI_CODING_AGENT_DIR` points a run at, holding its settings, models and user-scope extensions. **The only seam that reaches a delegated child**, since the subagent extension passes no environment of its own | phase 5 cycle 9 |
 | runaway | a run repeating one *identical* call — 245 `ls -R`, 77 identical `pytest`. What the loop breaker detects, because the key includes the arguments | phase 5 cycle 8 |
 | churn | a run rewriting the *same target* repeatedly with differing content — 27 versions of one template. **Not a runaway**, and the loop breaker mostly does not catch it, which is why the two are separate words | phase 5 cycle 11 |
+| guard | one enforcement rule in the extension, with its own replay fixtures. The loop breaker is guard #1 and keeps its own row above, because the published records cite it by name | phase 6 cycle 1 |
+| replay fixture | a recorded tool-call sequence a guard is run against offline, paired — one it must fire on, one it must stay silent on. The evidence bar for a guard, as the known-good/known-broken pair is for a grader | phase 6 cycle 1 |
 
 **Spent, phase 5 cycles 2–13 — seven terms, recorded late.** The table's
 newest entry stood at cycle 1 while twelve cycles ran. That is the failure
@@ -306,6 +337,7 @@ defaulted.
 | 3 | Build the extension half | The product is "a Pi extension plus an eval harness"; two phases built the harness. Make the extension observable, then teach the mechanics and record the gotchas. *(This row previously read "Specialize Pi's shipped subagent, then test the handoff-packet cost claim" — withdrawn 2026-08-03 as orchestration work the Backlog had already deferred.)* | complete |
 | 4 | Prove the engine generalizes beyond one workload | A second, differently-shaped suite runs through the same harness, each grader having accepted a known-good and rejected a known-broken solution | complete; closed at one cycle 2026-08-04 — see "Now" |
 | 5 | The improvement loop | Make an improvement a named artifact the harness digests, then run the loop once end to end — what orchestration costs on a saturated workload, what it buys on one with headroom — and finish pointed at something installable | complete |
+| 6 | Enforcement over persuasion | One at a time, add a guard to the extension, each drawn from prior experience and each proven against a recorded failure before it ships | in progress |
 
 ### Phase 1 feature cycles
 
@@ -809,6 +841,42 @@ parallel children on a single-threaded local server. Cycle 2 is the first
 measured orchestrated batch this project has ever run, so it records whether
 that happens. If it fires, the gate opens and the ~150-line tool is the
 honest path to something installable.
+
+### Phase 6 feature cycles
+
+| Cycle | Summary | State |
+|-------|---------|-------|
+| 1 | The guard harness — `extensions/guards/`, one entry point (`index.ts`, never the directory — cycle 1's spike found a directory argument fails *silently* and the run still grades accepted) plus one file per guard, with the loop breaker moved in **unchanged** as guard #1. Collapses the current `.pi/extensions/` + `pi-agent-dir/extensions/` copy-paste pair into one installed location, in the agent dir, since cycle 9 proved `PI_CODING_AGENT_DIR` is the only seam that reaches a delegated child. Builds the replay runner the rest of the phase is judged by: it exercises the **shipped TypeScript** against recorded tool-call sequences, closing the gap cycle 6's replay script names in its own docstring ("this is an analysis of the rule, not a test of the shipped code… they can diverge, and no test here would notice"). Two replay fixtures for guard #1 from batches already banked — cycle 4's 261-turn run, on which it must fire, and a clean accepted run, on which it must stay silent. **Claims no number and runs no batch.** The same move as phase 4 cycle 1: prove the machinery on a guard whose value is already established, so the first *new* guard is not also the first test of the harness judging it. [spec](docs/superpowers/specs/2026-08-05-phase6-guards-design.md) | Planned |
+
+**The candidate well, not a commitment.** Later cycles draw from
+`LESSONS.md` and Tainie, one at a time, roughly in this order of how much
+recorded evidence sits behind each: a **graceful turn budget** (§11/§16;
+Pi has no turn cap at any level and `ctx.abort()` is confirmed to yield
+`stopReason: "aborted"`, which the shipped subagent classifies as a *failed*
+delegation — so blocking dominates aborting); **tool-output limits and
+recursive-listing refusal** (§8 — the initial choice is stochastic, the
+context explosion after it is deterministic); a **path-keyed churn breaker**
+(27× one template, 19× and 10× `app.py`; the current key includes arguments,
+which is why 26 of 27 byte-identical writes tripped it and the rest did not);
+**stale-anchor edit → demand a whole-file write** (§12, 27 `oldString`
+mismatches in one session record); **resolved-model verification** (§10);
+and a **default-deny tool policy** (§8 — a child hit its denied `ls`, then
+routed the same intent through an editor-injected shell tool).
+
+Structural/LSP navigation and deterministic write-path transforms are
+**deliberately excluded** as too large for a guard — they are Tainie's whole
+architecture, not a file under 150 lines. If they are wanted here, they are a
+phase. The enforcement spec's **done-detector** stays unscheduled on its own
+evidence: it would never have fired in its own flagship run, and both churning
+runs were accepted anyway, so it would have changed zero grades.
+
+**A constraint that must survive the phase.** A guard must never touch the
+harness's acceptance file; its signal is the model's own validation command.
+Running the contract mid-run would hand an arm a perfect done-signal no earlier
+arm had — a *capability*, not an information leak, which is why redacting
+failure text would not fix it. `grade()` already backs this structurally by
+copying allowlisted paths out to a fresh directory, so the acceptance file is
+never in the workspace during a run.
 
 ### Deferred candidates
 
