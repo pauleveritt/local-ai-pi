@@ -708,3 +708,31 @@ def test_the_implementer_is_told_to_stop_repeating_a_failing_command():
     assert "same command over and over" in text
     assert "fails twice" in text
     assert "report and stop" in text
+
+
+def test_the_control_arm_carries_the_stack_facts_verbatim():
+    """`tech-stack-only` exists to isolate cycle 7's two facts from the
+    orchestration wrapped around them. If its prompt drifts from the section
+    inside the orchestrator's prompt, the two arms stop differing by exactly
+    orchestration and the control stops controlling anything.
+    """
+    control = runner.tech_stack_only().system_prompt
+    orchestrated = runner.sdd_orchestrator_guarded_stack().system_prompt
+    assert control is not None and orchestrated is not None
+
+    section = control.read_text()
+
+    assert section.startswith("## Technology")
+    assert orchestrated.read_text().endswith(section)
+
+
+def test_the_control_arm_delegates_nothing():
+    """No seed means no `.pi/agents/implementer.md`, so there is no
+    specialist to delegate to even if the model tried. That absence is the
+    whole point of the arm and is cheap to assert.
+    """
+    control = runner.tech_stack_only()
+    assert control.system_prompt is not None
+
+    assert control.seed_dir is None
+    assert "orchestrat" not in control.system_prompt.read_text().lower()

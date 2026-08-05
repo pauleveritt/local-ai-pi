@@ -233,6 +233,32 @@ def sdd_orchestrator_guarded() -> Improvement:
     )
 
 
+def tech_stack_only() -> Improvement:
+    """Improvement #4: the two facts, and nothing else.
+
+    The control the phase's headline needs. Cycle 10 reported 13/16 against
+    cycle 4's 0/16, but four changes separate those arms and one of them --
+    cycle 7's Technology section -- was the single change that took the suite
+    off the floor. So "orchestration works" and "we told it the framework"
+    are not yet distinguishable, and the honest reading of 13/16 depends on
+    which it is.
+
+    This arm carries the Technology section **verbatim** and no orchestrator
+    prose, no seeded specialist, and no delegation. Against cycle 10 it
+    isolates orchestration; against a bare arm it isolates the two facts.
+
+    It keeps the loop-breaker, because cycle 10 had it: dropping it here
+    would put two differences between the arms instead of one. The guard
+    costs nothing on a run that does not loop.
+    """
+    return Improvement(
+        name="tech-stack-only",
+        seed_dir=None,
+        extensions=(LOOP_BREAKER,),
+        system_prompt=IMPROVEMENTS / "tech-stack-only" / "stack.md",
+    )
+
+
 def sdd_orchestrator_guarded_stack() -> Improvement:
     """Improvement #3: the guarded orchestrator, told the technology stack.
 

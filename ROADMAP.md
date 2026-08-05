@@ -529,6 +529,8 @@ expensive to re-derive.
 | 8 | The runaway child — the last known cause of a *correct* solution losing its run. Both cycle-7 timeouts were killed with the child still going at 98–103 turns, and the loop-breaker cannot reach it: a probe proved project-local `.pi/extensions/` is not loaded by a child-style invocation, with or without `--approve`. So this corrected the implementer prompt instead — stop re-running a command that fails identically twice — on the grounds that the mechanism was undeliverable and two previous prompt corrections had worked. **Result: three pre-registered predictions, three falsified.** Worst repeated command rose 93 → 178 and runs repeating a command ≥5× rose 2 → 3. The cycle aimed at the wrong loop: the repeats are *exploration* (`ls -R`, `ls -F`), not validation. The transferable lesson is that the two prompt wins supplied a **fact** and this one supplied a **rule of conduct**. Its real yield was the research it forced — see cycle 9. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle8-child-runaway-design.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle8-child-runaway.md) | Done |
 | 9 | The hermetic child — **the delegated child has never been hermetic.** The parent runs with `--no-extensions --no-skills --no-prompt-templates --no-themes --no-context-files`; the child is spawned by Pi's shipped subagent extension carrying none of them, and user-scope resources load unconditionally, so every orchestrated arm this project has published ran its child with the operator's own `~/.pi/agent/extensions/` and packages — including `rtk.ts`, which rewrites bash commands. Confirmed in our own recorded transcripts, not inferred: the child's `ls -R` returns the output of `rtk ls -R`, reproduced byte-for-byte. `PI_CODING_AGENT_DIR` is the one seam that reaches the child, since the extension's `spawn` passes no `env` — so a harness-owned agent dir both removes the contamination and delivers the loop-breaker as a user-scope extension, which is the guard cycle 8 could not deliver. `RunConditions` gains `agent_dir_digest`. Affected records get correction banners. **Result: removing the contamination removed the runaway.** 5/6 run-accepted, 5/6 grader-accepted, **0/6 timeouts** where cycles 7 and 8 had 2 apiece, and every run terminated on its own. Worst repeated command across a pilot fell 178 -> 5; median run transcript fell 9.63 MB -> 0.49 MB and peak context 2.8M -> 91k. The loop-breaker refused zero calls -- there was nothing left to refuse -- though a threshold-0 copy proved separately that it does load in the child, which cycle 8 had concluded was impossible. [spec](docs/superpowers/specs/2026-08-04-phase5-cycle9-hermetic-child-design.md), [research](docs/superpowers/research/2026-08-04-phase5-cycle9-hermetic-child.md) | Done |
 | 10 | One publishable arm — a single n=16 batch at the 600 s timeout on whatever configuration survives, comparable with cycles 2 and 4. The only number the phase publishes from here. **Runs on the hermetic configuration**: publishing an arm whose child loads the operator's toolbelt, after discovering that it does, is not defensible. **Result: 13/16 run-accepted and 13/16 grader-accepted, against cycle 4's 0/16 at the same n and the same timeout, with timeouts 6/16 -> 1/16.** Not attributable to the machine: cycle 10 ran ~16% *slower* (10.27 vs 12.24 tok/s). Median total turns 30 -> 14, median run transcript 2.65 MB -> 0.50 MB. The loop-breaker fired in the child for the first time in a live run -- 12 refusals across two runs, both of which still passed -- confirming at n=16 the prediction cycle 9 falsified at n=6. No run was killed with a child still calling tools. [research](docs/superpowers/research/2026-08-04-phase5-cycle10-publishable-arm.md) | Done |
+| 11 | The control arms — the phase's headline is 13/16 against 0/16, but four changes separate those arms and cycle 7's two facts were the single change that took the suite off the floor. So *orchestration works* and *we told it the framework* are not yet distinguishable. Two n=16 arms at 600 s on the hermetic config: **bare** (the floor, rerun so it is comparable) and **tech-stack-only** — the `## Technology` section verbatim, no orchestrator prose, no seeded specialist, nothing to delegate to, loop-breaker kept so exactly one thing differs from cycle 10. Against cycle 10 it isolates orchestration; against bare it isolates the two facts. | In progress |
+| 12 | The installable extension — the phase promised to end "pointed at something installable" and `BRIEF.md` promises "a Pi extension (not a fork of Pi) plus an eval harness." The loop-breaker is that extension and now has live evidence behind it: 12 refusals in the child across two cycle-10 runs, both of which still passed. But it appears in **no** user-facing document — not `README.md`, not `docs/index.md`, not `docs/setup.md` — and has no install instructions, so today it is an internal harness artifact rather than a product. Scope: what it is and the number that justifies it, how to install it into `~/.pi/agent/extensions/` or a project, what `WINDOW` and `THRESHOLD` mean and when to change them, and the one thing a user must know that we paid to learn — that a delegated child does not load your project's extensions, only your user-scope ones. No new mechanism. | Planned |
 
 **Cycle 1 spent one term: `improvement`**, as budgeted above. `Improvement`,
 `improvement_digest`, `pi_package_root`, and the `"<pre-phase5>"` sentinel are
@@ -1259,6 +1261,56 @@ things over.
   Until one of those fires it is machinery ahead of its contract, and the
   shipped example is maintained by the people who move the APIs it depends
   on. See the fork decision recorded under Phase 3.
+
+  **Resolved 2026-08-04: the original gate fired, and then closed again.**
+  Phase 5 cycle 8 met it exactly as written — two runs of six lost their
+  result to a child the shipped extension spawned with arguments we cannot
+  influence, and the guard we had built could not reach it. Cycle 9 then
+  removed the motivation rather than the evidence: `PI_CODING_AGENT_DIR`
+  delivers the guard to the child through user scope, so the one thing the
+  tool was going to buy is already bought. The gate above is therefore
+  **still shut**, on the narrower triggers it now names, and this entry stays
+  a candidate rather than a plan.
+
+  **The uncomfortable part.** Both the failure and the fix were already in
+  this repository. The gotchas record's #4 and #5 state the child's argv and
+  name `PI_CODING_AGENT_DIR` as "the one lever that isolates a child whose
+  spawn you do not control," and the withdrawn phase 3 cycle 2 spec said the
+  same. Cycle 8 was spent concluding the opposite. Nothing was wrong with the
+  research; it was never retrieved.
+- **Pi's extension-loading rules — closed 2026-08-04, answered rather than
+  investigated.** Opened after three surprises in one project (an
+  `--extension` pointed at a directory failing silently, `session_start`
+  entries dropped in print mode, and a project-local `.pi/extensions/` not
+  reaching a child). A source-level pass answered all of it, and most of the
+  answer turned out to be **already recorded**: precedence, what
+  `--no-extensions` governs versus `--approve`, and what a child inherits are
+  gotchas 2–5 of the
+  [Pi gotchas record](docs/superpowers/research/2026-08-03-phase3-cycle2-pi-gotchas.md),
+  which now also carries the three findings that were genuinely new (11–13).
+  The one open question is narrow and recorded there: source and shipped docs
+  both say `--approve` should make a workspace-local `.pi/extensions/` load in
+  a headless child, and our probe said it did not. Not worth a cycle — the
+  user-scope route works and is the one we use.
+
+- **When a written record does not reach the cycle that needs it.** The
+  companion to *"why seven reviews missed a stale figure"*, and the same
+  shape one layer out: that entry is about a stale fact surviving review;
+  this is about a *correct* fact never being consulted. Phase 5 cycle 8 spent
+  a full cycle — a spec, a build, a pilot, a research record — on the premise
+  that a guard could not be delivered to a delegated child, while two
+  committed documents said how to deliver it. The cost was one cycle and a
+  research record that had to be re-framed from discovery to re-discovery.
+
+  What is **not** proposed is a rule to "read the docs first"; that is
+  unfalsifiable and everyone believes they already do it. Two candidates
+  worth testing instead: making the gotchas record's numbered findings
+  greppable by symptom rather than by mechanism (cycle 8 was searching for
+  *how to reach a child*, and the record files that under *what a child
+  inherits*), and requiring a cycle spec whose premise is an impossibility
+  claim to cite the check that establishes it. Revisit as a discipline cycle
+  alongside the entry below, since the two may share a cause.
+
 - **Why seven reviews missed a stale figure.** Phase 3 cycle 1 shipped "48
   inert runs" in five documents; the true census was 80, and a light
   independent review found it after six task-scoped reviews and one

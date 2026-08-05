@@ -8,6 +8,26 @@
 > **Publishes no number.** n=6 at `run_timeout=300`, not comparable with any
 > n=16/600 s arm. The comparable arm follows.
 
+> **Corrected 2026-08-04, hours after writing, by a check of our own records.**
+> This record was framed as a discovery. It was substantially a **re-discovery**.
+> The Pi gotchas record, committed two days earlier, already states as gotcha 4
+> that *"a spawned subagent child inherits none of the parent's isolation
+> flags"* — with the exact argv — and as gotcha 5 that `PI_CODING_AGENT_DIR` is
+> *"the one lever that isolates a child whose spawn you do not control."* That
+> is this cycle's finding and this cycle's fix, both already written down.
+>
+> What is genuinely new here is narrower and still worth having: that the
+> contamination **had already happened in banked measurements** and is visible
+> in the recorded transcripts; that it plausibly *caused* the runaway; the
+> `agent_dir_digest` condition; and the live proof that the loop-breaker
+> reaches the child by the user-scope route. What is not new is the mechanism
+> or the lever.
+>
+> The cost of not reading our own record was cycle 8 — an entire cycle whose
+> premise ("the guard cannot be delivered to the child") contradicted a
+> committed document. Recorded as a process finding in the Backlog, because
+> the failure was retrieval, not research.
+
 ## The result
 
 | pilot | run-accepted | grader-accepted | timeouts | worst repeated command | runs repeating ≥5× |

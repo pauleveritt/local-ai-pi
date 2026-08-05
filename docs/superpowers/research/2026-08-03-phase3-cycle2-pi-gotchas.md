@@ -344,6 +344,48 @@ covered by anything read here, and should not be assumed to resolve.
 
 ---
 
+## 11. User-scope extensions load in the child unconditionally — and did
+
+**run.** Gotcha 4 established that the child inherits no isolation flags.
+What nobody checked until phase 5 cycle 9 is whether that had *already
+happened in banked measurements*. It had.
+
+Every orchestrated arm this project published before 2026-08-04 ran its child
+with the operator's `~/.pi/agent/extensions/` loaded, including `rtk.ts`,
+which rewrites bash commands on `tool_call`. The proof is in the checkpoints:
+child transcripts record `ls -R` returning a flattened, size-annotated listing
+of everything under cwd including all of `.git` — the output of `rtk ls -R`,
+reproduced byte-for-byte in a scratch repo. Plain `ls -R` cannot produce it.
+
+**Cost:** correction banners on six research records, and the phase's cost
+ratios demoted to lower bounds. See
+[cycle 9](2026-08-04-phase5-cycle9-hermetic-child.md).
+
+## 12. Project-scope *extensions* are trust-gated; project-scope *agents* are not
+
+**run.** `.pi/agents/` is found by walking up from cwd (gotcha 7) because the
+subagent extension reads it itself with plain `fs` calls — no trust involved.
+`.pi/extensions/` is a Pi core concept and requires project trust, which a
+headless child has no stored decision for. So a workspace can deliver a
+*specialist* to a child and cannot deliver an *extension* to it by the same
+route.
+
+This asymmetry is what made phase 5 cycle 8 conclude, wrongly, that a guard
+could not reach the child at all. The user-scope route (gotcha 5) was open
+the whole time.
+
+## 13. A literal NUL in an extension's source makes git treat it as binary
+
+**run.** `loop-breaker.ts` used a raw NUL as a separator inside a template
+literal. Git classified the file as binary, so **its diffs were invisible in
+every review it ever had**, including the review that shipped it. Written
+`\u0000` instead — the same string — and a test now asserts the source
+contains no NUL byte.
+
+Not a Pi gotcha strictly, but it lives here because extensions are the only
+`.ts` this project ships and the failure is silent in exactly the place
+review happens.
+
 ## What this record is not
 
 It is not a summary of
