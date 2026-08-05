@@ -84,10 +84,15 @@ Whatever we build, we build.
 
 ## Candidates, cheapest first
 
-**1. The done-detector.** An extension that knows the run's acceptance command,
-runs it after any tool call that wrote a file, and on success patches the next
-`tool_result` with an unambiguous completion statement — then blocks further
-`write`/`edit` calls with a reason naming the passing tests.
+**1. The done-detector.** An extension that watches for the **model's own**
+validation command — the one the task spec names, `python -m pytest` from the
+project root — and, when it passes, patches that `tool_result` with an
+unambiguous completion statement, then blocks further `write`/`edit` calls
+with a reason pointing at the passing run.
+
+It never runs the harness's acceptance file and never learns anything the
+model did not already have; see the settled seam below, which is the reason
+this reads "the model's own" rather than "the acceptance command".
 
 This is the direct answer to the measured failure. It converts "definition of
 done" from prompt text the orchestrator supplies into a mechanism the harness
@@ -137,15 +142,83 @@ arriving somewhere it was not expected.
 the question; a cycle that pre-registers its predictions before running is the
 discipline that caught cycle 8.
 
+## Settled before any code: the acceptance-command seam
+
+Candidate 1 needs a done-signal. The obvious source is the harness's
+acceptance suite, and the obvious worry is that reaching it leaks the grading
+contract into the workload. **Both the worry and the obvious design are
+wrong, in different directions.**
+
+### There is nothing secret to leak — on this suite
+
+Comparing the two files directly: `examples/agentclinic/phase-1/acceptance/
+test_acceptance.py` asserts a 200 at `/`, the tagline verbatim, `"AgentClinic"`,
+a `Home` link to `/` and a `Complaints` link to `/complaints`, and an HTML5
+doctype with a declared language. The task spec the model is handed states
+**every one of those**, including the tagline word for word and both link
+targets.
+
+The only thing the contract adds is the structural coupling `from app import
+app` — and that module path is already given to these arms in `stack.md`'s
+Technology section, which is cycle 7's lever.
+
+So for this workload the contract is already public to the model. **This is a
+property of this suite, not a general licence**, and it must not become an
+assumption: a future suite whose contract is stricter than its prose would
+turn any detector that reads it into a channel.
+
+### The real risk is the oracle, and hiding text does not fix it
+
+If the detector runs the harness's acceptance suite, the arm gains a **perfect
+done-signal that no previous arm had**. That is a capability, not an
+information leak, and suppressing the failure text does not remove it — even
+one bit of "you are done now" is an advantage cycle 10 did not have.
+Comparing such an arm against cycle 10 would measure *model plus oracle*
+against *model*, and every point of difference would be unattributable.
+
+This is the more dangerous of the two problems and the easier one to miss,
+because the leak framing invites a fix (redact the output) that leaves it
+fully intact.
+
+### The decision
+
+**The detector never touches the harness's acceptance file.** Its done-signal
+is the *model's own* validation command — the one the task spec already names:
+
+> Run the tests with `python -m pytest` from the project root.
+
+The detector enforces *"your declared validation passed, so stop"*. That is a
+mechanization of what the orchestrator's handoff packet does today with its
+Validation section and "report and stop" — using only information the model
+already had, and giving the arm no capability the others lacked.
+
+**A structural guarantee backs it up.** `grade()` copies allowlisted paths out
+of the workspace into a fresh temp directory and runs the contract *there*;
+the acceptance file is never present in the workspace during a run
+(`harness/grading.py`). So a detector confined to the workspace cannot read
+the contract even by mistake. The rule that keeps it that way: **the extension
+runs commands with cwd inside the workspace and reads no path outside it.**
+
+### What this costs, stated plainly
+
+The detector can certify *completion by the model's own standard*, never
+correctness. A model that writes weak tests will pass them, be told to stop,
+and be rejected by the grader.
+
+That exposure is real and it is **exactly the exposure the orchestrated arm
+already carries** — its packet names a validation command the model itself
+satisfies — and that arm scored 13/16. If the model writes no tests, the
+detector never fires and the run behaves as it does today, which is the
+correct degradation.
+
+This also keeps the claim honest and matches what phase 5 measured:
+orchestration contributes **termination, not correctness**, so a mechanism
+replacing it should promise termination and nothing more.
+
 ## Open questions, honestly flagged
 
 - Does `ctx.abort()` produce a salvageable result or a failed delegation?
   Unverified, and candidate 3 depends on it.
-- Can the harness supply the acceptance command to an extension without
-  leaking the grading contract into the workload? The suite's acceptance file
-  is harness-owned and the model must not read it. A done-detector that runs
-  it needs a seam that does not become a channel — this is the design risk of
-  candidate 1 and should be settled before any code.
 - Is revision churn present in the *orchestrated* arm at lower amplitude, or
   absent? Recomputable from banked checkpoints, and it decides whether
   candidate 2 is a general win or a control-arm artifact.
