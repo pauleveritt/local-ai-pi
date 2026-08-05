@@ -1,8 +1,16 @@
 # Enforcement over persuasion — the stopping condition
 
 **Date:** 2026-08-05
-**Status:** design — **substantially revised the same day, after review**
+**Status:** design — **revised twice the same day**: once after review, then
+again when the arm it deferred to landed. **Not scheduled as a cycle.**
 **Phase:** 6 candidate — the deep dive this project pivoted to Pi for
+
+> **Why it is not scheduled.** This document deferred its conclusion to the
+> facts-only n=16 arm. That arm landed at **15/16**, above the threshold this
+> document named, which puts the bar for any mechanism at "beat 15/16 on a
+> suite with no headroom." The thesis about enforcement is untouched and the
+> Pi capability survey below is the reusable part. What is missing is a
+> workload whose failures a guard could fix.
 
 > **What the first draft got wrong.** It claimed the facts-only arm "builds
 > correctly but never stops." A full recount of all eight withdrawn runs — the
@@ -88,10 +96,25 @@ n=8 cannot establish that it *is* zero. It comfortably refutes the claim that
 it is specifically termination, because the arm without orchestration
 terminated in seven of eight runs.
 
-**The in-flight n=16 facts-only arm settles this, and this document should wait
-for it.** If that arm lands near 13/16, phase 5's honest headline is that
-**cycle 7's two sentences did nearly all the work** and the orchestrator is
-scaffolding. That is a real result, and not the one the phase assumed.
+### The n=16 arm landed, above the threshold this section named
+
+**Facts-only: 15/16, zero timeouts.** Against the orchestrated arm's 13/16
+with one timeout. The section above said that near 13/16 would mean cycle 7's
+two sentences did nearly all the work; it came in above that, so the reading
+stands and is if anything stronger. See
+[the cycle 11 record](../research/2026-08-05-phase5-cycle11-control-arms.md).
+
+Two guards on that sentence. **15/16 against 13/16 is Fisher p ≈ 0.6** — it is
+not evidence that facts-only is *better*, and must never be cited as such. And
+the reason orchestration shows nothing is most likely that **this suite has no
+headroom left**: a workload the facts alone carry to 15/16 leaves nothing for
+orchestration to occupy. That is a fact about the workload.
+
+**What this does to the cycle proposed below.** The bar a new mechanism must
+clear is now "beat 15/16 on a suite with no room above it," which is not a
+sensible target. **The next thing to schedule is a harder workload, not a
+guard.** This document should not become a cycle until there is a suite whose
+failures a guard could plausibly fix.
 
 ## What Pi can actually enforce
 
@@ -167,16 +190,23 @@ breaker's shape, which is documented, installed, and measured.
 
 ## How it gets measured
 
-| arm | status |
-|---|---|
-| bare | **0/16** — a stopped-to-ask zero; the one run that built used Flask |
-| facts-only | **7/8 withdrawn**; n=16 in flight |
-| orchestrated | **13/16** |
+| arm | accepted | timeouts | turns med | tok/s |
+|---|---|---|---|---|
+| bare | **0/16** — a stopped-to-ask zero; **15 of 16 runs made zero tool calls** | 0 | 1.0 | 11.11 |
+| facts-only | **15/16** | 0 | 9.0 | 22.20 |
+| orchestrated | **13/16** | 1 | 14.0 | 11.55 |
 
-**No new arm should run until the facts-only n=16 lands.** If orchestration's
-contribution is near zero, the bar a mechanism must clear changes from "replace
-the orchestrator" to "beat the facts alone" — a different and much harder
-question.
+All three arms complete. The bar a mechanism must clear is "beat the facts
+alone," and on this suite that bar is 15/16 — high enough that the suite,
+not the mechanism, is what needs replacing first.
+
+One cost figure worth carrying forward, because it is the largest clean
+signal in the phase and no mechanism here addresses it: the two arms emitted
+**the same output-token total to within 16 tokens** (34,096 against 34,080)
+while the orchestrated arm took **1,416 more seconds** to do it. That is
+wall clock producing nothing, and its likeliest source — 28 child
+`pip install` invocations against the other arm's 2 — is fixable with a
+sentence, not an extension.
 
 Pre-registration comes with the cycle spec, not here.
 

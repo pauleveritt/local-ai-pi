@@ -39,6 +39,14 @@ ARMS = {
     "cycle 9 — hermetic child": EVIDENCE / "satyrn-phase5-cycle9-hermetic-n6-t300.jsonl",
     "cycle 10 — n=16 at 600 s": EVIDENCE
     / "satyrn-phase5-cycle10-hermetic-n16-t600.jsonl",
+    # Cycle 11's control arms. Neither delegates -- they carry no subagent
+    # extension -- so every child column reads 0 by construction, and that
+    # zero is the point rather than a gap: it is what makes their cost
+    # comparable with cycle 10's on the parent's own terms.
+    "cycle 11 — bare (control floor)": EVIDENCE
+    / "satyrn-phase5-cycle11-bare-hermetic-n16-t600.jsonl",
+    "cycle 11 — facts-only (control)": EVIDENCE
+    / "satyrn-phase5-cycle11-stackonly-v2-n16-t600.jsonl",
 }
 
 
@@ -110,6 +118,32 @@ def child_calls(pi_stdout: str) -> tuple[list[str], str | None, int, int]:
     return calls, stop, steps, blocks
 
 
+def parent_blocks(pi_stdout: str) -> int:
+    """Loop-breaker refusals served to the *parent*, counted once each.
+
+    Added phase 5 cycle 11, when the control arms carried the loop breaker
+    with nothing to delegate to, so `child_calls` reported zero for every
+    refusal that actually happened.
+
+    **A raw substring count of the marker over-reports by roughly 5x**: Pi
+    emits the same refusal inside `tool_execution_end`, `message_start`,
+    `message_end`, `turn_end` and `agent_end`. One cycle-11 run reads 55 by
+    substring and 11 here. `tool_execution_end` is the event that means "a
+    call was refused" exactly once, so it is the one counted.
+    """
+    refusals = 0
+    for line in pi_stdout.split("\n"):
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") != "tool_execution_end":
+            continue
+        if BLOCK_MARKER in json.dumps(event.get("result")):
+            refusals += 1
+    return refusals
+
+
 def main() -> None:
     for arm, path in ARMS.items():
         if not path.is_file():
@@ -125,25 +159,28 @@ def main() -> None:
         # than once and only the earlier call finished.
         print(
             "| # | run-accepted | grader-accepted | timed out | child turns | "
-            "child steps | child tool calls | blocked | worst repeat | "
-            "that command | stopReason |"
+            "child steps | child tool calls | blocked (child) | "
+            "blocked (parent) | worst repeat | that command | stopReason |"
         )
-        print("|---|---|---|---|---|---|---|---|---|---|---|")
+        print("|---|---|---|---|---|---|---|---|---|---|---|---|")
 
         worsts = []
         blocked_total = 0
+        parent_total = 0
         for i, record in enumerate(records, 1):
             telemetry = read_telemetry(record.pi_stdout)
             calls, stop, steps, blocks = child_calls(record.pi_stdout)
+            refused = parent_blocks(record.pi_stdout)
             counts = Counter(calls)
             command, worst = counts.most_common(1)[0] if counts else ("—", 0)
             worsts.append(worst)
             blocked_total += blocks
+            parent_total += refused
             shown = command if len(command) <= 44 else command[:41] + "..."
             print(
                 f"| {i} | {record.accepted} | {record.grade.accepted} | "
                 f"{record.pi_timed_out} | {telemetry.child_turns} | {steps} | "
-                f"{len(calls)} | {blocks} | "
+                f"{len(calls)} | {blocks} | {refused} | "
                 f"{worst} | `{shown}` | {stop} |"
             )
         print()
@@ -160,6 +197,7 @@ def main() -> None:
             )
             print(f"- runs repeating one command >=5 times: {sum(1 for w in worsts if w >= 5)}")
         print(f"- child calls refused by the loop breaker: {blocked_total}")
+        print(f"- parent calls refused by the loop breaker: {parent_total}")
         _cost_table(records)
         print()
 
