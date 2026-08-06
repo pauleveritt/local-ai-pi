@@ -31,10 +31,6 @@ cd local-ai-pi
 uv sync
 ```
 
-The reboot currently lives on the unpublished `restructure` branch/worktree;
-a fresh clone still opens the old `main` project. Coordinate with the owner
-for access to this worktree until `restructure` is published.
-
 `uv sync` reads `pyproject.toml` and `uv.lock`, fetches **Python 3.14**
 (pinned; the project uses 3.14-only syntax), and installs dependencies into
 `.venv/`. You never activate it by hand — prefix commands with `uv run`.
@@ -45,9 +41,9 @@ for access to this worktree until `restructure` is published.
 uv run pytest
 ```
 
-Expect all tests to pass, with **one skipped**. That skip is the
-integration test that needs `pi` and a live model server — skipping is the
-correct result until you finish Part 2. If it *fails* rather than skips,
+Expect all tests to pass, with **a handful skipped**. Those skips are the
+integration tests that need `pi` and a live model server — skipping is the
+correct result until you finish Part 2. If one *fails* rather than skips,
 something is wrong; say so.
 
 ### Quality gates

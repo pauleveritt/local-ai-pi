@@ -1,4 +1,4 @@
-# Satyrn Engine
+# Agent Engine
 
 **A Pi extension plus an eval harness, for keeping small local models on
 track during real Python development.** Working name of the effort: "AI
