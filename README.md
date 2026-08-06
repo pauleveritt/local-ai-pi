@@ -88,6 +88,15 @@ cp .pi/extensions/loop-breaker.ts ~/.pi/agent/extensions/
 That is the whole install. Pi loads user-scope extensions unconditionally,
 so your next `pi` session in any project has it.
 
+**This assumes Pi already has a model to talk to.** The extension is
+provider-agnostic — it never names a model, an endpoint, or an API key — but
+a genuinely unconfigured Pi fails before the extension ever gets a chance to
+run, with `No API key found for the selected model`. That's Pi's own default
+provider, nothing this project sets up. If `pi` isn't already working for you
+outside this repository, get that working first — `/login` or
+`~/.pi/agent/models.json`, per Pi's own docs — then the two commands above
+are genuinely the whole install.
+
 **Use the user-scope directory, not your project's `.pi/extensions/`, if you
 delegate to subagents at all.** A delegated child does not load project
 extensions — it loads user-scope ones — so a project-scope install guards the
