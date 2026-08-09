@@ -189,26 +189,42 @@ def screen_task(
             for argument in ("--deselect", entry)
         )
 
-        # BOTH suites run on the same overlaid copy. Grading preservation
-        # against the *base* test files while grading the oracle against
-        # the *target* ones asks the candidate to satisfy two
-        # contradictory specifications at once.
+        # Preservation asks one question: did anything OTHER than this
+        # task's own tests break? So it runs on the overlaid copy -- so
+        # that tests whose expectations the target legitimately changed
+        # are current -- while ignoring the oracle files themselves.
         #
-        # flask-extensions is the case that exposed it: the task moves the
-        # registry from app.config to app.extensions, and the base's own
-        # tests assert the old location. A correct implementation makes
-        # the oracle pass 19/19 and necessarily breaks those two base
-        # tests -- which the target commit updates, which is precisely why
-        # they are oracle files. Scored against base tests it looked like
-        # repository damage; it was the task being done right.
+        # Both halves of that were learned the hard way, in order.
         #
-        # This mirrors qualification's target_preservation condition,
-        # which runs on the target tree where the test files are already
-        # the target's own.
+        # Grading preservation against the *base* test files while
+        # grading the oracle against the *target* ones asks the candidate
+        # to satisfy two contradictory specs. flask-extensions exposed
+        # it: moving the registry from app.config to app.extensions makes
+        # the oracle pass 19/19 and necessarily breaks the two base tests
+        # asserting the old location -- the very tests the target commit
+        # updates. Scored that way, correct work reads as damage.
+        #
+        # But overlaying and then running the *whole* suite puts the
+        # oracle's own tests inside the preservation run, so preservation
+        # cannot pass unless the feature is finished. That is the oracle
+        # measured twice, and it mislabels "feature incomplete" as
+        # "repository damaged" -- registry-iter reported preservation
+        # 0/0, which was a collection error on the oracle file itself.
+        #
+        # Ignoring the oracle files keeps the two questions separate:
+        # the oracle says whether the feature works, preservation says
+        # whether everything else survived.
+        ignore_oracle = tuple(
+            argument
+            for oracle_file in manifest.oracle_files
+            for argument in ("--ignore", oracle_file)
+        )
         with disposable_dir("satyrn-grade-") as grading:
             shutil.copytree(workspace, grading, dirs_exist_ok=True)
             overlay_oracle(clone, manifest, grading)
-            preservation = run_suite(grading, preservation_command, env, suite_timeout)
+            preservation = run_suite(
+                grading, preservation_command + ignore_oracle, env, suite_timeout
+            )
             oracle = run_suite(grading, manifest.oracle_command, env, suite_timeout)
 
     accepted = (
