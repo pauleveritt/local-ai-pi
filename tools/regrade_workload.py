@@ -39,13 +39,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         task_id = patch_path.stem
         manifest = workload.load_manifest(cohort.task_dir(task_id))
         record = args.candidates / f"{task_id}.json"
-        previous = (
-            json.loads(record.read_text())["outcome"] if record.is_file() else None
+        prior = json.loads(record.read_text()) if record.is_file() else {}
+        previous = prior.get("outcome")
+
+        # Model-side fields are carried through, never re-stamped. A
+        # regrade re-scores a saved candidate; it does not re-run the
+        # model, so defaulting these would erase real facts -- most
+        # sharply `model_timed_out`, which is the difference between a
+        # finished attempt and a truncated one.
+        attempt = screen.grade_candidate(
+            manifest,
+            clone,
+            env,
+            patch_path.read_text(),
+            model_seconds=float(prior.get("model_seconds", 0.0)),
+            model_timed_out=bool(prior.get("model_timed_out", False)),
+            tools=str(prior.get("tools", screen.ENVELOPE_TOOLS)),
+            argv=tuple(prior.get("argv", ())),
         )
 
-        attempt = screen.grade_candidate(
-            manifest, clone, env, patch_path.read_text(), tools=str(previous and "")
-        )
         screen.write_attempt(record, attempt)
         rows.append(attempt)
 
