@@ -4,8 +4,8 @@
 **Status:** research record and handover. Cycle 2 is implemented and reviewed;
 the measurement in it is a **probe**, not evidence.
 **Code:** branch `phase6-orchestrator-spike`, cycle 2 spans `604171a..HEAD`
-**Spec:** [`../specs/2026-08-08-phase7-cycle2-bounded-executor-design.md`](../specs/2026-08-08-phase7-cycle2-bounded-executor-design.md)
-**Plan:** [`../plans/2026-08-08-phase7-cycle2-bounded-executor.md`](../plans/2026-08-08-phase7-cycle2-bounded-executor.md)
+**Spec:** `specs/2026-08-08-phase7-pre-bounded-executor-design.md` on the `phase6-orchestrator-spike` branch
+**Plan:** `plans/2026-08-08-phase7-pre-bounded-executor.md` on the `phase6-orchestrator-spike` branch
 
 ---
 

@@ -10,7 +10,7 @@
 
 **Spec:** [`../specs/2026-08-09-phase7-cycle1-svcs-workload-design.md`](../specs/2026-08-09-phase7-cycle1-svcs-workload-design.md)
 
-**Worktree:** Create a fresh worktree named `phase7-workload` off commit `de27b4d` before Task 1 — **not off `main`**, which does not contain this plan or its spec. Do not implement in `phase6-orchestrator-spike`; that branch holds Phase 7-pre research and its own uncommitted changes.
+**Worktree:** Work happens in the `phase7-workload` worktree, branched from `main`. That base was chosen deliberately: it carries every harness module this plan builds on (`workspace.py`, `processes.py`, `grading_plugin.py`, `grading.py`) and none of the Phase 7-pre bounded-executor inventory the roadmap says must not define the product. Do not implement in `phase6-orchestrator-spike`; that branch holds Phase 7-pre research and carries long-standing uncommitted drift.
 
 ## Global Constraints
 
@@ -48,83 +48,35 @@
 
 ---
 
-### Task 1: Retire Phase 7-pre
+### Task 1: Retire Phase 7-pre — DONE, on another branch
 
-Renaming precondition. Two committed specs currently claim the cycle numbers this plan uses; until they are renamed every forward reference is ambiguous.
+**Status:** complete. Commit `8bd690d` on `phase6-orchestrator-spike`.
 
-**Files:**
-- Rename: `docs/superpowers/specs/2026-08-08-phase7-cycle1-batch-integrity-design.md` → `docs/superpowers/specs/2026-08-08-phase7-pre-batch-integrity-design.md`
-- Rename: `docs/superpowers/specs/2026-08-08-phase7-cycle2-bounded-executor-design.md` → `docs/superpowers/specs/2026-08-08-phase7-pre-bounded-executor-design.md`
-- Rename: `docs/superpowers/plans/2026-08-08-phase7-cycle1-batch-integrity.md` → `docs/superpowers/plans/2026-08-08-phase7-pre-batch-integrity.md`
-- Rename: `docs/superpowers/plans/2026-08-08-phase7-cycle2-bounded-executor.md` → `docs/superpowers/plans/2026-08-08-phase7-pre-bounded-executor.md`
-- Modify: every file containing a link to a renamed path
+This task was written assuming one branch held both the Phase 7-pre documents
+and this cycle's work. It does not. The four Phase 7-pre files exist only on the
+`phase6-orchestrator-spike` line and were never on `main`, so `phase7-workload`
+— branched from `main` — has no cycle-number collision to resolve and cannot
+perform the rename.
 
-- [ ] **Step 1: Find every reference before moving anything**
+The retirement was therefore done where the collision actually lives:
 
-```bash
-grep -rn "2026-08-08-phase7-cycle1\|2026-08-08-phase7-cycle2" --include="*.md" docs/ README.md BRIEF.md
-```
+- `specs/2026-08-08-phase7-cycle1-batch-integrity-design.md` → `…-phase7-pre-batch-integrity-design.md`
+- `specs/2026-08-08-phase7-cycle2-bounded-executor-design.md` → `…-phase7-pre-bounded-executor-design.md`
+- `plans/2026-08-08-phase7-cycle1-batch-integrity.md` → `…-phase7-pre-batch-integrity.md`
+- `plans/2026-08-08-phase7-cycle2-bounded-executor.md` → `…-phase7-pre-bounded-executor.md`
 
-Record the list. Each hit is a link that will break.
+Each renamed document carries a retirement banner stating that its instruments
+remain maintained and pointing at `phase7-workload` for forward work. Six
+referencing documents were relinked; a link-resolution sweep reports zero
+dangling relative links on that branch, and `test_research_records.py` plus
+`test_doc_quotes.py` pass there (20 passed).
 
-The date prefix is load-bearing: a bare `phase7-cycle1` also matches this cycle's own new filenames, so the check could never come back clean.
+On **this** branch the same four references appear inside the copied roadmap,
+research reset, and overnight-spike documents. Those files do not exist here, so
+the links were replaced with plain names qualified by the branch that holds
+them, rather than left dangling.
 
-- [ ] **Step 2: Rename with git mv**
-
-```bash
-git mv docs/superpowers/specs/2026-08-08-phase7-cycle1-batch-integrity-design.md docs/superpowers/specs/2026-08-08-phase7-pre-batch-integrity-design.md
-git mv docs/superpowers/specs/2026-08-08-phase7-cycle2-bounded-executor-design.md docs/superpowers/specs/2026-08-08-phase7-pre-bounded-executor-design.md
-git mv docs/superpowers/plans/2026-08-08-phase7-cycle1-batch-integrity.md docs/superpowers/plans/2026-08-08-phase7-pre-batch-integrity.md
-git mv docs/superpowers/plans/2026-08-08-phase7-cycle2-bounded-executor.md docs/superpowers/plans/2026-08-08-phase7-pre-bounded-executor.md
-```
-
-If a listed plan file does not exist, skip that line — only the two spec files are known to exist for certain.
-
-- [ ] **Step 3: Add a retirement banner to each renamed document**
-
-Insert immediately after the `# Title` line of all four files:
-
-```markdown
-> **Retired — Phase 7-pre.** This work is banked, not current. Its instruments
-> (prompt ledger, prompt/tool coherence checks, estimator and `insufficient-n`
-> behavior, process sentinel, block-boundary split, extension-lifecycle fix)
-> remain in the tree and are still maintained. Forward work continues in
-> [the Phase 7 workload-first roadmap](../plans/2026-08-09-phase7-workload-first-roadmap.md).
-```
-
-- [ ] **Step 4: Fix every link found in Step 1**
-
-Update each referencing file so the path points at the new `phase7-pre-` name. Leave prose that says "cycle 1" alone where it describes Phase 7-pre's own internal numbering; only paths change.
-
-- [ ] **Step 5: Verify no dangling references**
-
-```bash
-grep -rn "2026-08-08-phase7-cycle1\|2026-08-08-phase7-cycle2" --include="*.md" docs/ README.md BRIEF.md
-```
-
-Expected: no output, or only hits inside `docs/_build/` (generated, ignore). Searching the dated names only — a bare `phase7-cycle1` matches this cycle's own files and would never be empty.
-
-- [ ] **Step 6: Verify the docs suite still passes**
-
-```bash
-uv run --locked pytest tests/test_research_records.py tests/test_doc_quotes.py -q
-```
-
-Expected: PASS. These suites assert properties of the docs tree and will catch a broken cross-reference.
-
-- [ ] **Step 7: Commit**
-
-```bash
-git add -A docs/ README.md BRIEF.md
-git commit -m "docs(phase7): retire last night's phase 7 as phase 7-pre
-
-Two specs owned the names 'phase 7 cycle 1' and 'cycle 2'. The
-workload-first roadmap renumbers, so those names now belong to the svcs
-workload. Renaming rather than deleting: the instruments stay in the
-tree and are still maintained.
-
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
-```
+Nothing further is required for this task. Execution begins at Task 2.
 
 ---
 
@@ -2626,7 +2578,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 ## Done When
 
-- [ ] Phase 7-pre renamed; `grep -rn "2026-08-08-phase7-cycle1\|2026-08-08-phase7-cycle2" docs/` is clean outside `_build/`.
+- [x] Phase 7-pre renamed on `phase6-orchestrator-spike` (`8bd690d`); that branch greps clean and resolves every relative link.
 - [ ] `uv run --locked pytest tests/test_workload.py -q -m "not integration"` passes offline with no `svcs` clone present.
 - [ ] A committed `workloads/svcs/env/uv.lock`, a verified 3.14.2 interpreter, and the spec's provisional preservation counts replaced by figures measured against them.
 - [ ] At least six qualified tasks: one floor, three medium on different axes, one stretch, the autowiring ceiling.

@@ -7,7 +7,7 @@
 **Supersedes for forward work:** the assumption that the complete Cycle 2
 bounded-executor bundle should become the Phase 7 starting point  
 **Preserves:**
-[`../specs/2026-08-08-phase7-cycle1-batch-integrity-design.md`](../specs/2026-08-08-phase7-cycle1-batch-integrity-design.md)
+`specs/2026-08-08-phase7-pre-batch-integrity-design.md` on the `phase6-orchestrator-spike` branch
 
 ---
 
