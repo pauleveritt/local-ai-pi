@@ -30,6 +30,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--timeout", type=float, default=900.0)
     parser.add_argument(
+        "--tools",
+        default=screen.ENVELOPE_TOOLS,
+        help="Pi tool allowlist for the arm (default: Phase 7-pre's read,write)",
+    )
+    parser.add_argument(
         "--out",
         type=Path,
         default=Path("workloads/svcs/screen"),
@@ -48,7 +53,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     for task_id in task_ids:
         manifest = workload.load_manifest(cohort.task_dir(task_id))
         attempt = screen.screen_task(
-            manifest, clone, env, args.model, timeout=args.timeout
+            manifest, clone, env, args.model, tools=args.tools, timeout=args.timeout
         )
         screen.write_attempt(args.out / f"{task_id}.json", attempt)
         rows.append(attempt)
@@ -70,7 +75,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         json.dumps(
             {
                 "model": args.model,
-                "arm": "brief-only-envelope",
+                "arm": f"brief-only:{args.tools}",
+                "tools": args.tools,
                 "accepted": accepted,
                 "attempted": len(rows),
                 "outcomes": {r.task_id: r.outcome for r in rows},

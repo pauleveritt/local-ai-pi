@@ -45,6 +45,11 @@ from harness.workspace import GIT_ENV
 # The envelope, matching Phase 7-pre's `envelope-cap.ts` exactly: one
 # call, read and write only, 16 turns, 30 tool calls. The budgets live in
 # the extension; the tool allowlist has to be passed on the command line.
+# Phase 7-pre's envelope. Kept as the default so the historical arm is
+# reproducible by name, but it is now known not to transfer: Pi's built-in
+# tools are read, bash, edit, write, and without `bash` there is no way to
+# enumerate a repository. On AgentClinic Phase 2 -- three files, named in
+# the spec -- that never mattered.
 ENVELOPE_TOOLS = "read,write"
 ENVELOPE_EXTENSION = (
     Path(__file__).resolve().parents[1] / "extensions" / "envelope-cap.ts"
@@ -57,6 +62,7 @@ class Attempt:
 
     task_id: str
     manifest_sha256: str
+    tools: str
     accepted: bool
     outcome: str
     changed_paths: tuple[str, ...]
@@ -83,6 +89,7 @@ class Attempt:
         return {
             "task_id": self.task_id,
             "manifest_sha256": self.manifest_sha256,
+            "tools": self.tools,
             "accepted": self.accepted,
             "outcome": self.outcome,
             "changed_paths": list(self.changed_paths),
@@ -135,6 +142,7 @@ def screen_task(
     clone: Path,
     env: CohortEnv,
     model: str,
+    tools: str = ENVELOPE_TOOLS,
     timeout: float = 900.0,
     suite_timeout: float = 300.0,
 ) -> Attempt:
@@ -150,7 +158,7 @@ def screen_task(
 
     with materialize(clone, manifest.base_sha) as workspace:
         argv = _pi_command(model, brief, (ENVELOPE_EXTENSION,))
-        argv = argv[:-1] + ["--tools", ENVELOPE_TOOLS] + argv[-1:]
+        argv = argv[:-1] + ["--tools", tools] + argv[-1:]
 
         started = time.monotonic()
         child = run_process(argv, cwd=workspace, timeout=timeout, env=pi_env())
@@ -163,6 +171,7 @@ def screen_task(
             return Attempt(
                 task_id=manifest.task_id,
                 manifest_sha256=manifest_hash,
+                tools=tools,
                 accepted=False,
                 outcome="no-changes",
                 changed_paths=changed,
@@ -223,6 +232,7 @@ def screen_task(
     return Attempt(
         task_id=manifest.task_id,
         manifest_sha256=manifest_hash,
+        tools=tools,
         accepted=accepted,
         outcome=outcome,
         changed_paths=changed,
