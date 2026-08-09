@@ -165,7 +165,7 @@ def test_prepare_workspace_disables_a_global_pre_commit_hook(tmp_path, monkeypat
         check=True,
     )
     monkeypatch.setitem(
-        workspace_module._GIT_ENV, "GIT_CONFIG_GLOBAL", str(global_config)
+        workspace_module.GIT_ENV, "GIT_CONFIG_GLOBAL", str(global_config)
     )
 
     with prepare_workspace(source) as workspace:

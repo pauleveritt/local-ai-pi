@@ -31,7 +31,13 @@ docs = [
 # examples/duration's acceptance suite does `from duration import
 # parse_duration` the same way -- it only collects inside a grading
 # workspace where source_allowlist has copied duration.py alongside it.
-norecursedirs = ["examples/agentclinic", "examples/duration", "improvements", "docs/_build", ".worktrees"]
+#
+# `workloads` holds materialized svcs test files that are data for the
+# grader, never this project's tests. `.workloads` is gitignored, which
+# does not stop pytest walking into it -- and it contains a full svcs
+# checkout plus a second venv.
+norecursedirs = ["examples/agentclinic", "examples/duration", "improvements", "docs/_build", ".worktrees", ".workloads", "workloads"]
+markers = ["integration: needs the real clone cache or network; excluded from the offline unit run"]
 
 [tool.ruff]
 # examples/agentclinic and examples/duration hold fixtures that are

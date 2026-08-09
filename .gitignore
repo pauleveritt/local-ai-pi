@@ -8,6 +8,11 @@ docs/_build/
 .worktrees/
 .superpowers/
 
+# Derived workload state: the bare clone cache and the cohort venv. Every
+# committed manifest names its upstream and SHAs, so this is reconstructible
+# and must never be committed.
+.workloads/
+
 # Runtime state Pi writes into the harness-owned agent dir. Everything the
 # harness *owns* there is listed explicitly above it in git; anything Pi
 # creates at startup (an empty auth.json, sessions, caches) is not ours and
