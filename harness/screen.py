@@ -430,13 +430,23 @@ def screen_task(
     tools: str = ENVELOPE_TOOLS,
     timeout: float = 900.0,
     suite_timeout: float = 300.0,
-) -> tuple[Attempt, str]:
-    """One bounded model attempt, returned with its candidate patch.
+) -> tuple[Attempt, str, str]:
+    """One bounded model attempt, with its candidate patch and transcript.
 
     The model call is the only expensive, unrepeatable step, so it happens
     once and its whole result is handed back as a patch. Everything
     downstream is `grade_candidate`, replayable offline whenever the
     acceptance rule changes -- which it has, five times.
+
+    The transcript is returned for the same reason the patch is. A run
+    that wrote nothing after nine minutes and a run that reasoned to the
+    wrong answer both grade `no-changes`, and nothing in the record
+    separates them: whether the executor hit the tool-call cap while
+    still exploring, argued itself out of a correct edit, or never
+    understood the brief are three different findings with three
+    different responses, and the only place that distinction exists is
+    the transcript. Discarding it makes the expensive step unrepeatable
+    *and* uninterpretable.
 
     A candidate that changed nothing is graded like any other rather than
     short-circuited. It still has a base score, a delta of zero, and a
@@ -466,7 +476,7 @@ def screen_task(
         argv=tuple(argv),
         suite_timeout=suite_timeout,
     )
-    return attempt, patch
+    return attempt, patch, child.stdout
 
 
 def write_attempt(path: Path, attempt: Attempt) -> None:

@@ -61,14 +61,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     for task_id in task_ids:
         print(f"{task_id:26} running...", flush=True)
         manifest = workload.load_manifest(cohort.task_dir(task_id))
-        attempt, patch = screen.screen_task(
+        attempt, patch, transcript = screen.screen_task(
             manifest, clone, env, args.model, tools=args.tools, timeout=args.timeout
         )
-        # The patch is the expensive artifact: it is what a later
-        # grading change can be replayed against without paying for the
-        # model call again.
+        # The patch is what a later grading change replays against; the
+        # transcript is what a later *reading* replays against. Both cost
+        # one model call to produce and nothing to keep, and a result
+        # neither can be regraded nor explained is worth very little.
         screen.write_attempt(args.out / f"{task_id}.json", attempt)
         (args.out / f"{task_id}.patch").write_text(patch)
+        (args.out / f"{task_id}.jsonl").write_text(transcript)
         rows.append(attempt)
         oracle = attempt.oracle
         detail = (
