@@ -11,11 +11,14 @@ import shutil
 import subprocess
 import tarfile
 import tempfile
-from collections.abc import Iterator
+import time
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
+import harness.grading_plugin as grading_plugin
+from harness.processes import run_process
 from harness.workspace import GIT_ENV, disposable_dir, git_init_commit
 
 
@@ -312,4 +315,171 @@ def ensure_cohort_env(
         lock_sha256=sha256_file(lock),
         python_version=version,
         platform=plat,
+    )
+
+
+REASON_CLASSES = ("pass", "collection-error", "assertion-failure", "error", "timeout")
+
+# pytest's documented exit codes. Reading these is far more robust than
+# matching summary-line prose, which changes between pytest releases and
+# which the code under test can write into directly.
+_PYTEST_OK = 0
+_PYTEST_TESTS_FAILED = 1
+_PYTEST_INTERRUPTED = 2
+_PYTEST_NO_TESTS = 5
+
+
+@dataclass(frozen=True)
+class SuiteResult:
+    """One suite run, described by what pytest's own hooks reported.
+
+    `outcomes` maps node id to final outcome, read from the results file
+    `harness.grading_plugin` writes through `pytest_runtest_logreport`.
+    That is trustworthy in a way parsing stdout is not: hooks fire only
+    when pytest actually ran a test, while stdout can be written to by
+    the code under test.
+
+    `fingerprint` is the stable comparison key -- two runs that fail
+    *different* assertions must not compare equal, or a suite failing a
+    random test each time would look perfectly stable.
+    """
+
+    returncode: int | None
+    reason_class: str
+    outcomes: dict[str, str]
+    tests_passed: int
+    wall_seconds: float
+    timed_out: bool
+    stdout_tail: str
+    output: str = field(default="", repr=False)
+
+    @property
+    def fingerprint(self) -> tuple[object, ...]:
+        return (
+            self.reason_class,
+            self.returncode,
+            tuple(sorted(self.outcomes.items())),
+        )
+
+
+def _read_outcomes(path: Path) -> tuple[dict[str, str], bool]:
+    """Parse the grading plugin's results file into {nodeid: outcome}, plus done.
+
+    Last line wins per nodeid. That is deliberate and matches
+    `harness/grading.py`: a test whose call phase passed but whose
+    teardown then failed appends a second, later `failed` line, and the
+    later one is the truth.
+    """
+    outcomes: dict[str, str] = {}
+    done = False
+    if not path.is_file():
+        return outcomes, done
+    for line in path.read_text().splitlines():
+        if line == grading_plugin.DONE_MARKER:
+            done = True
+            continue
+        nodeid, separator, outcome = line.partition("\t")
+        if separator:
+            outcomes[nodeid] = outcome
+    return outcomes, done
+
+
+def classify(
+    returncode: int | None,
+    outcomes: dict[str, str],
+    done: bool,
+    timed_out: bool,
+) -> str:
+    """Name *how* a suite failed, not merely that it did.
+
+    A base that fails at collection because the API does not exist yet
+    is the evidence a replay task needs. A base that collects and fails
+    an assertion is a different -- often broken -- task. Both exit
+    non-zero, so an exit code alone cannot qualify a task, and an import
+    typo in an oracle would otherwise sail through as a valid rejection.
+
+    Decided from pytest's exit code and the plugin's recorded outcomes,
+    never from summary prose. Exit 2 is pytest interrupting itself,
+    which is what a collection error produces -- and the session still
+    finishes there, so `done` is true while `outcomes` is empty. Exit 5
+    means nothing was collected at all: a mistyped command rather than a
+    rejection, and it must never be mistaken for one.
+    """
+    if timed_out:
+        return "timeout"
+    if returncode == _PYTEST_INTERRUPTED:
+        return "collection-error"
+    if returncode == _PYTEST_NO_TESTS:
+        return "error"
+    if returncode == _PYTEST_OK and done:
+        return "pass"
+    if returncode == _PYTEST_TESTS_FAILED and any(
+        o == "failed" for o in outcomes.values()
+    ):
+        return "assertion-failure"
+    return "error"
+
+
+def run_suite(
+    workspace: Path,
+    command: Sequence[str],
+    env: CohortEnv,
+    timeout: float = 300.0,
+) -> SuiteResult:
+    """Run one suite in `workspace` under the cohort interpreter.
+
+    `command` is argv *after* `python -m`, so a manifest's
+    `["pytest", "-q"]` becomes `<cohort python> -m pytest -q`.
+
+    The grading plugin is staged into a temp directory *outside* the
+    workspace, along with its results file. Two reasons: the workspace
+    must stay byte-identical to the base tree, and pointing PYTHONPATH
+    at this project's `harness/` would make every harness module
+    importable from inside a suite under test.
+
+    The child environment is built from nothing rather than inherited.
+    The cohort env supplies dependencies, PYTHONPATH supplies exactly
+    one copy of the project under test, and HOME and TMPDIR point into
+    the disposable workspace so nothing a suite writes lands in the
+    operator's home directory. No proxy variables are passed through --
+    which is most of what "no network" means in practice, and is
+    hygiene rather than a guarantee.
+
+    Timed here rather than read off `ProcessResult`, which on this
+    branch carries no duration.
+    """
+    with disposable_dir("satyrn-suite-") as staging:
+        shutil.copy2(Path(grading_plugin.__file__), staging / "grading_plugin.py")
+        results = staging / "results.txt"
+        results.touch()
+        child_env = {
+            "PATH": os.defpath,
+            "PYTHONPATH": os.pathsep.join([str(workspace / "src"), str(staging)]),
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "HOME": str(workspace),
+            "LANG": "C.UTF-8",
+            "LC_ALL": "C.UTF-8",
+            "TMPDIR": str(workspace),
+            grading_plugin.RESULTS_ENV_VAR: str(results),
+        }
+        started = time.monotonic()
+        result = run_process(
+            [str(env.python), "-m", *command, "-p", "grading_plugin"],
+            cwd=workspace,
+            timeout=timeout,
+            env=child_env,
+        )
+        wall_seconds = time.monotonic() - started
+        outcomes, done = _read_outcomes(results)
+
+    output = result.stdout + result.stderr
+    return SuiteResult(
+        returncode=result.returncode,
+        reason_class=classify(result.returncode, outcomes, done, result.timed_out),
+        outcomes=outcomes,
+        tests_passed=sum(1 for outcome in outcomes.values() if outcome == "passed"),
+        wall_seconds=wall_seconds,
+        timed_out=result.timed_out,
+        stdout_tail=output[-4000:],
+        output=output,
     )

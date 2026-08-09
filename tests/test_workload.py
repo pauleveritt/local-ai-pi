@@ -8,11 +8,13 @@ from pathlib import Path
 import pytest
 
 from harness.workload import (
+    CohortEnv,
     WorkloadError,
     _verify_interpreter,
     ensure_clone,
     ensure_cohort_env,
     materialize,
+    run_suite,
     sha256_file,
 )
 from harness.workspace import GIT_ENV
@@ -291,3 +293,144 @@ def test_export_subst_placeholders_are_not_expanded(tmp_path: Path) -> None:
         assert sha not in archival
         assert archival == "node: $Format:%H$\n"
         assert (workspace / "keep.py").read_text() == "x = 1\n"
+
+
+def _fake_env() -> CohortEnv:
+    """The project's own interpreter, standing in for the cohort env.
+
+    The synthetic repo needs only stdlib plus pytest, both of which this
+    project's venv has -- so the runner's behavior can be tested without
+    resolving the real svcs environment.
+    """
+    return CohortEnv(
+        python=Path(sys.executable),
+        lock_sha256="synthetic",
+        python_version=platform.python_version(),
+        platform=sys.platform,
+    )
+
+
+_QUIET = ["pytest", "-q", "-p", "no:cacheprovider"]
+
+
+def test_run_suite_reports_pass(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    with materialize(clone, synthetic_clone.base_sha) as workspace:
+        result = run_suite(workspace, _QUIET, _fake_env())
+    assert result.reason_class == "pass"
+    assert result.returncode == 0
+    assert result.tests_passed == 1
+
+
+def test_run_suite_records_node_level_outcomes(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """Node ids and outcomes, from pytest's hooks -- not a count scraped from prose."""
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    with materialize(clone, synthetic_clone.base_sha) as workspace:
+        result = run_suite(workspace, _QUIET, _fake_env())
+    assert result.outcomes == {"tests/test_add.py::test_add": "passed"}
+
+
+def test_run_suite_classifies_a_collection_error(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """The base-plus-oracle shape: the oracle imports a symbol that does not exist yet."""
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    with materialize(clone, synthetic_clone.base_sha) as workspace:
+        (workspace / "tests" / "test_mul.py").write_text(
+            "from pkg import mul\n\n\ndef test_mul():\n    assert mul(2, 3) == 6\n"
+        )
+        result = run_suite(workspace, _QUIET, _fake_env())
+    assert result.reason_class == "collection-error"
+    assert "mul" in result.output
+
+
+def test_run_suite_classifies_an_assertion_failure(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    with materialize(clone, synthetic_clone.base_sha) as workspace:
+        (workspace / "tests" / "test_wrong.py").write_text(
+            "from pkg import add\n\n\ndef test_wrong():\n    assert add(1, 1) == 3\n"
+        )
+        result = run_suite(workspace, _QUIET, _fake_env())
+    assert result.reason_class == "assertion-failure"
+    assert result.outcomes["tests/test_wrong.py::test_wrong"] == "failed"
+
+
+def test_a_command_collecting_nothing_is_an_error_not_a_rejection(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """pytest exit 5. A mistyped oracle path must never qualify as a base rejection."""
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    with materialize(clone, synthetic_clone.base_sha) as workspace:
+        result = run_suite(
+            workspace,
+            [*_QUIET, "tests/test_add.py::test_absent"],
+            _fake_env(),
+        )
+    assert result.reason_class == "error"
+
+
+def test_different_failures_produce_different_fingerprints(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """Why a coarse class is not enough.
+
+    Both runs below are `assertion-failure`. If stability compared only
+    the class, a suite failing a *different* test on every run would
+    look perfectly stable.
+    """
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    fingerprints = []
+    for name in ("test_first", "test_second"):
+        with materialize(clone, synthetic_clone.base_sha) as workspace:
+            (workspace / "tests" / "test_x.py").write_text(
+                f"def {name}():\n    assert False\n"
+            )
+            result = run_suite(workspace, _QUIET, _fake_env())
+        assert result.reason_class == "assertion-failure"
+        fingerprints.append(result.fingerprint)
+    assert fingerprints[0] != fingerprints[1]
+
+
+def test_run_suite_imports_from_the_workspace_not_the_environment(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """PYTHONPATH must win. If it did not, every result would be about the wrong code."""
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    with materialize(clone, synthetic_clone.base_sha) as workspace:
+        (workspace / "tests" / "test_origin.py").write_text(
+            "import pkg\n\n\ndef test_origin():\n"
+            f"    assert pkg.__file__.startswith({str(workspace)!r})\n"
+        )
+        result = run_suite(workspace, _QUIET, _fake_env())
+    assert result.reason_class == "pass"
+
+
+def test_run_suite_leaves_the_workspace_byte_identical(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """The plugin and its results file must live outside the workspace."""
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    with materialize(clone, synthetic_clone.base_sha) as workspace:
+        run_suite(workspace, _QUIET, _fake_env())
+        assert _git(workspace, "status", "--short") == ""
+        assert not (workspace / "grading_plugin.py").exists()
+
+
+def test_run_suite_times_out_without_leaking_the_child(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    with materialize(clone, synthetic_clone.base_sha) as workspace:
+        (workspace / "tests" / "test_slow.py").write_text(
+            "import time\n\n\ndef test_slow():\n    time.sleep(60)\n"
+        )
+        result = run_suite(workspace, _QUIET, _fake_env(), timeout=3.0)
+    assert result.timed_out is True
+    assert result.reason_class == "timeout"
+    assert result.wall_seconds >= 3.0
