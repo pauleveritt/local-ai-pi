@@ -296,6 +296,39 @@ environment hygiene, not a gate.** Scrubbing proxy variables and passing a
 minimal environment removes the common accidental paths; it does not stop a test
 from opening a socket. Calling it enforcement would be false.
 
+## What freezes, and when
+
+Curation corrects predictions. That is what qualification is *for*: a
+`[oracle.rejection]` fingerprint is a guess until the pipeline checks it, and
+three of the ten candidates had theirs corrected before the cohort froze. Doing
+that is not tuning, because nothing being corrected against is a graded outcome
+— base behaviour is a deterministic fact.
+
+**That latitude ends at the first model attempt.** From the moment any executor
+runs against this cohort:
+
+- `oracle.files` and `oracle.command` are frozen. A task whose oracle scope
+  turns out to be wrong is **excluded**, not renarrowed.
+- `[oracle.rejection]`, `base_sha`, `target_sha`, and the environment fields are
+  frozen.
+- Only `contract.md` may change, under the existing rule: any edit bumps
+  `contract_version`, and that task's prior attempts are invalidated rather than
+  pooled with later ones.
+
+The mechanism is already in place: every `qualification.json` records
+`manifest_sha256`, and every attempt record must carry the same hash. An attempt
+whose manifest hash differs from the frozen one is a different task wearing the
+same name.
+
+One edit in this cohort used that latitude and is called out rather than buried.
+`suppress-context-exit` had its oracle command narrowed to `tests/test_container.py`
+after the first run showed two undeclared failures in `tests/test_registry.py`,
+caused by the same commit's change to a shared fixture's arity rather than by
+the feature. The reasoning is in that manifest's `adaptations`, the failed
+prediction is preserved in the evidence commit, and it is legitimate *only*
+because no model had run. Under the rule above the same situation would now
+require exclusion.
+
 ## Contract authoring firewall
 
 Three roles. The point is that the middle one is information-starved by
