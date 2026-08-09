@@ -13,6 +13,7 @@ cannot score these correctly, it cannot score a real sweep -- and
 finding that out here costs nothing.
 """
 
+import json
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -64,7 +65,7 @@ def relocating_task(tmp_path: Path) -> Task:
     source = tmp_path / "source"
     source.mkdir()
     _git(source, "init", "-q")
-    _write(source, "src/pkg/__init__.py", "LOCATION = 'config'\n")
+    _write(source, "src/pkg/__init__.py", "LOCATION = 'config'\nCASES = [1, 2, 3]\n")
     _write(
         source,
         "tests/test_where.py",
@@ -75,11 +76,21 @@ def relocating_task(tmp_path: Path) -> Task:
         "tests/test_other.py",
         "def test_other():\n    assert True\n",
     )
+    # Parametrised over a production constant, so a production edit can
+    # make real test nodes disappear while the suite still exits 0.
+    _write(
+        source,
+        "tests/test_cases.py",
+        "import pytest\n\nfrom pkg import CASES\n\n\n"
+        "@pytest.mark.parametrize('case', CASES)\ndef test_case(case):\n    assert case\n",
+    )
     _git(source, "add", "-A")
     _git(source, "commit", "-q", "--no-gpg-sign", "-m", "base")
     base_sha = _git(source, "rev-parse", "HEAD")
 
-    _write(source, "src/pkg/__init__.py", "LOCATION = 'extensions'\n")
+    _write(
+        source, "src/pkg/__init__.py", "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n"
+    )
     _write(
         source,
         "tests/test_where.py",
@@ -156,6 +167,17 @@ substantive = "changes an observable value"
 writable_bounded = "one module"
 adaptations = "none"
 """)
+    # grade_candidate reads base/target scores and the preservation node
+    # inventory from the task's own qualification record, so the fixture
+    # produces a real one. It is deterministic and takes milliseconds on
+    # this repository.
+    from harness.workload import qualify
+
+    report = qualify(load_manifest(task_dir), clone, _fake_env())
+    assert report["status"] == "qualified", report
+    (task_dir / "qualification.json").write_text(
+        json.dumps(report, indent=2, sort_keys=True)
+    )
     return Task(task_dir, clone, base_sha)
 
 
@@ -193,7 +215,8 @@ def test_a_correct_relocation_is_accepted(relocating_task: Task) -> None:
     grades preservation against base tests calls this damage.
     """
     attempt = _grade(
-        relocating_task, {"src/pkg/__init__.py": "LOCATION = 'extensions'\n"}
+        relocating_task,
+        {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n"},
     )
     assert attempt.accepted, attempt.outcome
     assert attempt.outcome == "accepted"
@@ -214,10 +237,13 @@ def test_an_unfinished_candidate_fails_the_oracle_not_preservation(
     """
     attempt = _grade(
         relocating_task,
-        {"src/pkg/__init__.py": "# started on this\nLOCATION = 'config'\n"},
+        {
+            "src/pkg/__init__.py": "# started on this\nLOCATION = 'config'\nCASES = [1, 2, 3]\n"
+        },
     )
     assert not attempt.accepted
-    assert attempt.outcome == "oracle-failed"
+    assert attempt.outcome == "no-progress"
+    assert attempt.oracle_delta == 0
     assert attempt.preservation is not None
     assert attempt.preservation.reason_class == "pass"
 
@@ -229,7 +255,7 @@ def test_a_candidate_that_breaks_something_else_is_preservation_broken(
     attempt = _grade(
         relocating_task,
         {
-            "src/pkg/__init__.py": "LOCATION = 'extensions'\n\n\ndef boom():\n    raise SystemExit(1)\n",
+            "src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n\n\ndef boom():\n    raise SystemExit(1)\n",
             "tests/test_other.py": "from pkg import boom\n\n\ndef test_other():\n    boom()\n",
         },
     )
@@ -241,7 +267,7 @@ def test_writing_outside_scope_is_recorded(relocating_task: Task) -> None:
     attempt = _grade(
         relocating_task,
         {
-            "src/pkg/__init__.py": "LOCATION = 'extensions'\n",
+            "src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n",
             "list_files.py": "# a script the model wrote to look around\n",
         },
     )
@@ -254,12 +280,16 @@ def test_a_candidate_that_writes_nothing(relocating_task: Task) -> None:
     attempt = _grade(relocating_task, {})
     assert not attempt.accepted
     assert attempt.outcome == "no-changes"
-    assert attempt.oracle is None
+    # Graded, not short-circuited: a candidate that wrote nothing still
+    # has a base score and a delta of zero, which is what makes it
+    # comparable with one that wrote something useless.
+    assert attempt.oracle is not None
+    assert attempt.oracle_delta == 0
 
 
 def test_grading_the_same_candidate_twice_agrees(relocating_task: Task) -> None:
     """Replay must be deterministic, or re-scoring proves nothing."""
-    files = {"src/pkg/__init__.py": "LOCATION = 'extensions'\n"}
+    files = {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n"}
     first, second = _grade(relocating_task, files), _grade(relocating_task, files)
     assert first.outcome == second.outcome
     assert first.accepted == second.accepted
@@ -271,3 +301,100 @@ def test_a_patch_that_does_not_apply_is_an_error(relocating_task: Task) -> None:
         pytest.raises(WorkloadError, match="did not apply"),
     ):
         apply_candidate(workspace, "not a patch at all\n")
+
+
+def test_a_comment_only_edit_scores_zero_delta_and_green_preservation(
+    relocating_task: Task,
+) -> None:
+    """The conformance control both reviews demanded.
+
+    A production edit that changes no behaviour must score delta 0 with
+    preservation green. Under rule 3 the equivalent candidate on
+    suppress-context-exit graded "broke-and-damaged", because a root
+    conftest.py listed in oracle.files still loaded as a pytest plugin
+    however hard preservation --ignore'd it.
+    """
+    attempt = _grade(
+        relocating_task,
+        {
+            "src/pkg/__init__.py": "# a harmless comment\nLOCATION = 'config'\nCASES = [1, 2, 3]\n"
+        },
+    )
+    assert attempt.oracle_delta == 0
+    assert attempt.preservation is not None
+    assert attempt.preservation.reason_class == "pass"
+    assert attempt.outcome == "no-progress"
+
+
+def test_the_exact_target_patch_closes_the_whole_gap(relocating_task: Task) -> None:
+    """The positive control: the real answer must score a full gap closure."""
+    attempt = _grade(
+        relocating_task,
+        {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n"},
+    )
+    assert attempt.accepted
+    assert attempt.gap_closed == 1.0
+    assert attempt.oracle_delta > 0
+
+
+def test_model_written_tests_cannot_affect_grading(relocating_task: Task) -> None:
+    """A candidate must not be able to grade itself.
+
+    The scratch test here fails loudly. It is recorded as out-of-scope
+    and never executed, so preservation stays green -- otherwise a model
+    could damage its own score by writing junk, or inflate it by writing
+    a passing test over the oracle's name.
+    """
+    attempt = _grade(
+        relocating_task,
+        {
+            "src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n",
+            "tests/test_scratch.py": "def test_scratch():\n    assert False\n",
+        },
+    )
+    assert "tests/test_scratch.py" in attempt.out_of_scope
+    assert attempt.preservation is not None
+    assert attempt.preservation.reason_class == "pass"
+    assert attempt.oracle_delta > 0
+
+
+def test_a_model_created_commit_is_still_captured(relocating_task: Task) -> None:
+    """Captured against the base commit, not HEAD.
+
+    The workspace is a real repository and a model with a shell can
+    commit in it. Diffed against HEAD that produces an empty patch, and
+    real work would be recorded as "no changes written".
+    """
+    from harness.screen import capture_candidate
+
+    with materialize(relocating_task.clone, relocating_task.base_sha) as workspace:
+        (workspace / "src" / "pkg" / "__init__.py").write_text(
+            "LOCATION = 'extensions'\n"
+        )
+        subprocess.run(
+            ["git", "add", "-A"], cwd=workspace, capture_output=True, env=GIT_ENV
+        )
+        subprocess.run(
+            ["git", "commit", "-q", "--no-gpg-sign", "-m", "model commit"],
+            cwd=workspace,
+            capture_output=True,
+            env=GIT_ENV,
+        )
+        patch = capture_candidate(workspace)
+    assert "LOCATION = 'extensions'" in patch
+
+
+def test_a_vanished_test_is_caught_by_the_node_inventory(relocating_task: Task) -> None:
+    """Tests that silently disappear must not pass as preservation.
+
+    Exit code zero means "nothing that ran failed", which a candidate can
+    satisfy by making tests stop existing. The inventory is checked
+    against the frozen qualification record.
+    """
+    attempt = _grade(
+        relocating_task,
+        {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1]\n"},
+    )
+    assert attempt.missing_nodes
+    assert attempt.outcome == "tests-vanished"
+    assert not attempt.accepted

@@ -22,7 +22,6 @@ the complete-contract arm, and results must be reported under that name.
 
 import fnmatch
 import json
-import shutil
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -35,7 +34,6 @@ from harness.workload import (
     Manifest,
     SuiteResult,
     WorkloadError,
-    disposable_dir,
     materialize,
     overlay_oracle,
     run_suite,
@@ -59,13 +57,26 @@ ENVELOPE_EXTENSION = (
 
 @dataclass(frozen=True)
 class Attempt:
-    """One model attempt against one task, with its grading."""
+    """One model attempt against one task, with its grading.
+
+    `oracle_delta` is the experimental signal; `accepted` is the product
+    gate. Keeping both is deliberate: acceptance is binary and throws
+    away nearly everything, while a delta of zero against a base that
+    already scores 15/18 is the difference between "nearly there" and
+    "did nothing" -- a distinction this project got wrong once already.
+    """
 
     task_id: str
     manifest_sha256: str
+    rule_version: int
     tools: str
     accepted: bool
     outcome: str
+    base_passed: int
+    target_total: int
+    oracle_delta: int
+    gap_closed: float
+    missing_nodes: tuple[str, ...]
     changed_paths: tuple[str, ...]
     out_of_scope: tuple[str, ...]
     model_seconds: float
@@ -73,6 +84,15 @@ class Attempt:
     preservation: SuiteResult | None
     oracle: SuiteResult | None
     argv: tuple[str, ...] = field(default=(), repr=False)
+
+    @property
+    def summary(self) -> str:
+        """The line a human reads, which must never hide the control."""
+        candidate = self.oracle.tests_passed if self.oracle else 0
+        return (
+            f"candidate {candidate}/{self.target_total}; base {self.base_passed}; "
+            f"delta {self.oracle_delta:+d}; gap closed {self.gap_closed:.0%}"
+        )
 
     def payload(self) -> dict[str, object]:
         def suite(result: SuiteResult | None) -> dict[str, object] | None:
@@ -90,9 +110,15 @@ class Attempt:
         return {
             "task_id": self.task_id,
             "manifest_sha256": self.manifest_sha256,
+            "rule_version": self.rule_version,
             "tools": self.tools,
             "accepted": self.accepted,
             "outcome": self.outcome,
+            "base_passed": self.base_passed,
+            "target_total": self.target_total,
+            "oracle_delta": self.oracle_delta,
+            "gap_closed": self.gap_closed,
+            "missing_nodes": list(self.missing_nodes),
             "changed_paths": list(self.changed_paths),
             "out_of_scope": list(self.out_of_scope),
             "model_seconds": round(self.model_seconds, 2),
@@ -103,25 +129,36 @@ class Attempt:
         }
 
 
+def base_commit(workspace: Path) -> str:
+    """The root commit `materialize` wrote. Everything is diffed against this."""
+    result = subprocess.run(
+        ["git", "rev-list", "--max-parents=0", "HEAD"],
+        cwd=workspace,
+        capture_output=True,
+        text=True,
+        env=GIT_ENV,
+    )
+    return result.stdout.strip().splitlines()[0]
+
+
 def capture_candidate(workspace: Path) -> str:
-    """The model's whole contribution, as a patch.
+    """The model's whole contribution, as a patch against the base commit.
 
-    This is what makes grading replayable. Every defect found in this
-    harness so far has been in the *acceptance rule*, not in the model's
-    output -- and each one cost a fresh sweep of model calls to re-score
-    work that was already correct. A saved patch turns re-scoring into a
-    pure function over (patch, manifest, environment) that runs offline
-    in seconds.
+    Diffed against the *root* commit rather than HEAD. The workspace is a
+    real git repository and a model with a shell can commit in it; against
+    HEAD, a committed change produces an empty diff and real work would be
+    recorded as "no-changes" -- an inversion of exactly the kind this
+    harness has already suffered three times.
 
-    The roadmap already asked for this at cycle 5, for admitting
-    components by replay. It applies just as well to the screen that
-    produces the candidates in the first place.
+    Saving the patch is what makes grading replayable. Every defect found
+    here has been in the acceptance rule, never in the model's output, and
+    each cost a fresh sweep to re-score work that was already correct.
     """
     subprocess.run(
         ["git", "add", "-A"], cwd=workspace, capture_output=True, env=GIT_ENV
     )
     diff = subprocess.run(
-        ["git", "diff", "--cached", "--binary"],
+        ["git", "diff", "--cached", "--binary", base_commit(workspace)],
         cwd=workspace,
         capture_output=True,
         text=True,
@@ -130,17 +167,24 @@ def capture_candidate(workspace: Path) -> str:
     return diff.stdout
 
 
-def apply_candidate(workspace: Path, patch: str) -> None:
-    """Reapply a saved candidate to a freshly materialized base."""
+def apply_candidate(
+    workspace: Path, patch: str, include: tuple[str, ...] | None = None
+) -> None:
+    """Reapply a saved candidate, optionally restricted to certain paths.
+
+    `include` is how grading stays honest about *what* it executes. Graded
+    workspaces get production paths only, so a model-authored test,
+    conftest, or pytest.ini is recorded as out-of-scope but never runs.
+    Executing model-written test files would let a candidate grade itself.
+    """
     if not patch.strip():
         return
+    command = ["git", "apply", "--whitespace=nowarn"]
+    for pattern in include or ():
+        command.append(f"--include={pattern}")
+    command.append("-")
     result = subprocess.run(
-        ["git", "apply", "--whitespace=nowarn", "-"],
-        cwd=workspace,
-        input=patch,
-        capture_output=True,
-        text=True,
-        env=GIT_ENV,
+        command, cwd=workspace, input=patch, capture_output=True, text=True, env=GIT_ENV
     )
     if result.returncode != 0:
         raise WorkloadError(f"candidate patch did not apply: {result.stderr.strip()}")
@@ -181,6 +225,43 @@ def _out_of_scope(
     )
 
 
+GRADING_RULE_VERSION = 4
+"""Bumped whenever the acceptance rule changes.
+
+Every grade records it, because four rules have now produced different
+verdicts on identical candidates and a record that does not say which one
+scored it cannot be compared with anything.
+
+  1  preservation on base tests, oracle on target tests -- contradictory
+  2  both on the overlaid copy -- oracle counted twice
+  3  overlay then --ignore -- a root conftest still loads as a plugin
+  4  separate workspaces, production paths only, node inventory
+"""
+
+
+def _expected_nodes(manifest: Manifest) -> tuple[set[str], int, int]:
+    """Base preservation inventory, base oracle score, target oracle total.
+
+    Read from the task's own qualification record, which is frozen
+    evidence: it is what the base and target actually did under this
+    environment, so it is the only defensible reference for "did this
+    candidate improve on doing nothing".
+    """
+    record = json.loads((manifest.task_dir / "qualification.json").read_text())
+    conditions = record["conditions"]
+    oracle_files = set(manifest.oracle_files)
+    preservation_nodes = {
+        node
+        for node in conditions["base_preservation"]["nodes"]
+        if node.split("::")[0] not in oracle_files
+    }
+    return (
+        preservation_nodes,
+        int(conditions["base_oracle"]["tests_passed"]),
+        int(conditions["target_oracle"]["tests_passed"]),
+    )
+
+
 def grade_candidate(
     manifest: Manifest,
     clone: Path,
@@ -194,85 +275,92 @@ def grade_candidate(
 ) -> Attempt:
     """Score one saved candidate. Pure, offline, no model call.
 
-    Two independent questions, deliberately measured separately:
+    Two questions, two workspaces, and neither contaminates the other:
 
-    - the **oracle** runs on a copy with the hidden tests overlaid, and
-      says whether the feature works;
-    - **preservation** runs on that same overlaid copy but ignores the
-      oracle files, and says whether anything else survived.
+    - **preservation**: candidate production over the base tree, base
+      tests, oracle test files ignored. No overlay at all -- overlaying
+      target files here is what made a comment-only edit read as
+      repository damage, because a root `conftest.py` in the oracle loads
+      as a pytest plugin no matter what `--ignore` says.
+    - **oracle**: candidate production plus the target's oracle files,
+      which is the only place target-side tests belong.
 
-    Overlaying for both is what lets a task legitimately change an
-    existing test's expectations. Ignoring the oracle files in
-    preservation is what stops the oracle being counted twice, which
-    would make "feature incomplete" indistinguishable from "repository
-    damaged".
+    Both workspaces receive *production paths only*. A model-authored
+    test, conftest or ini file is recorded as out-of-scope and never
+    executed -- otherwise a candidate could grade itself.
+
+    The headline number is the oracle delta over base, not acceptance. A
+    candidate scoring 15/18 where the base already scores 15/18 has done
+    nothing, and reporting it as a near-miss is how a floor gets mistaken
+    for a middle.
     """
     manifest_hash = sha256_file(manifest.task_dir / "manifest.toml")
+    expected_nodes, base_passed, target_total = _expected_nodes(manifest)
 
-    with materialize(clone, manifest.base_sha) as workspace:
-        apply_candidate(workspace, patch)
-        changed = _changed_paths(workspace)
+    preservation_command = tuple(manifest.preservation_command) + tuple(
+        argument for entry in manifest.deselects for argument in ("--deselect", entry)
+    )
+    ignore_oracle = tuple(
+        argument
+        for oracle_file in manifest.oracle_files
+        for argument in ("--ignore", oracle_file)
+    )
+
+    with materialize(clone, manifest.base_sha) as inspect:
+        apply_candidate(inspect, patch)
+        changed = _changed_paths(inspect)
         out_of_scope = _out_of_scope(changed, manifest.writable)
 
-        if not changed:
-            return Attempt(
-                task_id=manifest.task_id,
-                manifest_sha256=manifest_hash,
-                tools=tools,
-                accepted=False,
-                outcome="no-changes",
-                changed_paths=changed,
-                out_of_scope=out_of_scope,
-                model_seconds=model_seconds,
-                model_timed_out=model_timed_out,
-                preservation=None,
-                oracle=None,
-                argv=argv,
-            )
-
-        preservation_command = tuple(manifest.preservation_command) + tuple(
-            argument
-            for entry in manifest.deselects
-            for argument in ("--deselect", entry)
+    with materialize(clone, manifest.base_sha) as preserving:
+        apply_candidate(preserving, patch, include=manifest.writable)
+        preservation = run_suite(
+            preserving, preservation_command + ignore_oracle, env, suite_timeout
         )
-        ignore_oracle = tuple(
-            argument
-            for oracle_file in manifest.oracle_files
-            for argument in ("--ignore", oracle_file)
-        )
-        with disposable_dir("satyrn-grade-") as grading:
-            shutil.copytree(workspace, grading, dirs_exist_ok=True)
-            overlay_oracle(clone, manifest, grading)
-            preservation = run_suite(
-                grading, preservation_command + ignore_oracle, env, suite_timeout
-            )
-            oracle = run_suite(grading, manifest.oracle_command, env, suite_timeout)
 
-    accepted = (
-        preservation.reason_class == "pass"
-        and oracle.reason_class == "pass"
-        and not out_of_scope
-    )
+    with materialize(clone, manifest.base_sha) as grading:
+        apply_candidate(grading, patch, include=manifest.writable)
+        overlay_oracle(clone, manifest, grading)
+        oracle = run_suite(grading, manifest.oracle_command, env, suite_timeout)
+
+    missing_nodes = tuple(sorted(expected_nodes - set(preservation.outcomes)))
+    oracle_delta = oracle.tests_passed - base_passed
+    gap = target_total - base_passed
+    gap_closed = (oracle_delta / gap) if gap > 0 else 0.0
+
+    preserved = preservation.reason_class == "pass" and not missing_nodes
+    accepted = preserved and oracle.reason_class == "pass" and not out_of_scope
+
     if accepted:
         outcome = "accepted"
+    elif missing_nodes:
+        outcome = "tests-vanished"
     elif out_of_scope and oracle.reason_class == "pass":
         outcome = "out-of-scope"
-    elif oracle.reason_class != "pass" and preservation.reason_class != "pass":
-        outcome = "broke-and-missed"
-    elif preservation.reason_class != "pass":
-        # The feature works but something else regressed -- "the tests
-        # pass and the repository is damaged" is the failure this whole
-        # line of work exists to catch, so it gets its own name.
-        outcome = "preservation-broken"
+    elif not preserved and oracle_delta > 0:
+        outcome = "progress-but-damaged"
+    elif not preserved:
+        outcome = "damaged"
+    elif oracle_delta > 0:
+        outcome = "partial-progress"
+    elif oracle_delta < 0:
+        outcome = "regressed"
+    elif not changed:
+        outcome = "no-changes"
     else:
-        outcome = "oracle-failed"
+        outcome = "no-progress"
 
     return Attempt(
         task_id=manifest.task_id,
         manifest_sha256=manifest_hash,
+        rule_version=GRADING_RULE_VERSION,
         tools=tools,
         accepted=accepted,
         outcome=outcome,
+        base_passed=base_passed,
+        target_total=target_total,
+        oracle_delta=oracle_delta,
+        gap_closed=round(gap_closed, 3),
+        missing_nodes=missing_nodes,
         changed_paths=changed,
         out_of_scope=out_of_scope,
         model_seconds=model_seconds,
@@ -294,11 +382,16 @@ def screen_task(
 ) -> tuple[Attempt, str]:
     """One bounded model attempt, returned with its candidate patch.
 
-    The model call is the only expensive step and the only one that
-    cannot be repeated cheaply, so it happens exactly once and its whole
-    result is handed back as a patch. Everything downstream is
-    `grade_candidate`, which can be re-run offline whenever the
-    acceptance rule changes -- and it has changed three times.
+    The model call is the only expensive, unrepeatable step, so it happens
+    once and its whole result is handed back as a patch. Everything
+    downstream is `grade_candidate`, replayable offline whenever the
+    acceptance rule changes -- which it has, four times.
+
+    A candidate that changed nothing is graded like any other rather than
+    short-circuited. It still has a base score, a delta of zero, and a
+    preservation result, and reporting those makes "wrote nothing" and
+    "wrote something useless" comparable instead of collapsing both into
+    an early return.
     """
     brief = manifest.brief_path.read_text()
 

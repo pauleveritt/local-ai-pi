@@ -881,6 +881,7 @@ class ConditionRun:
             "stable": self.stable,
             "wall_seconds": [round(r.wall_seconds, 3) for r in self.results],
             "node_count": len(self.first.outcomes),
+            "nodes": sorted(self.first.outcomes),
             "failures": dict(sorted(self.first.failures.items())),
             "collection_errors": dict(sorted(self.first.collection_errors.items())),
             "fingerprint_sha256": [r.fingerprint_sha256 for r in self.results],
