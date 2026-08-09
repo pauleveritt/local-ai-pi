@@ -1,0 +1,89 @@
+{
+  "base_sha": "31bc6dfd5d1a570b3b96cfefd878ccc686bde980",
+  "conditions": {
+    "base_oracle": {
+      "node_count": 18,
+      "reason_class": "assertion-failure",
+      "returncode": 1,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 15,
+      "wall_seconds": [
+        0.978,
+        0.97,
+        0.976
+      ]
+    },
+    "base_preservation": {
+      "node_count": 137,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 137,
+      "wall_seconds": [
+        1.247,
+        1.187,
+        1.199
+      ]
+    },
+    "target_oracle": {
+      "node_count": 18,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 18,
+      "wall_seconds": [
+        0.961,
+        0.982,
+        0.949
+      ]
+    },
+    "target_preservation": {
+      "node_count": 140,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 140,
+      "wall_seconds": [
+        1.202,
+        1.205,
+        1.211
+      ]
+    }
+  },
+  "deselects": [],
+  "effective_preservation_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider"
+  ],
+  "env_id": "svcs-cohort-2026-08-09",
+  "env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
+  "env_platform": "darwin",
+  "env_python": "3.14.2",
+  "manifest_sha256": "2208c8bf20e0ef82ad24b21f8366026ba823851f0ca790fe30a3ba38ba34fde7",
+  "max_seconds": 60.0,
+  "oracle_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "tests/test_container.py"
+  ],
+  "preservation_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider"
+  ],
+  "recorded_at": "2026-08-09T14:24:22.834682+00:00",
+  "repeats": 3,
+  "role": "medium",
+  "status": "qualified",
+  "target_sha": "52c6689d34ce80c0f5a754f95d2aad54837402df",
+  "task_id": "local-pings"
+}
