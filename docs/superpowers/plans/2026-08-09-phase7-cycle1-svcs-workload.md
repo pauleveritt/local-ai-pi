@@ -830,6 +830,16 @@ The gate that makes a base rejection mean something: an import typo and a genuin
 - Modify: `harness/workload.py`
 - Test: `tests/test_workload.py`
 
+> **Two corrections found by review before this task ran.** `ProcessResult` on
+> this branch has exactly four fields — `returncode`, `stdout`, `stderr`,
+> `timed_out`. It has **no `wall_seconds`**; that field exists only on the
+> phase6 line, which is where this plan's snippets were drafted. `run_suite`
+> therefore times the call itself with `time.monotonic()`, and Task 6's runtime
+> gate depends on that. Separately, `CohortEnv` grew `python_version` and
+> `platform` when Task 3 was implemented, so `_fake_env()` must supply all four
+> fields. Treat every remaining code snippet as a draft to check against the
+> current source, not as gospel.
+
 **Interfaces:**
 - Consumes: `CohortEnv` (Task 3), `materialize` (Task 2), `harness.processes.run_process`.
 - Produces:
@@ -839,8 +849,8 @@ The gate that makes a base rejection mean something: an import typo and a genuin
 
 - [ ] **Step 1: Write the failing tests**
 
-Extend the import block with `import sys` and with `CohortEnv` and `run_suite`
-from `harness.workload`, then append to `tests/test_workload.py`:
+Extend the import block with `import platform`, `import sys`, and with `CohortEnv`
+and `run_suite` from `harness.workload`, then append to `tests/test_workload.py`:
 
 Note the four `pytest` exit codes these tests pin down — 0 pass, 1 tests failed,
 2 interrupted (which is what a collection error produces), 5 nothing collected.
@@ -855,7 +865,12 @@ def _fake_env() -> CohortEnv:
     project's venv has -- so the runner's behavior can be tested without
     resolving the real svcs environment.
     """
-    return CohortEnv(python=Path(sys.executable), lock_sha256="synthetic")
+    return CohortEnv(
+        python=Path(sys.executable),
+        lock_sha256="synthetic",
+        python_version=platform.python_version(),
+        platform=sys.platform,
+    )
 
 
 def test_run_suite_reports_pass(tmp_path: Path, synthetic_clone: SyntheticClone) -> None:
@@ -977,6 +992,7 @@ Expected: FAIL with `ImportError: cannot import name 'run_suite'`.
 Add to `harness/workload.py`:
 
 ```python
+import time
 from collections.abc import Sequence
 
 import harness.grading_plugin as grading_plugin
@@ -1004,6 +1020,7 @@ class SuiteResult:
     wall_seconds: float
     timed_out: bool
     stdout_tail: str
+    output: str = ""
 
     @property
     def fingerprint(self) -> tuple[object, ...]:
@@ -1119,12 +1136,14 @@ def run_suite(
             "TMPDIR": str(workspace),
             grading_plugin.RESULTS_ENV_VAR: str(results),
         }
+        started = time.monotonic()
         result = run_process(
             [str(env.python), "-m", *command, "-p", "grading_plugin"],
             cwd=workspace,
             timeout=timeout,
             env=child_env,
         )
+        wall_seconds = time.monotonic() - started
         outcomes, done = _read_outcomes(results)
 
     output = result.stdout + result.stderr
@@ -1133,9 +1152,10 @@ def run_suite(
         reason_class=classify(result.returncode, outcomes, done, result.timed_out),
         outcomes=outcomes,
         tests_passed=sum(1 for outcome in outcomes.values() if outcome == "passed"),
-        wall_seconds=result.wall_seconds,
+        wall_seconds=wall_seconds,
         timed_out=result.timed_out,
         stdout_tail=output[-4000:],
+        output=output,
     )
 ```
 
@@ -1881,7 +1901,9 @@ def _rejection_mismatch(manifest: Manifest, observed: SuiteResult) -> str | None
     if observed.reason_class != manifest.base_rejection:
         return f"base was {observed.reason_class}, manifest declares {manifest.base_rejection}"
 
-    haystack = observed.stdout_tail
+    # Full output, not stdout_tail: a verbose collection error can push a
+    # symbol name past the 4000-character tail and disqualify a good task.
+    haystack = observed.output or observed.stdout_tail
     for symbol in manifest.rejection_missing_symbols:
         if symbol not in haystack:
             return f"expected the base to be missing {symbol!r}, but it is not named in the failure"
