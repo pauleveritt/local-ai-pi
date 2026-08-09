@@ -36,8 +36,7 @@ def bootstrap_ci_halfwidth(
     """
     rng = random.Random(seed)
     means = sorted(
-        statistics.fmean(rng.choice(sample) for _ in range(n))
-        for _ in range(resamples)
+        statistics.fmean(rng.choice(sample) for _ in range(n)) for _ in range(resamples)
     )
     lo = int((1 - confidence) / 2 * resamples)
     hi = int((1 + confidence) / 2 * resamples) - 1
@@ -72,7 +71,10 @@ def minimum_n_for_precision(
     n = 1
     while True:
         capped = min(n, max_n)
-        if bootstrap_ci_halfwidth(sample, capped, confidence, resamples, seed) <= target_halfwidth:
+        if (
+            bootstrap_ci_halfwidth(sample, capped, confidence, resamples, seed)
+            <= target_halfwidth
+        ):
             hi = capped
             break
         if capped >= max_n:
@@ -83,7 +85,10 @@ def minimum_n_for_precision(
         n *= 2
     while hi - lo > 1:
         mid = (lo + hi) // 2
-        if bootstrap_ci_halfwidth(sample, mid, confidence, resamples, seed) <= target_halfwidth:
+        if (
+            bootstrap_ci_halfwidth(sample, mid, confidence, resamples, seed)
+            <= target_halfwidth
+        ):
             hi = mid
         else:
             lo = mid
@@ -97,7 +102,5 @@ def leave_one_out_spread(sample: Sequence[float]) -> float:
     independent of what any bootstrap half-width reports about it.
     """
     sample = list(sample)
-    means = [
-        statistics.fmean(sample[:i] + sample[i + 1 :]) for i in range(len(sample))
-    ]
+    means = [statistics.fmean(sample[:i] + sample[i + 1 :]) for i in range(len(sample))]
     return max(means) - min(means)

@@ -133,8 +133,12 @@ def grade(
 
         proc = run_process(
             [
-                sys.executable, "-m", "pytest", "-q",
-                "-p", "harness.grading_plugin",
+                sys.executable,
+                "-m",
+                "pytest",
+                "-q",
+                "-p",
+                "harness.grading_plugin",
                 # Collect the acceptance suite and nothing else. Cycle 9's
                 # allowlist copy already keeps model-written test files out
                 # of the grading directory, so this is now a second,

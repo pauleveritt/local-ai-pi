@@ -49,11 +49,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--task", action="append", default=None, help="qualify only these task ids"
     )
-    parser.add_argument("--repeats", type=int, default=3)
-    parser.add_argument("--timeout", type=float, default=300.0)
-    parser.add_argument("--max-seconds", type=float, default=60.0)
     parser.add_argument(
-        "--require-python", default=None, help="exact interpreter version to demand"
+        "--repeats",
+        type=int,
+        default=3,
+        help="minimum 3; more is allowed, fewer is not",
+    )
+    parser.add_argument("--timeout", type=float, default=300.0)
+    parser.add_argument(
+        "--max-seconds",
+        type=float,
+        default=60.0,
+        help="ceiling 60s; a tighter budget is allowed, a looser one is not",
     )
     parser.add_argument(
         "--frozen",
@@ -66,9 +73,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     task_ids = args.task or list(cohort.tasks)
 
     clone = workload.ensure_clone(cohort.upstream, args.cache)
-    env = workload.ensure_cohort_env(
-        cohort.env_dir, args.cache, require_python=args.require_python
-    )
+    # No --require-python flag: each manifest names the interpreter it was
+    # qualified against and `qualify` always compares it. A freeze that
+    # holds only when someone remembers a flag is not a freeze.
+    env = workload.ensure_cohort_env(cohort.env_dir, args.cache)
 
     failures = 0
     for task_id in task_ids:

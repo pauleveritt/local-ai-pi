@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
-import harness.grading_plugin as grading_plugin
+import harness.workload_plugin as workload_plugin
 from harness.processes import run_process
 from harness.workspace import GIT_ENV, disposable_dir, git_init_commit
 
@@ -359,20 +359,29 @@ _PYTEST_NO_TESTS = 5
 class SuiteResult:
     """One suite run, described by what pytest's own hooks reported.
 
-    `outcomes` maps node id to final outcome, read from the results file
-    `harness.grading_plugin` writes through `pytest_runtest_logreport`.
+    `outcomes` maps node id to `"phase:outcome"`, read from the results
+    file `harness.workload_plugin` writes through pytest's own hooks.
     That is trustworthy in a way parsing stdout is not: hooks fire only
     when pytest actually ran a test, while stdout can be written to by
-    the code under test.
+    the code under test. The phase is carried because a `setup` failure
+    means the test never ran -- a different fact about a task than an
+    assertion that ran and was wrong.
+
+    `collection_errors` maps a collecting node to the exception that
+    stopped it. A collection error records no test outcomes at all, so
+    without this two collection errors are indistinguishable however
+    differently they were caused.
 
     `fingerprint` is the stable comparison key -- two runs that fail
-    *different* assertions must not compare equal, or a suite failing a
-    random test each time would look perfectly stable.
+    *different* assertions, or fail to collect for *different* reasons,
+    must not compare equal, or a suite failing randomly would look
+    perfectly stable.
     """
 
     returncode: int | None
     reason_class: str
     outcomes: dict[str, str]
+    collection_errors: dict[str, str]
     tests_passed: int
     wall_seconds: float
     timed_out: bool
@@ -380,16 +389,33 @@ class SuiteResult:
     output: str = field(default="", repr=False)
 
     @property
+    def failures(self) -> dict[str, str]:
+        """Node id -> "phase:outcome" for everything that did not pass."""
+        return {
+            node: outcome
+            for node, outcome in self.outcomes.items()
+            if not outcome.endswith(":passed")
+        }
+
+    @property
     def fingerprint(self) -> tuple[object, ...]:
         return (
             self.reason_class,
             self.returncode,
             tuple(sorted(self.outcomes.items())),
+            tuple(sorted(self.collection_errors.items())),
         )
 
+    @property
+    def fingerprint_sha256(self) -> str:
+        return hashlib.sha256(repr(self.fingerprint).encode()).hexdigest()
 
-def _read_outcomes(path: Path) -> tuple[dict[str, str], bool]:
-    """Parse the grading plugin's results file into {nodeid: outcome}, plus done.
+
+def _read_outcomes(path: Path) -> tuple[dict[str, str], dict[str, str], bool]:
+    """Parse the workload plugin's results file.
+
+    Returns phase-tagged outcomes ("call:failed"), structured collection
+    failures, and whether the session finished.
 
     Last line wins per nodeid. That is deliberate and matches
     `harness/grading.py`: a test whose call phase passed but whose
@@ -397,17 +423,21 @@ def _read_outcomes(path: Path) -> tuple[dict[str, str], bool]:
     later one is the truth.
     """
     outcomes: dict[str, str] = {}
+    collection_errors: dict[str, str] = {}
     done = False
     if not path.is_file():
-        return outcomes, done
+        return outcomes, collection_errors, done
     for line in path.read_text().splitlines():
-        if line == grading_plugin.DONE_MARKER:
+        if line == workload_plugin.DONE_MARKER:
             done = True
             continue
-        nodeid, separator, outcome = line.partition("\t")
-        if separator:
-            outcomes[nodeid] = outcome
-    return outcomes, done
+        fields = line.split("\t")
+        if fields[0] == workload_plugin.TEST_PREFIX and len(fields) == 4:
+            _, nodeid, phase, outcome = fields
+            outcomes[nodeid] = f"{phase}:{outcome}"
+        elif fields[0] == workload_plugin.COLLECT_PREFIX and len(fields) == 3:
+            collection_errors[fields[1]] = fields[2]
+    return outcomes, collection_errors, done
 
 
 def classify(
@@ -439,10 +469,15 @@ def classify(
         return "error"
     if returncode == _PYTEST_OK and done:
         return "pass"
-    if returncode == _PYTEST_TESTS_FAILED and any(
-        o == "failed" for o in outcomes.values()
-    ):
-        return "assertion-failure"
+    if returncode == _PYTEST_TESTS_FAILED:
+        # Only a *call*-phase failure is an assertion failure. A setup
+        # failure means the test never ran -- a missing fixture, an
+        # erroring conftest -- and a task declaring "assertion-failure"
+        # must not be satisfied by one. Both arrive as `failed`, so
+        # without the phase they are indistinguishable.
+        if any(o == "call:failed" for o in outcomes.values()):
+            return "assertion-failure"
+        return "error"
     return "error"
 
 
@@ -479,7 +514,7 @@ def run_suite(
     with disposable_dir("satyrn-suite-") as staging:
         plugin_dir = staging / "plugin"
         plugin_dir.mkdir()
-        shutil.copy2(Path(grading_plugin.__file__), plugin_dir / "grading_plugin.py")
+        shutil.copy2(Path(workload_plugin.__file__), plugin_dir / "workload_plugin.py")
         home = staging / "home"
         home.mkdir()
         tmp = staging / "tmp"
@@ -494,24 +529,27 @@ def run_suite(
             "LANG": "C.UTF-8",
             "LC_ALL": "C.UTF-8",
             "TMPDIR": str(tmp),
-            grading_plugin.RESULTS_ENV_VAR: str(results),
+            workload_plugin.RESULTS_ENV_VAR: str(results),
         }
         started = time.monotonic()
         result = run_process(
-            [str(env.python), "-m", *command, "-p", "grading_plugin"],
+            [str(env.python), "-m", *command, "-p", "workload_plugin"],
             cwd=workspace,
             timeout=timeout,
             env=child_env,
         )
         wall_seconds = time.monotonic() - started
-        outcomes, done = _read_outcomes(results)
+        outcomes, collection_errors, done = _read_outcomes(results)
 
     output = result.stdout + result.stderr
     return SuiteResult(
         returncode=result.returncode,
         reason_class=classify(result.returncode, outcomes, done, result.timed_out),
         outcomes=outcomes,
-        tests_passed=sum(1 for outcome in outcomes.values() if outcome == "passed"),
+        collection_errors=collection_errors,
+        tests_passed=sum(
+            1 for outcome in outcomes.values() if outcome.endswith(":passed")
+        ),
         wall_seconds=wall_seconds,
         timed_out=result.timed_out,
         stdout_tail=output[-4000:],
@@ -545,6 +583,7 @@ class Manifest:
     deselects: tuple[str, ...]
     deselect_reason: str
     env_id: str
+    env_python: str
     env_lock_sha256: str
     attestations: dict[str, str]
     task_dir: Path
@@ -614,6 +653,7 @@ def load_manifest(task_dir: Path) -> Manifest:
         raise WorkloadError(f"no manifest.toml in {task_dir}")
     data = tomllib.loads(path.read_text())
 
+    manifest_task_id = _string(data, "task_id", "manifest")
     source = _table(data, "source", "source")
     task = _table(data, "task", "task")
     policy = _table(data, "policy", "policy")
@@ -695,6 +735,30 @@ def load_manifest(task_dir: Path) -> Manifest:
     if deselects and not deselect_reason.strip():
         raise WorkloadError("a deselect list requires a written deselect_reason")
 
+    env_python = _string(environment, "python", "environment")
+    env_lock = _string(environment, "lock_sha256", "environment")
+    if not env_lock.strip():
+        raise WorkloadError(
+            "environment.lock_sha256 must be a real hash. A blank one silently "
+            "accepts whatever environment happens to be present, which is the "
+            "opposite of a freeze."
+        )
+    if not env_python.strip():
+        raise WorkloadError("environment.python must name an exact interpreter version")
+
+    _require_relative("oracle.files", _strings(oracle, "files", "oracle"))
+    _require_relative(
+        "candidate_output", _optional_strings(policy, "candidate_output", "policy")
+    )
+    _require_relative("task.brief", (_string(task, "brief", "task"),))
+    if "contract" in task:
+        _require_relative("task.contract", (_string(task, "contract", "task"),))
+
+    if manifest_task_id != task_dir.name:
+        raise WorkloadError(
+            f"task_id {manifest_task_id!r} does not match its directory {task_dir.name!r}"
+        )
+
     raw_hashes = oracle.get("files_sha256", {})
     oracle_hashes = (
         {str(k): str(v) for k, v in raw_hashes.items()}
@@ -703,7 +767,7 @@ def load_manifest(task_dir: Path) -> Manifest:
     )
 
     return Manifest(
-        task_id=_string(data, "task_id", "manifest"),
+        task_id=manifest_task_id,
         role=_string(data, "role", "manifest"),
         axes=_optional_strings(data, "axes", "manifest"),
         upstream=_string(source, "upstream", "source"),
@@ -725,7 +789,8 @@ def load_manifest(task_dir: Path) -> Manifest:
         deselects=deselects,
         deselect_reason=deselect_reason,
         env_id=_string(environment, "id", "environment"),
-        env_lock_sha256=_string(environment, "lock_sha256", "environment"),
+        env_python=env_python,
+        env_lock_sha256=env_lock,
         attestations=attestations,
         task_dir=task_dir,
     )
@@ -772,6 +837,12 @@ CONDITIONS = (
     "target_oracle",
 )
 
+# A qualified task means something only if the run that qualified it was
+# at full strength. Callers may make qualification *harder* (more
+# repeats, a tighter budget) but never easier.
+MIN_REPEATS = 3
+MAX_SECONDS_CEILING = 60.0
+
 
 @dataclass(frozen=True)
 class ConditionRun:
@@ -793,6 +864,15 @@ class ConditionRun:
         return max(r.wall_seconds for r in self.results)
 
     def payload(self) -> dict[str, object]:
+        """The committed evidence for one condition.
+
+        Every non-passing node is listed by name and phase, and every
+        repeat contributes a fingerprint hash. Together those make
+        "exactly the pre-registered failures, three times" auditable
+        from the committed record without rerunning anything. Passing
+        nodes are summarised by count rather than enumerated -- naming
+        all 137 of them would bury the three that matter.
+        """
         return {
             "reason_class": self.first.reason_class,
             "returncode": self.first.returncode,
@@ -801,6 +881,9 @@ class ConditionRun:
             "stable": self.stable,
             "wall_seconds": [round(r.wall_seconds, 3) for r in self.results],
             "node_count": len(self.first.outcomes),
+            "failures": dict(sorted(self.first.failures.items())),
+            "collection_errors": dict(sorted(self.first.collection_errors.items())),
+            "fingerprint_sha256": [r.fingerprint_sha256 for r in self.results],
         }
 
 
@@ -847,21 +930,38 @@ def _rejection_mismatch(manifest: Manifest, observed: SuiteResult) -> str | None
     if observed.reason_class != manifest.base_rejection:
         return f"base was {observed.reason_class}, manifest declares {manifest.base_rejection}"
 
-    haystack = observed.output or observed.stdout_tail
-    for symbol in manifest.rejection_missing_symbols:
-        if symbol not in haystack:
+    if manifest.rejection_missing_symbols:
+        # Searched in the *collection failures* only, not anywhere in
+        # output. A symbol name appears in stdout merely by being on the
+        # source line pytest echoes back, which proves nothing about
+        # what caused the error.
+        if not observed.collection_errors:
             return (
-                f"expected the base to be missing {symbol!r}, "
-                "but it is not named anywhere in the failure"
+                "manifest declares missing symbols, but the run recorded no "
+                "collection failure to attribute them to"
             )
+        reasons = " ".join(observed.collection_errors.values())
+        for symbol in manifest.rejection_missing_symbols:
+            if symbol not in reasons:
+                return (
+                    f"expected the collection failure to name {symbol!r}, "
+                    f"but it says: {reasons[:200]}"
+                )
 
     if manifest.rejection_failing_nodes:
-        failed = {
-            node for node, outcome in observed.outcomes.items() if outcome == "failed"
-        }
+        # Exact equality, not a subset. A base that fails the three
+        # declared nodes *and* four undeclared ones is not the task the
+        # manifest describes, and admitting it would let unrelated
+        # breakage ride along inside a qualified task.
+        failed = set(observed.failures)
         expected = set(manifest.rejection_failing_nodes)
-        if not expected.issubset(failed):
-            return f"expected these nodes to fail: {sorted(expected - failed)}"
+        if failed != expected:
+            missing = sorted(expected - failed)
+            extra = sorted(failed - expected)
+            return (
+                "declared failing nodes do not match observed; "
+                f"missing={missing} unexpected={extra}"
+            )
     return None
 
 
@@ -886,7 +986,23 @@ def qualify(
     requires. `timeout` is the far larger backstop that kills a hung
     child; a suite landing between the two is a qualification failure,
     not a crash.
+
+    Refuses weakened parameters outright rather than returning a weaker
+    verdict. `repeats=1` would make every task trivially "stable", and a
+    raised `max_seconds` would retire the threshold the design commits
+    to -- and both would still emit `status="qualified"`, which is the
+    word the whole cohort is reported under.
     """
+    if repeats < MIN_REPEATS:
+        raise WorkloadError(
+            f"repeats={repeats} cannot qualify anything: {MIN_REPEATS} is the minimum, "
+            "and one run makes every task trivially stable"
+        )
+    if max_seconds > MAX_SECONDS_CEILING:
+        raise WorkloadError(
+            f"max_seconds={max_seconds} exceeds the {MAX_SECONDS_CEILING}s ceiling the "
+            "design commits to; a tighter budget is allowed, a looser one is not"
+        )
     report: dict[str, object] = {
         "task_id": manifest.task_id,
         "role": manifest.role,
@@ -896,6 +1012,7 @@ def qualify(
         "env_id": manifest.env_id,
         "env_lock_sha256": env.lock_sha256,
         "env_python": env.python_version,
+        "manifest_env_python": manifest.env_python,
         "env_platform": env.platform,
         "preservation_command": list(manifest.preservation_command),
         "oracle_command": list(manifest.oracle_command),
@@ -912,11 +1029,19 @@ def qualify(
         report["detail"] = detail
         return report
 
-    if manifest.env_lock_sha256 not in ("", env.lock_sha256):
+    if manifest.env_lock_sha256 != env.lock_sha256:
         return _disqualify(
             "environment",
             f"manifest declares lock {manifest.env_lock_sha256[:12]}, "
             f"cohort env is {env.lock_sha256[:12]}",
+        )
+    if manifest.env_python != env.python_version:
+        # Always compared, never opt-in. Leaving this to a CLI flag meant
+        # the freeze held only when someone remembered to ask for it.
+        return _disqualify(
+            "environment",
+            f"manifest declares Python {manifest.env_python}, "
+            f"cohort env is {env.python_version}",
         )
 
     conditions = report["conditions"]

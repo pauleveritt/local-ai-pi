@@ -13,6 +13,7 @@ import pytest
 import harness.workload as workload_module
 from harness.workload import (
     CohortEnv,
+    SuiteResult,
     WorkloadError,
     _verify_interpreter,
     ensure_clone,
@@ -341,7 +342,7 @@ def test_run_suite_records_node_level_outcomes(
     clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
     with materialize(clone, synthetic_clone.base_sha) as workspace:
         result = run_suite(workspace, _QUIET, _fake_env())
-    assert result.outcomes == {"tests/test_add.py::test_add": "passed"}
+    assert result.outcomes == {"tests/test_add.py::test_add": "call:passed"}
 
 
 def test_run_suite_classifies_a_collection_error(
@@ -355,7 +356,7 @@ def test_run_suite_classifies_a_collection_error(
         )
         result = run_suite(workspace, _QUIET, _fake_env())
     assert result.reason_class == "collection-error"
-    assert "mul" in result.output
+    assert any("mul" in message for message in result.collection_errors.values())
 
 
 def test_run_suite_classifies_an_assertion_failure(
@@ -368,7 +369,7 @@ def test_run_suite_classifies_an_assertion_failure(
         )
         result = run_suite(workspace, _QUIET, _fake_env())
     assert result.reason_class == "assertion-failure"
-    assert result.outcomes["tests/test_wrong.py::test_wrong"] == "failed"
+    assert result.outcomes["tests/test_wrong.py::test_wrong"] == "call:failed"
 
 
 def test_a_command_collecting_nothing_is_an_error_not_a_rejection(
@@ -451,7 +452,7 @@ def _write_manifest(task_dir: Path, clone: SyntheticClone, **overrides: str) -> 
     task_dir.mkdir(parents=True, exist_ok=True)
     (task_dir / "brief.md").write_text("Add a mul function.\n")
     brief_sha = overrides.get("brief_sha256") or sha256_file(task_dir / "brief.md")
-    body = f"""task_id = "synthetic"
+    body = f"""task_id = "{overrides.get("task_id", task_dir.name)}"
 role = "floor"
 axes = ["arithmetic"]
 
@@ -489,8 +490,8 @@ deselect_reason = ""
 
 [environment]
 id = "synthetic-env"
-python = "3.14.2"
-lock_sha256 = "{overrides.get("lock_sha256", "")}"
+python = "{overrides.get("env_python", platform.python_version())}"
+lock_sha256 = "{overrides.get("lock_sha256", "synthetic")}"
 
 [attestations]
 behavior_not_structure = "The oracle calls the public function."
@@ -798,7 +799,7 @@ def test_qualify_refuses_a_mismatched_environment(
     task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
     text = (task_dir / "manifest.toml").read_text()
     (task_dir / "manifest.toml").write_text(
-        text.replace('lock_sha256 = ""', 'lock_sha256 = "deadbeef"')
+        text.replace('lock_sha256 = "synthetic"', 'lock_sha256 = "deadbeef"')
     )
     report = qualify(load_manifest(task_dir), bare, _fake_env())
     assert report["status"] == "disqualified"
@@ -1061,3 +1062,220 @@ def test_cli_records_a_task_whose_manifest_will_not_load(
     )
     assert report["status"] == "disqualified"
     assert report["failed_gate"] == "manifest"
+
+
+def test_a_setup_failure_is_not_an_assertion_failure(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """A missing fixture must not satisfy a task declaring assertion-failure.
+
+    Both arrive from pytest as `failed`; only the phase distinguishes a
+    test that ran and was wrong from one that never ran at all.
+    """
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    with materialize(clone, synthetic_clone.base_sha) as workspace:
+        (workspace / "tests" / "test_fixture.py").write_text(
+            "def test_needs(nonexistent_fixture):\n    assert True\n"
+        )
+        result = run_suite(workspace, _QUIET, _fake_env())
+    assert result.outcomes["tests/test_fixture.py::test_needs"] == "setup:failed"
+    assert result.reason_class == "error"
+
+
+def test_collection_errors_are_recorded_with_their_exception(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    with materialize(clone, synthetic_clone.base_sha) as workspace:
+        (workspace / "tests" / "test_mul.py").write_text("from pkg import mul\n")
+        result = run_suite(workspace, _QUIET, _fake_env())
+    assert result.reason_class == "collection-error"
+    (message,) = result.collection_errors.values()
+    assert "mul" in message
+
+
+def test_collection_error_messages_carry_no_workspace_path(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """Otherwise every collection-error task is spuriously unstable.
+
+    Each run gets a fresh materialization under a new temp directory, so
+    an unnormalised message differs on every run and the fingerprint
+    would disqualify the task for a difference carrying no information.
+    """
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    fingerprints = set()
+    for _ in range(2):
+        with materialize(clone, synthetic_clone.base_sha) as workspace:
+            (workspace / "tests" / "test_mul.py").write_text("from pkg import mul\n")
+            result = run_suite(workspace, _QUIET, _fake_env())
+            assert str(workspace) not in " ".join(result.collection_errors.values())
+        fingerprints.add(result.fingerprint_sha256)
+    assert len(fingerprints) == 1
+
+
+def test_qualify_refuses_fewer_than_three_repeats(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """One run makes every task trivially stable, and still says "qualified"."""
+    task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    with pytest.raises(WorkloadError, match="minimum"):
+        qualify(load_manifest(task_dir), bare, _fake_env(), repeats=1)
+
+
+def test_qualify_refuses_a_raised_time_ceiling(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    with pytest.raises(WorkloadError, match="ceiling"):
+        qualify(load_manifest(task_dir), bare, _fake_env(), max_seconds=600.0)
+
+
+def test_qualify_refuses_a_mismatched_interpreter(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """Always compared -- not opt-in behind a flag someone must remember."""
+    task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    text = (task_dir / "manifest.toml").read_text()
+    (task_dir / "manifest.toml").write_text(
+        text.replace(f'python = "{platform.python_version()}"', 'python = "3.99.0"')
+    )
+    report = qualify(load_manifest(task_dir), bare, _fake_env())
+    assert report["status"] == "disqualified"
+    assert report["failed_gate"] == "environment"
+    assert "3.99.0" in str(report["detail"])
+
+
+def _suite_result(
+    reason_class: str,
+    outcomes: dict[str, str],
+    collection_errors: dict[str, str] | None = None,
+    returncode: int = 1,
+) -> SuiteResult:
+    """A hand-built SuiteResult, so the pure matcher can be tested directly."""
+    return SuiteResult(
+        returncode=returncode,
+        reason_class=reason_class,
+        outcomes=outcomes,
+        collection_errors=collection_errors or {},
+        tests_passed=sum(1 for o in outcomes.values() if o.endswith(":passed")),
+        wall_seconds=0.1,
+        timed_out=False,
+        stdout_tail="",
+        output="",
+    )
+
+
+def test_rejection_matches_when_the_failures_are_exactly_declared(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir = _write_manifest(tmp_path / "tasks" / "s", synthetic_clone)
+    text = (task_dir / "manifest.toml").read_text()
+    (task_dir / "manifest.toml").write_text(
+        text.replace(
+            'class           = "collection-error"',
+            'class           = "assertion-failure"',
+        )
+        .replace('missing_symbols = ["mul"]', "missing_symbols = []")
+        .replace("failing_nodes   = []", 'failing_nodes   = ["a::one"]')
+    )
+    manifest = load_manifest(task_dir)
+    observed = _suite_result(
+        "assertion-failure", {"a::one": "call:failed", "b::two": "call:passed"}
+    )
+    assert workload_module._rejection_mismatch(manifest, observed) is None
+
+
+def test_rejection_refuses_an_undeclared_extra_failure(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """Exact equality, not a subset.
+
+    A base failing the declared node AND an unrelated one is not the
+    task the manifest describes; admitting it would let unrelated
+    breakage ride along inside a qualified task.
+    """
+    task_dir = _write_manifest(tmp_path / "tasks" / "s", synthetic_clone)
+    text = (task_dir / "manifest.toml").read_text()
+    (task_dir / "manifest.toml").write_text(
+        text.replace(
+            'class           = "collection-error"',
+            'class           = "assertion-failure"',
+        )
+        .replace('missing_symbols = ["mul"]', "missing_symbols = []")
+        .replace("failing_nodes   = []", 'failing_nodes   = ["a::one"]')
+    )
+    manifest = load_manifest(task_dir)
+    observed = _suite_result(
+        "assertion-failure", {"a::one": "call:failed", "b::two": "call:failed"}
+    )
+    detail = workload_module._rejection_mismatch(manifest, observed)
+    assert detail is not None
+    assert "unexpected=['b::two']" in detail
+
+
+def test_rejection_refuses_a_symbol_absent_from_the_collection_failure(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """A symbol echoed in stdout proves nothing about what caused the error.
+
+    The declared symbol must appear in the recorded collection failure
+    itself, not merely somewhere in pytest's output.
+    """
+    task_dir = _write_manifest(tmp_path / "tasks" / "s", synthetic_clone)
+    manifest = load_manifest(task_dir)  # declares missing_symbols = ["mul"]
+    observed = _suite_result(
+        "collection-error",
+        {},
+        collection_errors={
+            "tests/test_mul.py": "ImportError: cannot import name 'other'"
+        },
+        returncode=2,
+    )
+    detail = workload_module._rejection_mismatch(manifest, observed)
+    assert detail is not None
+    assert "mul" in detail
+
+
+def test_rejection_refuses_missing_symbols_with_no_collection_failure(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir = _write_manifest(tmp_path / "tasks" / "s", synthetic_clone)
+    manifest = load_manifest(task_dir)
+    observed = _suite_result("collection-error", {}, collection_errors={}, returncode=2)
+    detail = workload_module._rejection_mismatch(manifest, observed)
+    assert detail is not None
+    assert "no collection failure" in detail
+
+
+def test_load_manifest_requires_a_nonblank_lock_hash(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """A blank hash accepts whatever environment is present -- not a freeze."""
+    task_dir = _write_manifest(
+        tmp_path / "tasks" / "s", synthetic_clone, lock_sha256=""
+    )
+    with pytest.raises(WorkloadError, match="must be a real hash"):
+        load_manifest(task_dir)
+
+
+def test_load_manifest_requires_task_id_to_match_its_directory(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir = _write_manifest(
+        tmp_path / "tasks" / "s", synthetic_clone, task_id="elsewhere"
+    )
+    with pytest.raises(WorkloadError, match="does not match its directory"):
+        load_manifest(task_dir)
+
+
+def test_load_manifest_rejects_an_absolute_oracle_path(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir = _write_manifest(tmp_path / "tasks" / "s", synthetic_clone)
+    text = (task_dir / "manifest.toml").read_text()
+    (task_dir / "manifest.toml").write_text(
+        text.replace('files = ["tests/test_mul.py"]', 'files = ["/etc/passwd"]')
+    )
+    with pytest.raises(WorkloadError, match="repository-relative"):
+        load_manifest(task_dir)

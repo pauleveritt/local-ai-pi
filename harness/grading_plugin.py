@@ -13,6 +13,7 @@ must append a second, later line saying `failed` for the same nodeid, so
 that a genuine teardown failure is visible to a reader who dedups by
 nodeid and keeps the last line (see harness/grading.py's verdict logic).
 """
+
 import os
 
 RESULTS_ENV_VAR = "SATYRN_GRADE_RESULTS_PATH"

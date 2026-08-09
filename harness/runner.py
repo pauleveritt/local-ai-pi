@@ -73,7 +73,11 @@ class Suite:
 AGENTCLINIC_PHASE_1 = Suite(
     name="agentclinic-phase-1",
     task_spec=EXAMPLES / "agentclinic" / "specs" / "roadmap.md",
-    acceptance=EXAMPLES / "agentclinic" / "phase-1" / "acceptance" / "test_acceptance.py",
+    acceptance=EXAMPLES
+    / "agentclinic"
+    / "phase-1"
+    / "acceptance"
+    / "test_acceptance.py",
     source_allowlist=("app.py", "templates"),
 )
 
@@ -87,7 +91,11 @@ AGENTCLINIC_PHASE_1_USER_STORY = Suite(
     # `task_spec_sha256` distinguishes their conditions, which is the
     # property `test_every_suites_task_spec_digest_is_pairwise_distinct`
     # exists to protect.
-    acceptance=EXAMPLES / "agentclinic" / "phase-1" / "acceptance" / "test_acceptance.py",
+    acceptance=EXAMPLES
+    / "agentclinic"
+    / "phase-1"
+    / "acceptance"
+    / "test_acceptance.py",
     source_allowlist=("app.py", "templates"),
 )
 
@@ -152,9 +160,17 @@ def pi_package_root() -> Path:
     if override:
         return Path(override)
     volta = (
-        Path.home() / ".volta" / "tools" / "image" / "packages"
-        / "@earendil-works" / "pi-coding-agent" / "lib" / "node_modules"
-        / "@earendil-works" / "pi-coding-agent"
+        Path.home()
+        / ".volta"
+        / "tools"
+        / "image"
+        / "packages"
+        / "@earendil-works"
+        / "pi-coding-agent"
+        / "lib"
+        / "node_modules"
+        / "@earendil-works"
+        / "pi-coding-agent"
     )
     if volta.is_dir():
         return volta
@@ -360,7 +376,9 @@ def run_suite(
 ) -> RunResult:
     check_model_server_alive()
 
-    with prepare_workspace(None if improvement is None else improvement.seed_dir) as workspace:
+    with prepare_workspace(
+        None if improvement is None else improvement.seed_dir
+    ) as workspace:
         initial_commit = subprocess.run(
             ["git", "rev-parse", "HEAD"],
             cwd=workspace,
@@ -370,10 +388,14 @@ def run_suite(
         ).stdout.strip()
 
         prompt = suite.task_spec.read_text()
-        extensions = EXTENSIONS + (() if improvement is None else improvement.extensions)
+        extensions = EXTENSIONS + (
+            () if improvement is None else improvement.extensions
+        )
         system_prompt = None if improvement is None else improvement.system_prompt
         command = _pi_command(model, prompt, extensions, system_prompt)
-        conditions = _conditions(suite, model, command, timeout, extensions, improvement)
+        conditions = _conditions(
+            suite, model, command, timeout, extensions, improvement
+        )
         pi_proc = run_process(
             command,
             timeout=timeout,
@@ -437,7 +459,13 @@ def _pi_command(
     system_prompt: Path | None = None,
 ) -> list[str]:
     command = [
-        "pi", "--print", "--mode", "json", "--no-session", "--model", model,
+        "pi",
+        "--print",
+        "--mode",
+        "json",
+        "--no-session",
+        "--model",
+        model,
         "--no-extensions",
     ]
     for extension in extensions:
@@ -448,8 +476,11 @@ def _pi_command(
     # by anything here -- so removing that flag would make a model-written
     # `.pi/extensions/*.ts` in the workspace loadable.
     command += [
-        "--no-skills", "--no-prompt-templates", "--no-themes",
-        "--no-context-files", "--approve",
+        "--no-skills",
+        "--no-prompt-templates",
+        "--no-themes",
+        "--no-context-files",
+        "--approve",
     ]
     # Before the prompt, never after: `_conditions` normalizes the *last*
     # element to "<task-spec>", so a flag appended after the prompt would
@@ -576,11 +607,17 @@ def _conditions(
     version = subprocess.run(
         ["pi", "--version"], check=True, capture_output=True, text=True
     ).stdout.strip()
-    normalized = tuple("<task-spec>" if item == command[-1] else item for item in command)
+    normalized = tuple(
+        "<task-spec>" if item == command[-1] else item for item in command
+    )
     return RunConditions(
-        model=model, pi_command=normalized, pi_version=version,
+        model=model,
+        pi_command=normalized,
+        pi_version=version,
         task_spec_sha256=hashlib.sha256(suite.task_spec.read_bytes()).hexdigest(),
-        harness_revision=revision, run_timeout=timeout, grade_timeout=30,
+        harness_revision=revision,
+        run_timeout=timeout,
+        grade_timeout=30,
         extension_digests=tuple(_path_digest(path) for path in extensions),
         improvement_name="none" if improvement is None else improvement.name,
         improvement_digest=_improvement_digest(improvement),
@@ -600,7 +637,11 @@ def preflight_model(model: str = "omlx/gemma-4-12B-it-MLX-8bit") -> None:
             timeout=60,
             env=pi_env(),
         )
-    if result.timed_out or result.returncode != 0 or not _has_assistant_content(result.stdout):
+    if (
+        result.timed_out
+        or result.returncode != 0
+        or not _has_assistant_content(result.stdout)
+    ):
         raise RuntimeError("model preflight produced no usable assistant output")
 
 
@@ -684,9 +725,7 @@ def run_batch(
 
     preflight_model(model)
     while len(records) < target:
-        result = run_suite(
-            suite, model=model, timeout=timeout, improvement=improvement
-        )
+        result = run_suite(suite, model=model, timeout=timeout, improvement=improvement)
         if result.conditions != requested:
             raise RuntimeError("run conditions changed during batch")
         append_checkpoint(checkpoint_path, result)
