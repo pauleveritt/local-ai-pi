@@ -1,0 +1,36 @@
+{
+  "accepted": true,
+  "argv": [],
+  "base_passed": 30,
+  "changed_paths": [
+    "src/svcs/_core.py"
+  ],
+  "gap_closed": 1.0,
+  "manifest_sha256": "ee73e8820472456082dc1030a6ba549d0063ca69b0d36a1fc7b510ff6b17b518",
+  "missing_nodes": [],
+  "model_seconds": 0.0,
+  "model_timed_out": false,
+  "oracle": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 31,
+    "reason_class": "pass",
+    "tests_passed": 31,
+    "wall_seconds": 1.001
+  },
+  "oracle_delta": 1,
+  "out_of_scope": [],
+  "outcome": "accepted",
+  "preservation": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 111,
+    "reason_class": "pass",
+    "tests_passed": 111,
+    "wall_seconds": 1.162
+  },
+  "rule_version": 5,
+  "target_total": 31,
+  "task_id": "magicmock-factory",
+  "tools": "reference-replay"
+}

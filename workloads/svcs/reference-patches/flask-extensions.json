@@ -1,0 +1,36 @@
+{
+  "accepted": true,
+  "argv": [],
+  "base_passed": 17,
+  "changed_paths": [
+    "src/svcs/flask.py"
+  ],
+  "gap_closed": 1.0,
+  "manifest_sha256": "c96285e34433f8b34986a2b08b952dda0e394464a0faf9285998c7f3bd06ea62",
+  "missing_nodes": [],
+  "model_seconds": 0.0,
+  "model_timed_out": false,
+  "oracle": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 19,
+    "reason_class": "pass",
+    "tests_passed": 19,
+    "wall_seconds": 0.972
+  },
+  "oracle_delta": 2,
+  "out_of_scope": [],
+  "outcome": "accepted",
+  "preservation": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 109,
+    "reason_class": "pass",
+    "tests_passed": 109,
+    "wall_seconds": 1.208
+  },
+  "rule_version": 5,
+  "target_total": 19,
+  "task_id": "flask-extensions",
+  "tools": "reference-replay"
+}

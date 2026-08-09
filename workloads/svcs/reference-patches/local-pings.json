@@ -1,0 +1,36 @@
+{
+  "accepted": true,
+  "argv": [],
+  "base_passed": 15,
+  "changed_paths": [
+    "src/svcs/_core.py"
+  ],
+  "gap_closed": 1.0,
+  "manifest_sha256": "2208c8bf20e0ef82ad24b21f8366026ba823851f0ca790fe30a3ba38ba34fde7",
+  "missing_nodes": [],
+  "model_seconds": 0.0,
+  "model_timed_out": false,
+  "oracle": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 18,
+    "reason_class": "pass",
+    "tests_passed": 18,
+    "wall_seconds": 0.955
+  },
+  "oracle_delta": 3,
+  "out_of_scope": [],
+  "outcome": "accepted",
+  "preservation": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 122,
+    "reason_class": "pass",
+    "tests_passed": 122,
+    "wall_seconds": 1.148
+  },
+  "rule_version": 5,
+  "target_total": 18,
+  "task_id": "local-pings",
+  "tools": "reference-replay"
+}

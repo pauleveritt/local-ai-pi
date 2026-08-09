@@ -1,0 +1,40 @@
+{
+  "accepted": false,
+  "argv": [],
+  "base_passed": 12,
+  "changed_paths": [
+    "src/svcs/_core.py"
+  ],
+  "gap_closed": 1.0,
+  "manifest_sha256": "4e705f767f135aabae2276fbdee629489d92eac694e306fc8ba018b2fb69cc80",
+  "missing_nodes": [],
+  "model_seconds": 0.0,
+  "model_timed_out": false,
+  "oracle": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 15,
+    "reason_class": "pass",
+    "tests_passed": 15,
+    "wall_seconds": 0.954
+  },
+  "oracle_delta": 3,
+  "out_of_scope": [],
+  "outcome": "progress-but-damaged",
+  "preservation": {
+    "collection_errors": {},
+    "failures": {
+      "tests/test_registry.py::TestRegisteredService::test_name": "setup:failed",
+      "tests/test_registry.py::TestRegisteredService::test_repr": "setup:failed",
+      "tests/test_registry.py::TestRegistry::test_iterate": "call:failed"
+    },
+    "node_count": 122,
+    "reason_class": "assertion-failure",
+    "tests_passed": 119,
+    "wall_seconds": 1.2
+  },
+  "rule_version": 5,
+  "target_total": 15,
+  "task_id": "suppress-context-exit",
+  "tools": "reference-replay"
+}

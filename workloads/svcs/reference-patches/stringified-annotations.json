@@ -1,0 +1,36 @@
+{
+  "accepted": true,
+  "argv": [],
+  "base_passed": 32,
+  "changed_paths": [
+    "src/svcs/_core.py"
+  ],
+  "gap_closed": 1.0,
+  "manifest_sha256": "1f4f55ca013bed03b6092c4b0051c3e8c6d46e083615faf97e306397530c629a",
+  "missing_nodes": [],
+  "model_seconds": 0.0,
+  "model_timed_out": false,
+  "oracle": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 34,
+    "reason_class": "pass",
+    "tests_passed": 34,
+    "wall_seconds": 0.977
+  },
+  "oracle_delta": 2,
+  "out_of_scope": [],
+  "outcome": "accepted",
+  "preservation": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 91,
+    "reason_class": "pass",
+    "tests_passed": 91,
+    "wall_seconds": 1.183
+  },
+  "rule_version": 5,
+  "target_total": 34,
+  "task_id": "stringified-annotations",
+  "tools": "reference-replay"
+}

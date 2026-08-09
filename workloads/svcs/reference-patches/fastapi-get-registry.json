@@ -1,0 +1,37 @@
+{
+  "accepted": true,
+  "argv": [],
+  "base_passed": 9,
+  "changed_paths": [
+    "src/svcs/fastapi.py",
+    "src/svcs/starlette.py"
+  ],
+  "gap_closed": 1.0,
+  "manifest_sha256": "caf96e7f450d5dc713234f057b74848f81ca31eca30c921147c6620a230966e9",
+  "missing_nodes": [],
+  "model_seconds": 0.0,
+  "model_timed_out": false,
+  "oracle": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 24,
+    "reason_class": "pass",
+    "tests_passed": 24,
+    "wall_seconds": 0.862
+  },
+  "oracle_delta": 15,
+  "out_of_scope": [],
+  "outcome": "accepted",
+  "preservation": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 182,
+    "reason_class": "pass",
+    "tests_passed": 182,
+    "wall_seconds": 1.013
+  },
+  "rule_version": 5,
+  "target_total": 24,
+  "task_id": "fastapi-get-registry",
+  "tools": "reference-replay"
+}

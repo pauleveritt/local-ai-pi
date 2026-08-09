@@ -398,3 +398,56 @@ def test_a_vanished_test_is_caught_by_the_node_inventory(relocating_task: Task) 
     assert attempt.missing_nodes
     assert attempt.outcome == "tests-vanished"
     assert not attempt.accepted
+
+
+def test_a_shifted_position_keyed_node_is_not_a_vanished_test() -> None:
+    """Sybil node ids are positions, not names, and positions move.
+
+    svcs runs its README and docstrings through Sybil, which ids nodes as
+    `path::line:N,column:M`. Inserting one production line renames every
+    node below it. Matching those by identity failed the *target's own
+    diff* on four of nine tasks -- a rule that rejects the reference
+    answer rejects every correct answer.
+    """
+    from harness.screen import _node_census, _vanished
+
+    expected_stable, expected_counts = _node_census(
+        [
+            "tests/test_core.py::test_one",
+            "src/pkg/_core.py::line:128,column:1",
+            "src/pkg/_core.py::line:155,column:1",
+        ]
+    )
+    assert expected_counts == {"src/pkg/_core.py": 2}
+
+    shifted = [
+        "tests/test_core.py::test_one",
+        "src/pkg/_core.py::line:132,column:1",
+        "src/pkg/_core.py::line:159,column:1",
+    ]
+    assert _vanished(expected_stable, expected_counts, shifted) == ()
+
+
+def test_a_deleted_position_keyed_node_is_still_caught() -> None:
+    """Counting must not become a way to delete doctests for free."""
+    from harness.screen import _node_census, _vanished
+
+    expected_stable, expected_counts = _node_census(
+        ["src/pkg/_core.py::line:128,column:1", "src/pkg/_core.py::line:155,column:1"]
+    )
+    vanished = _vanished(
+        expected_stable, expected_counts, ["src/pkg/_core.py::line:132,column:1"]
+    )
+    assert vanished == ("src/pkg/_core.py::position-keyed 1/2",)
+
+
+def test_a_named_node_still_vanishes_by_name() -> None:
+    """Named nodes keep identity comparison; only positions are counted."""
+    from harness.screen import _node_census, _vanished
+
+    expected_stable, expected_counts = _node_census(
+        ["tests/test_core.py::test_one", "tests/test_core.py::test_two"]
+    )
+    assert _vanished(expected_stable, expected_counts, ["tests/test_core.py::test_one"]) == (
+        "tests/test_core.py::test_two",
+    )

@@ -1,0 +1,36 @@
+{
+  "accepted": true,
+  "argv": [],
+  "base_passed": 8,
+  "changed_paths": [
+    "src/svcs/_core.py"
+  ],
+  "gap_closed": 1.0,
+  "manifest_sha256": "d2525a0881164e970db4005e9952bb815af10c9b8aafe06050d3ae25a8e78e2c",
+  "missing_nodes": [],
+  "model_seconds": 0.0,
+  "model_timed_out": false,
+  "oracle": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 10,
+    "reason_class": "pass",
+    "tests_passed": 10,
+    "wall_seconds": 1.003
+  },
+  "oracle_delta": 2,
+  "out_of_scope": [],
+  "outcome": "accepted",
+  "preservation": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 121,
+    "reason_class": "pass",
+    "tests_passed": 121,
+    "wall_seconds": 1.247
+  },
+  "rule_version": 5,
+  "target_total": 10,
+  "task_id": "async-cm-enter",
+  "tools": "reference-replay"
+}

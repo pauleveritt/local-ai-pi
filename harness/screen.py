@@ -22,8 +22,10 @@ the complete-contract arm, and results must be reported under that name.
 
 import fnmatch
 import json
+import re
 import subprocess
 import time
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -225,10 +227,10 @@ def _out_of_scope(
     )
 
 
-GRADING_RULE_VERSION = 4
+GRADING_RULE_VERSION = 5
 """Bumped whenever the acceptance rule changes.
 
-Every grade records it, because four rules have now produced different
+Every grade records it, because five rules have now produced different
 verdicts on identical candidates and a record that does not say which one
 scored it cannot be compared with anything.
 
@@ -236,10 +238,56 @@ scored it cannot be compared with anything.
   2  both on the overlaid copy -- oracle counted twice
   3  overlay then --ignore -- a root conftest still loads as a plugin
   4  separate workspaces, production paths only, node inventory
+  5  node inventory counts position-keyed nodes instead of naming them
+
+Rule 4 was found by the ceiling replay: the *target's own diff* graded as
+`tests-vanished` on four of nine tasks, because Sybil node ids move when
+production lines move. A rule that rejects the reference answer rejects
+every correct answer.
 """
 
 
-def _expected_nodes(manifest: Manifest) -> tuple[set[str], int, int]:
+# svcs runs its README and its docstrings through Sybil, whose node ids
+# are pure position: `path::line:N,column:M`. Adding or removing a single
+# line above one renames every node below it, so comparing these by
+# identity reports a *correct* candidate as having deleted tests. Twelve
+# of them sit in `src/svcs/_core.py` and `README.md`, which is the file
+# almost every task edits.
+_POSITION_KEYED = re.compile(r"::line:\d+,column:\d+$")
+
+
+def _node_census(nodes: Iterable[str]) -> tuple[set[str], dict[str, int]]:
+    """Split node ids into stable identities and per-file position counts.
+
+    Position-keyed nodes get counted per file rather than matched by
+    name. Deleting a doctest still lowers the count and is caught;
+    shifting one down four lines is not mistaken for deleting it.
+    """
+    stable: set[str] = set()
+    counts: dict[str, int] = {}
+    for node in nodes:
+        if _POSITION_KEYED.search(node):
+            path = node.split("::")[0]
+            counts[path] = counts.get(path, 0) + 1
+        else:
+            stable.add(node)
+    return stable, counts
+
+
+def _vanished(
+    expected_stable: set[str], expected_counts: dict[str, int], actual: Iterable[str]
+) -> tuple[str, ...]:
+    """Every base test the candidate made disappear, by either measure."""
+    actual_stable, actual_counts = _node_census(actual)
+    thinned = tuple(
+        f"{path}::position-keyed {actual_counts.get(path, 0)}/{count}"
+        for path, count in sorted(expected_counts.items())
+        if actual_counts.get(path, 0) < count
+    )
+    return tuple(sorted(expected_stable - actual_stable)) + thinned
+
+
+def _expected_nodes(manifest: Manifest) -> tuple[set[str], dict[str, int], int, int]:
     """Base preservation inventory, base oracle score, target oracle total.
 
     Read from the task's own qualification record, which is frozen
@@ -250,13 +298,14 @@ def _expected_nodes(manifest: Manifest) -> tuple[set[str], int, int]:
     record = json.loads((manifest.task_dir / "qualification.json").read_text())
     conditions = record["conditions"]
     oracle_files = set(manifest.oracle_files)
-    preservation_nodes = {
+    stable, counts = _node_census(
         node
         for node in conditions["base_preservation"]["nodes"]
         if node.split("::")[0] not in oracle_files
-    }
+    )
     return (
-        preservation_nodes,
+        stable,
+        counts,
         int(conditions["base_oracle"]["tests_passed"]),
         int(conditions["target_oracle"]["tests_passed"]),
     )
@@ -295,7 +344,9 @@ def grade_candidate(
     for a middle.
     """
     manifest_hash = sha256_file(manifest.task_dir / "manifest.toml")
-    expected_nodes, base_passed, target_total = _expected_nodes(manifest)
+    expected_stable, expected_counts, base_passed, target_total = _expected_nodes(
+        manifest
+    )
 
     preservation_command = tuple(manifest.preservation_command) + tuple(
         argument for entry in manifest.deselects for argument in ("--deselect", entry)
@@ -322,7 +373,7 @@ def grade_candidate(
         overlay_oracle(clone, manifest, grading)
         oracle = run_suite(grading, manifest.oracle_command, env, suite_timeout)
 
-    missing_nodes = tuple(sorted(expected_nodes - set(preservation.outcomes)))
+    missing_nodes = _vanished(expected_stable, expected_counts, preservation.outcomes)
     oracle_delta = oracle.tests_passed - base_passed
     gap = target_total - base_passed
     gap_closed = (oracle_delta / gap) if gap > 0 else 0.0

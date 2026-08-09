@@ -1,0 +1,37 @@
+{
+  "accepted": true,
+  "argv": [],
+  "base_passed": 0,
+  "changed_paths": [
+    "src/svcs/__init__.py",
+    "src/svcs/_autowire.py"
+  ],
+  "gap_closed": 1.0,
+  "manifest_sha256": "ac23da5a308283879409c86aff12f2abaef91f1a12d038da1a456f7d3348c1e7",
+  "missing_nodes": [],
+  "model_seconds": 0.0,
+  "model_timed_out": false,
+  "oracle": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 67,
+    "reason_class": "pass",
+    "tests_passed": 67,
+    "wall_seconds": 0.982
+  },
+  "oracle_delta": 67,
+  "out_of_scope": [],
+  "outcome": "accepted",
+  "preservation": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 130,
+    "reason_class": "pass",
+    "tests_passed": 130,
+    "wall_seconds": 1.159
+  },
+  "rule_version": 5,
+  "target_total": 67,
+  "task_id": "autowire",
+  "tools": "reference-replay"
+}

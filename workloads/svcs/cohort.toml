@@ -34,10 +34,13 @@ included = [
   "flask-extensions",
   "stringified-annotations",
   "fastapi-get-registry",
-  "suppress-context-exit",
   "autowire",
 ]
 
 [excluded]
+suppress-context-exit = """
+Unwinnable under the grading rule, proved by the ceiling replay: the target's own diff, restricted to the writable paths, closes the whole oracle gap (12 -> 15) and still fails three base tests in tests/test_registry.py. The new option adds a sixth positional field to RegisteredService and a line to its __repr__, and base tests both construct that record positionally and assert its exact repr. Upstream adapted tests/test_registry.py in the same commit, but that file is not one of this task's oracle files, so preservation holds a candidate to the un-adapted assertions. Any correct implementation is graded as repository damage; no executor can be accepted here.
+
+Excluded rather than renarrowed. A model attempt has already been made on this task, so the freeze rule applies: adding tests/test_registry.py to oracle_files after seeing a run would be rewriting the scope to fit the result, and it would delete those assertions from the preservation surface without moving them into anything the oracle checks."""
 register-value-enter = """
 The base PASSES this commit's own oracle, 6 of 6, so there is nothing for an executor to fix that the tests would notice. The commit changes the register_value() enter default across the core registry and the aiohttp, flask, and pyramid integrations, but the only test file it touches is tests/integrations/test_aiohttp.py, and that file passes unchanged against the base. Its assertions do not depend on the default. A replay task needs an oracle that rejects the base; this one cannot be built from what the commit actually asserts, and inventing tests to make it discriminate would be authoring the oracle rather than replaying the commit."""
