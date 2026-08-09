@@ -19,9 +19,9 @@
       "stable": true,
       "tests_passed": 17,
       "wall_seconds": [
-        0.943,
-        0.945,
-        0.939
+        0.974,
+        0.975,
+        0.976
       ]
     },
     "base_preservation": {
@@ -39,9 +39,9 @@
       "stable": true,
       "tests_passed": 128,
       "wall_seconds": [
-        1.199,
-        1.193,
-        1.199
+        1.243,
+        1.239,
+        1.236
       ]
     },
     "target_oracle": {
@@ -59,9 +59,9 @@
       "stable": true,
       "tests_passed": 19,
       "wall_seconds": [
-        0.935,
-        0.953,
-        0.939
+        0.972,
+        0.97,
+        0.969
       ]
     },
     "target_preservation": {
@@ -79,9 +79,9 @@
       "stable": true,
       "tests_passed": 128,
       "wall_seconds": [
-        1.182,
-        1.187,
-        1.193
+        1.234,
+        1.231,
+        1.233
       ]
     }
   },
@@ -112,7 +112,7 @@
     "-p",
     "no:cacheprovider"
   ],
-  "recorded_at": "2026-08-09T15:00:49.413645+00:00",
+  "recorded_at": "2026-08-09T15:09:00.334599+00:00",
   "repeats": 3,
   "role": "medium",
   "status": "qualified",

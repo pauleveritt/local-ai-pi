@@ -24,8 +24,14 @@ command = ["pytest", "-q", "-p", "no:cacheprovider", "tests/test_registry.py"]
 [oracle.rejection]
 class = "assertion-failure"
 missing_symbols = []
+# CORRECTED after the first qualification run (evidence: 6cf732b).
+# The target's test is parametrised over annotation styles, so the real
+# node ids carry the parameter in brackets and the bare function name
+# matches nothing. Two of the parametrisations fail at base; the others
+# already passed, which is why the id must be exact rather than a prefix.
 failing_nodes = [
-  "tests/test_registry.py::TestTakesContainer::test_annotation_str",
+  "tests/test_registry.py::TestTakesContainer::test_annotation_str[\\nfrom __future__ import annotations\\n\\nfrom svcs import Container\\n\\ndef factory(container: Container) -> int:\\n    ...\\n    ]",
+  "tests/test_registry.py::TestTakesContainer::test_annotation_str[\\nfrom __future__ import annotations\\nfrom typing import TYPE_CHECKING\\n\\nif TYPE_CHECKING:\\n    from svcs import Container\\n\\ndef factory(container: Container) -> int:\\n    ...\\n    ]",
 ]
 
 [oracle.files_sha256]

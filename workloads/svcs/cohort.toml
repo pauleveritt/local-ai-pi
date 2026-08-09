@@ -26,7 +26,18 @@ tasks = [
   "autowire",
 ]
 
-included = []
+included = [
+  "registry-iter",
+  "magicmock-factory",
+  "async-cm-enter",
+  "local-pings",
+  "flask-extensions",
+  "stringified-annotations",
+  "fastapi-get-registry",
+  "suppress-context-exit",
+  "autowire",
+]
 
 [excluded]
-# task_id = "prose reason this candidate is not in the frozen cohort"
+register-value-enter = """
+The base PASSES this commit's own oracle, 6 of 6, so there is nothing for an executor to fix that the tests would notice. The commit changes the register_value() enter default across the core registry and the aiohttp, flask, and pyramid integrations, but the only test file it touches is tests/integrations/test_aiohttp.py, and that file passes unchanged against the base. Its assertions do not depend on the default. A replay task needs an oracle that rejects the base; this one cannot be built from what the commit actually asserts, and inventing tests to make it discriminate would be authoring the oracle rather than replaying the commit."""

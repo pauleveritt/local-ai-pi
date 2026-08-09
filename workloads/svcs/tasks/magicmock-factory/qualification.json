@@ -1,5 +1,4 @@
 {
-  "base_oracle_tail": "...............F...............                                          [100%]\n=================================== FAILURES ===================================\n____________________ test_get_with_magicmock_factory_works _____________________\n\nregistry = <svcs.Registry(num_services=1)>\ncontainer = <Container(instantiated=0, cleanups=0)>\n\n    def test_get_with_magicmock_factory_works(registry, container):\n        \"\"\"\n        A sync factory can return a MagicMock as long as they're registered with\n        enter=False.\n        \"\"\"\n    \n        mm = MagicMock()\n        registry.register_factory(Service, lambda: mm, enter=False)\n    \n>       svc = container.get(Service)\n              ^^^^^^^^^^^^^^^^^^^^^^\n\ntests/test_integration.py:271: \n_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ \n\nself = <Container(instantiated=0, cleanups=0)>\nsvc_types = (<class 'tests.ifaces.Service'>,)\n\n    def get(self, *svc_types: type) -> object:\n        \"\"\"\n        Get services of *svc_types*.\n    \n        Instantiate them if necessary and register their cleanup.\n    \n        Returns:\n             ``svc_types[0]`` | ``tuple[*svc_types]``: If one service is\n             requested, it's returned directly. If multiple are requested, a\n             tuple of services is returned.\n        \"\"\"\n        rv = []\n        for svc_type in svc_types:\n            cached, svc, rs = self._lookup(svc_type)\n            if cached:\n                rv.append(svc)\n                continue\n    \n            if iscoroutine(svc) or isinstance(\n                svc, AbstractAsyncContextManager\n            ):\n                msg = \"Use `aget()` for async factories.\"\n>               raise TypeError(msg)\nE               TypeError: Use `aget()` for async factories.\n\n/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-iib6fg_o/src/svcs/_core.py:1013: TypeError\n=========================== short test summary info ============================\nFAILED tests/test_integration.py::test_get_with_magicmock_factory_works - Typ...\n1 failed, 30 passed in 0.04s\n",
   "base_sha": "f8585ce9f8fe6df9da4cf405cec1e03f4708be26",
   "conditions": {
     "base_oracle": {
@@ -19,9 +18,9 @@
       "stable": true,
       "tests_passed": 30,
       "wall_seconds": [
-        0.922,
-        0.918,
-        0.929
+        0.985,
+        0.993,
+        0.99
       ]
     },
     "base_preservation": {
@@ -39,14 +38,53 @@
       "stable": true,
       "tests_passed": 140,
       "wall_seconds": [
-        1.155,
-        1.162,
-        1.159
+        1.251,
+        1.237,
+        1.244
+      ]
+    },
+    "target_oracle": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "3e62ab05c70018fb7b1988982d7cc1f48bf1407c4c351d83e97086fb5a906280",
+        "3e62ab05c70018fb7b1988982d7cc1f48bf1407c4c351d83e97086fb5a906280",
+        "3e62ab05c70018fb7b1988982d7cc1f48bf1407c4c351d83e97086fb5a906280"
+      ],
+      "node_count": 31,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 31,
+      "wall_seconds": [
+        0.982,
+        0.998,
+        0.988
+      ]
+    },
+    "target_preservation": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "50feed4f0135788befbfc30376184dd83e801220aef7e899139511d913244b41",
+        "50feed4f0135788befbfc30376184dd83e801220aef7e899139511d913244b41",
+        "50feed4f0135788befbfc30376184dd83e801220aef7e899139511d913244b41"
+      ],
+      "node_count": 142,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 142,
+      "wall_seconds": [
+        1.244,
+        1.239,
+        1.24
       ]
     }
   },
   "deselects": [],
-  "detail": "run 1: declared failing nodes do not match observed; missing=['tests/test_integration.py::test_aget_with_asyncmock_factory_works'] unexpected=[]",
   "effective_preservation_command": [
     "pytest",
     "-q",
@@ -57,9 +95,8 @@
   "env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
   "env_platform": "darwin",
   "env_python": "3.14.2",
-  "failed_gate": "base_rejection",
   "manifest_env_python": "3.14.2",
-  "manifest_sha256": "907e73cefb1636de59694e4fd350dd3d2c7eba2360626d2bd08ac0a9c18c7d65",
+  "manifest_sha256": "ee73e8820472456082dc1030a6ba549d0063ca69b0d36a1fc7b510ff6b17b518",
   "max_seconds": 60.0,
   "oracle_command": [
     "pytest",
@@ -74,10 +111,10 @@
     "-p",
     "no:cacheprovider"
   ],
-  "recorded_at": "2026-08-09T15:00:10.775879+00:00",
+  "recorded_at": "2026-08-09T15:08:11.426753+00:00",
   "repeats": 3,
   "role": "medium",
-  "status": "disqualified",
+  "status": "qualified",
   "target_sha": "c91f1f1736f1fc3b7fdb5b6d79588aa3da53909b",
   "task_id": "magicmock-factory"
 }

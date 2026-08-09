@@ -32,9 +32,9 @@
       "stable": true,
       "tests_passed": 9,
       "wall_seconds": [
-        1.136,
-        1.063,
-        1.061
+        1.101,
+        1.11,
+        1.108
       ]
     },
     "base_preservation": {
@@ -52,9 +52,9 @@
       "stable": true,
       "tests_passed": 191,
       "wall_seconds": [
-        1.024,
-        1.032,
-        1.03
+        1.066,
+        1.054,
+        1.086
       ]
     },
     "target_oracle": {
@@ -72,9 +72,9 @@
       "stable": true,
       "tests_passed": 24,
       "wall_seconds": [
-        0.851,
-        0.854,
-        0.851
+        0.884,
+        0.878,
+        0.878
       ]
     },
     "target_preservation": {
@@ -92,9 +92,9 @@
       "stable": true,
       "tests_passed": 206,
       "wall_seconds": [
-        1.031,
-        1.037,
-        1.034
+        1.061,
+        1.076,
+        1.07
       ]
     }
   },
@@ -126,7 +126,7 @@
     "-p",
     "no:cacheprovider"
   ],
-  "recorded_at": "2026-08-09T15:01:20.820639+00:00",
+  "recorded_at": "2026-08-09T15:09:32.799012+00:00",
   "repeats": 3,
   "role": "stretch",
   "status": "qualified",

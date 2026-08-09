@@ -1,5 +1,4 @@
 {
-  "base_oracle_tail": " \n>       assert svcs._core._takes_container(module.factory)\nE       AssertionError: assert False\nE        +  where False = <function _takes_container at 0x109f703b0>(<function factory at 0x10bd43e20>)\nE        +    where <function _takes_container at 0x109f703b0> = <module 'svcs._core' from '/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-oe3rzimh/src/svcs/_core.py'>._takes_container\nE        +      where <module 'svcs._core' from '/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-oe3rzimh/src/svcs/_core.py'> = svcs._core\nE        +    and   <function factory at 0x10bd43e20> = <module '_svcs_testing_tmp_module' from '/private/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-suite-2oju2ie5/tmp/pytest-of-pauleveritt/pytest-0/test_annotation_str__nfrom___f0/_svcs_testing_tmp_module.py'>.factory\n\ntests/test_registry.py:425: AssertionError\n_ TestTakesContainer.test_annotation_str[\\nfrom __future__ import annotations\\nfrom typing import TYPE_CHECKING\\n\\nif TYPE_CHECKING:\\n    from svcs import Container\\n\\ndef factory(container: Container) -> int:\\n    ...\\n    ] _\n\nself = <tests.test_registry.TestTakesContainer object at 0x10bc9ebe0>\nmodule_source = '\\nfrom __future__ import annotations\\nfrom typing import TYPE_CHECKING\\n\\nif TYPE_CHECKING:\\n    from svcs import Container\\n\\ndef factory(container: Container) -> int:\\n    ...\\n    '\ncreate_module = <function _create_module.<locals>.wrapper at 0x10bd43480>\n\n    @pytest.mark.parametrize(\n        \"module_source\", takes_containers_annotation_string_modules\n    )\n    def test_annotation_str(self, module_source, create_module):\n        \"\"\"\n        Return `True` if the first argument is annotated as `svcs.Container`\n        using a string.\n        \"\"\"\n    \n        module = create_module(module_source)\n    \n>       assert svcs._core._takes_container(module.factory)\nE       AssertionError: assert False\nE        +  where False = <function _takes_container at 0x109f703b0>(<function factory at 0x10bd431c0>)\nE        +    where <function _takes_container at 0x109f703b0> = <module 'svcs._core' from '/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-oe3rzimh/src/svcs/_core.py'>._takes_container\nE        +      where <module 'svcs._core' from '/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-oe3rzimh/src/svcs/_core.py'> = svcs._core\nE        +    and   <function factory at 0x10bd431c0> = <module '_svcs_testing_tmp_module' from '/private/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-suite-2oju2ie5/tmp/pytest-of-pauleveritt/pytest-0/test_annotation_str__nfrom___f1/_svcs_testing_tmp_module.py'>.factory\n\ntests/test_registry.py:425: AssertionError\n=============================== warnings summary ===============================\n../../../../../../../Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/.workloads/env/lib/python3.14/site-packages/pyramid/asset.py:2\n  /Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/.workloads/env/lib/python3.14/site-packages/pyramid/asset.py:2: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.\n    import pkg_resources\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ============================\nFAILED tests/test_registry.py::TestTakesContainer::test_annotation_str[\\nfrom __future__ import annotations\\n\\nfrom svcs import Container\\n\\ndef factory(container: Container) -> int:\\n    ...\\n    ]\nFAILED tests/test_registry.py::TestTakesContainer::test_annotation_str[\\nfrom __future__ import annotations\\nfrom typing import TYPE_CHECKING\\n\\nif TYPE_CHECKING:\\n    from svcs import Container\\n\\ndef factory(container: Container) -> int:\\n    ...\\n    ]\n2 failed, 32 passed, 1 warning in 0.05s\n",
   "base_sha": "4b05ab8465f3d9a5ce7d1e40eaf808b0cb92a26c",
   "conditions": {
     "base_oracle": {
@@ -20,9 +19,9 @@
       "stable": true,
       "tests_passed": 32,
       "wall_seconds": [
-        0.966,
-        1.003,
-        1.04
+        0.999,
+        0.995,
+        0.997
       ]
     },
     "base_preservation": {
@@ -40,14 +39,53 @@
       "stable": true,
       "tests_passed": 121,
       "wall_seconds": [
-        1.181,
-        1.195,
-        1.197
+        1.222,
+        1.222,
+        1.225
+      ]
+    },
+    "target_oracle": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "4197b17a958f8d6c8810cb23ebf5e993d5801415d6a3e041862459568f556252",
+        "4197b17a958f8d6c8810cb23ebf5e993d5801415d6a3e041862459568f556252",
+        "4197b17a958f8d6c8810cb23ebf5e993d5801415d6a3e041862459568f556252"
+      ],
+      "node_count": 34,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 34,
+      "wall_seconds": [
+        0.99,
+        0.991,
+        0.989
+      ]
+    },
+    "target_preservation": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "ca39c44b4c9555e4979abe1265f33cc0e958b3c5c71544cb71fa02b31107f8cc",
+        "ca39c44b4c9555e4979abe1265f33cc0e958b3c5c71544cb71fa02b31107f8cc",
+        "ca39c44b4c9555e4979abe1265f33cc0e958b3c5c71544cb71fa02b31107f8cc"
+      ],
+      "node_count": 125,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 125,
+      "wall_seconds": [
+        1.242,
+        1.242,
+        1.237
       ]
     }
   },
   "deselects": [],
-  "detail": "run 1: declared failing nodes do not match observed; missing=['tests/test_registry.py::TestTakesContainer::test_annotation_str'] unexpected=['tests/test_registry.py::TestTakesContainer::test_annotation_str[\\\\nfrom __future__ import annotations\\\\n\\\\nfrom svcs import Container\\\\n\\\\ndef factory(container: Container) -> int:\\\\n    ...\\\\n    ]', 'tests/test_registry.py::TestTakesContainer::test_annotation_str[\\\\nfrom __future__ import annotations\\\\nfrom typing import TYPE_CHECKING\\\\n\\\\nif TYPE_CHECKING:\\\\n    from svcs import Container\\\\n\\\\ndef factory(container: Container) -> int:\\\\n    ...\\\\n    ]']",
   "effective_preservation_command": [
     "pytest",
     "-q",
@@ -58,9 +96,8 @@
   "env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
   "env_platform": "darwin",
   "env_python": "3.14.2",
-  "failed_gate": "base_rejection",
   "manifest_env_python": "3.14.2",
-  "manifest_sha256": "8a391a3263104534f2df60285267877718429c4995e6f59910bcfd940285ddc2",
+  "manifest_sha256": "1f4f55ca013bed03b6092c4b0051c3e8c6d46e083615faf97e306397530c629a",
   "max_seconds": 60.0,
   "oracle_command": [
     "pytest",
@@ -75,10 +112,10 @@
     "-p",
     "no:cacheprovider"
   ],
-  "recorded_at": "2026-08-09T15:01:12.812408+00:00",
+  "recorded_at": "2026-08-09T15:09:16.526104+00:00",
   "repeats": 3,
   "role": "medium",
-  "status": "disqualified",
+  "status": "qualified",
   "target_sha": "f81e493487d872198981fa6cefb3a0d93ab03c08",
   "task_id": "stringified-annotations"
 }

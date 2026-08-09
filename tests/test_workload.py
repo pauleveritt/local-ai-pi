@@ -1279,3 +1279,42 @@ def test_load_manifest_rejects_an_absolute_oracle_path(
     )
     with pytest.raises(WorkloadError, match="repository-relative"):
         load_manifest(task_dir)
+
+
+def test_frozen_run_covers_the_included_set_not_the_whole_ladder(
+    tmp_path: Path, synthetic_clone: SyntheticClone, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An excluded candidate is excluded because it does not qualify.
+
+    Rerunning it under --frozen would fail the verification run for the
+    very reason its exclusion already documents.
+    """
+    task_dir, _ = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    cohort_root = tmp_path / "cohort"
+    (cohort_root / "tasks").mkdir(parents=True)
+    shutil.copytree(task_dir, cohort_root / "tasks" / "synthetic")
+    (cohort_root / "cohort.toml").write_text(
+        f'''name = "synthetic"
+upstream = "{synthetic_clone.bare}"
+env = "env"
+tasks = ["synthetic", "hopeless"]
+included = ["synthetic"]
+
+[excluded]
+hopeless = "its base passes its own oracle, so there is nothing to fix"
+'''
+    )
+    monkeypatch.setattr(
+        workload_module, "ensure_cohort_env", lambda *a, **k: _fake_env()
+    )
+    exit_code = qualify_main(
+        [
+            "--cohort",
+            str(cohort_root / "cohort.toml"),
+            "--cache",
+            str(tmp_path / "cache"),
+            "--frozen",
+        ]
+    )
+    assert exit_code == 0
+    assert not (cohort_root / "tasks" / "hopeless" / "qualification.json").exists()

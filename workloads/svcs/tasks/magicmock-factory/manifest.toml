@@ -24,9 +24,13 @@ command = ["pytest", "-q", "-p", "no:cacheprovider", "tests/test_integration.py"
 [oracle.rejection]
 class = "assertion-failure"
 missing_symbols = []
+# CORRECTED after the first qualification run (evidence: 6cf732b).
+# Predicted both nodes; only the synchronous one fails at base. The
+# AsyncMock path already worked there, so the commit fixed one crash and
+# added a regression test for the other. Declaring both over-stated what
+# the base is broken at.
 failing_nodes = [
   "tests/test_integration.py::test_get_with_magicmock_factory_works",
-  "tests/test_integration.py::test_aget_with_asyncmock_factory_works",
 ]
 
 [oracle.files_sha256]

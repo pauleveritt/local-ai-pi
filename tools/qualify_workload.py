@@ -70,7 +70,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     cohort = workload.load_cohort(args.cohort, require_accounting=args.frozen)
-    task_ids = args.task or list(cohort.tasks)
+    # --frozen verifies the frozen cohort, so it runs the included set
+    # rather than the whole candidate ladder. An excluded candidate is
+    # excluded *because* it does not qualify -- rerunning it would fail
+    # the run for the very reason its exclusion already records.
+    default_tasks = list(cohort.included) if args.frozen else list(cohort.tasks)
+    task_ids = args.task or default_tasks
 
     clone = workload.ensure_clone(cohort.upstream, args.cache)
     # No --require-python flag: each manifest names the interpreter it was

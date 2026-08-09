@@ -18,9 +18,9 @@
       "stable": true,
       "tests_passed": 34,
       "wall_seconds": [
-        0.922,
-        0.929,
-        0.923
+        1.0,
+        0.991,
+        0.998
       ]
     },
     "base_preservation": {
@@ -38,9 +38,9 @@
       "stable": true,
       "tests_passed": 131,
       "wall_seconds": [
-        1.146,
-        1.147,
-        1.155
+        1.233,
+        1.234,
+        1.224
       ]
     },
     "target_oracle": {
@@ -58,9 +58,9 @@
       "stable": true,
       "tests_passed": 35,
       "wall_seconds": [
-        0.925,
-        0.926,
-        0.917
+        0.981,
+        0.983,
+        0.986
       ]
     },
     "target_preservation": {
@@ -78,9 +78,9 @@
       "stable": true,
       "tests_passed": 132,
       "wall_seconds": [
-        1.153,
-        1.154,
-        1.168
+        1.238,
+        1.232,
+        1.24
       ]
     }
   },
@@ -111,7 +111,7 @@
     "-p",
     "no:cacheprovider"
   ],
-  "recorded_at": "2026-08-09T14:59:55.612668+00:00",
+  "recorded_at": "2026-08-09T15:07:55.140539+00:00",
   "repeats": 3,
   "role": "floor",
   "status": "qualified",

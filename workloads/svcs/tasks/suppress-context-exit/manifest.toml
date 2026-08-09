@@ -18,24 +18,36 @@ writable = ["src/svcs/**"]
 candidate_output = ["src/svcs/_core.py"]
 
 [oracle]
-files = ["tests/test_container.py", "tests/test_registry.py", "conftest.py"]
-command = ["pytest", "-q", "-p", "no:cacheprovider", "tests/test_container.py", "tests/test_registry.py"]
+files = ["tests/test_container.py", "conftest.py"]
+command = ["pytest", "-q", "-p", "no:cacheprovider", "tests/test_container.py"]
 
 [oracle.rejection]
 class = "assertion-failure"
 missing_symbols = []
+# CORRECTED after the first qualification run (evidence: 6cf732b).
+# The prediction was wrong in both directions, and the reasons differ.
+#
+# Two declared nodes did not fail: the two *suppress* variants pass at
+# base. Only the three *no_suppress* variants discriminate, so those are
+# what the base is actually broken at.
+#
+# Two undeclared nodes did fail, both in tests/test_registry.py, and
+# both for a reason unrelated to this feature: the same commit adds a
+# positional argument to the shared RegisteredService fixture in
+# conftest.py, so overlaying it makes that fixture raise at setup
+# against the base signature. That is the fixture change being measured,
+# not the option. The oracle command is therefore narrowed to
+# test_container.py -- the file whose tests exercise the behaviour --
+# while conftest.py stays among the oracle files because the container
+# tests are collected alongside it.
 failing_nodes = [
-  "tests/test_container.py::TestContainer::test_suppress_context_exit_suppress",
   "tests/test_container.py::TestContainer::test_suppress_context_exit_no_suppress_handled",
-  "tests/test_container.py::TestContainer::test_async_suppress_context_exit_async_factory_suppress",
   "tests/test_container.py::TestContainer::test_async_suppress_context_exit_async_factory_no_suppress",
   "tests/test_container.py::TestContainer::test_async_suppress_context_exit_sync_factory_no_suppress",
-  "tests/test_registry.py::TestRegisteredService::test_repr",
 ]
 
 [oracle.files_sha256]
 "tests/test_container.py" = "f195c5b2a33b79d7f777d418dc9c6111007ca8bec2ef23a9eb1dba2be7f073df"
-"tests/test_registry.py" = "609d43acd104840f6837d31a63b7b94f59924e75f165f3b6936882c3154d248b"
 "conftest.py" = "3cbab28cb8a19161cba43d1dd865560cc152172a00fa2d7cad48d7074495bfbf"
 
 [preservation]
