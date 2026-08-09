@@ -1,0 +1,58 @@
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index d90c595..7ec060b 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -146,6 +146,23 @@ class Registry:
+     def __repr__(self) -> str:
+         return f"<svcs.Registry(num_services={len(self._services)})>"
+ 
++    def __iter__(self):
++        """
++        Iterate over the registered services.
++
++        Yields the :class:`~svcs.RegisteredService` objects stored for each
++        registered type, so both ``list(registry)`` and
++        ``for service in registry:`` work.
++
++        .. doctest::
++
++            >>> reg = svcs.Registry()
++            >>> reg.register_value(int, 42)
++            >>> [svc.svc_type for svc in reg]
++            [<class 'int'>]
++        """
++        return iter(self._services.values())
++
+     def __contains__(self, svc_type: type) -> bool:
+         """
+         Check whether this registry knows how to create *svc_type*:
+diff --git a/tests/test_registry.py b/tests/test_registry.py
+index bc6d01c..804239a 100644
+--- a/tests/test_registry.py
++++ b/tests/test_registry.py
+@@ -281,6 +281,25 @@ class TestRegistry:
+         assert Service in registry
+         assert AnotherService not in registry
+ 
++    def test_iter(self, registry):
++        """
++        Iterating over a registry yields the registered services.
++        """
++        assert [] == list(registry)
++
++        registry.register_factory(Service, Service)
++        registry.register_factory(AnotherService, AnotherService)
++
++        services = list(registry)
++
++        assert [Service, AnotherService] == [s.svc_type for s in services]
++
++        # The yielded objects are the very same ones the registry stores.
++        assert services == [
++            registry.get_registered_service_for(t)
++            for t in (Service, AnotherService)
++        ]
++
+     def test_gc_warning(self, recwarn):
+         """
+         If a registry is gc'ed with pending cleanups, a warning is raised.
