@@ -132,16 +132,19 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `harness/workload.py`
-- Modify: `harness/workspace.py` (rename `_GIT_ENV` → `GIT_ENV` for reuse)
+- Modify: `harness/workspace.py` (extract two reusable helpers)
 - Modify: `.gitignore`
 - Modify: `pyproject.toml`
 - Test: `tests/test_workload.py`
 
 **Interfaces:**
-- Consumes: `harness.workspace.GIT_ENV` (this task creates the public name).
+- Consumes: `harness.workspace.prepare_workspace` (existing; refactored in place, behavior unchanged).
 - Produces:
   - `harness.workspace.GIT_ENV: dict[str, str]`
+  - `harness.workspace.disposable_dir(prefix: str) -> Iterator[Path]` — a `@contextmanager` yielding a temp dir, removed on exit including on exception.
+  - `harness.workspace.git_init_commit(workspace: Path, message: str) -> None`
   - `harness.workload.ensure_clone(upstream: str, cache_root: Path) -> Path` — returns the bare clone path.
+  - `harness.workload.export_tree(clone: Path, sha: str, destination: Path) -> None`
   - `harness.workload.materialize(clone: Path, sha: str) -> Iterator[Path]` — a `@contextmanager` yielding a workspace path; removes it on exit including on exception.
   - `harness.workload.WorkloadError` — the module's single exception type.
 
@@ -149,7 +152,99 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 In `harness/workspace.py`, rename the module-level `_GIT_ENV` to `GIT_ENV` and update its three uses inside that file (the `git init`, `git add`, and `git commit` calls). No behavior change.
 
-- [ ] **Step 2: Verify the rename broke nothing**
+- [ ] **Step 2: Extract the two halves of `prepare_workspace`**
+
+`prepare_workspace` does three separable things: make a disposable temp dir, populate it, and turn it into a one-commit git repo. `materialize` needs the first and third with a different middle. Rather than duplicate the init/commit/cleanup semantics — and then have them drift — extract them.
+
+Replace the body of `harness/workspace.py` below `GIT_ENV` with:
+
+```python
+@contextmanager
+def disposable_dir(prefix: str) -> Iterator[Path]:
+    """Yield a fresh temp directory, removed on exit including on exception."""
+    workspace = Path(tempfile.mkdtemp(prefix=prefix))
+    try:
+        yield workspace
+    finally:
+        shutil.rmtree(workspace, ignore_errors=True)
+
+
+def git_init_commit(workspace: Path, message: str) -> None:
+    """Turn a populated directory into a git repo with exactly one commit.
+
+    Hermetic by construction: `GIT_ENV` disables global and system
+    config, and `core.hooksPath` is pointed at the null device, so a
+    developer's own hooks and identity cannot reach in and change what a
+    workspace looks like.
+
+    The `.git/info/exclude` entries keep Python's runtime droppings out
+    of `git status`. That matters more than tidiness here: a later cycle
+    diffs a workspace to decide what a model changed, and a stray
+    `__pycache__` would read as candidate output.
+    """
+    subprocess.run(
+        ["git", "init", "-q"], cwd=workspace, check=True, capture_output=True, env=GIT_ENV
+    )
+    subprocess.run(
+        ["git", "add", "-A"], cwd=workspace, check=True, capture_output=True, env=GIT_ENV
+    )
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            f"core.hooksPath={os.devnull}",
+            "commit",
+            "-q",
+            "--no-gpg-sign",
+            "--allow-empty",
+            "-m",
+            message,
+        ],
+        cwd=workspace,
+        check=True,
+        capture_output=True,
+        env=GIT_ENV,
+    )
+    (workspace / ".git" / "info" / "exclude").write_text(
+        "# Satyrn harness runtime artifacts\n__pycache__/\n*.pyc\n.pytest_cache/\n"
+    )
+
+
+@contextmanager
+def prepare_workspace(*source_dirs: Path | None) -> Iterator[Path]:
+    """Copy each source directory, in order, into a fresh temp directory,
+    git-init it with an initial commit, and yield the workspace path.
+
+    Passing nothing (or only `None`s) creates a literally empty workspace.
+    The workspace is removed on exit.
+
+    **Order is the contract**, and it became load-bearing in phase 6 when a
+    suite gained a seed of its own. Two layers can now arrive: the suite's
+    starting codebase, then the improvement's seed on top. Later directories
+    overwrite earlier ones on collision, so an improvement can override a
+    file the workload supplies -- which is the direction an intervention
+    should be able to act in, and not the reverse.
+
+    `None` entries are skipped rather than rejected so callers can pass an
+    optional layer positionally without branching at every call site.
+    """
+    with disposable_dir("satyrn-workspace-") as workspace:
+        for source_dir in source_dirs:
+            if source_dir is None:
+                continue
+            shutil.copytree(
+                source_dir,
+                workspace,
+                dirs_exist_ok=True,
+                ignore=shutil.ignore_patterns("__pycache__", ".pytest_cache"),
+            )
+        git_init_commit(workspace, "initial workspace state")
+        yield workspace
+```
+
+This is a pure refactor: same commands, same order, same hermetic env, same cleanup, same docstring. `materialize` in Step 5 then reuses both helpers with `export_tree` as its middle step, so there is one definition of what a harness workspace *is*.
+
+- [ ] **Step 3: Verify the refactor changed no behavior**
 
 ```bash
 grep -rn "_GIT_ENV" harness/ tests/ tools/
@@ -158,12 +253,12 @@ grep -rn "_GIT_ENV" harness/ tests/ tools/
 Expected: no output.
 
 ```bash
-uv run --locked pytest tests/test_workspace.py -q
+uv run --locked pytest tests/test_workspace.py tests/test_runner.py tests/test_improvement.py -q
 ```
 
-Expected: PASS.
+Expected: PASS. `prepare_workspace` is used throughout the runner and improvement suites, so those are the regression surface for this change — not `test_workspace.py` alone.
 
-- [ ] **Step 3: Write the failing tests**
+- [ ] **Step 4: Write the failing tests**
 
 Create `tests/test_workload.py`:
 
@@ -320,7 +415,7 @@ def test_materialize_rejects_an_unknown_sha(tmp_path: Path, synthetic_clone: Syn
             pass
 ```
 
-- [ ] **Step 4: Run the tests to verify they fail**
+- [ ] **Step 5: Run the tests to verify they fail**
 
 ```bash
 uv run --locked pytest tests/test_workload.py -q
@@ -328,7 +423,7 @@ uv run --locked pytest tests/test_workload.py -q
 
 Expected: collection error — `ModuleNotFoundError: No module named 'harness.workload'`.
 
-- [ ] **Step 5: Write the implementation**
+- [ ] **Step 6: Write the implementation**
 
 Create `harness/workload.py`:
 
@@ -341,7 +436,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-from harness.workspace import GIT_ENV
+from harness.workspace import GIT_ENV, disposable_dir, git_init_commit
 
 
 class WorkloadError(RuntimeError):
@@ -352,19 +447,6 @@ class WorkloadError(RuntimeError):
     both mean the instrument is not in the state its manifest claims,
     and the only correct response is to stop and show the operator why.
     """
-
-
-def _git(repo: Path, *args: str) -> str:
-    result = subprocess.run(
-        ["git", *args],
-        cwd=repo,
-        capture_output=True,
-        text=True,
-        env=GIT_ENV,
-    )
-    if result.returncode != 0:
-        raise WorkloadError(f"git {' '.join(args)} failed in {repo}: {result.stderr.strip()}")
-    return result.stdout
 
 
 def ensure_clone(upstream: str, cache_root: Path) -> Path:
@@ -450,34 +532,28 @@ def materialize(clone: Path, sha: str) -> Iterator[Path]:
 
     The workspace is a real, committable repo -- a later cycle turns
     candidate work into a commit here -- but its object store contains
-    exactly one commit that this function just wrote. The upstream
-    history, and therefore every target commit and hidden oracle, is
-    physically absent rather than merely off-limits to a tool policy.
+    exactly one commit, the one `git_init_commit` just wrote. The
+    upstream history, and therefore every target commit and hidden
+    oracle, is absent from *this* object store, and the repo has no
+    remote and no alternates pointing back at the clone.
+
+    That is the whole claim. It is not confinement: nothing here stops a
+    process from reading the clone cache by path.
+
+    Disposable-dir and init-commit semantics are shared with
+    `prepare_workspace` rather than reimplemented, so there is one
+    definition of what a harness workspace is, and no second copy to
+    drift from it.
 
     Removed on exit, including on exception.
     """
-    workspace = Path(tempfile.mkdtemp(prefix="satyrn-workload-"))
-    try:
+    with disposable_dir("satyrn-workload-") as workspace:
         export_tree(clone, sha, workspace)
-        _git(workspace, "init", "-q")
-        _git(workspace, "add", "-A")
-        _git(
-            workspace,
-            "-c",
-            "core.hooksPath=/dev/null",
-            "commit",
-            "-q",
-            "--no-gpg-sign",
-            "--allow-empty",
-            "-m",
-            f"materialized base {sha}",
-        )
+        git_init_commit(workspace, f"materialized base {sha}")
         yield workspace
-    finally:
-        shutil.rmtree(workspace, ignore_errors=True)
 ```
 
-- [ ] **Step 6: Run the tests to verify they pass**
+- [ ] **Step 7: Run the tests to verify they pass**
 
 ```bash
 uv run --locked pytest tests/test_workload.py -q
@@ -485,7 +561,7 @@ uv run --locked pytest tests/test_workload.py -q
 
 Expected: 8 passed.
 
-- [ ] **Step 7: Keep derived state out of git and out of pytest**
+- [ ] **Step 8: Keep derived state out of git and out of pytest**
 
 In `.gitignore`, add below the `# Local workspace state` block:
 
@@ -501,7 +577,7 @@ norecursedirs = ["examples/agentclinic", "examples/duration", "examples/preserva
 
 `workloads` is listed because it will hold materialized `svcs` test files that must never be collected as this project's tests. `.workloads` is listed because gitignoring a directory does not stop pytest from walking into it.
 
-- [ ] **Step 8: Verify the whole suite still collects cleanly**
+- [ ] **Step 9: Verify the whole suite still collects cleanly**
 
 ```bash
 uv run --locked pytest -q
@@ -509,7 +585,7 @@ uv run --locked pytest -q
 
 Expected: PASS, with no attempt to collect anything under `workloads/` or `.workloads/`.
 
-- [ ] **Step 9: Quality gates**
+- [ ] **Step 10: Quality gates**
 
 ```bash
 uv run --locked ruff check . && uv run --locked ruff format --diff && uv run --locked pyrefly check
@@ -517,7 +593,7 @@ uv run --locked ruff check . && uv run --locked ruff format --diff && uv run --l
 
 Expected: all three clean.
 
-- [ ] **Step 10: Commit**
+- [ ] **Step 11: Commit**
 
 ```bash
 git add harness/workload.py harness/workspace.py tests/test_workload.py .gitignore pyproject.toml
@@ -526,6 +602,11 @@ git commit -m "feat(workload): materialize a base with no path to its future
 A workspace is a fresh one-commit repo: the target is absent from its
 object store, and it has no remote and no alternates. Tests assert both
 directly.
+
+The disposable-dir and init-commit halves of prepare_workspace are
+extracted and shared rather than reimplemented, so one definition of a
+harness workspace serves both callers and there is no second copy to
+drift.
 
 Deliberately NOT called a seal. This is a history invariant about one
 object store -- it says nothing about reading the clone cache by path,
