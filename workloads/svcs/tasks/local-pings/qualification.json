@@ -2,6 +2,17 @@
   "base_sha": "31bc6dfd5d1a570b3b96cfefd878ccc686bde980",
   "conditions": {
     "base_oracle": {
+      "collection_errors": {},
+      "failures": {
+        "tests/test_container.py::TestServicePing::test_local_pings_are_retrieved": "call:failed",
+        "tests/test_container.py::TestServicePing::test_local_pings_override_global_pings": "call:failed",
+        "tests/test_container.py::TestServicePing::test_local_services_without_pings_discard_global_pings": "call:failed"
+      },
+      "fingerprint_sha256": [
+        "f4d8c8077ffbe8e7bb3d32d5b56c12ccfe7b68a79d258dd7783cca8d8feeb033",
+        "f4d8c8077ffbe8e7bb3d32d5b56c12ccfe7b68a79d258dd7783cca8d8feeb033",
+        "f4d8c8077ffbe8e7bb3d32d5b56c12ccfe7b68a79d258dd7783cca8d8feeb033"
+      ],
       "node_count": 18,
       "reason_class": "assertion-failure",
       "returncode": 1,
@@ -9,12 +20,19 @@
       "stable": true,
       "tests_passed": 15,
       "wall_seconds": [
-        0.978,
-        0.97,
-        0.976
+        1.002,
+        0.988,
+        0.993
       ]
     },
     "base_preservation": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "f88b5bdd41178c61971b1dc5964326565c812ed545a3a09cf75e0117ce63fe38",
+        "f88b5bdd41178c61971b1dc5964326565c812ed545a3a09cf75e0117ce63fe38",
+        "f88b5bdd41178c61971b1dc5964326565c812ed545a3a09cf75e0117ce63fe38"
+      ],
       "node_count": 137,
       "reason_class": "pass",
       "returncode": 0,
@@ -22,12 +40,19 @@
       "stable": true,
       "tests_passed": 137,
       "wall_seconds": [
-        1.247,
-        1.187,
-        1.199
+        1.251,
+        1.231,
+        1.238
       ]
     },
     "target_oracle": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "2ab5d7d2d3c47daa58d8acda653513b975daea3aef766546408f0e896386fb83",
+        "2ab5d7d2d3c47daa58d8acda653513b975daea3aef766546408f0e896386fb83",
+        "2ab5d7d2d3c47daa58d8acda653513b975daea3aef766546408f0e896386fb83"
+      ],
       "node_count": 18,
       "reason_class": "pass",
       "returncode": 0,
@@ -35,12 +60,19 @@
       "stable": true,
       "tests_passed": 18,
       "wall_seconds": [
-        0.961,
-        0.982,
-        0.949
+        0.99,
+        0.968,
+        0.973
       ]
     },
     "target_preservation": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "0007b7d331dbc68fdbd256f48b9fe679db3d77e8a2b747e7a1b6a6e2f7a3a0f5",
+        "0007b7d331dbc68fdbd256f48b9fe679db3d77e8a2b747e7a1b6a6e2f7a3a0f5",
+        "0007b7d331dbc68fdbd256f48b9fe679db3d77e8a2b747e7a1b6a6e2f7a3a0f5"
+      ],
       "node_count": 140,
       "reason_class": "pass",
       "returncode": 0,
@@ -48,9 +80,9 @@
       "stable": true,
       "tests_passed": 140,
       "wall_seconds": [
-        1.202,
-        1.205,
-        1.211
+        1.235,
+        1.25,
+        1.243
       ]
     }
   },
@@ -65,6 +97,7 @@
   "env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
   "env_platform": "darwin",
   "env_python": "3.14.2",
+  "manifest_env_python": "3.14.2",
   "manifest_sha256": "2208c8bf20e0ef82ad24b21f8366026ba823851f0ca790fe30a3ba38ba34fde7",
   "max_seconds": 60.0,
   "oracle_command": [
@@ -80,7 +113,7 @@
     "-p",
     "no:cacheprovider"
   ],
-  "recorded_at": "2026-08-09T14:24:22.834682+00:00",
+  "recorded_at": "2026-08-09T14:46:31.457404+00:00",
   "repeats": 3,
   "role": "medium",
   "status": "qualified",
