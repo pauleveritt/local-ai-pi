@@ -258,3 +258,36 @@ def test_cohort_env_does_not_install_svcs(tmp_path: Path) -> None:
     )
     assert probe.returncode != 0
     assert "No module named 'svcs'" in probe.stderr
+
+
+def test_export_subst_placeholders_are_not_expanded(tmp_path: Path) -> None:
+    """`git archive` would stamp the upstream SHA into the workspace.
+
+    A file marked `export-subst` has its `$Format:...$` placeholders
+    expanded by archive. That would put the exact base commit id inside
+    a workspace whose whole point is not to hand over provenance -- and
+    it differs from what a real checkout contains.
+    """
+    source = tmp_path / "source"
+    source.mkdir()
+    _git(source, "init", "-q")
+    _write(source, ".gitattributes", "archival.txt export-subst\n")
+    _write(source, "archival.txt", "node: $Format:%H$\n")
+    _write(source, "keep.py", "x = 1\n")
+    _git(source, "add", "-A")
+    _git(source, "commit", "-q", "--no-gpg-sign", "-m", "base")
+    sha = _git(source, "rev-parse", "HEAD")
+
+    bare = tmp_path / "upstream.git"
+    subprocess.run(
+        ["git", "clone", "--bare", "-q", str(source), str(bare)],
+        check=True,
+        capture_output=True,
+        env=GIT_ENV,
+    )
+    clone = ensure_clone(str(bare), tmp_path / "cache")
+    with materialize(clone, sha) as workspace:
+        archival = (workspace / "archival.txt").read_text()
+        assert sha not in archival
+        assert archival == "node: $Format:%H$\n"
+        assert (workspace / "keep.py").read_text() == "x = 1\n"

@@ -82,12 +82,95 @@ def _require_sha(clone: Path, sha: str) -> None:
         raise WorkloadError(f"commit {sha} is not present in {clone} after a fetch")
 
 
+def _export_subst_paths(clone: Path, sha: str, destination: Path) -> list[str]:
+    """Paths in the tree at `sha` that carry the `export-subst` attribute.
+
+    `check-attr` is pointed at `destination` as the work tree, not run
+    bare. A bare repository has no working tree, so the commit's own
+    `.gitattributes` is never consulted and every query silently returns
+    "unspecified" -- which reads exactly like "no file needs fixing" and
+    is how this leak stays invisible.
+    """
+    listing = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", "-z", sha],
+        cwd=clone,
+        capture_output=True,
+        env=GIT_ENV,
+    )
+    if listing.returncode != 0:
+        raise WorkloadError(
+            f"git ls-tree {sha} failed: {listing.stderr.decode(errors='replace')}"
+        )
+    attrs = subprocess.run(
+        [
+            "git",
+            "--git-dir",
+            str(clone.resolve()),
+            "--work-tree",
+            str(destination.resolve()),
+            "check-attr",
+            "--stdin",
+            "-z",
+            "export-subst",
+        ],
+        cwd=destination,
+        input=listing.stdout,
+        capture_output=True,
+        env=GIT_ENV,
+    )
+    if attrs.returncode != 0:
+        raise WorkloadError(
+            f"git check-attr failed: {attrs.stderr.decode(errors='replace')}"
+        )
+    # -z output is a flat NUL-separated stream of (path, attribute, value).
+    fields = attrs.stdout.decode(errors="replace").split("\0")
+    return [
+        fields[i]
+        for i in range(0, len(fields) - 2, 3)
+        if fields[i + 1] == "export-subst" and fields[i + 2] == "set"
+    ]
+
+
+def _undo_export_subst(clone: Path, sha: str, destination: Path) -> None:
+    """Restore `export-subst` files to their raw blob contents.
+
+    `git archive` expands `$Format:...$` placeholders in any file marked
+    `export-subst`. `svcs` marks `.git_archival.txt`, so an exported
+    workspace would contain::
+
+        node: 816403b5c1d3b9fff22bd9141fe836221dfe9d9c
+        describe-name: 25.1.0-121-g816403b
+
+    -- the exact upstream commit the base came from, sitting in the
+    workspace. The history invariant would survive that (the target
+    object is still absent), but the stated obligation is workspaces
+    whose *layout* does not hand anyone the answer, and an upstream SHA
+    is one `git log` away from the answer for anything with network
+    access or public-history priors.
+
+    Writing the blob back is also strictly more faithful than what
+    archive produced: a real checkout of this commit contains the
+    unexpanded template, which is what a bounded executor would see.
+    """
+    for relative in _export_subst_paths(clone, sha, destination):
+        blob = subprocess.run(
+            ["git", "cat-file", "blob", f"{sha}:{relative}"],
+            cwd=clone,
+            capture_output=True,
+            env=GIT_ENV,
+        )
+        if blob.returncode != 0:
+            raise WorkloadError(f"cannot read {relative} at {sha} to undo export-subst")
+        (destination / relative).write_bytes(blob.stdout)
+
+
 def export_tree(clone: Path, sha: str, destination: Path) -> None:
     """Extract the tree at `sha` into `destination`, creating it if needed.
 
     Via `git archive` rather than a checkout so the destination never
     receives git metadata from the clone -- that absence is what the
-    history invariant rests on.
+    history invariant rests on. `export-subst` expansions are then undone
+    so the result matches a checkout rather than an archive.
     """
     _require_sha(clone, sha)
     destination.mkdir(parents=True, exist_ok=True)
@@ -105,6 +188,7 @@ def export_tree(clone: Path, sha: str, destination: Path) -> None:
         archive.flush()
         with tarfile.open(archive.name) as tar:
             tar.extractall(destination, filter="data")
+    _undo_export_subst(clone, sha, destination)
 
 
 @contextmanager
