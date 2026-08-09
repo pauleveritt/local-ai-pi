@@ -1,0 +1,17 @@
+{
+  "accepted": 0,
+  "arm": "brief-only-envelope",
+  "attempted": 9,
+  "model": "omlx/gemma-4-12B-it-MLX-8bit",
+  "outcomes": {
+    "async-cm-enter": "no-changes",
+    "autowire": "oracle-failed",
+    "fastapi-get-registry": "no-changes",
+    "flask-extensions": "oracle-pass-but-rejected",
+    "local-pings": "oracle-failed",
+    "magicmock-factory": "no-changes",
+    "registry-iter": "oracle-failed",
+    "stringified-annotations": "oracle-failed",
+    "suppress-context-exit": "oracle-failed"
+  }
+}

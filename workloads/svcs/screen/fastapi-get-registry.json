@@ -1,0 +1,32 @@
+{
+  "accepted": false,
+  "argv": [
+    "pi",
+    "--print",
+    "--mode",
+    "json",
+    "--no-session",
+    "--model",
+    "omlx/gemma-4-12B-it-MLX-8bit",
+    "--no-extensions",
+    "--extension",
+    "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/envelope-cap.ts",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--approve",
+    "--tools",
+    "read,write",
+    "# Reach the registry from an app or test client\n\nThe FastAPI and Starlette integrations attach a `Registry` to the application\nduring its lifespan. Request handlers can get at it, but code outside a\nrequest \u2014 a test, a startup hook, a script holding the app object \u2014 has no\nsupported way to reach it.\n\nAdd `get_registry()` to both the FastAPI and Starlette integrations. It accepts\neither the application or a test client, and returns the registry that the\nrunning lifespan attached to that application.\n\nRequirements:\n\n- it returns the same registry object that request-scoped code receives;\n- it works when the application and an included router both declare lifespans;\n- it works when given a test client instead of the application;\n- it raises a clear error when the application has no registry attached, rather\n  than returning something meaningless;\n- it stops returning a registry once the application has shut down.\n\nBoth integrations must expose it, and existing request-scoped access must not\nchange.\n"
+  ],
+  "changed_paths": [],
+  "manifest_sha256": "caf96e7f450d5dc713234f057b74848f81ca31eca30c921147c6620a230966e9",
+  "model_seconds": 14.26,
+  "model_timed_out": false,
+  "oracle": null,
+  "out_of_scope": [],
+  "outcome": "no-changes",
+  "preservation": null,
+  "task_id": "fastapi-get-registry"
+}

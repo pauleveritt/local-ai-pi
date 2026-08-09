@@ -1,0 +1,58 @@
+{
+  "accepted": false,
+  "argv": [
+    "pi",
+    "--print",
+    "--mode",
+    "json",
+    "--no-session",
+    "--model",
+    "omlx/gemma-4-12B-it-MLX-8bit",
+    "--no-extensions",
+    "--extension",
+    "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/envelope-cap.ts",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--approve",
+    "--tools",
+    "read,write",
+    "# Make a registry iterable\n\n`Registry` holds the services that have been registered on it, but there is no\nsupported way to walk them: a caller who wants to inspect what a registry knows\nabout has to reach past the public API.\n\nMake `Registry` iterable. Iterating one yields the registered services \u2014 the\nsame objects the registry stores for each registered type \u2014 so that\n`list(registry)` and `for service in registry:` both work.\n\nRegistration, lookup, and lifecycle behaviour must not change.\n"
+  ],
+  "changed_paths": [
+    "find_registry.py",
+    "list_files.py",
+    "list_files_v2.py",
+    "list_files_v3.py"
+  ],
+  "manifest_sha256": "e5a96f24fa7ef9c41379febfcd0065d027bdcc822198d271a53ae46a10ac670e",
+  "model_seconds": 405.08,
+  "model_timed_out": false,
+  "oracle": {
+    "collection_errors": {},
+    "failures": {
+      "tests/test_registry.py::TestRegistry::test_iterate": "call:failed"
+    },
+    "node_count": 35,
+    "reason_class": "assertion-failure",
+    "tests_passed": 34,
+    "wall_seconds": 1.067
+  },
+  "out_of_scope": [
+    "find_registry.py",
+    "list_files.py",
+    "list_files_v2.py",
+    "list_files_v3.py"
+  ],
+  "outcome": "oracle-failed",
+  "preservation": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 131,
+    "reason_class": "pass",
+    "tests_passed": 131,
+    "wall_seconds": 3.134
+  },
+  "task_id": "registry-iter"
+}
