@@ -73,7 +73,7 @@ Install it however you prefer (we use [Volta](https://volta.sh/) for the
 Node toolchain); confirm with:
 
 ```bash
-pi --version    # 0.83.0
+pi --version    # 0.84.1
 ```
 
 The harness pins this version: `EXPECTED_PI_VERSION` in `harness/runner.py`.
@@ -87,7 +87,7 @@ nothing wrong by not installing it — and **fails** when your Pi is a
 different version. That failure is deliberate: it is what turns a silent
 upgrade into a red suite, which is the whole point of the pin.
 
-So if yours differs, either install Pi `0.83.0`, or bump
+So if yours differs, either install Pi `0.84.1`, or bump
 `EXPECTED_PI_VERSION` and re-check the documentation that cites Pi — this
 file, which names the version twice, and the chapters that cite Pi by file
 and line. Neither survives an upgrade, and no test catches them.

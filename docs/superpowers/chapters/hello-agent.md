@@ -10,7 +10,9 @@ The second half is the part worth your time. The extension was in the tree for
 80 recorded runs producing nothing observable, and the reason turned out to be
 one line's *placement*, not any missing API.
 
-Everything below cites the installed Pi 0.83.0 by file and line. Paths beginning
+Everything below cites Pi 0.83.0 by file and line -- the version these were
+verified against, not necessarily the version you have installed. The harness
+now pins 0.84.1; these citations have not been re-verified against it. Paths beginning
 `core/` or `modes/` are relative to the installed package's `dist/` directory;
 paths beginning `node_modules/` are relative to the package root, where the
 nested `pi-agent-core` package sits beside `dist/`:
