@@ -179,11 +179,27 @@ def screen_task(
             for entry in manifest.deselects
             for argument in ("--deselect", entry)
         )
-        preservation = run_suite(workspace, preservation_command, env, suite_timeout)
 
+        # BOTH suites run on the same overlaid copy. Grading preservation
+        # against the *base* test files while grading the oracle against
+        # the *target* ones asks the candidate to satisfy two
+        # contradictory specifications at once.
+        #
+        # flask-extensions is the case that exposed it: the task moves the
+        # registry from app.config to app.extensions, and the base's own
+        # tests assert the old location. A correct implementation makes
+        # the oracle pass 19/19 and necessarily breaks those two base
+        # tests -- which the target commit updates, which is precisely why
+        # they are oracle files. Scored against base tests it looked like
+        # repository damage; it was the task being done right.
+        #
+        # This mirrors qualification's target_preservation condition,
+        # which runs on the target tree where the test files are already
+        # the target's own.
         with disposable_dir("satyrn-grade-") as grading:
             shutil.copytree(workspace, grading, dirs_exist_ok=True)
             overlay_oracle(clone, manifest, grading)
+            preservation = run_suite(grading, preservation_command, env, suite_timeout)
             oracle = run_suite(grading, manifest.oracle_command, env, suite_timeout)
 
     accepted = (
