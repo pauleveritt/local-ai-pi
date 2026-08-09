@@ -1,0 +1,120 @@
+{
+  "base_sha": "816403b5c1d3b9fff22bd9141fe836221dfe9d9c",
+  "conditions": {
+    "base_oracle": {
+      "collection_errors": {
+        "tests/test_autowire.py": "E   ImportError: cannot import name 'aautowire' from 'svcs' (<path>)"
+      },
+      "failures": {},
+      "fingerprint_sha256": [
+        "59ee1c2ac7edf8ad54d0dd8efbbbba81595c07459d2f0c5f8015054f7e672999",
+        "59ee1c2ac7edf8ad54d0dd8efbbbba81595c07459d2f0c5f8015054f7e672999",
+        "59ee1c2ac7edf8ad54d0dd8efbbbba81595c07459d2f0c5f8015054f7e672999"
+      ],
+      "node_count": 0,
+      "reason_class": "collection-error",
+      "returncode": 2,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 0,
+      "wall_seconds": [
+        0.957,
+        0.954,
+        0.958
+      ]
+    },
+    "base_preservation": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "bd27576c464b7f1909443812630073bf7094d88b1f8619f5f5aae1c122f6f397",
+        "bd27576c464b7f1909443812630073bf7094d88b1f8619f5f5aae1c122f6f397",
+        "bd27576c464b7f1909443812630073bf7094d88b1f8619f5f5aae1c122f6f397"
+      ],
+      "node_count": 130,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 130,
+      "wall_seconds": [
+        1.126,
+        1.133,
+        1.129
+      ]
+    },
+    "target_oracle": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "bcf6241f4d504b620f8ffa3dac013d9e4d047b29201ff7bbe236f3574bbcb78d",
+        "bcf6241f4d504b620f8ffa3dac013d9e4d047b29201ff7bbe236f3574bbcb78d",
+        "bcf6241f4d504b620f8ffa3dac013d9e4d047b29201ff7bbe236f3574bbcb78d"
+      ],
+      "node_count": 67,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 67,
+      "wall_seconds": [
+        0.967,
+        0.964,
+        0.973
+      ]
+    },
+    "target_preservation": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "3aaa738501f26f70dbaeacf1961387472a16930805a5a143c06db9a76e7a3045",
+        "3aaa738501f26f70dbaeacf1961387472a16930805a5a143c06db9a76e7a3045",
+        "3aaa738501f26f70dbaeacf1961387472a16930805a5a143c06db9a76e7a3045"
+      ],
+      "node_count": 197,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 197,
+      "wall_seconds": [
+        1.176,
+        1.191,
+        1.189
+      ]
+    }
+  },
+  "deselects": [],
+  "effective_preservation_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider"
+  ],
+  "env_id": "svcs-cohort-2026-08-09",
+  "env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
+  "env_platform": "darwin",
+  "env_python": "3.14.2",
+  "manifest_env_python": "3.14.2",
+  "manifest_sha256": "ac23da5a308283879409c86aff12f2abaef91f1a12d038da1a456f7d3348c1e7",
+  "max_seconds": 60.0,
+  "oracle_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "tests/test_autowire.py"
+  ],
+  "preservation_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider"
+  ],
+  "recorded_at": "2026-08-09T14:52:13.420873+00:00",
+  "repeats": 3,
+  "role": "ceiling",
+  "status": "qualified",
+  "target_sha": "6bb3f2800a57f4f74641d6e7415c9865293a4016",
+  "task_id": "autowire"
+}
