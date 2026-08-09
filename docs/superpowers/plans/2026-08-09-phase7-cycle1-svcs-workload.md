@@ -4,7 +4,7 @@
 
 **Goal:** Build a qualified, frozen commit-replay workload drawn from the `svcs` library, so Phase 7 has an instrument that can distinguish executor approaches.
 
-**Architecture:** A repo-managed bare clone of upstream `svcs` supplies immutable base and target trees. Each task materializes its base tree into a *synthetic single-commit git repository* — a real committable repo whose object store physically lacks the target commit, so the oracle seal is a fact rather than a policy. A frozen union environment (dependencies only, project never installed) runs preservation and hidden-oracle suites via `PYTHONPATH`. A deterministic qualification pipeline proves each task is real: base green, oracle rejects base with the declared reason class, target green, three-run stable. No model executor runs in this cycle.
+**Architecture:** A repo-managed bare clone of upstream `svcs` supplies immutable base and target trees. Each task materializes its base tree into a *synthetic single-commit git repository* — a real committable repo whose object store physically lacks the target commit, with no remote and no alternates. That is a *history invariant*, deliberately not called a seal: it says nothing about reading the clone cache by path, and confinement belongs to the executor cycle. A frozen union environment (dependencies only, project never installed) runs preservation and hidden-oracle suites via `PYTHONPATH`. A deterministic qualification pipeline proves each task is real: base green, oracle rejects the base matching a pre-registered fingerprint, target green, and all four conditions agreeing at node level across three fresh materializations. No model executor runs in this cycle.
 
 **Tech Stack:** Python 3.14, stdlib `tomllib` for manifests, `uv` for the cohort environment, pytest for both the project's own tests and the workload's suites, existing `harness/processes.py` for bounded subprocess execution.
 
@@ -31,7 +31,7 @@
 
 | File | Responsibility |
 |---|---|
-| `harness/workload.py` | Create/modify. All workload primitives: clone cache, sealed materialization, oracle overlay, cohort env, suite runner, manifest model, qualification pipeline. Knows nothing about `svcs` specifically. |
+| `harness/workload.py` | Create/modify. All workload primitives: clone cache, materialization, oracle overlay, cohort env, suite runner, manifest model, qualification pipeline. Knows nothing about `svcs` specifically. |
 | `tools/qualify_workload.py` | Create. CLI driver only: read `cohort.toml`, loop tasks, write `qualification.json`, print a summary, set exit code. |
 | `workloads/svcs/env/pyproject.toml` | Create. The frozen union environment declaration. Committed. |
 | `workloads/svcs/env/uv.lock` | Create (generated). Committed — it *is* the freeze. |
@@ -128,7 +128,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 ---
 
-### Task 2: Clone cache and sealed materialization
+### Task 2: Clone cache and the workspace history invariant
 
 **Files:**
 - Create: `harness/workload.py`
@@ -425,7 +425,7 @@ def export_tree(clone: Path, sha: str, destination: Path) -> None:
 
     Via `git archive` rather than a checkout so the destination never
     receives git metadata from the clone -- that absence is what the
-    seal rests on.
+    history invariant rests on.
     """
     _require_sha(clone, sha)
     destination.mkdir(parents=True, exist_ok=True)
@@ -809,6 +809,11 @@ The gate that makes a base rejection mean something: an import typo and a genuin
 Extend the import block with `import sys` and with `CohortEnv` and `run_suite`
 from `harness.workload`, then append to `tests/test_workload.py`:
 
+Note the four `pytest` exit codes these tests pin down — 0 pass, 1 tests failed,
+2 interrupted (which is what a collection error produces), 5 nothing collected.
+The last one matters most: a mistyped oracle path exits 5, and a classifier that
+called that a rejection would qualify a broken task.
+
 ```python
 def _fake_env() -> CohortEnv:
     """The project's own interpreter, standing in for the cohort env.
@@ -877,6 +882,53 @@ def test_run_suite_times_out_without_leaking_the_child(
         )
     assert result.timed_out is True
     assert result.reason_class == "timeout"
+
+
+def test_run_suite_records_node_level_outcomes(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """Node ids and outcomes, from pytest's hooks -- not a count scraped from prose."""
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    with materialize(clone, synthetic_clone.base_sha) as workspace:
+        result = run_suite(workspace, ["pytest", "-q", "-p", "no:cacheprovider"], _fake_env())
+    assert result.outcomes == {"tests/test_add.py::test_add": "passed"}
+    assert result.tests_passed == 1
+
+
+def test_different_failures_produce_different_fingerprints(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """The reason a coarse class is not enough.
+
+    Both runs below are `assertion-failure`. If stability compared only
+    the class, a suite that fails a *different* test on every run would
+    look perfectly stable.
+    """
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    fingerprints = []
+    for name in ("test_first", "test_second"):
+        with materialize(clone, synthetic_clone.base_sha) as workspace:
+            (workspace / "tests" / "test_x.py").write_text(
+                f"def {name}():\n    assert False\n"
+            )
+            result = run_suite(workspace, ["pytest", "-q", "-p", "no:cacheprovider"], _fake_env())
+        assert result.reason_class == "assertion-failure"
+        fingerprints.append(result.fingerprint)
+    assert fingerprints[0] != fingerprints[1]
+
+
+def test_a_command_collecting_nothing_is_an_error_not_a_rejection(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """pytest exit 5. A mistyped oracle path must never qualify as a base rejection."""
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    with materialize(clone, synthetic_clone.base_sha) as workspace:
+        result = run_suite(
+            workspace,
+            ["pytest", "-q", "-p", "no:cacheprovider", "tests/test_add.py::test_absent"],
+            _fake_env(),
+        )
+    assert result.reason_class == "error"
 ```
 
 - [ ] **Step 2: Run to verify failure**
@@ -929,7 +981,43 @@ class SuiteResult:
         )
 
 
-def classify(returncode: int | None, output: str, timed_out: bool) -> str:
+# pytest's documented exit codes. Reading these is far more robust than
+# matching summary-line prose, which changes between pytest releases and
+# can be forged by the code under test writing to stdout.
+_PYTEST_OK = 0
+_PYTEST_TESTS_FAILED = 1
+_PYTEST_INTERRUPTED = 2
+_PYTEST_NO_TESTS = 5
+
+
+def _read_outcomes(path: Path) -> tuple[dict[str, str], bool]:
+    """Parse the grading plugin's results file into {nodeid: outcome}, plus done.
+
+    Last line wins per nodeid. That is deliberate and matches
+    `harness/grading.py`: a test whose call phase passed but whose
+    teardown then failed appends a second, later `failed` line, and the
+    later one is the truth.
+    """
+    outcomes: dict[str, str] = {}
+    done = False
+    if not path.is_file():
+        return outcomes, done
+    for line in path.read_text().splitlines():
+        if line == grading_plugin.DONE_MARKER:
+            done = True
+            continue
+        nodeid, separator, outcome = line.partition("\t")
+        if separator:
+            outcomes[nodeid] = outcome
+    return outcomes, done
+
+
+def classify(
+    returncode: int | None,
+    outcomes: dict[str, str],
+    done: bool,
+    timed_out: bool,
+) -> str:
     """Name *how* a suite failed, not merely that it did.
 
     A base that fails at collection because the API does not exist yet
@@ -937,14 +1025,23 @@ def classify(returncode: int | None, output: str, timed_out: bool) -> str:
     an assertion is a different -- often broken -- task. Both exit
     non-zero, so an exit code alone cannot qualify a task, and an import
     typo in an oracle would otherwise sail through as a valid rejection.
+
+    Decided from pytest's exit code and the plugin's recorded outcomes,
+    never from summary prose. Exit 2 is pytest interrupting itself,
+    which is what a collection error produces -- and in that case the
+    session still finishes, so `done` is true while `outcomes` is empty.
+    Exit 5 means nothing was collected at all, which is a broken command
+    rather than a rejection, and must not be mistaken for one.
     """
     if timed_out:
         return "timeout"
-    if "error during collection" in output or "errors during collection" in output:
+    if returncode == _PYTEST_INTERRUPTED:
         return "collection-error"
-    if returncode == 0:
+    if returncode == _PYTEST_NO_TESTS:
+        return "error"
+    if returncode == _PYTEST_OK and done:
         return "pass"
-    if re.search(r"^FAILED ", output, re.MULTILINE) or " failed" in output:
+    if returncode == _PYTEST_TESTS_FAILED and any(o == "failed" for o in outcomes.values()):
         return "assertion-failure"
     return "error"
 
@@ -960,34 +1057,49 @@ def run_suite(
     `command` is argv *after* `python -m`, so a manifest's
     `["pytest", "-q"]` becomes `<cohort python> -m pytest -q`.
 
-    The child environment is built from nothing rather than inherited:
-    the cohort env supplies dependencies, PYTHONPATH supplies exactly
-    one copy of the project under test, and HOME points into the
-    disposable workspace so nothing a suite writes lands in the
-    operator's home directory. No proxy variables are passed through,
-    which is most of what "no network" means in practice.
+    The grading plugin is staged into a temp directory *outside* the
+    workspace, along with its results file. Two reasons: the workspace
+    must stay byte-identical to the base tree, and pointing PYTHONPATH
+    at this project's `harness/` would make every harness module
+    importable from inside a suite under test.
+
+    The child environment is built from nothing rather than inherited.
+    The cohort env supplies dependencies, PYTHONPATH supplies exactly
+    one copy of the project under test, and HOME and TMPDIR point into
+    the disposable workspace so nothing a suite writes lands in the
+    operator's home directory. No proxy variables are passed through --
+    which is most of what "no network" means in practice, and is
+    hygiene rather than a guarantee.
     """
-    child_env = {
-        "PATH": os.defpath,
-        "PYTHONPATH": str(workspace / "src"),
-        "PYTHONDONTWRITEBYTECODE": "1",
-        "HOME": str(workspace),
-        "LANG": "C.UTF-8",
-        "LC_ALL": "C.UTF-8",
-        "TMPDIR": str(workspace),
-    }
-    result = run_process(
-        [str(env.python), "-m", *command],
-        cwd=workspace,
-        timeout=timeout,
-        env=child_env,
-    )
+    with tempfile.TemporaryDirectory(prefix="satyrn-suite-") as staging_name:
+        staging = Path(staging_name)
+        shutil.copy2(Path(grading_plugin.__file__), staging / "grading_plugin.py")
+        results = staging / "results.txt"
+        results.touch()
+        child_env = {
+            "PATH": os.defpath,
+            "PYTHONPATH": os.pathsep.join([str(workspace / "src"), str(staging)]),
+            "PYTHONDONTWRITEBYTECODE": "1",
+            "HOME": str(workspace),
+            "LANG": "C.UTF-8",
+            "LC_ALL": "C.UTF-8",
+            "TMPDIR": str(workspace),
+            grading_plugin.RESULTS_ENV_VAR: str(results),
+        }
+        result = run_process(
+            [str(env.python), "-m", *command, "-p", "grading_plugin"],
+            cwd=workspace,
+            timeout=timeout,
+            env=child_env,
+        )
+        outcomes, done = _read_outcomes(results)
+
     output = result.stdout + result.stderr
-    match = _PASSED.search(output)
     return SuiteResult(
         returncode=result.returncode,
-        reason_class=classify(result.returncode, output, result.timed_out),
-        tests_passed=int(match.group(1)) if match else 0,
+        reason_class=classify(result.returncode, outcomes, done, result.timed_out),
+        outcomes=outcomes,
+        tests_passed=sum(1 for outcome in outcomes.values() if outcome == "passed"),
         wall_seconds=result.wall_seconds,
         timed_out=result.timed_out,
         stdout_tail=output[-4000:],
@@ -1000,7 +1112,7 @@ def run_suite(
 uv run --locked pytest tests/test_workload.py -q
 ```
 
-Expected: 14 passed. The timeout test takes about 3 seconds.
+Expected: 20 passed. The timeout test takes about 3 seconds; the rest are milliseconds.
 
 - [ ] **Step 5: Quality gates**
 
@@ -1012,13 +1124,17 @@ uv run --locked ruff check . && uv run --locked ruff format --diff && uv run --l
 
 ```bash
 git add harness/workload.py tests/test_workload.py
-git commit -m "feat(workload): classify how a suite failed, not just that it did
+git commit -m "feat(workload): node-level outcomes, not scraped summary prose
 
-A base that fails at collection because the API is absent is the
-evidence a replay task needs; a base that collects and fails an
-assertion is usually a broken task. Both exit non-zero, so exit code
-alone cannot qualify anything -- an import typo in an oracle would
-otherwise pass as a valid rejection.
+Outcomes come from pytest's own runtest hooks via the existing
+grading_plugin, so a run is described by node ids rather than by a
+regex over stdout the code under test can write to. Classification
+reads exit codes: 2 is a collection error, 5 is a mistyped command that
+collected nothing and must never pass as a rejection.
+
+The fingerprint exists because two runs failing *different* assertions
+are both "assertion-failure" -- comparing classes alone would call a
+randomly-failing suite stable.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
@@ -1071,7 +1187,11 @@ candidate_output = ["src/pkg/__init__.py"]
 [oracle]
 files = ["tests/test_mul.py"]
 command = ["pytest", "-q", "-p", "no:cacheprovider", "tests/test_mul.py"]
-base_rejection = "collection-error"
+
+[oracle.rejection]
+class           = "collection-error"
+missing_symbols = ["mul"]
+failing_nodes   = []
 
 [oracle.files_sha256]
 "tests/test_mul.py" = "{overrides.get("oracle_sha", "")}"
@@ -1129,7 +1249,57 @@ def test_load_manifest_rejects_an_unknown_reason_class(
     _write_manifest(task_dir, synthetic_clone)
     text = (task_dir / "manifest.toml").read_text()
     (task_dir / "manifest.toml").write_text(text.replace('"collection-error"', '"probably-broken"'))
-    with pytest.raises(WorkloadError, match="base_rejection"):
+    with pytest.raises(WorkloadError, match="oracle.rejection.class"):
+        load_manifest(task_dir)
+
+
+def test_load_manifest_requires_a_rejection_fingerprint(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """A bare class does not distinguish a real task from a typo'd oracle."""
+    task_dir = tmp_path / "tasks" / "synthetic"
+    _write_manifest(task_dir, synthetic_clone)
+    text = (task_dir / "manifest.toml").read_text()
+    (task_dir / "manifest.toml").write_text(text.replace('missing_symbols = ["mul"]', "missing_symbols = []"))
+    with pytest.raises(WorkloadError, match="missing_symbols or failing_nodes"):
+        load_manifest(task_dir)
+
+
+def test_load_manifest_requires_every_attestation(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir = tmp_path / "tasks" / "synthetic"
+    _write_manifest(task_dir, synthetic_clone)
+    text = (task_dir / "manifest.toml").read_text()
+    (task_dir / "manifest.toml").write_text(
+        text.replace('substantive = "Adds a new public behavior."', 'substantive = "   "')
+    )
+    with pytest.raises(WorkloadError, match="substantive"):
+        load_manifest(task_dir)
+
+
+def test_load_manifest_rejects_an_abbreviated_sha(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """A short SHA is not immutable -- it can become ambiguous as history grows."""
+    task_dir = tmp_path / "tasks" / "synthetic"
+    _write_manifest(task_dir, synthetic_clone)
+    text = (task_dir / "manifest.toml").read_text()
+    (task_dir / "manifest.toml").write_text(
+        text.replace(synthetic_clone.base_sha, synthetic_clone.base_sha[:7])
+    )
+    with pytest.raises(WorkloadError, match="40-character"):
+        load_manifest(task_dir)
+
+
+def test_load_manifest_rejects_an_absolute_policy_path(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir = tmp_path / "tasks" / "synthetic"
+    _write_manifest(task_dir, synthetic_clone)
+    text = (task_dir / "manifest.toml").read_text()
+    (task_dir / "manifest.toml").write_text(text.replace('writable = ["src/pkg/**"]', 'writable = ["/etc/**"]'))
+    with pytest.raises(WorkloadError, match="repository-relative"):
         load_manifest(task_dir)
 
 
@@ -1180,6 +1350,8 @@ class Manifest:
     oracle_files_sha256: dict[str, str]
     oracle_command: tuple[str, ...]
     base_rejection: str
+    rejection_missing_symbols: tuple[str, ...]
+    rejection_failing_nodes: tuple[str, ...]
     preservation_command: tuple[str, ...]
     deselects: tuple[str, ...]
     deselect_reason: str
@@ -1260,13 +1432,60 @@ def load_manifest(task_dir: Path) -> Manifest:
                 f"contract drift in {task_dir}: manifest says {declared_contract[:12]}, file is {actual_contract[:12]}"
             )
 
-    base_rejection = _string(oracle, "base_rejection", "oracle")
+    rejection = _table(oracle, "rejection", "oracle.rejection")
+    base_rejection = _string(rejection, "class", "oracle.rejection")
     if base_rejection not in REASON_CLASSES:
         raise WorkloadError(
-            f"base_rejection {base_rejection!r} is not one of {REASON_CLASSES}"
+            f"oracle.rejection.class {base_rejection!r} is not one of {REASON_CLASSES}"
         )
     if base_rejection == "pass":
-        raise WorkloadError("base_rejection cannot be 'pass' -- the oracle must reject the base")
+        raise WorkloadError(
+            "oracle.rejection.class cannot be 'pass' -- the oracle must reject the base"
+        )
+    missing_symbols = (
+        _strings(rejection, "missing_symbols", "oracle.rejection")
+        if "missing_symbols" in rejection
+        else ()
+    )
+    failing_nodes = (
+        _strings(rejection, "failing_nodes", "oracle.rejection")
+        if "failing_nodes" in rejection
+        else ()
+    )
+    if not missing_symbols and not failing_nodes:
+        raise WorkloadError(
+            "oracle.rejection needs missing_symbols or failing_nodes -- a bare class "
+            "does not distinguish 'this API does not exist yet' from 'the oracle has a typo'"
+        )
+
+    for label, shas in (("base_sha", source.get("base_sha")), ("target_sha", source.get("target_sha"))):
+        text = str(shas)
+        if len(text) != 40 or not all(c in "0123456789abcdef" for c in text):
+            raise WorkloadError(f"{label} must be a full 40-character SHA, got {text!r}")
+
+    for label, patterns in (("readable", policy.get("readable")), ("writable", policy.get("writable"))):
+        for pattern in patterns if isinstance(patterns, list) else ():
+            if str(pattern).startswith("/") or ".." in str(pattern):
+                raise WorkloadError(
+                    f"policy.{label} entry {pattern!r} must be repository-relative with no '..'"
+                )
+
+    required_attestations = (
+        "behavior_not_structure",
+        "statable_behaviorally",
+        "substantive",
+        "writable_bounded",
+        "adaptations",
+    )
+    for key in required_attestations:
+        if not attestations.get(key, "").strip():
+            raise WorkloadError(
+                f"attestation {key!r} is missing or empty. Five rubric items are curator "
+                "judgment rather than machine checks; an attestation that silently "
+                "defaults to absent is the same as no attestation while looking like one."
+            )
+    if preservation.get("deselects") and not str(preservation.get("deselect_reason", "")).strip():
+        raise WorkloadError("a deselect list requires a written deselect_reason")
 
     raw_hashes = oracle.get("files_sha256", {})
     oracle_hashes = (
@@ -1290,6 +1509,8 @@ def load_manifest(task_dir: Path) -> Manifest:
         oracle_files_sha256=oracle_hashes,
         oracle_command=_strings(oracle, "command", "oracle"),
         base_rejection=base_rejection,
+        rejection_missing_symbols=missing_symbols,
+        rejection_failing_nodes=failing_nodes,
         preservation_command=_strings(preservation, "command", "preservation"),
         deselects=_strings(preservation, "deselects", "preservation") if "deselects" in preservation else (),
         deselect_reason=str(preservation.get("deselect_reason", "")),
@@ -1337,10 +1558,10 @@ def overlay_oracle(clone: Path, manifest: Manifest, destination: Path) -> None:
 - [ ] **Step 4: Run to verify passing**
 
 ```bash
-uv run --locked pytest tests/test_workload.py -q
+uv run --locked pytest tests/test_workload.py -q -m "not integration"
 ```
 
-Expected: 18 passed.
+Expected: 29 passed, 1 deselected.
 
 - [ ] **Step 5: Quality gates**
 
@@ -1355,9 +1576,17 @@ git add harness/workload.py tests/test_workload.py
 git commit -m "feat(workload): manifests that fail loudly when they drift
 
 A manifest is the frozen claim a task makes about itself. A drifted
-brief, a missing field, or an oracle whose content changed under a
-frozen hash all stop the run -- an oracle that silently re-baselines
-means every earlier result for that task measured different tests.
+brief, an abbreviated SHA, an absolute policy path, an empty
+attestation, or an oracle whose content changed under a frozen hash all
+stop the run.
+
+The attestations are required rather than defaulted: five rubric items
+are curator judgment, and one that silently becomes absent is the same
+as no attestation while still looking like one.
+
+The rejection fingerprint is required for the same reason -- a bare
+reason class cannot tell "this API does not exist yet" apart from "the
+oracle file has a typo".
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
@@ -1366,13 +1595,20 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 ### Task 6: The qualification pipeline
 
+Four conditions, each run three times in its own fresh materialization, compared
+at node level. The earlier draft of this task ran target preservation once,
+reused one workspace across repeats, and compared only the coarse reason class —
+all three of which would have let an unstable or mis-specified task qualify.
+
 **Files:**
 - Modify: `harness/workload.py`
 - Test: `tests/test_workload.py`
 
 **Interfaces:**
 - Consumes: everything from Tasks 2–5.
-- Produces: `harness.workload.qualify(manifest: Manifest, clone: Path, env: CohortEnv, repeats: int = 3, timeout: float = 300.0) -> dict[str, object]` — the `qualification.json` payload, with `status` either `"qualified"` or `"disqualified"`.
+- Produces:
+  - `harness.workload.CONDITIONS: tuple[str, ...]` — `("base_preservation", "base_oracle", "target_preservation", "target_oracle")`
+  - `harness.workload.qualify(manifest: Manifest, clone: Path, env: CohortEnv, repeats: int = 3, timeout: float = 300.0, max_seconds: float = 60.0) -> dict[str, object]` — the `qualification.json` payload, with `status` either `"qualified"` or `"disqualified"`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1392,9 +1628,11 @@ def _qualified_task(tmp_path: Path, clone: SyntheticClone) -> tuple[Path, Path]:
     return task_dir, bare
 
 
-def _suite_of(report: dict[str, object], key: str) -> dict[str, object]:
+def _condition_of(report: dict[str, object], key: str) -> dict[str, object]:
     """`qualify` returns a JSON-shaped dict[str, object]; narrow before indexing."""
-    value = report[key]
+    conditions = report["conditions"]
+    assert isinstance(conditions, dict)
+    value = conditions[key]
     assert isinstance(value, dict)
     return value
 
@@ -1403,10 +1641,39 @@ def test_qualify_accepts_a_well_formed_task(tmp_path: Path, synthetic_clone: Syn
     task_dir, bare = _qualified_task(tmp_path, synthetic_clone)
     report = qualify(load_manifest(task_dir), bare, _fake_env())
     assert report["status"] == "qualified"
-    assert _suite_of(report, "base_preservation")["reason_class"] == "pass"
-    assert report["base_rejection_observed"] == "collection-error"
-    assert _suite_of(report, "target_preservation")["reason_class"] == "pass"
-    assert _suite_of(report, "target_oracle")["reason_class"] == "pass"
+    assert _condition_of(report, "base_preservation")["reason_class"] == "pass"
+    assert _condition_of(report, "base_oracle")["reason_class"] == "collection-error"
+    assert _condition_of(report, "target_preservation")["reason_class"] == "pass"
+    assert _condition_of(report, "target_oracle")["reason_class"] == "pass"
+
+
+def test_qualify_runs_every_condition_three_times(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """Including target preservation, which an earlier draft ran only once."""
+    task_dir, bare = _qualified_task(tmp_path, synthetic_clone)
+    report = qualify(load_manifest(task_dir), bare, _fake_env())
+    for condition in ("base_preservation", "base_oracle", "target_preservation", "target_oracle"):
+        assert _condition_of(report, condition)["runs"] == 3
+
+
+def test_qualify_uses_a_fresh_materialization_per_run(
+    tmp_path: Path, synthetic_clone: SyntheticClone, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Repeating inside one workspace measures idempotence, not determinism."""
+    task_dir, bare = _qualified_task(tmp_path, synthetic_clone)
+    seen: list[Path] = []
+    original = materialize
+
+    @contextmanager
+    def counting(clone_path: Path, sha: str) -> Iterator[Path]:
+        with original(clone_path, sha) as workspace:
+            seen.append(workspace)
+            yield workspace
+
+    monkeypatch.setattr(workload_module, "materialize", counting)
+    qualify(load_manifest(task_dir), bare, _fake_env())
+    assert len(seen) == len(set(seen)) == 12  # 4 conditions x 3 runs, no reuse
 
 
 def test_qualify_disqualifies_a_wrong_reason_class(
@@ -1416,26 +1683,47 @@ def test_qualify_disqualifies_a_wrong_reason_class(
     task_dir, bare = _qualified_task(tmp_path, synthetic_clone)
     text = (task_dir / "manifest.toml").read_text()
     (task_dir / "manifest.toml").write_text(
-        text.replace('base_rejection = "collection-error"', 'base_rejection = "assertion-failure"')
+        text.replace('class           = "collection-error"', 'class           = "assertion-failure"')
     )
     report = qualify(load_manifest(task_dir), bare, _fake_env())
     assert report["status"] == "disqualified"
     assert report["failed_gate"] == "base_rejection"
 
 
+def test_qualify_disqualifies_a_missing_expected_symbol(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """The class matched, but not for the reason the manifest pre-registered."""
+    task_dir, bare = _qualified_task(tmp_path, synthetic_clone)
+    text = (task_dir / "manifest.toml").read_text()
+    (task_dir / "manifest.toml").write_text(
+        text.replace('missing_symbols = ["mul"]', 'missing_symbols = ["divide"]')
+    )
+    report = qualify(load_manifest(task_dir), bare, _fake_env())
+    assert report["status"] == "disqualified"
+    assert report["failed_gate"] == "base_rejection"
+    assert "divide" in str(report["detail"])
+
+
 def test_qualify_disqualifies_an_unstable_suite(
     tmp_path: Path, synthetic_clone: SyntheticClone, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Three runs, identical outcomes required. A coin-flip test is not an instrument."""
+    """Three runs, identical node-level outcomes required.
+
+    The flaky module fails on alternating runs by keying off a marker
+    kept OUTSIDE the workspace -- fresh materializations mean anything
+    written inside one is gone by the next run, which is exactly the
+    property being tested.
+    """
     task_dir, bare = _qualified_task(tmp_path, synthetic_clone)
-    # A test that fails only on the second and later runs, via a marker file.
+    marker = tmp_path / "flaky-counter"
     flaky = (
         "import pathlib\n\n\n"
         "def test_flaky():\n"
-        "    marker = pathlib.Path(__file__).parent / '.seen'\n"
-        "    first = not marker.exists()\n"
-        "    marker.write_text('x')\n"
-        "    assert first\n"
+        f"    marker = pathlib.Path({str(marker)!r})\n"
+        "    seen = len(marker.read_text()) if marker.exists() else 0\n"
+        "    marker.write_text('x' * (seen + 1))\n"
+        "    assert seen % 2 == 0\n"
     )
     original = materialize
 
@@ -1451,14 +1739,26 @@ def test_qualify_disqualifies_an_unstable_suite(
 
     assert report["status"] == "disqualified"
     assert report["failed_gate"] == "stability"
+
+
+def test_qualify_disqualifies_a_slow_suite(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """The sub-minute threshold is enforced, not merely stated."""
+    task_dir, bare = _qualified_task(tmp_path, synthetic_clone)
+    report = qualify(load_manifest(task_dir), bare, _fake_env(), max_seconds=0.0)
+    assert report["status"] == "disqualified"
+    assert report["failed_gate"] == "runtime"
+
+
+def test_qualification_records_the_manifest_hash(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """Evidence must name the exact manifest it was produced from."""
+    task_dir, bare = _qualified_task(tmp_path, synthetic_clone)
+    report = qualify(load_manifest(task_dir), bare, _fake_env())
+    assert report["manifest_sha256"] == sha256_file(task_dir / "manifest.toml")
 ```
-
-The flaky module is written into the base workspace, so gate 1's first run passes
-and its two repeat runs fail — which is exactly the shape a nondeterministic
-suite has, and exactly what the stability gate exists to reject.
-
-Also add `from collections.abc import Iterator` to the test import block, and
-change this test's signature to take `monkeypatch: pytest.MonkeyPatch`.
 
 - [ ] **Step 2: Run to verify failure**
 
@@ -1475,15 +1775,90 @@ Add to `harness/workload.py`:
 ```python
 from datetime import UTC, datetime
 
+CONDITIONS = ("base_preservation", "base_oracle", "target_preservation", "target_oracle")
 
-def _suite_payload(result: SuiteResult) -> dict[str, object]:
-    return {
-        "reason_class": result.reason_class,
-        "returncode": result.returncode,
-        "tests_passed": result.tests_passed,
-        "wall_seconds": round(result.wall_seconds, 3),
-        "timed_out": result.timed_out,
-    }
+
+@dataclass(frozen=True)
+class ConditionRun:
+    """One condition, run `repeats` times, each in its own materialization."""
+
+    name: str
+    results: tuple[SuiteResult, ...]
+
+    @property
+    def first(self) -> SuiteResult:
+        return self.results[0]
+
+    @property
+    def stable(self) -> bool:
+        return all(r.fingerprint == self.results[0].fingerprint for r in self.results)
+
+    @property
+    def slowest(self) -> float:
+        return max(r.wall_seconds for r in self.results)
+
+    def payload(self) -> dict[str, object]:
+        return {
+            "reason_class": self.first.reason_class,
+            "returncode": self.first.returncode,
+            "tests_passed": self.first.tests_passed,
+            "runs": len(self.results),
+            "stable": self.stable,
+            "wall_seconds": [round(r.wall_seconds, 3) for r in self.results],
+            "node_count": len(self.first.outcomes),
+        }
+
+
+def _run_condition(
+    name: str,
+    clone: Path,
+    sha: str,
+    command: Sequence[str],
+    env: CohortEnv,
+    manifest: Manifest,
+    overlay: bool,
+    repeats: int,
+    timeout: float,
+) -> ConditionRun:
+    """Run one condition `repeats` times, each in a fresh materialization.
+
+    Freshness is the point. Repeating inside a single workspace tells
+    you whether a suite is idempotent within a directory -- a weaker
+    and different property than whether two independent runs of the
+    same commit agree, which is what a replay task needs.
+    """
+    results = []
+    for _ in range(repeats):
+        with materialize(clone, sha) as workspace:
+            if overlay:
+                overlay_oracle(clone, manifest, workspace)
+            results.append(run_suite(workspace, command, env, timeout))
+    return ConditionRun(name=name, results=tuple(results))
+
+
+def _rejection_mismatch(manifest: Manifest, observed: SuiteResult) -> str | None:
+    """Compare the observed base rejection against the pre-registered fingerprint.
+
+    A class alone is not evidence. `collection-error` is produced both
+    by "the API this task adds does not exist yet" and by "the oracle
+    file has a typo in an unrelated import", and only the first is a
+    task. So the manifest names either the symbols expected to be
+    missing or the nodes expected to fail, and both are checked.
+    """
+    if observed.reason_class != manifest.base_rejection:
+        return f"base was {observed.reason_class}, manifest declares {manifest.base_rejection}"
+
+    haystack = observed.stdout_tail
+    for symbol in manifest.rejection_missing_symbols:
+        if symbol not in haystack:
+            return f"expected the base to be missing {symbol!r}, but it is not named in the failure"
+
+    if manifest.rejection_failing_nodes:
+        failed = {node for node, outcome in observed.outcomes.items() if outcome == "failed"}
+        expected = set(manifest.rejection_failing_nodes)
+        if not expected.issubset(failed):
+            return f"expected these nodes to fail: {sorted(expected - failed)}"
+    return None
 
 
 def qualify(
@@ -1492,38 +1867,40 @@ def qualify(
     env: CohortEnv,
     repeats: int = 3,
     timeout: float = 300.0,
+    max_seconds: float = 60.0,
 ) -> dict[str, object]:
     """Prove one task is a real replay task. No model calls.
 
-    Four gates, in the only order that makes sense: a base that cannot
-    pass its own suite is not a starting point; an oracle that does not
-    reject that base for the declared reason is not measuring the task;
-    a target that cannot pass both is not a solution. Then three runs of
-    each suite, because a coin-flip test is not an instrument.
+    Four conditions, in the only order that makes sense: a base that
+    cannot pass its own suite is not a starting point; an oracle that
+    does not reject that base for the pre-registered reason is not
+    measuring the task; a target that cannot pass both is not a
+    solution. Each runs `repeats` times in fresh materializations, and
+    all runs must agree at node level.
 
-    Grading always happens on a copy. The workspace an executor would
-    receive never contains an oracle file.
+    `max_seconds` enforces the sub-minute validation the design
+    requires. `timeout` is the far larger backstop that kills a hung
+    child; a suite between the two is a qualification failure, not a
+    crash.
     """
     report: dict[str, object] = {
         "task_id": manifest.task_id,
         "role": manifest.role,
         "base_sha": manifest.base_sha,
         "target_sha": manifest.target_sha,
+        "manifest_sha256": sha256_file(manifest.task_dir / "manifest.toml"),
         "env_id": manifest.env_id,
         "env_lock_sha256": env.lock_sha256,
+        "env_python": env.python_version,
+        "env_platform": env.platform,
         "preservation_command": list(manifest.preservation_command),
         "oracle_command": list(manifest.oracle_command),
         "deselects": list(manifest.deselects),
         "recorded_at": datetime.now(UTC).isoformat(),
         "repeats": repeats,
+        "max_seconds": max_seconds,
+        "conditions": {},
     }
-    if manifest.env_lock_sha256 not in ("", env.lock_sha256):
-        report["status"] = "disqualified"
-        report["failed_gate"] = "environment"
-        report["detail"] = (
-            f"manifest declares lock {manifest.env_lock_sha256[:12]}, cohort env is {env.lock_sha256[:12]}"
-        )
-        return report
 
     def _disqualify(gate: str, detail: str) -> dict[str, object]:
         report["status"] = "disqualified"
@@ -1531,87 +1908,64 @@ def qualify(
         report["detail"] = detail
         return report
 
-    # Gate 1 -- the base passes its own preservation suite.
-    with materialize(clone, manifest.base_sha) as base:
-        preservation = run_suite(base, manifest.preservation_command, env, timeout)
-        report["base_preservation"] = _suite_payload(preservation)
-        if preservation.reason_class != "pass":
-            report["base_preservation_tail"] = preservation.stdout_tail
-            return _disqualify(
-                "base_preservation",
-                f"base suite is {preservation.reason_class}, expected pass",
-            )
-        base_stability = [
-            run_suite(base, manifest.preservation_command, env, timeout).reason_class
-            for _ in range(repeats - 1)
-        ]
+    if manifest.env_lock_sha256 not in ("", env.lock_sha256):
+        return _disqualify(
+            "environment",
+            f"manifest declares lock {manifest.env_lock_sha256[:12]}, cohort env is {env.lock_sha256[:12]}",
+        )
 
-    # Gate 2 -- the oracle rejects the base, for the declared reason.
-    with materialize(clone, manifest.base_sha) as grading:
-        overlay_oracle(clone, manifest, grading)
-        rejection = run_suite(grading, manifest.oracle_command, env, timeout)
-        report["base_oracle"] = _suite_payload(rejection)
-        report["base_rejection_observed"] = rejection.reason_class
-        if rejection.reason_class != manifest.base_rejection:
-            report["base_oracle_tail"] = rejection.stdout_tail
-            return _disqualify(
-                "base_rejection",
-                f"base was {rejection.reason_class}, manifest declares {manifest.base_rejection}",
-            )
-        rejection_stability = [
-            run_suite(grading, manifest.oracle_command, env, timeout).reason_class
-            for _ in range(repeats - 1)
-        ]
-
-    # Gate 3 -- the target passes preservation and the oracle.
-    with materialize(clone, manifest.target_sha) as target:
-        target_preservation = run_suite(target, manifest.preservation_command, env, timeout)
-        report["target_preservation"] = _suite_payload(target_preservation)
-        if target_preservation.reason_class != "pass":
-            report["target_preservation_tail"] = target_preservation.stdout_tail
-            return _disqualify(
-                "target_preservation",
-                f"target suite is {target_preservation.reason_class}, expected pass",
-            )
-        overlay_oracle(clone, manifest, target)
-        target_oracle = run_suite(target, manifest.oracle_command, env, timeout)
-        report["target_oracle"] = _suite_payload(target_oracle)
-        if target_oracle.reason_class != "pass":
-            report["target_oracle_tail"] = target_oracle.stdout_tail
-            return _disqualify(
-                "target_oracle",
-                f"target fails its own oracle: {target_oracle.reason_class}",
-            )
-        target_stability = [
-            run_suite(target, manifest.oracle_command, env, timeout).reason_class
-            for _ in range(repeats - 1)
-        ]
-
-    # Gate 4 -- every repeat agreed with its first run.
-    unstable = (
-        [c for c in base_stability if c != "pass"]
-        + [c for c in rejection_stability if c != manifest.base_rejection]
-        + [c for c in target_stability if c != "pass"]
+    conditions: dict[str, object] = report["conditions"]  # type: ignore[assignment]
+    plan = (
+        ("base_preservation", manifest.base_sha, manifest.preservation_command, False),
+        ("base_oracle", manifest.base_sha, manifest.oracle_command, True),
+        ("target_preservation", manifest.target_sha, manifest.preservation_command, False),
+        ("target_oracle", manifest.target_sha, manifest.oracle_command, True),
     )
-    report["repeat_stability"] = {
-        "base_preservation": base_stability,
-        "base_oracle": rejection_stability,
-        "target_oracle": target_stability,
-    }
+
+    runs: dict[str, ConditionRun] = {}
+    for name, sha, command, overlay in plan:
+        run = _run_condition(
+            name, clone, sha, command, env, manifest, overlay, repeats, timeout
+        )
+        runs[name] = run
+        conditions[name] = run.payload()
+
+        if name == "base_oracle":
+            mismatch = _rejection_mismatch(manifest, run.first)
+            if mismatch is not None:
+                report["base_oracle_tail"] = run.first.stdout_tail
+                return _disqualify("base_rejection", mismatch)
+        elif run.first.reason_class != "pass":
+            report[f"{name}_tail"] = run.first.stdout_tail
+            return _disqualify(name, f"{name} is {run.first.reason_class}, expected pass")
+
+    unstable = [name for name, run in runs.items() if not run.stable]
     if unstable:
-        return _disqualify("stability", f"repeat runs disagreed: {unstable}")
+        return _disqualify("stability", f"runs disagreed at node level for: {unstable}")
+
+    slow = {name: round(run.slowest, 3) for name, run in runs.items() if run.slowest > max_seconds}
+    if slow:
+        return _disqualify("runtime", f"conditions exceeded {max_seconds}s: {slow}")
 
     report["status"] = "qualified"
     return report
 ```
 
+Note the ordering: every condition runs to completion before the stability and
+runtime gates are evaluated. That is deliberate — a task that fails one gate
+should still report what the other three conditions did, because triage needs
+the whole picture rather than the first stopping point. The exception is a
+condition that outright fails its own expectation, which stops immediately since
+the remaining conditions would be measuring nothing.
+
 - [ ] **Step 4: Run to verify passing**
 
 ```bash
-uv run --locked pytest tests/test_workload.py -q
+uv run --locked pytest tests/test_workload.py -q -m "not integration"
 ```
 
-Expected: 21 passed.
+Expected: 28 passed, 1 deselected. Qualification runs 12 suites per task, so the
+qualify tests take a few seconds each on the synthetic repo.
 
 - [ ] **Step 5: Quality gates**
 
@@ -1623,12 +1977,20 @@ uv run --locked ruff check . && uv run --locked ruff format --diff && uv run --l
 
 ```bash
 git add harness/workload.py tests/test_workload.py
-git commit -m "feat(workload): four-gate qualification with repeat stability
+git commit -m "feat(workload): four conditions, three fresh runs, node-level agreement
 
 A base that cannot pass its own suite is not a starting point; an
-oracle that does not reject it for the declared reason is not measuring
-the task; a target that cannot pass both is not a solution. Then three
-runs each, because a coin-flip test is not an instrument.
+oracle that does not reject it for the PRE-REGISTERED reason is not
+measuring the task; a target that cannot pass both is not a solution.
+
+Three things a first draft got wrong and this does not: target
+preservation is repeated like everything else; every repeat gets its
+own materialization, since repeating in one workspace measures
+idempotence rather than determinism; and agreement is compared at node
+level, because two runs failing different assertions are both
+'assertion-failure'.
+
+The sub-minute threshold is now enforced rather than stated.
 
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ```
@@ -1861,7 +2223,11 @@ Expected: a path to `.workloads/svcs.git`.
 git -C .workloads/svcs.git diff --name-only <base_sha> <target_sha> -- tests/
 ```
 
-Oracle files are the test files this diff *adds or changes*. Check each one: a test file that the diff merely reformats is not an oracle. If the diff touches no test file, the task cannot be qualified — record it in `cohort.toml`'s `[excluded]` with that reason and move on.
+Oracle files are **every** test file this diff adds or changes — not just the obviously-named one. Naming only `tests/test_autowire.py` when the target also touched a shared fixtures module or a supporting integration test would grade against a partial oracle, and a partial oracle silently lowers the bar for every attempt.
+
+Check each hit: a test file the diff merely reformats is not an oracle. If the diff touches no test file, the task cannot be qualified — record it in `cohort.toml`'s `[excluded]` with that reason and move on.
+
+Also inspect what the diff does to `conftest.py` and any fixtures the changed tests import. Those are oracle support files even when the diff leaves them alone, and if the base's copy cannot support the target's tests, the task needs them listed too.
 
 - [ ] **Step 3: For each task, compute the oracle hashes**
 
@@ -1914,8 +2280,8 @@ axes = ["override-semantics", "discovery"]
 
 [source]
 upstream = "https://github.com/hynek/svcs"
-base_sha = "31bc6df"
-target_sha = "52c6689"
+base_sha = "<full 40-char SHA of 31bc6df>"
+target_sha = "<full 40-char SHA of 52c6689>"
 
 [task]
 brief = "brief.md"
@@ -1930,7 +2296,11 @@ candidate_output = ["src/svcs/_core.py"]
 [oracle]
 files = ["tests/test_registry.py"]
 command = ["pytest", "-q", "-p", "no:cacheprovider", "tests/test_registry.py"]
-base_rejection = "assertion-failure"
+
+[oracle.rejection]
+class           = "assertion-failure"
+missing_symbols = []
+failing_nodes   = ["tests/test_registry.py::TestContainer::test_get_pings_local"]
 
 [oracle.files_sha256]
 "tests/test_registry.py" = "<from Step 3>"
@@ -1953,7 +2323,9 @@ writable_bounded = "src/svcs/** only. Chosen from the library's own layout befor
 adaptations = "None. The oracle is the upstream test file unmodified."
 ```
 
-`base_rejection` is a prediction and is often wrong on the first pass — a task whose oracle adds a new test function to an existing file usually yields `assertion-failure`, while one that imports a symbol that does not exist yields `collection-error`. Run qualification, read the observed value, and correct the manifest. Correcting a *prediction* before any model has run is not tuning; it is what qualification is for.
+`[oracle.rejection]` is a prediction and is often wrong on the first pass — a task whose oracle adds a new test function to an existing file usually yields `assertion-failure` with specific `failing_nodes`, while one importing a symbol that does not exist yields `collection-error` with `missing_symbols`. Run qualification, read the observed value, and correct the manifest. Correcting a *prediction* before any model has run is not tuning; it is what qualification is for.
+
+What you may **not** do is weaken the fingerprint to make a task pass. Deleting `failing_nodes` to get past the gate converts a real check into a rubber stamp. If the observed failure is not the one the task is about, the task is wrong — exclude it.
 
 - [ ] **Step 6: Qualify the whole ladder**
 
@@ -2025,26 +2397,45 @@ The one task that spends model calls. Per qualified task, roughly one authoring 
 - Consumes: qualified manifests from Task 8; `Manifest.contract_path` support already exists from Task 5.
 - Produces: every included task carrying a contract whose hash is recorded in its manifest.
 
-- [ ] **Step 1: Materialize the base for the author to read**
+- [ ] **Step 1: Stage the author packet — outside `.workloads/`**
 
 ```bash
 uv run --locked python -c "
-import sys
+import shutil, sys
 from pathlib import Path
-from harness.workload import ensure_clone, export_tree
-clone = ensure_clone('https://github.com/hynek/svcs', Path('.workloads'))
-export_tree(clone, sys.argv[1], Path('.workloads/authoring') / sys.argv[2])
+from harness.workload import ensure_clone, export_tree, sha256_file
+base_sha, task_id = sys.argv[1], sys.argv[2]
+packet = Path.home() / '.satyrn-authoring' / task_id
+shutil.rmtree(packet, ignore_errors=True)
+export_tree(ensure_clone('https://github.com/hynek/svcs', Path('.workloads')), base_sha, packet / 'repo')
+shutil.copy2(Path('workloads/svcs/tasks') / task_id / 'brief.md', packet / 'brief.md')
+print('packet:', packet)
+print('brief_sha256:', sha256_file(packet / 'brief.md'))
 " <base_sha> <task_id>
+```
+
+The packet deliberately does **not** live under `.workloads/`. That directory's
+immediate sibling is `svcs.git`, which contains every target commit and every
+oracle — staging the author's inputs next to the answer key and then asking it
+not to look is not a firewall, it is a request. Putting the packet on a
+different path makes "the author cannot reach the clone" a statement about
+layout rather than only about instructions.
+
+This is layout hygiene, not confinement. Nothing here prevents a process that
+goes looking for `.workloads/`; that is the executor cycle's problem, and the
+design says so.
 ```
 
 - [ ] **Step 2: Run the firewalled author**
 
-Start a **fresh session** — not this one, and not one that has read this repository's docs. Its entire input is:
+Start a **fresh session** — not this one, and not one that has read this repository's docs. Its entire input is the packet from Step 1:
 
-1. the materialized base tree at `.workloads/authoring/<task_id>/`
-2. the task's `brief.md`
+1. the base tree at `~/.satyrn-authoring/<task_id>/repo/`
+2. the brief at `~/.satyrn-authoring/<task_id>/brief.md`
 
-It must not be given, and must not be able to reach: the clone cache, the oracle files, the target tree or SHA, the `qualification.json`, this plan, or the design spec. Record start and end time.
+It must not be given, and its working root must not contain: the clone cache, the oracle files, the target tree or SHA, the `qualification.json`, this plan, or the design spec.
+
+Record, for the manifest's `[authoring]` block: model and version, tool grants, budget, the working root you gave it, and start/end time. The prompt below is committed as `workloads/svcs/authoring-prompt.md` and hashed, so a later reader can tell whether two tasks were authored under the same instruction.
 
 Its instruction:
 
@@ -2086,12 +2477,24 @@ contract = "contract.md"
 contract_sha256 = "<from the command above>"
 
 [authoring]
-brief_author = "curator"
-contract_author = "firewalled-model"
-authoring_seconds = <Step 2 elapsed>
-correction_seconds = <Step 3 elapsed>
-correction_diff_lines = <added + deleted from numstat>
+brief_author           = "curator"
+contract_author        = "firewalled-model"
+author_model           = "<model id and version>"
+author_prompt_sha256   = "<sha256 of workloads/svcs/authoring-prompt.md>"
+author_tools           = ["read"]
+author_root            = "~/.satyrn-authoring/<task_id>"
+draft_sha256           = "<sha256 of contract-draft.md>"
+authoring_seconds      = <Step 2 elapsed>
+correction_seconds     = <Step 3 elapsed>
+correction_diff_lines  = <added + deleted from numstat>
+corrector_blind        = false
 ```
+
+`corrector_blind = false` is not a placeholder — it is the honest value. The
+corrector is the curator, who has read every target diff, so `contract.md` is
+diff-informed. That makes the later comparison an ablation of *diff-informed
+human correction against a firewalled draft*, not a blind-human-versus-planner
+comparison. The field exists so no future write-up can quietly assume otherwise.
 
 - [ ] **Step 5: Verify every manifest still loads**
 
@@ -2142,11 +2545,13 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 ## Done When
 
-- [ ] Phase 7-pre renamed; `grep -rn "phase7-cycle1\|phase7-cycle2" docs/` is clean outside `_build/`.
-- [ ] `uv run --locked pytest tests/test_workload.py -q` passes offline with no `svcs` clone present.
+- [ ] Phase 7-pre renamed; `grep -rn "2026-08-08-phase7-cycle1\|2026-08-08-phase7-cycle2" docs/` is clean outside `_build/`.
+- [ ] `uv run --locked pytest tests/test_workload.py -q -m "not integration"` passes offline with no `svcs` clone present.
+- [ ] A committed `workloads/svcs/env/uv.lock`, a verified 3.14.2 interpreter, and the spec's provisional preservation counts replaced by figures measured against them.
 - [ ] At least six qualified tasks: one floor, three medium on different axes, one stretch, the autowiring ceiling.
 - [ ] Zero deselects across the qualified cohort, or a written justification per deselect frozen before any attempt.
-- [ ] Every qualified task's `qualification.json` shows base preservation pass, matching base rejection class, target pass on both suites, three-run stability, sub-minute validation.
-- [ ] `cohort.toml` lists inclusions and exclusions, each exclusion with a prose reason.
-- [ ] Every included task carries a contract with a recorded hash, authoring time, and correction diff size.
+- [ ] Every qualified task's `qualification.json` shows all four conditions run three times in fresh materializations, agreeing at node level, with the base rejection matching its pre-registered fingerprint and every condition under the enforced `max_seconds`.
+- [ ] `cohort.toml` accounts for every candidate as included or excluded, each exclusion with a prose reason.
+- [ ] Every included task carries a contract with recorded hash, author model, prompt hash, tool grants, author root, authoring time, correction diff size, and `corrector_blind = false`.
+- [ ] `workloads/svcs/authoring-prompt.md` committed and hashed into every manifest that used it.
 - [ ] `uv run --locked ruff check .`, `ruff format --diff`, and `pyrefly check` all clean.
