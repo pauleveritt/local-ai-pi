@@ -13,7 +13,10 @@ from harness.workload import (
     _verify_interpreter,
     ensure_clone,
     ensure_cohort_env,
+    export_tree,
+    load_manifest,
     materialize,
+    overlay_oracle,
     run_suite,
     sha256_file,
 )
@@ -434,3 +437,215 @@ def test_run_suite_times_out_without_leaking_the_child(
     assert result.timed_out is True
     assert result.reason_class == "timeout"
     assert result.wall_seconds >= 3.0
+
+
+def _write_manifest(task_dir: Path, clone: SyntheticClone, **overrides: str) -> Path:
+    """A synthetic task manifest. Overrides let a test break exactly one field."""
+    task_dir.mkdir(parents=True, exist_ok=True)
+    (task_dir / "brief.md").write_text("Add a mul function.\n")
+    brief_sha = overrides.get("brief_sha256") or sha256_file(task_dir / "brief.md")
+    body = f"""task_id = "synthetic"
+role = "floor"
+axes = ["arithmetic"]
+
+[source]
+upstream = "{clone.bare}"
+base_sha = "{overrides.get("base_sha", clone.base_sha)}"
+target_sha = "{clone.target_sha}"
+
+[task]
+brief = "brief.md"
+brief_sha256 = "{brief_sha}"
+contract_version = 1
+
+[policy]
+readable = ["src/**", "tests/**"]
+writable = ["{overrides.get("writable", "src/pkg/**")}"]
+candidate_output = ["src/pkg/__init__.py"]
+
+[oracle]
+files = ["tests/test_mul.py"]
+command = ["pytest", "-q", "-p", "no:cacheprovider", "tests/test_mul.py"]
+
+[oracle.rejection]
+class           = "{overrides.get("rejection_class", "collection-error")}"
+missing_symbols = [{overrides.get("missing_symbols", '"mul"')}]
+failing_nodes   = []
+
+[oracle.files_sha256]
+"tests/test_mul.py" = "{overrides.get("oracle_sha", "")}"
+
+[preservation]
+command = ["pytest", "-q", "-p", "no:cacheprovider"]
+deselects = []
+deselect_reason = ""
+
+[environment]
+id = "synthetic-env"
+python = "3.14.2"
+lock_sha256 = "{overrides.get("lock_sha256", "")}"
+
+[attestations]
+behavior_not_structure = "The oracle calls the public function."
+statable_behaviorally = "{overrides.get("statable", "Multiply two numbers.")}"
+substantive = "Adds a new public behavior."
+writable_bounded = "One module."
+adaptations = "None."
+"""
+    (task_dir / "manifest.toml").write_text(body)
+    return task_dir
+
+
+def _manifest_with_real_oracle_hash(
+    tmp_path: Path, clone: SyntheticClone
+) -> tuple[Path, Path]:
+    bare = ensure_clone(str(clone.bare), tmp_path / "cache")
+    export = tmp_path / "export"
+    export_tree(bare, clone.target_sha, export)
+    oracle_sha = sha256_file(export / "tests" / "test_mul.py")
+    task_dir = _write_manifest(
+        tmp_path / "tasks" / "synthetic", clone, oracle_sha=oracle_sha
+    )
+    return task_dir, bare
+
+
+def test_load_manifest_reads_every_field(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir, _ = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    manifest = load_manifest(task_dir)
+    assert manifest.task_id == "synthetic"
+    assert manifest.role == "floor"
+    assert manifest.base_sha == synthetic_clone.base_sha
+    assert manifest.base_rejection == "collection-error"
+    assert manifest.rejection_missing_symbols == ("mul",)
+    assert manifest.rejection_failing_nodes == ()
+    assert manifest.oracle_files == ("tests/test_mul.py",)
+    assert manifest.preservation_command == ("pytest", "-q", "-p", "no:cacheprovider")
+    assert manifest.attestations["substantive"]
+
+
+def test_load_manifest_rejects_a_drifted_brief(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir = _write_manifest(
+        tmp_path / "tasks" / "s", synthetic_clone, brief_sha256="0" * 64
+    )
+    with pytest.raises(WorkloadError, match="brief.md"):
+        load_manifest(task_dir)
+
+
+def test_load_manifest_rejects_an_unknown_reason_class(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir = _write_manifest(
+        tmp_path / "tasks" / "s", synthetic_clone, rejection_class="nonsense"
+    )
+    with pytest.raises(WorkloadError, match="oracle.rejection.class"):
+        load_manifest(task_dir)
+
+
+def test_load_manifest_refuses_pass_as_a_rejection(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir = _write_manifest(
+        tmp_path / "tasks" / "s", synthetic_clone, rejection_class="pass"
+    )
+    with pytest.raises(WorkloadError, match="cannot be 'pass'"):
+        load_manifest(task_dir)
+
+
+def test_load_manifest_requires_a_rejection_fingerprint(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """A bare class cannot tell a real task from a typo'd oracle."""
+    task_dir = _write_manifest(
+        tmp_path / "tasks" / "s", synthetic_clone, missing_symbols=""
+    )
+    with pytest.raises(WorkloadError, match="missing_symbols or failing_nodes"):
+        load_manifest(task_dir)
+
+
+def test_load_manifest_requires_every_attestation(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir = _write_manifest(
+        tmp_path / "tasks" / "s", synthetic_clone, statable="   "
+    )
+    with pytest.raises(WorkloadError, match="statable_behaviorally"):
+        load_manifest(task_dir)
+
+
+def test_load_manifest_rejects_an_abbreviated_sha(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """A short SHA is not immutable -- it can become ambiguous as history grows."""
+    task_dir = _write_manifest(
+        tmp_path / "tasks" / "s", synthetic_clone, base_sha=synthetic_clone.base_sha[:7]
+    )
+    with pytest.raises(WorkloadError, match="40-character"):
+        load_manifest(task_dir)
+
+
+def test_load_manifest_rejects_an_absolute_policy_path(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir = _write_manifest(
+        tmp_path / "tasks" / "s", synthetic_clone, writable="/etc/**"
+    )
+    with pytest.raises(WorkloadError, match="repository-relative"):
+        load_manifest(task_dir)
+
+
+def test_load_manifest_rejects_a_parent_traversal_policy_path(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir = _write_manifest(
+        tmp_path / "tasks" / "s", synthetic_clone, writable="../elsewhere/**"
+    )
+    with pytest.raises(WorkloadError, match="repository-relative"):
+        load_manifest(task_dir)
+
+
+def test_overlay_oracle_places_the_hidden_tests(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    manifest = load_manifest(task_dir)
+    with materialize(bare, manifest.base_sha) as workspace:
+        assert not (workspace / "tests" / "test_mul.py").exists()
+        overlay_oracle(bare, manifest, workspace)
+        assert (workspace / "tests" / "test_mul.py").is_file()
+
+
+def test_overlay_oracle_rejects_a_drifted_oracle(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """Drift is an error, never a silent re-baseline."""
+    task_dir = _write_manifest(
+        tmp_path / "tasks" / "s", synthetic_clone, oracle_sha="0" * 64
+    )
+    manifest = load_manifest(task_dir)
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    with (
+        materialize(clone, manifest.base_sha) as workspace,
+        pytest.raises(WorkloadError, match="drift"),
+    ):
+        overlay_oracle(clone, manifest, workspace)
+
+
+def test_overlay_oracle_requires_a_recorded_hash(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir = _write_manifest(tmp_path / "tasks" / "s", synthetic_clone)
+    text = (task_dir / "manifest.toml").read_text()
+    (task_dir / "manifest.toml").write_text(
+        text.replace('"tests/test_mul.py" = ""', "")
+    )
+    manifest = load_manifest(task_dir)
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    with (
+        materialize(clone, manifest.base_sha) as workspace,
+        pytest.raises(WorkloadError, match="no recorded hash"),
+    ):
+        overlay_oracle(clone, manifest, workspace)

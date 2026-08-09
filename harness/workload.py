@@ -12,7 +12,8 @@ import subprocess
 import tarfile
 import tempfile
 import time
-from collections.abc import Iterator, Sequence
+import tomllib
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -483,3 +484,249 @@ def run_suite(
         stdout_tail=output[-4000:],
         output=output,
     )
+
+
+@dataclass(frozen=True)
+class Manifest:
+    """One task's frozen claim about itself."""
+
+    task_id: str
+    role: str
+    axes: tuple[str, ...]
+    upstream: str
+    base_sha: str
+    target_sha: str
+    brief_path: Path
+    contract_path: Path | None
+    contract_version: int
+    readable: tuple[str, ...]
+    writable: tuple[str, ...]
+    candidate_output: tuple[str, ...]
+    oracle_files: tuple[str, ...]
+    oracle_files_sha256: dict[str, str]
+    oracle_command: tuple[str, ...]
+    base_rejection: str
+    rejection_missing_symbols: tuple[str, ...]
+    rejection_failing_nodes: tuple[str, ...]
+    preservation_command: tuple[str, ...]
+    deselects: tuple[str, ...]
+    deselect_reason: str
+    env_id: str
+    env_lock_sha256: str
+    attestations: dict[str, str]
+    task_dir: Path
+
+
+REQUIRED_ATTESTATIONS = (
+    "behavior_not_structure",
+    "statable_behaviorally",
+    "substantive",
+    "writable_bounded",
+    "adaptations",
+)
+
+
+def _table(data: Mapping[str, object], key: str, where: str) -> dict[str, object]:
+    value = data.get(key)
+    if not isinstance(value, dict):
+        raise WorkloadError(f"manifest is missing the [{where}] table")
+    return dict(value)
+
+
+def _string(table: Mapping[str, object], key: str, where: str) -> str:
+    if key not in table:
+        raise WorkloadError(f"manifest is missing {where}.{key}")
+    return str(table[key])
+
+
+def _strings(table: Mapping[str, object], key: str, where: str) -> tuple[str, ...]:
+    if key not in table:
+        raise WorkloadError(f"manifest is missing {where}.{key}")
+    value = table[key]
+    if not isinstance(value, list):
+        raise WorkloadError(f"{where}.{key} must be a list")
+    return tuple(str(item) for item in value)
+
+
+def _optional_strings(
+    table: Mapping[str, object], key: str, where: str
+) -> tuple[str, ...]:
+    return _strings(table, key, where) if key in table else ()
+
+
+def _require_full_sha(label: str, value: str) -> None:
+    if len(value) != 40 or not all(c in "0123456789abcdef" for c in value):
+        raise WorkloadError(f"{label} must be a full 40-character SHA, got {value!r}")
+
+
+def _require_relative(label: str, patterns: tuple[str, ...]) -> None:
+    for pattern in patterns:
+        if pattern.startswith("/") or ".." in pattern:
+            raise WorkloadError(
+                f"policy.{label} entry {pattern!r} must be repository-relative with no '..'"
+            )
+
+
+def load_manifest(task_dir: Path) -> Manifest:
+    """Read and validate one task manifest.
+
+    Validation is not politeness. A manifest is the frozen claim a task
+    makes about itself, and every field here is something a later result
+    is reported against -- so a missing field, a drifted brief, an
+    abbreviated SHA, or an attestation nobody wrote has to stop the run
+    rather than be filled in with a default.
+    """
+    path = task_dir / "manifest.toml"
+    if not path.is_file():
+        raise WorkloadError(f"no manifest.toml in {task_dir}")
+    data = tomllib.loads(path.read_text())
+
+    source = _table(data, "source", "source")
+    task = _table(data, "task", "task")
+    policy = _table(data, "policy", "policy")
+    oracle = _table(data, "oracle", "oracle")
+    rejection = _table(oracle, "rejection", "oracle.rejection")
+    preservation = _table(data, "preservation", "preservation")
+    environment = _table(data, "environment", "environment")
+
+    raw_attestations = data.get("attestations", {})
+    attestations = (
+        {str(k): str(v) for k, v in raw_attestations.items()}
+        if isinstance(raw_attestations, dict)
+        else {}
+    )
+    for key in REQUIRED_ATTESTATIONS:
+        if not attestations.get(key, "").strip():
+            raise WorkloadError(
+                f"attestation {key!r} is missing or empty. Five rubric items are "
+                "curator judgment rather than machine checks, and an attestation "
+                "that silently defaults to absent is the same as no attestation "
+                "while still looking like one."
+            )
+
+    brief_path = task_dir / _string(task, "brief", "task")
+    if not brief_path.is_file():
+        raise WorkloadError(f"brief {brief_path} does not exist")
+    declared_brief = _string(task, "brief_sha256", "task")
+    actual_brief = sha256_file(brief_path)
+    if declared_brief != actual_brief:
+        raise WorkloadError(
+            f"brief.md drift in {task_dir}: manifest says {declared_brief[:12]}, "
+            f"file is {actual_brief[:12]}"
+        )
+
+    contract_path: Path | None = None
+    if "contract" in task:
+        contract_path = task_dir / _string(task, "contract", "task")
+        if not contract_path.is_file():
+            raise WorkloadError(f"contract {contract_path} does not exist")
+        declared_contract = _string(task, "contract_sha256", "task")
+        actual_contract = sha256_file(contract_path)
+        if declared_contract != actual_contract:
+            raise WorkloadError(
+                f"contract drift in {task_dir}: manifest says {declared_contract[:12]}, "
+                f"file is {actual_contract[:12]}"
+            )
+
+    base_rejection = _string(rejection, "class", "oracle.rejection")
+    if base_rejection not in REASON_CLASSES:
+        raise WorkloadError(
+            f"oracle.rejection.class {base_rejection!r} is not one of {REASON_CLASSES}"
+        )
+    if base_rejection == "pass":
+        raise WorkloadError(
+            "oracle.rejection.class cannot be 'pass' -- the oracle must reject the base"
+        )
+    missing_symbols = _optional_strings(
+        rejection, "missing_symbols", "oracle.rejection"
+    )
+    failing_nodes = _optional_strings(rejection, "failing_nodes", "oracle.rejection")
+    if not missing_symbols and not failing_nodes:
+        raise WorkloadError(
+            "oracle.rejection needs missing_symbols or failing_nodes -- a bare class "
+            "does not distinguish 'this API does not exist yet' from 'the oracle has a typo'"
+        )
+
+    base_sha = _string(source, "base_sha", "source")
+    target_sha = _string(source, "target_sha", "source")
+    _require_full_sha("base_sha", base_sha)
+    _require_full_sha("target_sha", target_sha)
+
+    readable = _strings(policy, "readable", "policy")
+    writable = _strings(policy, "writable", "policy")
+    _require_relative("readable", readable)
+    _require_relative("writable", writable)
+
+    deselects = _optional_strings(preservation, "deselects", "preservation")
+    deselect_reason = str(preservation.get("deselect_reason", ""))
+    if deselects and not deselect_reason.strip():
+        raise WorkloadError("a deselect list requires a written deselect_reason")
+
+    raw_hashes = oracle.get("files_sha256", {})
+    oracle_hashes = (
+        {str(k): str(v) for k, v in raw_hashes.items()}
+        if isinstance(raw_hashes, dict)
+        else {}
+    )
+
+    return Manifest(
+        task_id=_string(data, "task_id", "manifest"),
+        role=_string(data, "role", "manifest"),
+        axes=_optional_strings(data, "axes", "manifest"),
+        upstream=_string(source, "upstream", "source"),
+        base_sha=base_sha,
+        target_sha=target_sha,
+        brief_path=brief_path,
+        contract_path=contract_path,
+        contract_version=int(str(task.get("contract_version", 1))),
+        readable=readable,
+        writable=writable,
+        candidate_output=_optional_strings(policy, "candidate_output", "policy"),
+        oracle_files=_strings(oracle, "files", "oracle"),
+        oracle_files_sha256=oracle_hashes,
+        oracle_command=_strings(oracle, "command", "oracle"),
+        base_rejection=base_rejection,
+        rejection_missing_symbols=missing_symbols,
+        rejection_failing_nodes=failing_nodes,
+        preservation_command=_strings(preservation, "command", "preservation"),
+        deselects=deselects,
+        deselect_reason=deselect_reason,
+        env_id=_string(environment, "id", "environment"),
+        env_lock_sha256=_string(environment, "lock_sha256", "environment"),
+        attestations=attestations,
+        task_dir=task_dir,
+    )
+
+
+def overlay_oracle(clone: Path, manifest: Manifest, destination: Path) -> None:
+    """Copy the hidden oracle files from the target commit into `destination`.
+
+    Called only on a grading *copy*, never on a workspace an executor
+    will touch -- so no candidate workspace contains an oracle file at
+    any point in its life.
+
+    Oracle content is verified against the manifest's hashes. Drift is
+    an error and never a silent re-baseline: an oracle that changed
+    under a frozen manifest means every earlier result for this task was
+    measured against different tests.
+    """
+    with disposable_dir("satyrn-oracle-") as staging:
+        export_tree(clone, manifest.target_sha, staging)
+        for relative in manifest.oracle_files:
+            source = staging / relative
+            if not source.is_file():
+                raise WorkloadError(
+                    f"oracle file {relative} is not present at target {manifest.target_sha}"
+                )
+            declared = manifest.oracle_files_sha256.get(relative)
+            if declared is None:
+                raise WorkloadError(f"no recorded hash for oracle file {relative}")
+            actual = sha256_file(source)
+            if declared != actual:
+                raise WorkloadError(
+                    f"oracle drift in {relative}: manifest says {declared[:12]}, "
+                    f"target has {actual[:12]}"
+                )
+            target_path = destination / relative
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target_path)
