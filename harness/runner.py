@@ -22,7 +22,7 @@ AGENT_DIR_FILES: tuple[str, ...] = (
     "extensions/loop-breaker.ts",
 )
 DEFAULT_MODEL = "omlx/gemma-4-12B-it-MLX-8bit"
-EXPECTED_PI_VERSION = "0.83.0"
+EXPECTED_PI_VERSION = "0.84.1"
 
 
 def pi_env() -> dict[str, str]:

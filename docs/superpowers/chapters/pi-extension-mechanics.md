@@ -14,7 +14,9 @@ Nothing here repeats the lifecycle handlers, `notify`'s silence, or the
 subscribe-ordering finding. Those are in the previous chapter; where this one
 touches them it links.
 
-Everything below cites the installed Pi **0.83.0** by file and line. Paths
+Everything below cites Pi **0.83.0** by file and line -- the version these were
+verified against, not necessarily the version you have installed. The harness now
+pins 0.84.1; these citations have not been re-verified against it. Paths
 beginning `core/`, `modes/`, `cli/` are relative to the installed package's
 `dist/` directory. `examples/extensions/subagent/…` is relative to the package
 *root* — it is shipped TypeScript, and it sits beside `dist/`, not inside it.
