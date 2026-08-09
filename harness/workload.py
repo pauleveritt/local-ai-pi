@@ -977,3 +977,84 @@ def qualify(
 
     report["status"] = "qualified"
     return report
+
+
+@dataclass(frozen=True)
+class Cohort:
+    """A candidate ladder plus the frozen record of what survived it."""
+
+    name: str
+    upstream: str
+    env_dir: Path
+    tasks: tuple[str, ...]
+    included: tuple[str, ...]
+    excluded: dict[str, str]
+    root: Path
+
+    def task_dir(self, task_id: str) -> Path:
+        return self.root / "tasks" / task_id
+
+    @property
+    def unaccounted(self) -> tuple[str, ...]:
+        settled = set(self.included) | set(self.excluded)
+        return tuple(task for task in self.tasks if task not in settled)
+
+
+def load_cohort(path: Path, require_accounting: bool = False) -> Cohort:
+    """Read `cohort.toml`, refusing shapes that would lose an exclusion.
+
+    `require_accounting` is the freeze check: every candidate must appear
+    in exactly one of `included` or `excluded`. It is off during
+    curation, when both lists are legitimately incomplete, and on once
+    the cohort is frozen -- which is the moment a silently dropped
+    candidate stops being work-in-progress and starts being a gap in the
+    record.
+    """
+    if not path.is_file():
+        raise WorkloadError(f"no cohort file at {path}")
+    data = tomllib.loads(path.read_text())
+
+    tasks = _strings(data, "tasks", "cohort")
+    included = _optional_strings(data, "included", "cohort")
+    raw_excluded = data.get("excluded", {})
+    excluded = (
+        {str(k): str(v) for k, v in raw_excluded.items()}
+        if isinstance(raw_excluded, dict)
+        else {}
+    )
+
+    known = set(tasks)
+    for task in included:
+        if task not in known:
+            raise WorkloadError(
+                f"included task {task!r} is not in the candidate ladder"
+            )
+    for task, reason in excluded.items():
+        if task not in known:
+            raise WorkloadError(
+                f"excluded task {task!r} is not in the candidate ladder"
+            )
+        if not reason.strip():
+            raise WorkloadError(
+                f"excluded task {task!r} has no reason. An exclusion without prose is "
+                "indistinguishable from a candidate someone forgot."
+            )
+    both = set(included) & set(excluded)
+    if both:
+        raise WorkloadError(f"tasks are both included and excluded: {sorted(both)}")
+
+    cohort = Cohort(
+        name=_string(data, "name", "cohort"),
+        upstream=_string(data, "upstream", "cohort"),
+        env_dir=path.parent / _string(data, "env", "cohort"),
+        tasks=tasks,
+        included=included,
+        excluded=excluded,
+        root=path.parent,
+    )
+    if require_accounting and cohort.unaccounted:
+        raise WorkloadError(
+            f"frozen cohort does not account for: {list(cohort.unaccounted)}. "
+            "Every candidate must be included or excluded with a reason."
+        )
+    return cohort

@@ -1,3 +1,4 @@
+import json
 import platform
 import shutil
 import subprocess
@@ -17,6 +18,7 @@ from harness.workload import (
     ensure_clone,
     ensure_cohort_env,
     export_tree,
+    load_cohort,
     load_manifest,
     materialize,
     overlay_oracle,
@@ -25,6 +27,7 @@ from harness.workload import (
     sha256_file,
 )
 from harness.workspace import GIT_ENV
+from tools.qualify_workload import main as qualify_main
 
 
 @dataclass(frozen=True)
@@ -932,3 +935,129 @@ def test_qualify_applies_declared_deselects(
     # With its only test deselected, the base suite collects nothing.
     assert report["status"] == "disqualified"
     assert report["failed_gate"] == "base_preservation"
+
+
+def _write_cohort(root: Path, clone: SyntheticClone, **overrides: str) -> Path:
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "cohort.toml").write_text(
+        f'''name = "synthetic"
+upstream = "{clone.bare}"
+env = "env"
+tasks = ["synthetic"{overrides.get("extra_tasks", "")}]
+included = [{overrides.get("included", "")}]
+
+[excluded]
+{overrides.get("excluded", "")}
+'''
+    )
+    return root / "cohort.toml"
+
+
+def test_load_cohort_reads_the_ladder(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    path = _write_cohort(tmp_path / "cohort", synthetic_clone)
+    cohort = load_cohort(path)
+    assert cohort.name == "synthetic"
+    assert cohort.tasks == ("synthetic",)
+    assert cohort.unaccounted == ("synthetic",)
+
+
+def test_load_cohort_rejects_an_exclusion_without_a_reason(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """An exclusion without prose is indistinguishable from a forgotten task."""
+    path = _write_cohort(
+        tmp_path / "cohort", synthetic_clone, excluded='synthetic = "   "'
+    )
+    with pytest.raises(WorkloadError, match="no reason"):
+        load_cohort(path)
+
+
+def test_load_cohort_rejects_an_unknown_task(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    path = _write_cohort(tmp_path / "cohort", synthetic_clone, included='"ghost"')
+    with pytest.raises(WorkloadError, match="not in the candidate ladder"):
+        load_cohort(path)
+
+
+def test_load_cohort_rejects_a_task_both_included_and_excluded(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    path = _write_cohort(
+        tmp_path / "cohort",
+        synthetic_clone,
+        included='"synthetic"',
+        excluded='synthetic = "changed my mind"',
+    )
+    with pytest.raises(WorkloadError, match="both included and excluded"):
+        load_cohort(path)
+
+
+def test_a_frozen_cohort_must_account_for_every_candidate(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """The freeze check: a candidate in neither list is a gap in the record."""
+    path = _write_cohort(
+        tmp_path / "cohort", synthetic_clone, extra_tasks=', "forgotten"'
+    )
+    load_cohort(path)  # fine during curation
+    with pytest.raises(WorkloadError, match="does not account for"):
+        load_cohort(path, require_accounting=True)
+
+
+def test_cli_writes_a_qualification_report(
+    tmp_path: Path, synthetic_clone: SyntheticClone, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    task_dir, _ = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    cohort_root = tmp_path / "cohort"
+    (cohort_root / "tasks").mkdir(parents=True)
+    shutil.copytree(task_dir, cohort_root / "tasks" / "synthetic")
+    _write_cohort(cohort_root, synthetic_clone)
+
+    monkeypatch.setattr(
+        workload_module, "ensure_cohort_env", lambda *a, **k: _fake_env()
+    )
+    exit_code = qualify_main(
+        [
+            "--cohort",
+            str(cohort_root / "cohort.toml"),
+            "--cache",
+            str(tmp_path / "cache"),
+        ]
+    )
+    assert exit_code == 0
+
+    report = json.loads(
+        (cohort_root / "tasks" / "synthetic" / "qualification.json").read_text()
+    )
+    assert report["status"] == "qualified"
+
+
+def test_cli_records_a_task_whose_manifest_will_not_load(
+    tmp_path: Path, synthetic_clone: SyntheticClone, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An unreadable task must not be quieter than a failing one."""
+    cohort_root = tmp_path / "cohort"
+    (cohort_root / "tasks" / "synthetic").mkdir(parents=True)
+    _write_cohort(cohort_root, synthetic_clone)
+
+    monkeypatch.setattr(
+        workload_module, "ensure_cohort_env", lambda *a, **k: _fake_env()
+    )
+    exit_code = qualify_main(
+        [
+            "--cohort",
+            str(cohort_root / "cohort.toml"),
+            "--cache",
+            str(tmp_path / "cache"),
+        ]
+    )
+    assert exit_code == 1
+
+    report = json.loads(
+        (cohort_root / "tasks" / "synthetic" / "qualification.json").read_text()
+    )
+    assert report["status"] == "disqualified"
+    assert report["failed_gate"] == "manifest"

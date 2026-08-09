@@ -1,0 +1,32 @@
+# The svcs replay cohort.
+#
+# `tasks` is the candidate ladder -- everything qualification runs against.
+# `included` and `excluded` are the frozen *result* of that run, and an
+# exclusion without a written reason is not allowed to exist: "record every
+# exclusion" is a property of this file's shape rather than something to
+# remember at write-up time.
+#
+# Both lists are empty until Task 8 curates and qualifies. Once frozen,
+# running with --frozen requires every candidate to appear in exactly one
+# of them.
+name = "svcs"
+upstream = "https://github.com/hynek/svcs"
+env = "env"
+
+tasks = [
+  "registry-iter",
+  "magicmock-factory",
+  "async-cm-enter",
+  "local-pings",
+  "flask-extensions",
+  "register-value-enter",
+  "stringified-annotations",
+  "fastapi-get-registry",
+  "suppress-context-exit",
+  "autowire",
+]
+
+included = []
+
+[excluded]
+# task_id = "prose reason this candidate is not in the frozen cohort"
