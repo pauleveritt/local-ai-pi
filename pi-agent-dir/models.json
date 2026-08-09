@@ -21,6 +21,28 @@
           "maxTokens": 8192
         }
       ]
+    },
+    "dsflash": {
+      "name": "DeepSeek V4 Flash (local)",
+      "baseUrl": "http://127.0.0.1:8002/v1",
+      "api": "openai-completions",
+      "apiKey": "not-needed",
+      "models": [
+        {
+          "id": "deepseek-v4-flash",
+          "name": "DeepSeek V4 Flash",
+          "reasoning": true,
+          "input": ["text"],
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          },
+          "contextWindow": 60000,
+          "maxTokens": 16384
+        }
+      ]
     }
   }
 }

@@ -436,7 +436,7 @@ def screen_task(
     The model call is the only expensive, unrepeatable step, so it happens
     once and its whole result is handed back as a patch. Everything
     downstream is `grade_candidate`, replayable offline whenever the
-    acceptance rule changes -- which it has, four times.
+    acceptance rule changes -- which it has, five times.
 
     A candidate that changed nothing is graded like any other rather than
     short-circuited. It still has a base score, a delta of zero, and a

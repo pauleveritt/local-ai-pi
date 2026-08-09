@@ -28,6 +28,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--cache", type=Path, default=Path(".workloads"))
     parser.add_argument("--task", action="append", default=None)
     parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument(
+        "--server",
+        default="http://127.0.0.1:8001",
+        help=(
+            "model server to liveness-check; must match the provider baseUrl "
+            "the --model prefix resolves to in pi-agent-dir/models.json"
+        ),
+    )
     parser.add_argument("--timeout", type=float, default=900.0)
     parser.add_argument(
         "--tools",
@@ -42,7 +50,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    check_model_server_alive()
+    check_model_server_alive(args.server)
     cohort = workload.load_cohort(args.cohort, require_accounting=True)
     task_ids = args.task or list(cohort.included)
 
@@ -80,6 +88,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         json.dumps(
             {
                 "model": args.model,
+                "server": args.server,
                 "arm": f"brief-only:{args.tools}",
                 "tools": args.tools,
                 "accepted": accepted,
