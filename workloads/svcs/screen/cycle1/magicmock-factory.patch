@@ -1,0 +1,179 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index b3bba95..35ceba9 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -23,6 +23,9 @@ You can find our backwards-compatibility policy [here](https://github.com/hynek/
+   You can't stop the exception from bubbling out of the container context, though.
+   [#129](https://github.com/hynek/svcs/pull/129)
+ 
++- `Container.get()` and `Container.aget()` now work when a service factory returns a `unittest.mock.MagicMock` (or `AsyncMock`).
++  Mocks are treated as plain values and returned as-is, instead of being mistaken for context managers or awaitables.
++
+ 
+ ### Removed
+ 
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index cd83af4..c1041e2 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -26,6 +26,7 @@ from inspect import (
+ )
+ from types import TracebackType
+ from typing import Any, TypeVar, overload
++from unittest.mock import Mock
+ 
+ import attrs
+ 
+@@ -42,6 +43,18 @@ def _full_name(obj: object) -> str:
+         return repr(obj)
+ 
+ 
++def _is_mock(obj: object) -> bool:
++    """
++    Return True if *obj* is a :class:`unittest.mock.Mock`.
++
++    Mocks answer any attribute access with another mock, which means checks
++    like "does this look like a context manager?" or "is this awaitable?"
++    answer yes for a mock that is neither. Treating mocks as plain values
++    avoids attempting to enter them as context managers or awaiting them.
++    """
++    return isinstance(obj, Mock)
++
++
+ # Default names where to put the container and registry in integrations.
+ _KEY_REGISTRY = "svcs_registry"
+ _KEY_CONTAINER = "svcs_container"
+@@ -1006,13 +1019,18 @@ class Container:
+                 rv.append(svc)
+                 continue
+ 
+-            if iscoroutine(svc) or isinstance(
+-                svc, AbstractAsyncContextManager
++            if iscoroutine(svc) or (
++                isinstance(svc, AbstractAsyncContextManager)
++                and not _is_mock(svc)
+             ):
+                 msg = "Use `aget()` for async factories."
+                 raise TypeError(msg)
+ 
+-            if rs.enter and isinstance(svc, AbstractContextManager):
++            if (
++                rs.enter
++                and isinstance(svc, AbstractContextManager)
++                and not _is_mock(svc)
++            ):
+                 self._on_close.append((rs, svc))
+                 svc = svc.__enter__()
+ 
+@@ -1146,10 +1164,18 @@ class Container:
+                 rv.append(svc)
+                 continue
+ 
+-            if rs.enter and isinstance(svc, AbstractAsyncContextManager):
++            if (
++                rs.enter
++                and isinstance(svc, AbstractAsyncContextManager)
++                and not _is_mock(svc)
++            ):
+                 self._on_close.append((rs, svc))
+                 svc = await svc.__aenter__()
+-            elif rs.enter and isinstance(svc, AbstractContextManager):
++            elif (
++                rs.enter
++                and isinstance(svc, AbstractContextManager)
++                and not _is_mock(svc)
++            ):
+                 self._on_close.append((rs, svc))
+                 svc = svc.__enter__()
+             # _lookup() doesn't handle async factories, so we have to live with
+@@ -1160,10 +1186,18 @@ class Container:
+                 svc = await svc
+ 
+                 # Factory returned a contextmanager.
+-                if rs.enter and isinstance(svc, AbstractAsyncContextManager):
++                if (
++                    rs.enter
++                    and isinstance(svc, AbstractAsyncContextManager)
++                    and not _is_mock(svc)
++                ):
+                     self._on_close.append((rs, svc))
+                     svc = await svc.__aenter__()
+-                elif rs.enter and isinstance(svc, AbstractContextManager):
++                elif (
++                    rs.enter
++                    and isinstance(svc, AbstractContextManager)
++                    and not _is_mock(svc)
++                ):
+                     self._on_close.append((rs, svc))
+                     svc = svc.__enter__()
+ 
+diff --git a/tests/test_container.py b/tests/test_container.py
+index ee66078..75d66a2 100644
+--- a/tests/test_container.py
++++ b/tests/test_container.py
+@@ -6,7 +6,7 @@ import gc
+ 
+ from collections.abc import Callable
+ from contextlib import asynccontextmanager, contextmanager
+-from unittest.mock import Mock
++from unittest.mock import AsyncMock, MagicMock, Mock
+ 
+ import pytest
+ 
+@@ -60,6 +60,56 @@ class TestContainer:
+ 
+         assert int in container
+ 
++    def test_get_returns_mock_factory_result(self, container):
++        """
++        A factory that returns a MagicMock is treated as a plain value: get()
++        returns the mock without trying to enter it as a context manager or
++        registering a cleanup.
++        """
++        mock = MagicMock()
++        container.registry.register_factory(int, lambda: mock)
++
++        assert mock is container.get(int)
++
++        # The mock is cached, so subsequent calls return the same mock.
++        assert mock is container.get(int)
++
++        # No cleanup was registered for the mock.
++        assert not container._on_close
++
++        container.close()
++
++    @pytest.mark.asyncio
++    async def test_aget_returns_mock_for_async_factory(self, container):
++        """
++        An AsyncMock-based factory returns a coroutine that resolves to the
++        AsyncMock. aget() returns that mock without awaiting or entering it as
++        an async context manager.
++        """
++        mock = AsyncMock()
++        container.registry.register_factory(int, mock)
++
++        svc = await container.aget(int)
++
++        assert isinstance(svc, AsyncMock)
++        assert not container._on_close
++
++        await container.aclose()
++
++    @pytest.mark.asyncio
++    async def test_aget_returns_mock_factory_result(self, container):
++        """
++        aget() also returns a MagicMock returned by a synchronous factory
++        directly, without entering it as a context manager.
++        """
++        mock = MagicMock()
++        container.registry.register_factory(int, lambda: mock)
++
++        assert mock is await container.aget(int)
++        assert not container._on_close
++
++        await container.aclose()
++
+     def test_context_manager(self, container, close_me):
+         """
+         The container is also a context manager that closes on exit.

@@ -1,0 +1,24 @@
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index d90c595..96c86ca 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -161,6 +161,19 @@ class Registry:
+         """
+         return svc_type in self._services
+ 
++    def __iter__(self):
++        """
++        Iterate over the registered services:
++
++        .. doctest::
++
++            >>> reg = svcs.Registry()
++            >>> reg.register_value(int, 42)
++            >>> [rs.name for rs in reg]
++            ['builtins.int']
++        """
++        return iter(self._services.values())
++
+     def __enter__(self) -> Registry:
+         return self
+ 

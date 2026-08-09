@@ -1,0 +1,144 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+index 49c9c62..2254f25 100644
+--- a/CHANGELOG.md
++++ b/CHANGELOG.md
+@@ -38,6 +38,7 @@ You can find our backwards-compatibility policy [here](https://github.com/hynek/
+ ### Fixed
+ 
+ - `Container.aget()` now also enters and exits synchronous context managers.
++- `Container.aget()` now also enters and registers cleanups for context managers -- synchronous or asynchronous -- returned by asynchronous factories.
+   [#93](https://github.com/hynek/svcs/pull/93)
+ 
+ 
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index 4ed8a51..efe35f6 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -997,6 +997,10 @@ class Container:
+ 
+         .. versionchanged:: 24.2.0
+            Synchronous context managers are now entered/exited, too.
++
++        .. versionchanged:: 24.2.0
++           Context managers -- synchronous or asynchronous -- returned by
++           asynchronous factories are now entered/exited and cleaned up, too.
+         """
+         rv = []
+         for svc_type in svc_types:
+@@ -1014,6 +1018,15 @@ class Container:
+             elif isawaitable(svc):
+                 svc = await svc
+ 
++                # An async factory may return a context manager; enter it and
++                # register its cleanup just like the synchronous path does.
++                if enter and isinstance(svc, AbstractAsyncContextManager):
++                    self._on_close.append((name, svc))
++                    svc = await svc.__aenter__()
++                elif enter and isinstance(svc, AbstractContextManager):
++                    self._on_close.append((name, svc))
++                    svc = svc.__enter__()
++
+             self._instantiated[svc_type] = svc
+ 
+             rv.append(svc)
+diff --git a/tests/test_container.py b/tests/test_container.py
+index 4f9838b..f1240d5 100644
+--- a/tests/test_container.py
++++ b/tests/test_container.py
+@@ -4,6 +4,14 @@
+ 
+ import gc
+ 
++import asyncio
++
++from contextlib import (
++    AbstractContextManager,
++    asynccontextmanager,
++    contextmanager,
++)
++
+ from unittest.mock import Mock
+ 
+ import pytest
+@@ -129,6 +137,81 @@ class TestContainer:
+ 
+         assert is_closed
+ 
++    @pytest.mark.asyncio
++    async def test_aget_enters_cms_returned_by_async_factories(
++        self, container
++    ):
++        """
++        aget enters (and exits) context managers returned by async factories,
++        whether they are synchronous or asynchronous context managers.
++        """
++        sync_is_closed = False
++        async_is_closed = False
++
++        async def sync_cm_factory():
++            await asyncio.sleep(0)
++
++            @contextmanager
++            def factory():
++                yield 42
++
++                nonlocal sync_is_closed
++                sync_is_closed = True
++
++            return factory()
++
++        async def async_cm_factory():
++            await asyncio.sleep(0)
++
++            @asynccontextmanager
++            async def factory():
++                await asyncio.sleep(0)
++                yield 43
++
++                nonlocal async_is_closed
++                async_is_closed = True
++
++            return factory()
++
++        container.registry.register_factory(int, sync_cm_factory)
++        container.registry.register_factory(str, async_cm_factory)
++
++        async with container:
++            assert 42 == await container.aget(int)
++            assert 43 == await container.aget(str)
++
++        assert sync_is_closed
++        assert async_is_closed
++
++    @pytest.mark.asyncio
++    async def test_aget_does_not_enter_cms_returned_by_async_factories_when_enter_false(
++        self, container
++    ):
++        """
++        aget does not enter context managers returned by async factories if
++        enter=False.
++        """
++        sync_entered = False
++
++        async def sync_cm_factory():
++            await asyncio.sleep(0)
++
++            @contextmanager
++            def factory():
++                nonlocal sync_entered
++                sync_entered = True
++                yield 42
++
++            return factory()
++
++        container.registry.register_factory(int, sync_cm_factory, enter=False)
++
++        async with container:
++            svc = await container.aget(int)
++
++        assert not sync_entered
++        assert isinstance(svc, AbstractContextManager)
++
+ 
+ class TestServicePing:
+     def test_ping(self, registry, container, close_me):
