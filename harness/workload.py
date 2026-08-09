@@ -5,12 +5,15 @@ from a manifest and knows nothing about `svcs` specifically, so the
 postponed application cohort needs no change in this module.
 """
 
+import hashlib
+import os
 import shutil
 import subprocess
 import tarfile
 import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 
 from harness.workspace import GIT_ENV, disposable_dir, git_init_commit
@@ -129,3 +132,100 @@ def materialize(clone: Path, sha: str) -> Iterator[Path]:
         export_tree(clone, sha, workspace)
         git_init_commit(workspace, f"materialized base {sha}")
         yield workspace
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+@dataclass(frozen=True)
+class CohortEnv:
+    """The one interpreter every workload suite runs under."""
+
+    python: Path
+    lock_sha256: str
+    python_version: str
+    platform: str
+
+
+def _verify_interpreter(python: Path, require_python: str | None) -> tuple[str, str]:
+    """Return (version, platform) for `python`, refusing an unexpected version.
+
+    A lock pins *packages*, not the interpreter that reads them.
+    `requires-python = ">=3.14,<3.15"` admits 3.14.0 and 3.14.7 alike,
+    and two independent resolutions of one dependency list have already
+    produced different test collections in this cohort. The interpreter
+    is part of the freeze, so a manifest may name it exactly.
+    """
+    probe = subprocess.run(
+        [
+            str(python),
+            "-c",
+            "import platform, sys; print(platform.python_version()); print(sys.platform)",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if probe.returncode != 0:
+        raise WorkloadError(
+            f"interpreter {python} is not runnable: {probe.stderr.strip()}"
+        )
+    version, _, plat = probe.stdout.strip().partition("\n")
+    if require_python is not None and version != require_python:
+        raise WorkloadError(
+            f"interpreter is {version}, but {require_python} is required"
+        )
+    return version, plat
+
+
+def ensure_cohort_env(
+    env_source: Path,
+    cache_root: Path,
+    require_python: str | None = None,
+) -> CohortEnv:
+    """Sync the frozen cohort environment and return its interpreter.
+
+    `uv sync --locked` refuses to update the lockfile, so a drifted
+    declaration fails loudly here rather than quietly producing a
+    different environment than the one every recorded result was
+    measured against.
+
+    `--no-install-project` is what makes PYTHONPATH the single source of
+    the library under test: the environment carries dependencies only,
+    so a materialized workspace is the only place `svcs` can come from.
+
+    The venv is placed under the cache, not inside `env_source`, so the
+    committed declaration directory stays free of build output.
+    """
+    lock = env_source / "uv.lock"
+    if not lock.is_file():
+        raise WorkloadError(f"no uv.lock in {env_source}; run `uv lock` there first")
+
+    venv = (cache_root / "env").resolve()
+    venv.parent.mkdir(parents=True, exist_ok=True)
+    environ = dict(os.environ)
+    environ["UV_PROJECT_ENVIRONMENT"] = str(venv)
+    result = subprocess.run(
+        ["uv", "sync", "--locked", "--no-install-project", "-q"],
+        cwd=env_source,
+        capture_output=True,
+        text=True,
+        env=environ,
+    )
+    if result.returncode != 0:
+        raise WorkloadError(f"cohort env sync failed: {result.stderr.strip()}")
+
+    python = venv / "bin" / "python"
+    if not python.is_file():
+        raise WorkloadError(f"cohort env has no interpreter at {python}")
+    version, plat = _verify_interpreter(python, require_python)
+    return CohortEnv(
+        python=python,
+        lock_sha256=sha256_file(lock),
+        python_version=version,
+        platform=plat,
+    )

@@ -1,11 +1,20 @@
+import platform
 import shutil
 import subprocess
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
 
-from harness.workload import WorkloadError, ensure_clone, materialize
+from harness.workload import (
+    WorkloadError,
+    _verify_interpreter,
+    ensure_clone,
+    ensure_cohort_env,
+    materialize,
+    sha256_file,
+)
 from harness.workspace import GIT_ENV
 
 
@@ -186,3 +195,66 @@ def test_the_cache_is_named_from_the_upstream_not_hardcoded(
     shutil.copytree(synthetic_clone.bare, other)
     clone = ensure_clone(str(other), tmp_path / "cache")
     assert clone.name == "renamed.git"
+
+
+def test_sha256_file_is_stable(tmp_path: Path) -> None:
+    path = tmp_path / "f.txt"
+    path.write_text("hello")
+    assert sha256_file(path) == sha256_file(path)
+    assert len(sha256_file(path)) == 64
+
+
+def test_sha256_file_distinguishes_content(tmp_path: Path) -> None:
+    a = tmp_path / "a.txt"
+    b = tmp_path / "b.txt"
+    a.write_text("hello")
+    b.write_text("hellp")
+    assert sha256_file(a) != sha256_file(b)
+
+
+def test_verify_interpreter_reports_the_running_version() -> None:
+    version, plat = _verify_interpreter(Path(sys.executable), None)
+    assert version == platform.python_version()
+    assert plat == sys.platform
+
+
+def test_verify_interpreter_refuses_a_mismatched_version() -> None:
+    """A lock pins packages; it does not pin the interpreter that reads them.
+
+    `requires-python = ">=3.14,<3.15"` admits 3.14.0 and 3.14.7 alike,
+    and two reviewers resolving the same dependency list already
+    produced different test collections. The interpreter is part of the
+    freeze.
+    """
+    with pytest.raises(WorkloadError, match="3.99.0"):
+        _verify_interpreter(Path(sys.executable), "3.99.0")
+
+
+def test_ensure_cohort_env_requires_a_lock(tmp_path: Path) -> None:
+    env_source = tmp_path / "env"
+    env_source.mkdir()
+    with pytest.raises(WorkloadError, match="no uv.lock"):
+        ensure_cohort_env(env_source, tmp_path / "cache")
+
+
+@pytest.mark.integration
+def test_cohort_env_reports_the_lock_hash(tmp_path: Path) -> None:
+    """Syncs the real frozen environment; needs the network on a cold cache."""
+    env_source = Path("workloads/svcs/env")
+    env = ensure_cohort_env(env_source, tmp_path / "cache", require_python="3.14.2")
+    assert env.lock_sha256 == sha256_file(env_source / "uv.lock")
+    assert env.python.is_file()
+    assert env.python_version == "3.14.2"
+
+
+@pytest.mark.integration
+def test_cohort_env_does_not_install_svcs(tmp_path: Path) -> None:
+    """PYTHONPATH must be the only source of svcs, so the env must not carry one."""
+    env = ensure_cohort_env(Path("workloads/svcs/env"), tmp_path / "cache")
+    probe = subprocess.run(
+        [str(env.python), "-c", "import svcs"],
+        capture_output=True,
+        text=True,
+    )
+    assert probe.returncode != 0
+    assert "No module named 'svcs'" in probe.stderr

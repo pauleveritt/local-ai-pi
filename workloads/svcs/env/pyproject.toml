@@ -1,0 +1,48 @@
+# The frozen cohort environment for the svcs replay workload.
+#
+# Dependencies ONLY -- svcs itself is deliberately not installed. Each
+# materialized workspace supplies svcs through PYTHONPATH=<workspace>/src,
+# so there is exactly one importable copy and no question of which one a
+# test got.
+#
+# This is a hand-authored UNION of what the ladder's bases need, not any
+# single base's own lockfile. Four pins are load-bearing:
+#
+#   httpx AND httpx2   Bases before the 2026 migration `import httpx`;
+#                      later ones `import httpx2`. The ladder spans both.
+#   httpx<0.28         The historical Pyramid tests construct
+#                      httpx.Client(app=...), which 0.28 removed. Without
+#                      this ceiling four bases fail collection or error.
+#   pyramid,           In the older bases' `optional` group, dropped from
+#   setuptools<82      the newest. Kept so historical integration tests
+#                      actually run instead of being excused. Upstream svcs
+#                      plans to drop Pyramid support, so this pin is
+#                      historical-bases-only and will age out as newer
+#                      targets enter the ladder -- the committed lock is
+#                      what keeps an eventually-unmaintained pyramid
+#                      installable for this cohort.
+#
+# A union environment runs historical bases against dependency versions
+# NEWER than they shipped with. That is fair across arms -- every arm sees
+# the same environment -- but it is slightly unfaithful to history, and the
+# write-up says so rather than glossing it.
+[project]
+name = "svcs-cohort-env"
+version = "0"
+requires-python = ">=3.14,<3.15"
+dependencies = [
+  "attrs>=21.3.0",
+  "typing_extensions>=4.13.0",
+  "pytest",
+  "pytest-asyncio",
+  "sybil>=6",
+  "aiohttp",
+  "fastapi",
+  "flask",
+  "httpx<0.28",
+  "httpx2",
+  "pyramid",
+  "setuptools<82",
+  "starlette",
+  "sqlalchemy",
+]
