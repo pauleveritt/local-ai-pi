@@ -59,6 +59,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             executor_env_lock_sha256=str(prior.get("executor_env_lock_sha256", "none")),
             budget_exhausted=str(prior.get("budget_exhausted", "none")),
             test_paths=cohort.test_paths,
+            model_timeout_seconds=float(prior.get("model_timeout_seconds", 0.0)),
         )
 
         screen.write_attempt(record, attempt)

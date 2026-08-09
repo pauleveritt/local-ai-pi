@@ -99,6 +99,16 @@ class Attempt:
     preservation: SuiteResult | None
     oracle: SuiteResult | None
     argv: tuple[str, ...] = field(default=(), repr=False)
+    model_timeout_seconds: float = 0.0
+    """The wall-clock cap the attempt ran under.
+
+    An arm condition, and it was missing while `model_timed_out` was
+    present -- so a truncated attempt recorded that it was truncated but
+    not what truncated it, and two runs under different caps were
+    indistinguishable afterwards. The same oversight as inheriting the
+    turn envelope: budgets were raised fourfold and the wall clock left
+    at a number chosen for a different arm.
+    """
     wrote_tests: tuple[str, ...] = ()
     """Test files the model wrote, permitted and never executed.
 
@@ -169,6 +179,7 @@ class Attempt:
             "preservation": suite(self.preservation),
             "oracle": suite(self.oracle),
             "argv": list(self.argv),
+            "model_timeout_seconds": self.model_timeout_seconds,
             "wrote_tests": list(self.wrote_tests),
             "budget_exhausted": self.budget_exhausted,
             "executor_env_lock_sha256": self.executor_env_lock_sha256,
@@ -475,6 +486,7 @@ def grade_candidate(
     executor_env_lock_sha256: str = "none",
     budget_exhausted: str = "none",
     test_paths: tuple[str, ...] = (),
+    model_timeout_seconds: float = 0.0,
 ) -> Attempt:
     """Score one saved candidate. Pure, offline, no model call.
 
@@ -585,6 +597,7 @@ def grade_candidate(
         executor_env_lock_sha256=executor_env_lock_sha256,
         budget_exhausted=budget_exhausted,
         wrote_tests=wrote_tests,
+        model_timeout_seconds=model_timeout_seconds,
     )
 
 
@@ -657,6 +670,7 @@ def screen_task(
         executor_env_lock_sha256=env_lock,
         budget_exhausted=budget_exhaustion(child.stdout),
         test_paths=test_paths,
+        model_timeout_seconds=timeout,
     )
     return attempt, patch, child.stdout
 
