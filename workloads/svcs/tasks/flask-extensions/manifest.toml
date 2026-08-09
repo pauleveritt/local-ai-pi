@@ -1,0 +1,50 @@
+task_id = "flask-extensions"
+role = "medium"
+axes = ["framework-integration"]
+
+[source]
+upstream = "https://github.com/hynek/svcs"
+base_sha = "85827a173fd7b9952abf34a8f198c7d1fb40f43d"
+target_sha = "012b6a91f12b750c42dcffd742bd06f404e00532"
+
+[task]
+brief = "brief.md"
+brief_sha256 = "4e8b22c410f84c207a298749cf332d6e00dd3831da5806d04780662a97b5fb9e"
+contract_version = 1
+
+[policy]
+readable = ["src/**", "tests/**", "docs/**", "README.md", "CHANGELOG.md"]
+writable = ["src/svcs/**"]
+candidate_output = ["src/svcs/flask.py"]
+
+[oracle]
+files = ["tests/integrations/test_flask.py"]
+command = ["pytest", "-q", "-p", "no:cacheprovider", "tests/integrations/test_flask.py"]
+
+[oracle.rejection]
+class = "assertion-failure"
+missing_symbols = []
+failing_nodes = [
+  "tests/integrations/test_flask.py::TestInitApp::test_implicit_registry",
+  "tests/integrations/test_flask.py::TestInitApp::test_explicit_registry",
+]
+
+[oracle.files_sha256]
+"tests/integrations/test_flask.py" = "d1442126db20c3de1fa18fc0655fc673daf545ba2a25985d9bc0a7b86f2978bb"
+
+[preservation]
+command = ["pytest", "-q", "-p", "no:cacheprovider"]
+deselects = []
+deselect_reason = ""
+
+[environment]
+id = "svcs-cohort-2026-08-09"
+python = "3.14.2"
+lock_sha256 = "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3"
+
+[attestations]
+behavior_not_structure = "The oracle asserts the registry is reachable at app.extensions['svcs_registry'] -- Flask's own public extension mapping, not svcs internals."
+statable_behaviorally = "The brief says where the registry must live after init_app and why extensions rather than config. Upstream's CHANGELOG states the same move."
+substantive = "Changes a public storage location other code reads, and is the kind of migration that breaks callers if done partially."
+writable_bounded = "src/svcs/** only; the Flask integration module lives there."
+adaptations = "None. The two touched tests are existing tests whose assertions moved from config to extensions; the file is taken whole at target."

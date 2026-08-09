@@ -1,0 +1,50 @@
+task_id = "async-cm-enter"
+role = "medium"
+axes = ["async-lifecycle"]
+
+[source]
+upstream = "https://github.com/hynek/svcs"
+base_sha = "25d8a0b3ff5fdaa47648802088ef99becde27e6d"
+target_sha = "32ddce2d05725bcd814e003fecd6f5914a99b745"
+
+[task]
+brief = "brief.md"
+brief_sha256 = "aa78f8777f0099ab2b5d85f8f1c8c6ca020004480eeaee070fa8c1e1686c462a"
+contract_version = 1
+
+[policy]
+readable = ["src/**", "tests/**", "docs/**", "README.md", "CHANGELOG.md"]
+writable = ["src/svcs/**"]
+candidate_output = ["src/svcs/_core.py"]
+
+[oracle]
+files = ["tests/test_container.py"]
+command = ["pytest", "-q", "-p", "no:cacheprovider", "tests/test_container.py"]
+
+[oracle.rejection]
+class = "assertion-failure"
+missing_symbols = []
+failing_nodes = [
+  "tests/test_container.py::TestContainer::test_async_context_manager_sync_factory",
+  "tests/test_container.py::TestContainer::test_async_context_manager_async_factory",
+]
+
+[oracle.files_sha256]
+"tests/test_container.py" = "dc13b2177c4438f04cf7dbd34ad165eaa31c202c401ec7144901d41616ca213d"
+
+[preservation]
+command = ["pytest", "-q", "-p", "no:cacheprovider"]
+deselects = []
+deselect_reason = ""
+
+[environment]
+id = "svcs-cohort-2026-08-09"
+python = "3.14.2"
+lock_sha256 = "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3"
+
+[attestations]
+behavior_not_structure = "The oracle resolves through aget() and asserts the value was entered and later cleaned up, via public flags on the fake services. It does not inspect the container's cleanup list directly."
+statable_behaviorally = "The brief states that a context manager returned by a factory resolved asynchronously is entered and cleaned up like the synchronous path. Upstream's CHANGELOG says the same."
+substantive = "A lifecycle bug: without it an async-resolved context manager is handed back unentered and never cleaned up."
+writable_bounded = "src/svcs/** only."
+adaptations = "None. Upstream test file at target, unmodified."

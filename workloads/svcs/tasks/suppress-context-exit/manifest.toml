@@ -1,0 +1,56 @@
+task_id = "suppress-context-exit"
+role = "stretch"
+axes = ["async-lifecycle", "public-api", "cross-file"]
+
+[source]
+upstream = "https://github.com/hynek/svcs"
+base_sha = "1676980aef539ac9a538f97aa895a934067055c7"
+target_sha = "c0bd3792e8bc7bdf0277275cbd106246b44354d5"
+
+[task]
+brief = "brief.md"
+brief_sha256 = "432575096b0f188e0565cfc8ec970d57b735a602dd523fbd5fc6a78bc8e721a4"
+contract_version = 1
+
+[policy]
+readable = ["src/**", "tests/**", "docs/**", "README.md", "CHANGELOG.md"]
+writable = ["src/svcs/**"]
+candidate_output = ["src/svcs/_core.py"]
+
+[oracle]
+files = ["tests/test_container.py", "tests/test_registry.py", "conftest.py"]
+command = ["pytest", "-q", "-p", "no:cacheprovider", "tests/test_container.py", "tests/test_registry.py"]
+
+[oracle.rejection]
+class = "assertion-failure"
+missing_symbols = []
+failing_nodes = [
+  "tests/test_container.py::TestContainer::test_suppress_context_exit_suppress",
+  "tests/test_container.py::TestContainer::test_suppress_context_exit_no_suppress_handled",
+  "tests/test_container.py::TestContainer::test_async_suppress_context_exit_async_factory_suppress",
+  "tests/test_container.py::TestContainer::test_async_suppress_context_exit_async_factory_no_suppress",
+  "tests/test_container.py::TestContainer::test_async_suppress_context_exit_sync_factory_no_suppress",
+  "tests/test_registry.py::TestRegisteredService::test_repr",
+]
+
+[oracle.files_sha256]
+"tests/test_container.py" = "f195c5b2a33b79d7f777d418dc9c6111007ca8bec2ef23a9eb1dba2be7f073df"
+"tests/test_registry.py" = "609d43acd104840f6837d31a63b7b94f59924e75f165f3b6936882c3154d248b"
+"conftest.py" = "3cbab28cb8a19161cba43d1dd865560cc152172a00fa2d7cad48d7074495bfbf"
+
+[preservation]
+command = ["pytest", "-q", "-p", "no:cacheprovider"]
+deselects = []
+deselect_reason = ""
+
+[environment]
+id = "svcs-cohort-2026-08-09"
+python = "3.14.2"
+lock_sha256 = "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3"
+
+[attestations]
+behavior_not_structure = "The oracle registers factories with the new option and asserts on whether the error escapes the container, which is observable behaviour. test_repr additionally pins the option's visibility on the registered service."
+statable_behaviorally = "The brief describes what the option does to an error leaving the container's context, and that it must default to today's behaviour. Upstream's CHANGELOG states the same."
+substantive = "Adds a public option that changes exception propagation for both sync and async factories."
+writable_bounded = "src/svcs/** only."
+adaptations = "conftest.py IS part of the oracle: the same commit adds a positional argument to the shared RegisteredService fixture, so the target's tests cannot construct it against the base signature. This is a known risk for this task -- overlaying it may break base tests that use the fixture for reasons unrelated to the option, in which case the observed rejection will not match this prediction and the task will be corrected or excluded on the evidence."
