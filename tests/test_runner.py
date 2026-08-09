@@ -808,3 +808,39 @@ def test_the_pinned_version_is_the_installed_version():
     ).stdout.strip()
 
     assert installed == runner.EXPECTED_PI_VERSION
+
+
+def test_pi_env_strips_the_harness_virtualenv(monkeypatch) -> None:
+    """An executor must not be able to reach the tooling that grades it.
+
+    Passing os.environ through put `.venv/bin` first on the child's PATH
+    and set VIRTUAL_ENV, so a model with a shell had the grader's own
+    interpreter as `python3`. The first screen run with `bash` in the
+    tool set used it: ensurepip, then `pip install`, replacing the
+    pinned pytest in the harness venv.
+    """
+    from harness.runner import pi_env
+
+    monkeypatch.setenv("VIRTUAL_ENV", "/proj/.venv")
+    monkeypatch.setenv("PATH", "/proj/.venv/bin:/usr/bin:/bin")
+    monkeypatch.setenv("SSH_AUTH_SOCK", "/tmp/agent.sock")
+
+    env = pi_env()
+
+    assert "VIRTUAL_ENV" not in env
+    assert "SSH_AUTH_SOCK" not in env
+    assert env["PATH"] == "/usr/bin:/bin"
+
+
+def test_pi_env_keeps_path_intact_without_a_virtualenv(monkeypatch) -> None:
+    """No VIRTUAL_ENV means nothing to strip -- and PATH must survive.
+
+    Pi itself is resolved from PATH, so an over-eager filter would leave
+    the child unable to start at all.
+    """
+    from harness.runner import pi_env
+
+    monkeypatch.delenv("VIRTUAL_ENV", raising=False)
+    monkeypatch.setenv("PATH", "/home/me/.volta/bin:/usr/bin:/bin")
+
+    assert pi_env()["PATH"] == "/home/me/.volta/bin:/usr/bin:/bin"

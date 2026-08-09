@@ -45,8 +45,39 @@ def pi_env() -> dict[str, str]:
     shipped extension calls `spawn` without an `env` argument, so the child
     inherits ours; its *arguments* are fixed and its project-local resources
     are trust-gated away in a headless run.
+
+    **The harness's own virtualenv is stripped.** Passing `os.environ`
+    through put `.venv/bin` first on the child's `PATH` and set
+    `VIRTUAL_ENV`, so an executor with a shell had the *grader's*
+    interpreter as its `python3`. That was harmless while the envelope was
+    `read,write`; the first screen run with `bash` in the tool set spent
+    eight turns trying to make `import svcs` work, ran `ensurepip`, and
+    then `pip install`ed attrs, pytest and pytest-asyncio into the
+    harness venv -- replacing the pinned pytest 8.3.4 with 9.1.1. An
+    executor that can change the tooling that grades it is not being
+    measured, and a workspace it can reach outside of is not hermetic.
+
+    `SSH_AUTH_SOCK` goes for the same reason: a live agent socket is
+    push access to every remote the operator can reach, and nothing in a
+    replay task needs the network.
+
+    The frozen cohort environment was never exposed and was verified
+    unaffected -- it lives under `.workloads/env` and is passed to
+    `run_suite` explicitly, not through `PATH`.
     """
-    return {**os.environ, "PI_CODING_AGENT_DIR": str(AGENT_DIR)}
+    env = {**os.environ, "PI_CODING_AGENT_DIR": str(AGENT_DIR)}
+    venv = env.pop("VIRTUAL_ENV", None)
+    env.pop("SSH_AUTH_SOCK", None)
+    if venv:
+        # Filtered by prefix rather than exact match: `.venv/bin` is what
+        # lands on PATH, and a future layout could add more than one entry
+        # under the same root.
+        env["PATH"] = os.pathsep.join(
+            entry
+            for entry in env.get("PATH", "").split(os.pathsep)
+            if entry and not Path(entry).is_relative_to(venv)
+        )
+    return env
 
 
 @dataclass(frozen=True)
