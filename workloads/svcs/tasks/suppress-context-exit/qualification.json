@@ -1,0 +1,89 @@
+{
+  "base_oracle_tail": " Registry.register_factory() got an unexpected keyword argument 'suppress_context_exit'\n\ntests/test_container.py:222: TypeError\n___ TestContainer.test_async_suppress_context_exit_async_factory_no_suppress ___\n\nself = <tests.test_container.TestContainer object at 0x10d248750>\ncontainer = <Container(instantiated=0, cleanups=0)>\nclose_me = <tests.helpers.CloseMe object at 0x10d45ed50>\ncaplog = <_pytest.logging.LogCaptureFixture object at 0x10d4f4190>\n\n    @pytest.mark.asyncio\n    async def test_async_suppress_context_exit_async_factory_no_suppress(\n        self, container, close_me, caplog\n    ):\n        \"\"\"\n        If suppress_context_exit is False, the error is propagated into the\n        factory. The factory can still handle the error and clean up. The error\n        bubbles out of the container context.\n        \"\"\"\n        captured = False\n    \n        async def factory():\n            nonlocal captured\n    \n            try:\n                yield 42\n            except ValueError:\n                captured = True\n    \n            await close_me.aclose()\n    \n>       container.registry.register_factory(\n            int, factory, suppress_context_exit=False\n        )\nE       TypeError: Registry.register_factory() got an unexpected keyword argument 'suppress_context_exit'\n\ntests/test_container.py:276: TypeError\n___ TestContainer.test_async_suppress_context_exit_sync_factory_no_suppress ____\n\nself = <tests.test_container.TestContainer object at 0x10d245090>\ncontainer = <Container(instantiated=0, cleanups=0)>\nclose_me = <tests.helpers.CloseMe object at 0x10d42f680>\ncaplog = <_pytest.logging.LogCaptureFixture object at 0x10d4f5950>\n\n    @pytest.mark.asyncio\n    async def test_async_suppress_context_exit_sync_factory_no_suppress(\n        self, container, close_me, caplog\n    ):\n        \"\"\"\n        If suppress_context_exit is False, the error is propagated into the\n        factory. The factory can still handle the error and clean up. The error\n        bubbles out of the container context.\n        \"\"\"\n    \n        def factory():\n            yield 42\n            pytest.fail(\"Exception wasn't propagated.\")\n    \n>       container.registry.register_factory(\n            int, factory, suppress_context_exit=False\n        )\nE       TypeError: Registry.register_factory() got an unexpected keyword argument 'suppress_context_exit'\n\ntests/test_container.py:302: TypeError\n__________________________ TestRegistry.test_iterate ___________________________\n\nself = <tests.test_registry.TestRegistry object at 0x10d49d2e0>\nregistry = <svcs.Registry(num_services=2)>\n\n    def test_iterate(self, registry):\n        \"\"\"\n        It's possible to iterate over the registered services.\n        \"\"\"\n        registry.register_factory(Service, Service)\n        registry.register_factory(AnotherService, AnotherService)\n    \n        assert {\n>           svcs.RegisteredService(Service, Service, False, True, None, True),\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n            svcs.RegisteredService(\n                AnotherService, AnotherService, False, True, None, True\n            ),\n        } == {rs for rs in registry}  # noqa: C416 -- explicit on purpose\nE       TypeError: RegisteredService.__init__() takes 6 positional arguments but 7 were given\n\ntests/test_registry.py:292: TypeError\n=========================== short test summary info ============================\nFAILED tests/test_container.py::TestContainer::test_suppress_context_exit_no_suppress_handled\nFAILED tests/test_container.py::TestContainer::test_async_suppress_context_exit_async_factory_no_suppress\nFAILED tests/test_container.py::TestContainer::test_async_suppress_context_exit_sync_factory_no_suppress\nFAILED tests/test_registry.py::TestRegistry::test_iterate - TypeError: Regist...\nERROR tests/test_registry.py::TestRegisteredService::test_repr - TypeError: R...\nERROR tests/test_registry.py::TestRegisteredService::test_name - TypeError: R...\n4 failed, 44 passed, 2 errors in 0.10s\n",
+  "base_sha": "1676980aef539ac9a538f97aa895a934067055c7",
+  "conditions": {
+    "base_oracle": {
+      "collection_errors": {},
+      "failures": {
+        "tests/test_container.py::TestContainer::test_async_suppress_context_exit_async_factory_no_suppress": "call:failed",
+        "tests/test_container.py::TestContainer::test_async_suppress_context_exit_sync_factory_no_suppress": "call:failed",
+        "tests/test_container.py::TestContainer::test_suppress_context_exit_no_suppress_handled": "call:failed",
+        "tests/test_registry.py::TestRegisteredService::test_name": "setup:failed",
+        "tests/test_registry.py::TestRegisteredService::test_repr": "setup:failed",
+        "tests/test_registry.py::TestRegistry::test_iterate": "call:failed"
+      },
+      "fingerprint_sha256": [
+        "664eeab1959053e2801bb0d22e0d6d8308473dae174fe45c3c1c16f373a71c57",
+        "664eeab1959053e2801bb0d22e0d6d8308473dae174fe45c3c1c16f373a71c57",
+        "664eeab1959053e2801bb0d22e0d6d8308473dae174fe45c3c1c16f373a71c57"
+      ],
+      "node_count": 50,
+      "reason_class": "assertion-failure",
+      "returncode": 1,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 44,
+      "wall_seconds": [
+        1.016,
+        1.019,
+        1.017
+      ]
+    },
+    "base_preservation": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "d99152f1ebe18bfd573bfb55581b8a034f28401ef24eeea7b1996f908c654d1e",
+        "d99152f1ebe18bfd573bfb55581b8a034f28401ef24eeea7b1996f908c654d1e",
+        "d99152f1ebe18bfd573bfb55581b8a034f28401ef24eeea7b1996f908c654d1e"
+      ],
+      "node_count": 132,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 132,
+      "wall_seconds": [
+        1.209,
+        1.222,
+        1.209
+      ]
+    }
+  },
+  "deselects": [],
+  "detail": "run 1: declared failing nodes do not match observed; missing=['tests/test_container.py::TestContainer::test_async_suppress_context_exit_async_factory_suppress', 'tests/test_container.py::TestContainer::test_suppress_context_exit_suppress'] unexpected=['tests/test_registry.py::TestRegisteredService::test_name', 'tests/test_registry.py::TestRegistry::test_iterate']",
+  "effective_preservation_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider"
+  ],
+  "env_id": "svcs-cohort-2026-08-09",
+  "env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
+  "env_platform": "darwin",
+  "env_python": "3.14.2",
+  "failed_gate": "base_rejection",
+  "manifest_env_python": "3.14.2",
+  "manifest_sha256": "6077c49c62c863542bb4f9118959970332e280d5590d8a033c85867f5b95b608",
+  "max_seconds": 60.0,
+  "oracle_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "tests/test_container.py",
+    "tests/test_registry.py"
+  ],
+  "preservation_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider"
+  ],
+  "recorded_at": "2026-08-09T15:01:35.868477+00:00",
+  "repeats": 3,
+  "role": "stretch",
+  "status": "disqualified",
+  "target_sha": "c0bd3792e8bc7bdf0277275cbd106246b44354d5",
+  "task_id": "suppress-context-exit"
+}

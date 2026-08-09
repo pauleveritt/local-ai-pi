@@ -18,9 +18,9 @@
       "stable": true,
       "tests_passed": 0,
       "wall_seconds": [
-        0.957,
-        0.954,
-        0.958
+        0.974,
+        0.97,
+        0.974
       ]
     },
     "base_preservation": {
@@ -38,9 +38,9 @@
       "stable": true,
       "tests_passed": 130,
       "wall_seconds": [
-        1.126,
-        1.133,
-        1.129
+        1.145,
+        1.156,
+        1.151
       ]
     },
     "target_oracle": {
@@ -58,9 +58,9 @@
       "stable": true,
       "tests_passed": 67,
       "wall_seconds": [
-        0.967,
-        0.964,
-        0.973
+        0.985,
+        0.991,
+        0.986
       ]
     },
     "target_preservation": {
@@ -78,9 +78,9 @@
       "stable": true,
       "tests_passed": 197,
       "wall_seconds": [
-        1.176,
-        1.191,
-        1.189
+        1.194,
+        1.209,
+        1.215
       ]
     }
   },
@@ -111,7 +111,7 @@
     "-p",
     "no:cacheprovider"
   ],
-  "recorded_at": "2026-08-09T14:52:13.420873+00:00",
+  "recorded_at": "2026-08-09T15:01:43.983958+00:00",
   "repeats": 3,
   "role": "ceiling",
   "status": "qualified",

@@ -1,0 +1,121 @@
+{
+  "base_sha": "25d8a0b3ff5fdaa47648802088ef99becde27e6d",
+  "conditions": {
+    "base_oracle": {
+      "collection_errors": {},
+      "failures": {
+        "tests/test_container.py::TestContainer::test_async_context_manager_async_factory": "call:failed",
+        "tests/test_container.py::TestContainer::test_async_context_manager_sync_factory": "call:failed"
+      },
+      "fingerprint_sha256": [
+        "cd16ff0a3c2ba44f5a8ed9df71271e303a5a3b6c81832fd52d0c836f0b43e249",
+        "cd16ff0a3c2ba44f5a8ed9df71271e303a5a3b6c81832fd52d0c836f0b43e249",
+        "cd16ff0a3c2ba44f5a8ed9df71271e303a5a3b6c81832fd52d0c836f0b43e249"
+      ],
+      "node_count": 10,
+      "reason_class": "assertion-failure",
+      "returncode": 1,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 8,
+      "wall_seconds": [
+        0.915,
+        0.913,
+        0.913
+      ]
+    },
+    "base_preservation": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "bfd27d3c36b6fe9a91a74910e44c402d082065f4ba61ba152a47990a0bdf58b0",
+        "bfd27d3c36b6fe9a91a74910e44c402d082065f4ba61ba152a47990a0bdf58b0",
+        "bfd27d3c36b6fe9a91a74910e44c402d082065f4ba61ba152a47990a0bdf58b0"
+      ],
+      "node_count": 129,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 129,
+      "wall_seconds": [
+        1.156,
+        1.155,
+        1.157
+      ]
+    },
+    "target_oracle": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "ac8eb9abeb3767cdc90cf0aaf86266624c5c0b0c9b7060c5d3abd93554d286e1",
+        "ac8eb9abeb3767cdc90cf0aaf86266624c5c0b0c9b7060c5d3abd93554d286e1",
+        "ac8eb9abeb3767cdc90cf0aaf86266624c5c0b0c9b7060c5d3abd93554d286e1"
+      ],
+      "node_count": 10,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 10,
+      "wall_seconds": [
+        0.914,
+        0.914,
+        0.914
+      ]
+    },
+    "target_preservation": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "92f8239a0c9f26aa0f1fdaddf82cf7633a5f26f7038196e3096928740a82080b",
+        "92f8239a0c9f26aa0f1fdaddf82cf7633a5f26f7038196e3096928740a82080b",
+        "92f8239a0c9f26aa0f1fdaddf82cf7633a5f26f7038196e3096928740a82080b"
+      ],
+      "node_count": 131,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 131,
+      "wall_seconds": [
+        1.16,
+        1.161,
+        1.164
+      ]
+    }
+  },
+  "deselects": [],
+  "effective_preservation_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider"
+  ],
+  "env_id": "svcs-cohort-2026-08-09",
+  "env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
+  "env_platform": "darwin",
+  "env_python": "3.14.2",
+  "manifest_env_python": "3.14.2",
+  "manifest_sha256": "d2525a0881164e970db4005e9952bb815af10c9b8aafe06050d3ae25a8e78e2c",
+  "max_seconds": 60.0,
+  "oracle_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "tests/test_container.py"
+  ],
+  "preservation_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider"
+  ],
+  "recorded_at": "2026-08-09T15:00:18.386421+00:00",
+  "repeats": 3,
+  "role": "medium",
+  "status": "qualified",
+  "target_sha": "32ddce2d05725bcd814e003fecd6f5914a99b745",
+  "task_id": "async-cm-enter"
+}

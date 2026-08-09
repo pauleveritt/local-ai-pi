@@ -1,0 +1,81 @@
+{
+  "base_oracle_tail": "......                                                                   [100%]\n=============================== warnings summary ===============================\n../../../../../../../Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/.workloads/env/lib/python3.14/site-packages/pyramid/asset.py:2\n  /Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/.workloads/env/lib/python3.14/site-packages/pyramid/asset.py:2: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.\n    import pkg_resources\n\ntests/integrations/test_aiohttp.py::TestAIOHTTP::test_aclose_registry_ok\ntests/integrations/test_aiohttp.py::TestAIOHTTP::test_registrations\ntests/integrations/test_aiohttp.py::TestAIOHTTP::test_get_registry\ntests/integrations/test_aiohttp.py::TestAIOHTTP::test_get_pings\ntests/integrations/test_aiohttp.py::TestAIOHTTP::test_client_pool_register_value\n  /var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-o4m39_gf/src/svcs/aiohttp.py:57: NotAppKeyWarning: It is recommended to use web.AppKey instances for keys.\n  https://docs.aiohttp.org/en/stable/web_advanced.html#application-s-config\n    app[_KEY_REGISTRY] = registry or svcs.Registry()\n\ntests/integrations/test_aiohttp.py::TestAIOHTTP::test_registrations\n  /var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-o4m39_gf/src/svcs/aiohttp.py:69: NotAppKeyWarning: It is recommended to use web.RequestKey instances for keys.\n  https://docs.aiohttp.org/en/stable/web_advanced.html#request-s-storage\n    request[_KEY_CONTAINER] = container\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n6 passed, 7 warnings in 0.01s\n",
+  "base_sha": "e9d9cc14b68a1dd50faedd17f815c44bc68d9c9a",
+  "conditions": {
+    "base_oracle": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "a70dffd8ccbdcbb1978d17fb0796f56b3ea68f99e8c3acdfd0c66737b2e530c1",
+        "a70dffd8ccbdcbb1978d17fb0796f56b3ea68f99e8c3acdfd0c66737b2e530c1",
+        "a70dffd8ccbdcbb1978d17fb0796f56b3ea68f99e8c3acdfd0c66737b2e530c1"
+      ],
+      "node_count": 6,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 6,
+      "wall_seconds": [
+        0.928,
+        0.925,
+        0.93
+      ]
+    },
+    "base_preservation": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "8db744458c4f2731733b854e94c1a69ddc7fc86f2cefb5f5b154e4929c75ef13",
+        "8db744458c4f2731733b854e94c1a69ddc7fc86f2cefb5f5b154e4929c75ef13",
+        "8db744458c4f2731733b854e94c1a69ddc7fc86f2cefb5f5b154e4929c75ef13"
+      ],
+      "node_count": 119,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 119,
+      "wall_seconds": [
+        1.183,
+        1.195,
+        1.181
+      ]
+    }
+  },
+  "deselects": [],
+  "detail": "run 1: base was pass, manifest declares assertion-failure",
+  "effective_preservation_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider"
+  ],
+  "env_id": "svcs-cohort-2026-08-09",
+  "env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
+  "env_platform": "darwin",
+  "env_python": "3.14.2",
+  "failed_gate": "base_rejection",
+  "manifest_env_python": "3.14.2",
+  "manifest_sha256": "5daa00be2b7a0cf85b70f365ce4134277fc1d50e7473c88026a0d8c1a9debf57",
+  "max_seconds": 60.0,
+  "oracle_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "tests/integrations/test_aiohttp.py"
+  ],
+  "preservation_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider"
+  ],
+  "recorded_at": "2026-08-09T15:01:05.057149+00:00",
+  "repeats": 3,
+  "role": "medium",
+  "status": "disqualified",
+  "target_sha": "c5c5f48f3a102e1619524ae3c0d069fbb1a6370d",
+  "task_id": "register-value-enter"
+}

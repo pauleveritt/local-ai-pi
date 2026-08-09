@@ -1,0 +1,120 @@
+{
+  "base_sha": "32ddce2d05725bcd814e003fecd6f5914a99b745",
+  "conditions": {
+    "base_oracle": {
+      "collection_errors": {},
+      "failures": {
+        "tests/test_registry.py::TestRegistry::test_iterate": "call:failed"
+      },
+      "fingerprint_sha256": [
+        "53d944b1c70bbdb3a2a5657f8c5e5f2d619d0433a419979ed55f9338d9012329",
+        "53d944b1c70bbdb3a2a5657f8c5e5f2d619d0433a419979ed55f9338d9012329",
+        "53d944b1c70bbdb3a2a5657f8c5e5f2d619d0433a419979ed55f9338d9012329"
+      ],
+      "node_count": 35,
+      "reason_class": "assertion-failure",
+      "returncode": 1,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 34,
+      "wall_seconds": [
+        0.922,
+        0.929,
+        0.923
+      ]
+    },
+    "base_preservation": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "92f8239a0c9f26aa0f1fdaddf82cf7633a5f26f7038196e3096928740a82080b",
+        "92f8239a0c9f26aa0f1fdaddf82cf7633a5f26f7038196e3096928740a82080b",
+        "92f8239a0c9f26aa0f1fdaddf82cf7633a5f26f7038196e3096928740a82080b"
+      ],
+      "node_count": 131,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 131,
+      "wall_seconds": [
+        1.146,
+        1.147,
+        1.155
+      ]
+    },
+    "target_oracle": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "729f79e75c4915acea2a90c2841117561947cea99e623fa68760783141571b3d",
+        "729f79e75c4915acea2a90c2841117561947cea99e623fa68760783141571b3d",
+        "729f79e75c4915acea2a90c2841117561947cea99e623fa68760783141571b3d"
+      ],
+      "node_count": 35,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 35,
+      "wall_seconds": [
+        0.925,
+        0.926,
+        0.917
+      ]
+    },
+    "target_preservation": {
+      "collection_errors": {},
+      "failures": {},
+      "fingerprint_sha256": [
+        "4721aec8c897faf3ab73587d0baaa895abd0b2e62a8103c1bd4097584bf954a8",
+        "4721aec8c897faf3ab73587d0baaa895abd0b2e62a8103c1bd4097584bf954a8",
+        "4721aec8c897faf3ab73587d0baaa895abd0b2e62a8103c1bd4097584bf954a8"
+      ],
+      "node_count": 132,
+      "reason_class": "pass",
+      "returncode": 0,
+      "runs": 3,
+      "stable": true,
+      "tests_passed": 132,
+      "wall_seconds": [
+        1.153,
+        1.154,
+        1.168
+      ]
+    }
+  },
+  "deselects": [],
+  "effective_preservation_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider"
+  ],
+  "env_id": "svcs-cohort-2026-08-09",
+  "env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
+  "env_platform": "darwin",
+  "env_python": "3.14.2",
+  "manifest_env_python": "3.14.2",
+  "manifest_sha256": "e5a96f24fa7ef9c41379febfcd0065d027bdcc822198d271a53ae46a10ac670e",
+  "max_seconds": 60.0,
+  "oracle_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "tests/test_registry.py"
+  ],
+  "preservation_command": [
+    "pytest",
+    "-q",
+    "-p",
+    "no:cacheprovider"
+  ],
+  "recorded_at": "2026-08-09T14:59:55.612668+00:00",
+  "repeats": 3,
+  "role": "floor",
+  "status": "qualified",
+  "target_sha": "c016b378d13af4c8e5251627edd5d4c2071f2ba8",
+  "task_id": "registry-iter"
+}
