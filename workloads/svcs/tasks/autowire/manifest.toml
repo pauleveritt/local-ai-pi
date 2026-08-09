@@ -1,0 +1,75 @@
+task_id = "autowire"
+role = "ceiling"
+axes = [
+  "discovery",
+  "async-lifecycle",
+  "reflection-and-typing",
+  "public-api",
+  "new-module",
+]
+
+[source]
+upstream = "https://github.com/hynek/svcs"
+base_sha = "816403b5c1d3b9fff22bd9141fe836221dfe9d9c"
+target_sha = "6bb3f2800a57f4f74641d6e7415c9865293a4016"
+
+[task]
+brief = "brief.md"
+brief_sha256 = "38060b13474370c255ed1dbd697c4ae9fd839d4073da0a12e88fb79ca3d0a903"
+contract_version = 1
+
+[policy]
+readable = ["src/**", "tests/**", "docs/**", "README.md", "CHANGELOG.md"]
+writable = ["src/svcs/**"]
+# Deliberately the whole writable surface rather than a named file. The
+# historical change adds a new module, and naming it here would hand the
+# executor a structural decision the brief carefully does not make.
+candidate_output = ["src/svcs/**"]
+
+[oracle]
+# Every target-side test file the base->target diff adds or changes, not
+# just the obviously-named one. fake_services.py does not exist at base
+# at all, and fake_factories.py and ifaces.py were both extended for
+# these tests -- overlaying test_autowire.py alone would fail to import
+# its own helpers, which is a collection error for entirely the wrong
+# reason.
+files = [
+  "tests/test_autowire.py",
+  "tests/fake_services.py",
+  "tests/fake_factories.py",
+  "tests/ifaces.py",
+]
+command = ["pytest", "-q", "-p", "no:cacheprovider", "tests/test_autowire.py"]
+
+[oracle.rejection]
+# test_autowire.py opens with `from svcs import Container, aautowire,
+# autowire`. Container resolves at base; `aautowire` is the first absent
+# name, so it is the one the ImportError names. Declaring "autowire"
+# here as well would appear to pass, but only because it is a substring
+# of "aautowire" -- a coincidence, not evidence.
+class = "collection-error"
+missing_symbols = ["aautowire"]
+failing_nodes = []
+
+[oracle.files_sha256]
+"tests/test_autowire.py" = "ef3162de27bd4f9f6e9f0ce1995d79d49c101bf3c177c0afae71d33446b7ebac"
+"tests/fake_services.py" = "56b38389403173be1fe20f7c2202334307911095da4af54256a61518f8779594"
+"tests/fake_factories.py" = "8b0eeec312f7b290fe89aa19349d75e920d5871ee80a0805c1ee9e3adca7399d"
+"tests/ifaces.py" = "296061d2035bedd76392f0a3d3d514bc5182c37a160d379c5e473fd7bfa9b521"
+
+[preservation]
+command = ["pytest", "-q", "-p", "no:cacheprovider"]
+deselects = []
+deselect_reason = ""
+
+[environment]
+id = "svcs-cohort-2026-08-09"
+python = "3.14.2"
+lock_sha256 = "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3"
+
+[attestations]
+behavior_not_structure = "The oracle imports only the public names svcs.autowire and svcs.aautowire and exercises them through Container and Registry. It never imports a private module or inspects internal helpers, so it does not constrain where the implementation lives or how it is decomposed."
+statable_behaviorally = "The brief describes what the two functions do to annotated parameters, defaults, variadics, InitVar, string annotations, context managers, and bare generators -- all observable through the public API, and all stated in upstream's own published docstrings, which Sphinx renders as the public reference for these functions. The brief names no module, helper, or algorithm, and deliberately does not say a new file is needed."
+substantive = "Adds two public functions and a resolution behaviour the library did not have. The historical implementation is 251 lines of new production code plus exports; this is the cohort's ceiling task, not a formatting or typing change."
+writable_bounded = "src/svcs/** only, chosen from the library's own layout before any model output existed. candidate_output is left as the same surface rather than naming a file, because naming one would prescribe the structure the task is meant to test."
+adaptations = "tests/typing/core.py is changed by the same commit but is NOT part of the oracle: it defines no test functions, is not named test_*, and is read by type checkers rather than collected by pytest. Including it would add a file the oracle command never runs. Everything else the diff touches under tests/ is included unmodified."
