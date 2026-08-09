@@ -2,11 +2,14 @@ import platform
 import shutil
 import subprocess
 import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
 
+import harness.workload as workload_module
 from harness.workload import (
     CohortEnv,
     WorkloadError,
@@ -17,6 +20,7 @@ from harness.workload import (
     load_manifest,
     materialize,
     overlay_oracle,
+    qualify,
     run_suite,
     sha256_file,
 )
@@ -649,3 +653,162 @@ def test_overlay_oracle_requires_a_recorded_hash(
         pytest.raises(WorkloadError, match="no recorded hash"),
     ):
         overlay_oracle(clone, manifest, workspace)
+
+
+def _condition_of(report: dict[str, object], key: str) -> dict[str, object]:
+    """`qualify` returns a JSON-shaped dict[str, object]; narrow before indexing."""
+    conditions = report["conditions"]
+    assert isinstance(conditions, dict)
+    value = conditions[key]
+    assert isinstance(value, dict)
+    return value
+
+
+def test_qualify_accepts_a_well_formed_task(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    report = qualify(load_manifest(task_dir), bare, _fake_env())
+    assert report["status"] == "qualified"
+    assert _condition_of(report, "base_preservation")["reason_class"] == "pass"
+    assert _condition_of(report, "base_oracle")["reason_class"] == "collection-error"
+    assert _condition_of(report, "target_preservation")["reason_class"] == "pass"
+    assert _condition_of(report, "target_oracle")["reason_class"] == "pass"
+
+
+def test_qualify_runs_every_condition_three_times(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """Including target preservation, which an earlier draft ran only once."""
+    task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    report = qualify(load_manifest(task_dir), bare, _fake_env())
+    for condition in (
+        "base_preservation",
+        "base_oracle",
+        "target_preservation",
+        "target_oracle",
+    ):
+        assert _condition_of(report, condition)["runs"] == 3
+
+
+def test_qualify_uses_a_fresh_materialization_per_run(
+    tmp_path: Path, synthetic_clone: SyntheticClone, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Repeating inside one workspace measures idempotence, not determinism."""
+    task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    seen: list[Path] = []
+    original = materialize
+
+    @contextmanager
+    def counting(clone_path: Path, sha: str) -> Iterator[Path]:
+        with original(clone_path, sha) as workspace:
+            seen.append(workspace)
+            yield workspace
+
+    monkeypatch.setattr(workload_module, "materialize", counting)
+    qualify(load_manifest(task_dir), bare, _fake_env())
+    assert len(seen) == 12
+    assert len(set(seen)) == 12
+
+
+def test_qualify_disqualifies_a_wrong_reason_class(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """The import-typo case: the base is rejected, but not for the declared reason."""
+    task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    text = (task_dir / "manifest.toml").read_text()
+    (task_dir / "manifest.toml").write_text(
+        text.replace(
+            'class           = "collection-error"',
+            'class           = "assertion-failure"',
+        )
+    )
+    report = qualify(load_manifest(task_dir), bare, _fake_env())
+    assert report["status"] == "disqualified"
+    assert report["failed_gate"] == "base_rejection"
+
+
+def test_qualify_disqualifies_a_missing_expected_symbol(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """The class matched, but not for the reason the manifest pre-registered."""
+    task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    text = (task_dir / "manifest.toml").read_text()
+    (task_dir / "manifest.toml").write_text(
+        text.replace('missing_symbols = ["mul"]', 'missing_symbols = ["divide"]')
+    )
+    report = qualify(load_manifest(task_dir), bare, _fake_env())
+    assert report["status"] == "disqualified"
+    assert report["failed_gate"] == "base_rejection"
+    assert "divide" in str(report["detail"])
+
+
+def test_qualify_disqualifies_an_unstable_suite(
+    tmp_path: Path, synthetic_clone: SyntheticClone, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Three runs, identical node-level outcomes required.
+
+    The flaky module keys off a marker kept OUTSIDE the workspace --
+    fresh materializations mean anything written inside one is gone by
+    the next run, which is exactly the property being tested.
+    """
+    task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    marker = tmp_path / "flaky-counter"
+    flaky = (
+        "import pathlib\n\n\n"
+        "def test_flaky():\n"
+        f"    marker = pathlib.Path({str(marker)!r})\n"
+        "    seen = len(marker.read_text()) if marker.exists() else 0\n"
+        "    marker.write_text('x' * (seen + 1))\n"
+        "    assert seen % 2 == 0\n"
+    )
+    original = materialize
+
+    @contextmanager
+    def patched(clone_path: Path, sha: str) -> Iterator[Path]:
+        with original(clone_path, sha) as workspace:
+            if sha == synthetic_clone.base_sha:
+                (workspace / "tests" / "test_flaky.py").write_text(flaky)
+            yield workspace
+
+    monkeypatch.setattr(workload_module, "materialize", patched)
+    report = qualify(load_manifest(task_dir), bare, _fake_env())
+
+    assert report["status"] == "disqualified"
+    assert report["failed_gate"] == "stability"
+
+
+def test_qualify_disqualifies_a_slow_suite(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """The sub-minute threshold is enforced, not merely stated."""
+    task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    report = qualify(load_manifest(task_dir), bare, _fake_env(), max_seconds=0.0)
+    assert report["status"] == "disqualified"
+    assert report["failed_gate"] == "runtime"
+
+
+def test_qualify_refuses_a_mismatched_environment(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """A manifest naming a different lock must not be graded against this one."""
+    task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    text = (task_dir / "manifest.toml").read_text()
+    (task_dir / "manifest.toml").write_text(
+        text.replace('lock_sha256 = ""', 'lock_sha256 = "deadbeef"')
+    )
+    report = qualify(load_manifest(task_dir), bare, _fake_env())
+    assert report["status"] == "disqualified"
+    assert report["failed_gate"] == "environment"
+
+
+def test_qualification_records_provenance(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """Evidence must name the exact manifest and environment it came from."""
+    task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    report = qualify(load_manifest(task_dir), bare, _fake_env())
+    assert report["manifest_sha256"] == sha256_file(task_dir / "manifest.toml")
+    assert report["env_python"] == platform.python_version()
+    assert report["base_sha"] == synthetic_clone.base_sha
+    assert report["target_sha"] == synthetic_clone.target_sha

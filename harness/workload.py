@@ -16,6 +16,7 @@ import tomllib
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from pathlib import Path
 
 import harness.grading_plugin as grading_plugin
@@ -730,3 +731,206 @@ def overlay_oracle(clone: Path, manifest: Manifest, destination: Path) -> None:
             target_path = destination / relative
             target_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target_path)
+
+
+CONDITIONS = (
+    "base_preservation",
+    "base_oracle",
+    "target_preservation",
+    "target_oracle",
+)
+
+
+@dataclass(frozen=True)
+class ConditionRun:
+    """One condition, run `repeats` times, each in its own materialization."""
+
+    name: str
+    results: tuple[SuiteResult, ...]
+
+    @property
+    def first(self) -> SuiteResult:
+        return self.results[0]
+
+    @property
+    def stable(self) -> bool:
+        return all(r.fingerprint == self.results[0].fingerprint for r in self.results)
+
+    @property
+    def slowest(self) -> float:
+        return max(r.wall_seconds for r in self.results)
+
+    def payload(self) -> dict[str, object]:
+        return {
+            "reason_class": self.first.reason_class,
+            "returncode": self.first.returncode,
+            "tests_passed": self.first.tests_passed,
+            "runs": len(self.results),
+            "stable": self.stable,
+            "wall_seconds": [round(r.wall_seconds, 3) for r in self.results],
+            "node_count": len(self.first.outcomes),
+        }
+
+
+def _run_condition(
+    name: str,
+    clone: Path,
+    sha: str,
+    command: Sequence[str],
+    env: CohortEnv,
+    manifest: Manifest,
+    overlay: bool,
+    repeats: int,
+    timeout: float,
+) -> ConditionRun:
+    """Run one condition `repeats` times, each in a fresh materialization.
+
+    Freshness is the point. Repeating inside a single workspace tells
+    you whether a suite is idempotent within a directory -- a weaker and
+    different property than whether two independent runs of the same
+    commit agree, which is what a replay task needs.
+    """
+    results = []
+    for _ in range(repeats):
+        with materialize(clone, sha) as workspace:
+            if overlay:
+                overlay_oracle(clone, manifest, workspace)
+            results.append(run_suite(workspace, command, env, timeout))
+    return ConditionRun(name=name, results=tuple(results))
+
+
+def _rejection_mismatch(manifest: Manifest, observed: SuiteResult) -> str | None:
+    """Compare the observed base rejection against the pre-registered fingerprint.
+
+    A class alone is not evidence. `collection-error` is produced both
+    by "the API this task adds does not exist yet" and by "the oracle
+    file has a typo in an unrelated import", and only the first is a
+    task. So the manifest names either the symbols expected to be
+    missing or the nodes expected to fail, and both are checked.
+
+    Searched against full output rather than the tail: a verbose
+    collection error can push a symbol name past the last 4000
+    characters and disqualify a task that was fine.
+    """
+    if observed.reason_class != manifest.base_rejection:
+        return f"base was {observed.reason_class}, manifest declares {manifest.base_rejection}"
+
+    haystack = observed.output or observed.stdout_tail
+    for symbol in manifest.rejection_missing_symbols:
+        if symbol not in haystack:
+            return (
+                f"expected the base to be missing {symbol!r}, "
+                "but it is not named anywhere in the failure"
+            )
+
+    if manifest.rejection_failing_nodes:
+        failed = {
+            node for node, outcome in observed.outcomes.items() if outcome == "failed"
+        }
+        expected = set(manifest.rejection_failing_nodes)
+        if not expected.issubset(failed):
+            return f"expected these nodes to fail: {sorted(expected - failed)}"
+    return None
+
+
+def qualify(
+    manifest: Manifest,
+    clone: Path,
+    env: CohortEnv,
+    repeats: int = 3,
+    timeout: float = 300.0,
+    max_seconds: float = 60.0,
+) -> dict[str, object]:
+    """Prove one task is a real replay task. No model calls.
+
+    Four conditions, in the only order that makes sense: a base that
+    cannot pass its own suite is not a starting point; an oracle that
+    does not reject that base for the pre-registered reason is not
+    measuring the task; a target that cannot pass both is not a
+    solution. Each runs `repeats` times in fresh materializations, and
+    all runs must agree at node level.
+
+    `max_seconds` enforces the sub-minute validation the design
+    requires. `timeout` is the far larger backstop that kills a hung
+    child; a suite landing between the two is a qualification failure,
+    not a crash.
+    """
+    report: dict[str, object] = {
+        "task_id": manifest.task_id,
+        "role": manifest.role,
+        "base_sha": manifest.base_sha,
+        "target_sha": manifest.target_sha,
+        "manifest_sha256": sha256_file(manifest.task_dir / "manifest.toml"),
+        "env_id": manifest.env_id,
+        "env_lock_sha256": env.lock_sha256,
+        "env_python": env.python_version,
+        "env_platform": env.platform,
+        "preservation_command": list(manifest.preservation_command),
+        "oracle_command": list(manifest.oracle_command),
+        "deselects": list(manifest.deselects),
+        "recorded_at": datetime.now(UTC).isoformat(),
+        "repeats": repeats,
+        "max_seconds": max_seconds,
+        "conditions": {},
+    }
+
+    def _disqualify(gate: str, detail: str) -> dict[str, object]:
+        report["status"] = "disqualified"
+        report["failed_gate"] = gate
+        report["detail"] = detail
+        return report
+
+    if manifest.env_lock_sha256 not in ("", env.lock_sha256):
+        return _disqualify(
+            "environment",
+            f"manifest declares lock {manifest.env_lock_sha256[:12]}, "
+            f"cohort env is {env.lock_sha256[:12]}",
+        )
+
+    conditions = report["conditions"]
+    assert isinstance(conditions, dict)
+    plan = (
+        ("base_preservation", manifest.base_sha, manifest.preservation_command, False),
+        ("base_oracle", manifest.base_sha, manifest.oracle_command, True),
+        (
+            "target_preservation",
+            manifest.target_sha,
+            manifest.preservation_command,
+            False,
+        ),
+        ("target_oracle", manifest.target_sha, manifest.oracle_command, True),
+    )
+
+    runs: dict[str, ConditionRun] = {}
+    for name, sha, command, overlay in plan:
+        run = _run_condition(
+            name, clone, sha, command, env, manifest, overlay, repeats, timeout
+        )
+        runs[name] = run
+        conditions[name] = run.payload()
+
+        if name == "base_oracle":
+            mismatch = _rejection_mismatch(manifest, run.first)
+            if mismatch is not None:
+                report["base_oracle_tail"] = run.first.stdout_tail
+                return _disqualify("base_rejection", mismatch)
+        elif run.first.reason_class != "pass":
+            report[f"{name}_tail"] = run.first.stdout_tail
+            return _disqualify(
+                name, f"{name} is {run.first.reason_class}, expected pass"
+            )
+
+    unstable = [name for name, run in runs.items() if not run.stable]
+    if unstable:
+        return _disqualify("stability", f"runs disagreed at node level for: {unstable}")
+
+    slow = {
+        name: round(run.slowest, 3)
+        for name, run in runs.items()
+        if run.slowest > max_seconds
+    }
+    if slow:
+        return _disqualify("runtime", f"conditions exceeded {max_seconds}s: {slow}")
+
+    report["status"] = "qualified"
+    return report
