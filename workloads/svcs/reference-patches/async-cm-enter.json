@@ -4,7 +4,8 @@
   "base_passed": 8,
   "budget_exhausted": "none",
   "changed_paths": [
-    "src/svcs/_core.py"
+    "src/svcs/_core.py",
+    "tests/test_container.py"
   ],
   "executor_env_lock_sha256": "none",
   "gap_closed": 1.0,
@@ -18,7 +19,7 @@
     "node_count": 10,
     "reason_class": "pass",
     "tests_passed": 10,
-    "wall_seconds": 1.187
+    "wall_seconds": 0.93
   },
   "oracle_delta": 2,
   "out_of_scope": [],
@@ -29,10 +30,13 @@
     "node_count": 121,
     "reason_class": "pass",
     "tests_passed": 121,
-    "wall_seconds": 1.367
+    "wall_seconds": 1.239
   },
-  "rule_version": 6,
+  "rule_version": 7,
   "target_total": 10,
   "task_id": "async-cm-enter",
-  "tools": "reference-replay"
+  "tools": "reference-replay",
+  "wrote_tests": [
+    "tests/test_container.py"
+  ]
 }

@@ -1,3 +1,51 @@
+diff --git a/docs/examples/fastapi/test_simple_fastapi_app.py b/docs/examples/fastapi/test_simple_fastapi_app.py
+index b97cc33..070188d 100644
+--- a/docs/examples/fastapi/test_simple_fastapi_app.py
++++ b/docs/examples/fastapi/test_simple_fastapi_app.py
+@@ -4,7 +4,9 @@ import pytest
+ 
+ from fastapi.testclient import TestClient
+ 
+-from simple_fastapi_app import Database, app, lifespan
++import svcs
++
++from simple_fastapi_app import Database, app
+ 
+ 
+ @pytest.fixture(name="client")
+@@ -21,7 +23,7 @@ def test_db_goes_boom(client):
+     # IMPORTANT: Overwriting must happen AFTER the app is ready!
+     db = Mock(spec_set=Database)
+     db.get_user.side_effect = Exception("boom")
+-    lifespan.registry.register_value(Database, db)
++    svcs.fastapi.get_registry(client).register_value(Database, db)
+ 
+     resp = client.get("/users/42")
+ 
+diff --git a/docs/examples/starlette/test_simple_starlette_app.py b/docs/examples/starlette/test_simple_starlette_app.py
+index ac10cd3..9829be4 100644
+--- a/docs/examples/starlette/test_simple_starlette_app.py
++++ b/docs/examples/starlette/test_simple_starlette_app.py
+@@ -4,7 +4,9 @@ import pytest
+ 
+ from starlette.testclient import TestClient
+ 
+-from simple_starlette_app import Database, app, lifespan
++import svcs
++
++from simple_starlette_app import Database, app
+ 
+ 
+ @pytest.fixture(name="client")
+@@ -21,7 +23,7 @@ def test_db_goes_boom(client):
+     # IMPORTANT: Overwriting must happen AFTER the app is ready!
+     db = Mock(spec_set=Database)
+     db.get_user.side_effect = Exception("boom")
+-    lifespan.registry.register_value(Database, db)
++    svcs.starlette.get_registry(client).register_value(Database, db)
+ 
+     resp = client.get("/users/42")
+ 
 diff --git a/src/svcs/fastapi.py b/src/svcs/fastapi.py
 index 3ab361d..36b1dab 100644
 --- a/src/svcs/fastapi.py
@@ -188,3 +236,321 @@ index db1dd24..45a3070 100644
  
  
  @attrs.define
+diff --git a/tests/integrations/test_fastapi.py b/tests/integrations/test_fastapi.py
+index d3e060b..a871d7f 100644
+--- a/tests/integrations/test_fastapi.py
++++ b/tests/integrations/test_fastapi.py
+@@ -3,12 +3,13 @@
+ # SPDX-License-Identifier: MIT
+ 
+ import asyncio
++import typing
+ 
+ from contextlib import asynccontextmanager
+ 
+ import pytest
+ 
+-from fastapi import FastAPI
++from fastapi import APIRouter, FastAPI
+ from fastapi.testclient import TestClient
+ 
+ import svcs
+@@ -68,3 +69,127 @@ async def test_integration(yield_something, cm):
+         assert close_me_container.is_aclosed
+ 
+     assert close_me_registry.is_aclosed
++
++
++def test_get_registry():
++    """
++    get_registry() returns the registry that the lifespan attached to the
++    running app.
++    """
++
++    @svcs.fastapi.lifespan
++    async def lifespan(app: FastAPI, registry: svcs.Registry):
++        yield
++
++    app = FastAPI(lifespan=lifespan)
++
++    with TestClient(app):
++        assert lifespan.registry is svcs.fastapi.get_registry(app)
++
++
++def test_get_registry_with_app_and_router_lifespans():
++    """
++    get_registry() returns the same registry that requests receive when both
++    the application and an included router have svcs-aware lifespans.
++    """
++
++    @svcs.fastapi.lifespan
++    async def app_lifespan(app: FastAPI, registry: svcs.Registry):
++        yield
++
++    @svcs.fastapi.lifespan
++    async def router_lifespan(app: FastAPI, registry: svcs.Registry):
++        yield
++
++    router = APIRouter(lifespan=router_lifespan)
++
++    @router.get("/")
++    async def view(registry: svcs.fastapi.DepRegistry):
++        return {"uses_app_registry": registry is app_lifespan.registry}
++
++    app = FastAPI(lifespan=app_lifespan)
++    app.include_router(router)
++
++    with TestClient(app) as client:
++        assert {"uses_app_registry": True} == client.get("/").json()
++        assert app_lifespan.registry is svcs.fastapi.get_registry(client)
++
++
++def test_get_registry_type_hints():
++    """
++    get_registry()'s annotations can be resolved at runtime.
++    """
++    hints = typing.get_type_hints(svcs.fastapi.get_registry)
++
++    assert FastAPI | TestClient == hints["app"]
++    assert svcs.Registry is hints["return"]
++
++
++def test_get_registry_no_svcs():
++    """
++    get_registry() raises LookupError if no registry is attached.
++    """
++    with pytest.raises(LookupError, match="No svcs registry on app"):
++        svcs.fastapi.get_registry(FastAPI())
++
++
++def test_dep_registry():
++    """
++    The DepRegistry dependency injects the application's registry.
++    """
++
++    @svcs.fastapi.lifespan
++    async def lifespan(app: FastAPI, registry: svcs.Registry):
++        registry.register_value(int, 42)
++
++        yield
++
++    app = FastAPI(lifespan=lifespan)
++
++    @app.get("/")
++    async def view(registry: svcs.fastapi.DepRegistry):
++        return {"same": registry is svcs.fastapi.get_registry(app)}
++
++    with TestClient(app) as client:
++        assert {"same": True} == client.get("/").json()
++
++
++def test_get_registry_test_client():
++    """
++    get_registry() accepts a test client of the app.
++    """
++
++    @svcs.fastapi.lifespan
++    async def lifespan(app: FastAPI, registry: svcs.Registry):
++        yield
++
++    app = FastAPI(lifespan=lifespan)
++
++    with TestClient(app) as client:
++        assert lifespan.registry is svcs.fastapi.get_registry(client)
++
++
++def test_get_registry_test_client_no_svcs():
++    """
++    get_registry() raises LookupError for a client of an app without svcs.
++    """
++    with pytest.raises(LookupError, match="No svcs registry on app"):
++        svcs.fastapi.get_registry(TestClient(FastAPI()))
++
++
++def test_get_registry_after_shutdown():
++    """
++    get_registry() raises LookupError after the app has shut down.
++    """
++
++    @svcs.fastapi.lifespan
++    async def lifespan(app: FastAPI, registry: svcs.Registry):
++        yield
++
++    app = FastAPI(lifespan=lifespan)
++
++    with TestClient(app):
++        pass
++
++    with pytest.raises(LookupError, match="No svcs registry on app"):
++        svcs.fastapi.get_registry(app)
+diff --git a/tests/integrations/test_starlette.py b/tests/integrations/test_starlette.py
+index f7ace21..46042fc 100644
+--- a/tests/integrations/test_starlette.py
++++ b/tests/integrations/test_starlette.py
+@@ -3,6 +3,7 @@
+ # SPDX-License-Identifier: MIT
+ 
+ import asyncio
++import typing
+ 
+ from contextlib import asynccontextmanager
+ 
+@@ -137,3 +138,106 @@ async def test_get_pings(registry, container):
+             ],
+             "ok": ["builtins.int"],
+         } == client.get("/").json()
++
++
++def test_get_registry():
++    """
++    get_registry() returns the registry that the lifespan attached to the
++    running app.
++    """
++
++    @svcs.starlette.lifespan
++    async def lifespan(app: Starlette, registry: svcs.Registry):
++        yield
++
++    app = Starlette(lifespan=lifespan)
++
++    with TestClient(app):
++        assert lifespan.registry is svcs.starlette.get_registry(app)
++
++
++def test_get_registry_type_hints():
++    """
++    get_registry()'s annotations can be resolved at runtime.
++    """
++    hints = typing.get_type_hints(svcs.starlette.get_registry)
++
++    assert Starlette | TestClient == hints["app"]
++    assert svcs.Registry is hints["return"]
++
++
++def test_get_registry_no_svcs():
++    """
++    get_registry() raises LookupError if no registry is attached.
++    """
++    with pytest.raises(LookupError, match="No svcs registry on app"):
++        svcs.starlette.get_registry(Starlette())
++
++
++def test_get_registry_test_client():
++    """
++    get_registry() accepts a test client of the app.
++    """
++
++    @svcs.starlette.lifespan
++    async def lifespan(app: Starlette, registry: svcs.Registry):
++        yield
++
++    app = Starlette(lifespan=lifespan)
++
++    with TestClient(app) as client:
++        assert lifespan.registry is svcs.starlette.get_registry(client)
++
++
++def test_get_registry_test_client_no_svcs():
++    """
++    get_registry() raises LookupError for a client of an app without svcs.
++    """
++    with pytest.raises(LookupError, match="No svcs registry on app"):
++        svcs.starlette.get_registry(TestClient(Starlette()))
++
++
++def test_get_registry_after_shutdown():
++    """
++    get_registry() raises LookupError after the app has shut down.
++    """
++
++    @svcs.starlette.lifespan
++    async def lifespan(app: Starlette, registry: svcs.Registry):
++        yield
++
++    app = Starlette(lifespan=lifespan)
++
++    with TestClient(app):
++        pass
++
++    with pytest.raises(LookupError, match="No svcs registry on app"):
++        svcs.starlette.get_registry(app)
++
++
++def test_get_registry_composed_lifespans():
++    """
++    With composed svcs lifespans, the first one wins and detaches the
++    registry on shutdown.
++    """
++
++    @svcs.starlette.lifespan
++    async def first(app: Starlette, registry: svcs.Registry):
++        yield
++
++    @svcs.starlette.lifespan
++    async def second(app: Starlette, registry: svcs.Registry):
++        yield
++
++    @asynccontextmanager
++    async def combined(app: Starlette):
++        async with first(app) as first_state, second(app) as second_state:
++            yield {**second_state, **first_state}
++
++    app = Starlette(lifespan=combined)
++
++    with TestClient(app):
++        assert first.registry is svcs.starlette.get_registry(app)
++
++    with pytest.raises(LookupError, match="No svcs registry on app"):
++        svcs.starlette.get_registry(app)
+diff --git a/typing_tests/fastapi.py b/typing_tests/fastapi.py
+index 35b8fff..d55fdfb 100644
+--- a/typing_tests/fastapi.py
++++ b/typing_tests/fastapi.py
+@@ -12,6 +12,7 @@ from typing import Annotated
+ 
+ from fastapi import Depends, FastAPI
+ from fastapi.responses import JSONResponse
++from fastapi.testclient import TestClient
+ 
+ import svcs
+ 
+@@ -72,3 +73,17 @@ async def view2(services: svcs.fastapi.DepContainer) -> JSONResponse:
+     assert_type(services.get(int), int)
+ 
+     return JSONResponse({}, 200)
++
++
++assert_type(svcs.fastapi.get_registry(app), svcs.Registry)
++
++
++@app.get("/")
++async def view3(registry: svcs.fastapi.DepRegistry) -> JSONResponse:
++    assert_type(registry, svcs.Registry)
++
++    return JSONResponse({}, 200)
++
++
++client = TestClient(app)
++assert_type(svcs.fastapi.get_registry(client), svcs.Registry)
+diff --git a/typing_tests/starlette.py b/typing_tests/starlette.py
+index 79eef94..3ae79bb 100644
+--- a/typing_tests/starlette.py
++++ b/typing_tests/starlette.py
+@@ -13,6 +13,7 @@ from typing import Protocol
+ from starlette.applications import Starlette
+ from starlette.middleware import Middleware
+ from starlette.requests import Request
++from starlette.testclient import TestClient
+ 
+ import svcs
+ 
+@@ -87,3 +88,9 @@ async def func() -> None:
+ 
+ 
+ assert_type(svcs.starlette.svcs_from(request), svcs.Container)
++
++assert_type(svcs.starlette.get_registry(app), svcs.Registry)
++
++client = TestClient(app)
++
++assert_type(svcs.starlette.get_registry(client), svcs.Registry)

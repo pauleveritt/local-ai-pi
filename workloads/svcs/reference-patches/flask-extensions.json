@@ -4,7 +4,8 @@
   "base_passed": 17,
   "budget_exhausted": "none",
   "changed_paths": [
-    "src/svcs/flask.py"
+    "src/svcs/flask.py",
+    "tests/integrations/test_flask.py"
   ],
   "executor_env_lock_sha256": "none",
   "gap_closed": 1.0,
@@ -18,7 +19,7 @@
     "node_count": 19,
     "reason_class": "pass",
     "tests_passed": 19,
-    "wall_seconds": 1.043
+    "wall_seconds": 0.954
   },
   "oracle_delta": 2,
   "out_of_scope": [],
@@ -29,10 +30,13 @@
     "node_count": 109,
     "reason_class": "pass",
     "tests_passed": 109,
-    "wall_seconds": 1.349
+    "wall_seconds": 1.169
   },
-  "rule_version": 6,
+  "rule_version": 7,
   "target_total": 19,
   "task_id": "flask-extensions",
-  "tools": "reference-replay"
+  "tools": "reference-replay",
+  "wrote_tests": [
+    "tests/integrations/test_flask.py"
+  ]
 }

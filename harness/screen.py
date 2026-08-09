@@ -99,6 +99,16 @@ class Attempt:
     preservation: SuiteResult | None
     oracle: SuiteResult | None
     argv: tuple[str, ...] = field(default=(), repr=False)
+    wrote_tests: tuple[str, ...] = ()
+    """Test files the model wrote, permitted and never executed.
+
+    Its own field rather than folded into `out_of_scope`, because it is
+    the finding of a different question: no brief tells the model not to
+    write tests, writing one is ordinary practice, and every target
+    commit in this cohort does it. If contracts have to carry "do not
+    write tests" to keep candidates in scope, that instruction is a real
+    cost of the pre-chewed-work pitch and its rate is what says so.
+    """
     budget_exhausted: str = "none"
     """Which budget ran out: "none", "turns", "tools", or "turns+tools".
 
@@ -159,6 +169,7 @@ class Attempt:
             "preservation": suite(self.preservation),
             "oracle": suite(self.oracle),
             "argv": list(self.argv),
+            "wrote_tests": list(self.wrote_tests),
             "budget_exhausted": self.budget_exhausted,
             "executor_env_lock_sha256": self.executor_env_lock_sha256,
         }
@@ -327,26 +338,48 @@ def _changed_paths(workspace: Path) -> tuple[str, ...]:
     return tuple(sorted(p for p in listing.stdout.splitlines() if p.strip()))
 
 
-def _out_of_scope(
-    changed: tuple[str, ...], writable: tuple[str, ...]
-) -> tuple[str, ...]:
-    """Changed paths that no writable pattern admits.
+def _matches(path: str, patterns: tuple[str, ...]) -> bool:
+    return any(fnmatch.fnmatch(path, pattern) for pattern in patterns)
 
-    Scope is an explicit contract invariant, so a violation is recorded
-    rather than merely noted -- but it is recorded, not blocked. The
-    screen observes what the model did; it does not constrain it.
+
+def _out_of_scope(
+    changed: tuple[str, ...],
+    writable: tuple[str, ...],
+    test_paths: tuple[str, ...] = (),
+) -> tuple[str, ...]:
+    """Changed paths that neither the writable policy nor the test roots admit.
+
+    Three categories, not two. `writable` is what gets graded. `test_paths`
+    is where the repository keeps its tests: writes there are permitted and
+    recorded, never executed, and not an acceptance failure. Everything
+    else -- changelog, prose docs, packaging, lockfiles -- is a violation.
+
+    The middle category exists because all eight of this cohort's target
+    commits write tests. Judging a candidate against `writable` alone
+    rejected the reference answer on every task, which is the same defect
+    that killed rule 4, arriving by a different route: the first executor
+    to be given a shell and an environment wrote a test on both tasks it
+    attempted, closed the whole oracle gap on both, and was rejected for
+    doing what upstream did.
+
+    Nothing about self-grading changes. `apply_candidate(include=writable)`
+    still strips test edits before both graded runs, so a model-authored
+    test is recorded and never runs.
+
+    Recorded, not blocked: the screen observes what the model did; it does
+    not constrain it.
     """
     return tuple(
         path
         for path in changed
-        if not any(fnmatch.fnmatch(path, pattern) for pattern in writable)
+        if not _matches(path, writable) and not _matches(path, test_paths)
     )
 
 
-GRADING_RULE_VERSION = 6
+GRADING_RULE_VERSION = 7
 """Bumped whenever the acceptance rule changes.
 
-Every grade records it, because six rules have now produced different
+Every grade records it, because seven rules have now produced different
 verdicts on identical candidates and a record that does not say which one
 scored it cannot be compared with anything.
 
@@ -356,6 +389,7 @@ scored it cannot be compared with anything.
   4  separate workspaces, production paths only, node inventory
   5  node inventory counts position-keyed nodes instead of naming them
   6  damage outranks scope violation in the reported outcome
+  7  writing tests is permitted and recorded, not a scope violation
 
 Rule 4 was found by the ceiling replay: the *target's own diff* graded as
 `tests-vanished` on four of nine tasks, because Sybil node ids move when
@@ -440,6 +474,7 @@ def grade_candidate(
     suite_timeout: float = 300.0,
     executor_env_lock_sha256: str = "none",
     budget_exhausted: str = "none",
+    test_paths: tuple[str, ...] = (),
 ) -> Attempt:
     """Score one saved candidate. Pure, offline, no model call.
 
@@ -479,7 +514,12 @@ def grade_candidate(
     with materialize(clone, manifest.base_sha) as inspect:
         apply_candidate(inspect, patch)
         changed = _changed_paths(inspect)
-        out_of_scope = _out_of_scope(changed, manifest.writable)
+        out_of_scope = _out_of_scope(changed, manifest.writable, test_paths)
+        wrote_tests = tuple(
+            path
+            for path in changed
+            if not _matches(path, manifest.writable) and _matches(path, test_paths)
+        )
 
     with materialize(clone, manifest.base_sha) as preserving:
         apply_candidate(preserving, patch, include=manifest.writable)
@@ -544,6 +584,7 @@ def grade_candidate(
         argv=argv,
         executor_env_lock_sha256=executor_env_lock_sha256,
         budget_exhausted=budget_exhausted,
+        wrote_tests=wrote_tests,
     )
 
 
@@ -557,6 +598,7 @@ def screen_task(
     suite_timeout: float = 300.0,
     executor_env_source: Path | None = None,
     extension: Path = ENVELOPE_EXTENSION,
+    test_paths: tuple[str, ...] = (),
 ) -> tuple[Attempt, str, str]:
     """One bounded model attempt, with its candidate patch and transcript.
 
@@ -614,6 +656,7 @@ def screen_task(
         suite_timeout=suite_timeout,
         executor_env_lock_sha256=env_lock,
         budget_exhausted=budget_exhaustion(child.stdout),
+        test_paths=test_paths,
     )
     return attempt, patch, child.stdout
 

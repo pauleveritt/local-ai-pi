@@ -12,7 +12,9 @@ absolute-score headline reads that as a near-miss.
 
   gap closed        did the candidate move the oracle, and how far
   accepted          the full acceptance rule, scope violations included
-  scope violations  paths written outside `writable`, a finding of its own
+  scope violations  paths outside both `writable` and the test roots
+  wrote tests       tests the model added: permitted, never executed, and
+                    a finding of its own rather than a failure
 """
 
 import argparse
@@ -39,6 +41,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     for record in records:
         violations = record["out_of_scope"]
         note = f"  scope:{list(violations)}" if violations else ""
+        if record.get("wrote_tests"):
+            note += f"  +tests:{len(record['wrote_tests'])}"
         if record["model_timed_out"]:
             note += "  TIMED-OUT"
         # Printed on every line, never summarised away: a run that stopped
@@ -59,6 +63,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     partial = sum(1 for r in records if 0 < r["gap_closed"] < 1.0)
     accepted = sum(1 for r in records if r["accepted"])
     scoped = sum(1 for r in records if r["out_of_scope"])
+    tested = sum(1 for r in records if r.get("wrote_tests"))
     total = len(records)
     rules = sorted({r["rule_version"] for r in records})
     capped = sum(1 for r in records if r.get("budget_exhausted", "none") != "none")
@@ -68,6 +73,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"   (partial: {partial})"
         f"\naccepted         {accepted}/{total}"
         f"\nscope violations {scoped}/{total}"
+        f"\nwrote tests      {tested}/{total}"
         f"\nbudget exhausted {capped}/{total}"
         f"\nrule version(s)  {rules}"
     )

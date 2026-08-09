@@ -26,15 +26,24 @@ import harness.screen as screen
 import harness.workload as workload
 
 
-def reference_patch(clone: Path, manifest: workload.Manifest) -> str:
-    """The target's own diff, restricted to the writable paths.
+def reference_patch(
+    clone: Path, manifest: workload.Manifest, test_paths: tuple[str, ...]
+) -> str:
+    """The target's own diff, restricted to what a candidate may write.
 
-    Restricted because the control has to be the same shape as what
-    grading executes. The target's CHANGELOG, docs and test-adaptation
-    edits are real, but no candidate is ever graded on them.
+    Writable paths **and test paths**, not writable alone. Restricting to
+    writable was how this control went blind: it truncated the reference
+    answer until it could not violate the scope rule, so it could never
+    detect that the scope rule rejected the reference answer. All eight
+    target commits write tests, and the truncation hid that on all eight.
+
+    A control that edits the evidence until it passes is not a control.
+    Prose docs, changelog and packaging stay out -- those are genuinely
+    not the task, and a candidate touching them is genuinely off-scope.
     """
+    patterns = tuple(manifest.writable) + tuple(test_paths)
     pathspecs = [
-        pattern.removesuffix("**").rstrip("/") or "." for pattern in manifest.writable
+        pattern.removesuffix("**").rstrip("/") or "." for pattern in patterns
     ]
     return subprocess.run(
         ["git", "diff", "--binary", manifest.base_sha, manifest.target_sha, "--"]
@@ -69,11 +78,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     task_ids = args.task or list(cohort.included)
     for task_id in task_ids:
         manifest = workload.load_manifest(cohort.task_dir(task_id))
-        patch = reference_patch(clone, manifest)
+        patch = reference_patch(clone, manifest, cohort.test_paths)
         (args.out / f"{task_id}.patch").write_text(patch)
 
         attempt = screen.grade_candidate(
-            manifest, clone, env, patch, tools="reference-replay"
+            manifest,
+            clone,
+            env,
+            patch,
+            tools="reference-replay",
+            test_paths=cohort.test_paths,
         )
         screen.write_attempt(args.out / f"{task_id}.json", attempt)
 

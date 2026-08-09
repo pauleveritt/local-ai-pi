@@ -4,7 +4,8 @@
   "base_passed": 15,
   "budget_exhausted": "none",
   "changed_paths": [
-    "src/svcs/_core.py"
+    "src/svcs/_core.py",
+    "tests/test_container.py"
   ],
   "executor_env_lock_sha256": "none",
   "gap_closed": 1.0,
@@ -18,7 +19,7 @@
     "node_count": 18,
     "reason_class": "pass",
     "tests_passed": 18,
-    "wall_seconds": 1.045
+    "wall_seconds": 0.919
   },
   "oracle_delta": 3,
   "out_of_scope": [],
@@ -29,10 +30,13 @@
     "node_count": 122,
     "reason_class": "pass",
     "tests_passed": 122,
-    "wall_seconds": 1.265
+    "wall_seconds": 1.148
   },
-  "rule_version": 6,
+  "rule_version": 7,
   "target_total": 18,
   "task_id": "local-pings",
-  "tools": "reference-replay"
+  "tools": "reference-replay",
+  "wrote_tests": [
+    "tests/test_container.py"
+  ]
 }

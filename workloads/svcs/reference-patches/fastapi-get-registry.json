@@ -4,8 +4,14 @@
   "base_passed": 9,
   "budget_exhausted": "none",
   "changed_paths": [
+    "docs/examples/fastapi/test_simple_fastapi_app.py",
+    "docs/examples/starlette/test_simple_starlette_app.py",
     "src/svcs/fastapi.py",
-    "src/svcs/starlette.py"
+    "src/svcs/starlette.py",
+    "tests/integrations/test_fastapi.py",
+    "tests/integrations/test_starlette.py",
+    "typing_tests/fastapi.py",
+    "typing_tests/starlette.py"
   ],
   "executor_env_lock_sha256": "none",
   "gap_closed": 1.0,
@@ -19,7 +25,7 @@
     "node_count": 24,
     "reason_class": "pass",
     "tests_passed": 24,
-    "wall_seconds": 0.953
+    "wall_seconds": 0.845
   },
   "oracle_delta": 15,
   "out_of_scope": [],
@@ -30,10 +36,18 @@
     "node_count": 182,
     "reason_class": "pass",
     "tests_passed": 182,
-    "wall_seconds": 1.11
+    "wall_seconds": 1.019
   },
-  "rule_version": 6,
+  "rule_version": 7,
   "target_total": 24,
   "task_id": "fastapi-get-registry",
-  "tools": "reference-replay"
+  "tools": "reference-replay",
+  "wrote_tests": [
+    "docs/examples/fastapi/test_simple_fastapi_app.py",
+    "docs/examples/starlette/test_simple_starlette_app.py",
+    "tests/integrations/test_fastapi.py",
+    "tests/integrations/test_starlette.py",
+    "typing_tests/fastapi.py",
+    "typing_tests/starlette.py"
+  ]
 }

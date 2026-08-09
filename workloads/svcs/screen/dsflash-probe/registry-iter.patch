@@ -1,0 +1,93 @@
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index d90c595..550342b 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -24,7 +24,7 @@ from inspect import (
+     isgeneratorfunction,
+ )
+ from types import TracebackType
+-from typing import Any, TypeVar, overload
++from typing import Any, Iterator, TypeVar, overload
+ 
+ import attrs
+ 
+@@ -161,6 +161,25 @@ class Registry:
+         """
+         return svc_type in self._services
+ 
++    def __iter__(self) -> Iterator[RegisteredService]:
++        """
++        Iterate over the registered services.
++
++        Iterating yields the :class:`RegisteredService` instances that the
++        registry stores for each registered type:
++
++        .. doctest::
++
++            >>> reg = svcs.Registry()
++            >>> reg.register_value(int, 42)
++            >>> list(reg)[0].svc_type
++            <class 'int'>
++            >>> for rs in reg:
++            ...     rs.svc_type
++            <class 'int'>
++        """
++        return iter(self._services.values())
++
+     def __enter__(self) -> Registry:
+         return self
+ 
+diff --git a/tests/test_registry.py b/tests/test_registry.py
+index bc6d01c..82c626e 100644
+--- a/tests/test_registry.py
++++ b/tests/test_registry.py
+@@ -281,6 +281,31 @@ class TestRegistry:
+         assert Service in registry
+         assert AnotherService not in registry
+ 
++    def test_iter_empty(self, registry):
++        """
++        Iterating an empty registry yields nothing.
++        """
++        assert [] == list(registry)
++
++    def test_iter_yields_registered_services(self, registry):
++        """
++        Iterating a registry yields the RegisteredService instances it stores
++        for each registered type.
++        """
++        registry.register_factory(Service, Service)
++        registry.register_factory(AnotherService, AnotherService)
++
++        services = list(registry)
++
++        assert services == [
++            registry.get_registered_service_for(Service),
++            registry.get_registered_service_for(AnotherService),
++        ]
++
++        # Iterating works with `for` loops, too.
++        for service in registry:
++            assert service in services
++
+     def test_gc_warning(self, recwarn):
+         """
+         If a registry is gc'ed with pending cleanups, a warning is raised.
+diff --git a/tests/typing/core.py b/tests/typing/core.py
+index a095702..2d93ec0 100644
+--- a/tests/typing/core.py
++++ b/tests/typing/core.py
+@@ -79,6 +79,13 @@ reg.register_value(int, 1, ping=lambda: None)
+ reg.register_value(int, 1, ping=async_ping)
+ reg.register_value(int, gen)
+ 
++# Registry is iterable over its registered services.
++for rs in reg:
++    registered: svcs.RegisteredService = rs
++    registered = rs
++
++listed: list[svcs.RegisteredService] = list(reg)
++
+ reg.register_factory(str, str)
+ reg.register_factory(int, factory_with_cleanup)
+ reg.register_factory(int, factory_with_cleanup_ctx)

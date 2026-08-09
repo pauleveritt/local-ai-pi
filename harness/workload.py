@@ -1107,7 +1107,21 @@ def qualify(
 
 @dataclass(frozen=True)
 class Cohort:
-    """A candidate ladder plus the frozen record of what survived it."""
+    """A candidate ladder plus the frozen record of what survived it.
+
+    `test_paths` is where this repository keeps its tests. It is a
+    property of the repository rather than of any task, which is why it
+    lives here and not in the frozen per-task manifests -- adding it
+    changes no manifest and bumps no `contract_version`.
+
+    It exists because every one of this cohort's target commits writes
+    tests: 8 of 8. A `writable` policy of `src/svcs/**` alone therefore
+    forbids exactly what the reference answer does on every task, and a
+    rule the reference answer violates rejects every correct answer.
+    Model-written tests are still never executed -- grading applies
+    `writable` only -- so this changes whether writing one is a
+    *failure*, not whether it can grade itself.
+    """
 
     name: str
     upstream: str
@@ -1115,6 +1129,7 @@ class Cohort:
     tasks: tuple[str, ...]
     included: tuple[str, ...]
     excluded: dict[str, str]
+    test_paths: tuple[str, ...]
     root: Path
 
     def task_dir(self, task_id: str) -> Path:
@@ -1176,6 +1191,7 @@ def load_cohort(path: Path, require_accounting: bool = False) -> Cohort:
         tasks=tasks,
         included=included,
         excluded=excluded,
+        test_paths=_optional_strings(data, "test_paths", "cohort"),
         root=path.parent,
     )
     if require_accounting and cohort.unaccounted:

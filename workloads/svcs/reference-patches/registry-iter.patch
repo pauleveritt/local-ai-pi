@@ -54,3 +54,28 @@ index d90c595..2354d83 100644
      def __enter__(self) -> Registry:
          return self
  
+diff --git a/tests/test_registry.py b/tests/test_registry.py
+index bc6d01c..a11c266 100644
+--- a/tests/test_registry.py
++++ b/tests/test_registry.py
+@@ -281,6 +281,20 @@ class TestRegistry:
+         assert Service in registry
+         assert AnotherService not in registry
+ 
++    def test_iterate(self, registry):
++        """
++        It's possible to iterate over the registered services.
++        """
++        registry.register_factory(Service, Service)
++        registry.register_factory(AnotherService, AnotherService)
++
++        assert {
++            svcs.RegisteredService(Service, Service, False, True, None),
++            svcs.RegisteredService(
++                AnotherService, AnotherService, False, True, None
++            ),
++        } == {rs for rs in registry}  # noqa: C416 -- explicit on purpose
++
+     def test_gc_warning(self, recwarn):
+         """
+         If a registry is gc'ed with pending cleanups, a warning is raised.

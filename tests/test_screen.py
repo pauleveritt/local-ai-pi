@@ -214,10 +214,15 @@ def _candidate(task: Task, files: dict[str, str]) -> str:
         ).stdout
 
 
-def _grade(task: Task, files: dict[str, str]):
+def _grade(task: Task, files: dict[str, str], test_paths: tuple[str, ...] = ()):
     manifest = load_manifest(task.manifest_dir)
     return grade_candidate(
-        manifest, task.clone, _fake_env(), _candidate(task, files), tools=ENVELOPE_TOOLS
+        manifest,
+        task.clone,
+        _fake_env(),
+        _candidate(task, files),
+        tools=ENVELOPE_TOOLS,
+        test_paths=test_paths,
     )
 
 
@@ -560,3 +565,46 @@ def test_budget_exhaustion_is_read_from_the_transcript() -> None:
         budget_exhaustion("turn_budget_exhausted ... tool_budget_exhausted")
         == "turns+tools"
     )
+
+
+def test_writing_a_test_is_permitted_and_recorded(relocating_task: Task) -> None:
+    """The rule that rejected the reference answer on all eight tasks.
+
+    Every target commit in this cohort writes tests. Judging a candidate
+    against `writable` alone therefore forbids exactly what upstream did,
+    and a rule the reference answer violates rejects every correct
+    answer -- the defect that killed rule 4, arriving by another route.
+
+    The write is recorded and the test is still never executed, so
+    nothing about self-grading changes.
+    """
+    attempt = _grade(
+        relocating_task,
+        {
+            "src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n",
+            "tests/test_mine.py": "def test_mine():\n    assert True\n",
+        },
+        test_paths=("tests/**",),
+    )
+    assert attempt.wrote_tests == ("tests/test_mine.py",)
+    assert attempt.out_of_scope == ()
+    assert attempt.accepted
+    assert attempt.outcome == "accepted"
+
+
+def test_prose_and_packaging_are_still_violations(relocating_task: Task) -> None:
+    """Permitting tests must not permit everything else.
+
+    A changelog entry or a packaging change is genuinely not the task, and
+    stays a violation under the same rule that stops penalising tests.
+    """
+    attempt = _grade(
+        relocating_task,
+        {
+            "src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n",
+            "CHANGELOG.md": "- did a thing\n",
+        },
+        test_paths=("tests/**",),
+    )
+    assert attempt.out_of_scope == ("CHANGELOG.md",)
+    assert not attempt.accepted

@@ -56,3 +56,25 @@ index 810f74c..f999530 100644
          reg.close()
  
  
+diff --git a/tests/integrations/test_flask.py b/tests/integrations/test_flask.py
+index abcca4c..43a3153 100644
+--- a/tests/integrations/test_flask.py
++++ b/tests/integrations/test_flask.py
+@@ -263,7 +263,7 @@ class TestInitApp:
+         app = flask.Flask("tests")
+         svcs.flask.init_app(app)
+ 
+-        assert isinstance(app.config["svcs_registry"], svcs.Registry)
++        assert isinstance(app.extensions["svcs_registry"], svcs.Registry)
+ 
+     def test_explicit_registry(self):
+         """
+@@ -273,7 +273,7 @@ class TestInitApp:
+         app = flask.Flask("tests")
+         svcs.flask.init_app(app, registry=registry)
+ 
+-        assert registry is app.config["svcs_registry"]
++        assert registry is app.extensions["svcs_registry"]
+ 
+ 
+ class TestCloseRegistry:

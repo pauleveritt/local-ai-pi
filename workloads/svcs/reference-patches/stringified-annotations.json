@@ -4,7 +4,9 @@
   "base_passed": 32,
   "budget_exhausted": "none",
   "changed_paths": [
-    "src/svcs/_core.py"
+    "conftest.py",
+    "src/svcs/_core.py",
+    "tests/test_registry.py"
   ],
   "executor_env_lock_sha256": "none",
   "gap_closed": 1.0,
@@ -18,7 +20,7 @@
     "node_count": 34,
     "reason_class": "pass",
     "tests_passed": 34,
-    "wall_seconds": 1.083
+    "wall_seconds": 0.956
   },
   "oracle_delta": 2,
   "out_of_scope": [],
@@ -29,10 +31,14 @@
     "node_count": 91,
     "reason_class": "pass",
     "tests_passed": 91,
-    "wall_seconds": 1.317
+    "wall_seconds": 1.165
   },
-  "rule_version": 6,
+  "rule_version": 7,
   "target_total": 34,
   "task_id": "stringified-annotations",
-  "tools": "reference-replay"
+  "tools": "reference-replay",
+  "wrote_tests": [
+    "conftest.py",
+    "tests/test_registry.py"
+  ]
 }

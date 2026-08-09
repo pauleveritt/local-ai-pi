@@ -5,7 +5,12 @@
   "budget_exhausted": "none",
   "changed_paths": [
     "src/svcs/__init__.py",
-    "src/svcs/_autowire.py"
+    "src/svcs/_autowire.py",
+    "tests/fake_factories.py",
+    "tests/fake_services.py",
+    "tests/ifaces.py",
+    "tests/test_autowire.py",
+    "tests/typing/core.py"
   ],
   "executor_env_lock_sha256": "none",
   "gap_closed": 1.0,
@@ -19,7 +24,7 @@
     "node_count": 67,
     "reason_class": "pass",
     "tests_passed": 67,
-    "wall_seconds": 1.08
+    "wall_seconds": 1.14
   },
   "oracle_delta": 67,
   "out_of_scope": [],
@@ -30,10 +35,17 @@
     "node_count": 130,
     "reason_class": "pass",
     "tests_passed": 130,
-    "wall_seconds": 1.256
+    "wall_seconds": 1.176
   },
-  "rule_version": 6,
+  "rule_version": 7,
   "target_total": 67,
   "task_id": "autowire",
-  "tools": "reference-replay"
+  "tools": "reference-replay",
+  "wrote_tests": [
+    "tests/fake_factories.py",
+    "tests/fake_services.py",
+    "tests/ifaces.py",
+    "tests/test_autowire.py",
+    "tests/typing/core.py"
+  ]
 }

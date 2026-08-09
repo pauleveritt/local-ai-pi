@@ -24,3 +24,72 @@ index 4ed8a51..d90c595 100644
              self._instantiated[svc_type] = svc
  
              rv.append(svc)
+diff --git a/tests/test_container.py b/tests/test_container.py
+index 4f9838b..12dda6c 100644
+--- a/tests/test_container.py
++++ b/tests/test_container.py
+@@ -4,6 +4,7 @@
+ 
+ import gc
+ 
++from contextlib import asynccontextmanager, contextmanager
+ from unittest.mock import Mock
+ 
+ import pytest
+@@ -91,6 +92,56 @@ class TestContainer:
+ 
+         assert close_me.is_aclosed
+ 
++    @pytest.mark.asyncio
++    async def test_async_context_manager_sync_factory(self, container):
++        """
++        If an async factory returns an context manager, it's entered.
++        """
++        entered = left = False
++
++        @contextmanager
++        def cm():
++            nonlocal entered, left
++            entered = True
++            yield 42
++            left = True
++
++        async def factory(svcs_container):
++            return cm()
++
++        container.registry.register_factory(int, factory)
++
++        async with container:
++            assert 42 == await container.aget(int)
++
++        assert entered
++        assert left
++
++    @pytest.mark.asyncio
++    async def test_async_context_manager_async_factory(self, container):
++        """
++        If an async factory returns an async context manager, it's entered.
++        """
++        entered = left = False
++
++        @asynccontextmanager
++        async def cm():
++            nonlocal entered, left
++            entered = True
++            yield 42
++            left = True
++
++        async def factory(svcs_container):
++            return cm()
++
++        container.registry.register_factory(int, factory)
++
++        async with container:
++            assert 42 == await container.aget(int)
++
++        assert entered
++        assert left
++
+     def test_gc_warning(self, recwarn, registry):
+         """
+         If a container is gc'ed with pending cleanups, a warning is raised.

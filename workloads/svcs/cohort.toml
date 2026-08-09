@@ -13,6 +13,25 @@ name = "svcs"
 upstream = "https://github.com/hynek/svcs"
 env = "env"
 
+# Where this repository keeps its tests.
+#
+# A write here is permitted and recorded, but never executed and never an
+# acceptance failure. Every one of this cohort's eight target commits writes
+# tests, so a policy of `src/svcs/**` alone forbids precisely what the
+# reference answer does on every task -- and a rule the reference answer
+# violates rejects every correct answer, which is how grading rule 4 died.
+#
+# Repository-level, not per-task, so this adds nothing to a frozen manifest.
+# `docs/examples/**` is here because svcs runs those files as tests;
+# `typing_tests/**` likewise. Both are touched by `fastapi-get-registry`'s
+# target commit. Prose under `docs/` is *not* here and remains a violation.
+test_paths = [
+  "tests/**",
+  "conftest.py",
+  "typing_tests/**",
+  "docs/examples/**",
+]
+
 tasks = [
   "registry-iter",
   "magicmock-factory",

@@ -56,6 +56,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             model_timed_out=bool(prior.get("model_timed_out", False)),
             tools=str(prior.get("tools", screen.ENVELOPE_TOOLS)),
             argv=tuple(prior.get("argv", ())),
+            executor_env_lock_sha256=str(prior.get("executor_env_lock_sha256", "none")),
+            budget_exhausted=str(prior.get("budget_exhausted", "none")),
+            test_paths=cohort.test_paths,
         )
 
         screen.write_attempt(record, attempt)

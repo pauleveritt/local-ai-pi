@@ -89,6 +89,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             timeout=args.timeout,
             executor_env_source=None if args.blind else cohort.env_dir,
             extension=screen.PROBE_EXTENSION if args.probe else screen.ENVELOPE_EXTENSION,
+            test_paths=cohort.test_paths,
         )
         # The patch is what a later grading change replays against; the
         # transcript is what a later *reading* replays against. Both cost
@@ -105,6 +106,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             else "no changes written"
         )
         flag = " OUT-OF-SCOPE" if attempt.out_of_scope else ""
+        if attempt.wrote_tests:
+            flag += " +tests"
         if attempt.budget_exhausted != "none":
             flag += f" BUDGET:{attempt.budget_exhausted}"
         print(
