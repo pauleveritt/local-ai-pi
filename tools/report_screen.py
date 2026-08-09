@@ -41,6 +41,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         note = f"  scope:{list(violations)}" if violations else ""
         if record["model_timed_out"]:
             note += "  TIMED-OUT"
+        # Printed on every line, never summarised away: a run that stopped
+        # at the ceiling is not a run that could not do the work.
+        if record.get("budget_exhausted", "none") != "none":
+            note += f"  BUDGET:{record['budget_exhausted']}"
         print(
             f"{record['task_id']:26} "
             f"{'FULL' if record['gap_closed'] >= 1.0 else '    '} "
@@ -57,12 +61,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     scoped = sum(1 for r in records if r["out_of_scope"])
     total = len(records)
     rules = sorted({r["rule_version"] for r in records})
+    capped = sum(1 for r in records if r.get("budget_exhausted", "none") != "none")
 
     print(
         f"\ngap closed       {closed}/{total}"
         f"   (partial: {partial})"
         f"\naccepted         {accepted}/{total}"
         f"\nscope violations {scoped}/{total}"
+        f"\nbudget exhausted {capped}/{total}"
         f"\nrule version(s)  {rules}"
     )
     if len(rules) > 1:

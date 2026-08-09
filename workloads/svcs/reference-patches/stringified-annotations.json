@@ -2,9 +2,11 @@
   "accepted": true,
   "argv": [],
   "base_passed": 32,
+  "budget_exhausted": "none",
   "changed_paths": [
     "src/svcs/_core.py"
   ],
+  "executor_env_lock_sha256": "none",
   "gap_closed": 1.0,
   "manifest_sha256": "1f4f55ca013bed03b6092c4b0051c3e8c6d46e083615faf97e306397530c629a",
   "missing_nodes": [],
@@ -16,7 +18,7 @@
     "node_count": 34,
     "reason_class": "pass",
     "tests_passed": 34,
-    "wall_seconds": 0.977
+    "wall_seconds": 1.083
   },
   "oracle_delta": 2,
   "out_of_scope": [],
@@ -27,9 +29,9 @@
     "node_count": 91,
     "reason_class": "pass",
     "tests_passed": 91,
-    "wall_seconds": 1.183
+    "wall_seconds": 1.317
   },
-  "rule_version": 5,
+  "rule_version": 6,
   "target_total": 34,
   "task_id": "stringified-annotations",
   "tools": "reference-replay"

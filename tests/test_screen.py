@@ -65,7 +65,11 @@ def relocating_task(tmp_path: Path) -> Task:
     source = tmp_path / "source"
     source.mkdir()
     _git(source, "init", "-q")
-    _write(source, "src/pkg/__init__.py", "LOCATION = 'config'\nCASES = [1, 2, 3]\n")
+    _write(
+        source,
+        "src/pkg/__init__.py",
+        "LOCATION = 'config'\nCASES = [1, 2, 3]\nFLAG = 'on'\n",
+    )
     _write(
         source,
         "tests/test_where.py",
@@ -75,6 +79,14 @@ def relocating_task(tmp_path: Path) -> Task:
         source,
         "tests/test_other.py",
         "def test_other():\n    assert True\n",
+    )
+    # A base test whose node id does not depend on the value it asserts,
+    # so a production edit can fail it without renaming anything. That is
+    # what separates "damaged" from "tests-vanished".
+    _write(
+        source,
+        "tests/test_flag.py",
+        "from pkg import FLAG\n\n\ndef test_flag():\n    assert FLAG == 'on'\n",
     )
     # Parametrised over a production constant, so a production edit can
     # make real test nodes disappear while the suite still exits 0.
@@ -89,7 +101,9 @@ def relocating_task(tmp_path: Path) -> Task:
     base_sha = _git(source, "rev-parse", "HEAD")
 
     _write(
-        source, "src/pkg/__init__.py", "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n"
+        source,
+        "src/pkg/__init__.py",
+        "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n",
     )
     _write(
         source,
@@ -216,7 +230,7 @@ def test_a_correct_relocation_is_accepted(relocating_task: Task) -> None:
     """
     attempt = _grade(
         relocating_task,
-        {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n"},
+        {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"},
     )
     assert attempt.accepted, attempt.outcome
     assert attempt.outcome == "accepted"
@@ -238,7 +252,7 @@ def test_an_unfinished_candidate_fails_the_oracle_not_preservation(
     attempt = _grade(
         relocating_task,
         {
-            "src/pkg/__init__.py": "# started on this\nLOCATION = 'config'\nCASES = [1, 2, 3]\n"
+            "src/pkg/__init__.py": "# started on this\nLOCATION = 'config'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"
         },
     )
     assert not attempt.accepted
@@ -248,26 +262,41 @@ def test_an_unfinished_candidate_fails_the_oracle_not_preservation(
     assert attempt.preservation.reason_class == "pass"
 
 
-def test_a_candidate_that_breaks_something_else_is_preservation_broken(
+def test_a_model_edited_test_cannot_damage_preservation(
     relocating_task: Task,
 ) -> None:
-    """Feature works, repository damaged -- the failure this all exists for."""
+    """A test the model rewrote is recorded, never executed.
+
+    The candidate rewrites `tests/test_other.py` to call code that exits
+    the interpreter. Were model-authored tests executed, this would take
+    the preservation suite with it -- and a candidate able to break the
+    suite is also able to *fix* it, which is the self-grading hole. Rule 5
+    strips test edits before both graded runs, so preservation runs the
+    pristine base file and passes; the edit survives only as a recorded
+    scope violation.
+    """
     attempt = _grade(
         relocating_task,
         {
-            "src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n\n\ndef boom():\n    raise SystemExit(1)\n",
+            "src/pkg/__init__.py": (
+                "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n\n\n"
+                "def boom():\n    raise SystemExit(1)\n"
+            ),
             "tests/test_other.py": "from pkg import boom\n\n\ndef test_other():\n    boom()\n",
         },
     )
     assert not attempt.accepted
-    assert attempt.outcome in {"preservation-broken", "out-of-scope"}
+    assert attempt.out_of_scope == ("tests/test_other.py",)
+    assert attempt.preservation is not None
+    assert attempt.preservation.reason_class == "pass"
+    assert attempt.outcome == "out-of-scope"
 
 
 def test_writing_outside_scope_is_recorded(relocating_task: Task) -> None:
     attempt = _grade(
         relocating_task,
         {
-            "src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n",
+            "src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n",
             "list_files.py": "# a script the model wrote to look around\n",
         },
     )
@@ -289,7 +318,7 @@ def test_a_candidate_that_writes_nothing(relocating_task: Task) -> None:
 
 def test_grading_the_same_candidate_twice_agrees(relocating_task: Task) -> None:
     """Replay must be deterministic, or re-scoring proves nothing."""
-    files = {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n"}
+    files = {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"}
     first, second = _grade(relocating_task, files), _grade(relocating_task, files)
     assert first.outcome == second.outcome
     assert first.accepted == second.accepted
@@ -317,7 +346,7 @@ def test_a_comment_only_edit_scores_zero_delta_and_green_preservation(
     attempt = _grade(
         relocating_task,
         {
-            "src/pkg/__init__.py": "# a harmless comment\nLOCATION = 'config'\nCASES = [1, 2, 3]\n"
+            "src/pkg/__init__.py": "# a harmless comment\nLOCATION = 'config'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"
         },
     )
     assert attempt.oracle_delta == 0
@@ -330,7 +359,7 @@ def test_the_exact_target_patch_closes_the_whole_gap(relocating_task: Task) -> N
     """The positive control: the real answer must score a full gap closure."""
     attempt = _grade(
         relocating_task,
-        {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n"},
+        {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"},
     )
     assert attempt.accepted
     assert attempt.gap_closed == 1.0
@@ -348,7 +377,7 @@ def test_model_written_tests_cannot_affect_grading(relocating_task: Task) -> Non
     attempt = _grade(
         relocating_task,
         {
-            "src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n",
+            "src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n",
             "tests/test_scratch.py": "def test_scratch():\n    assert False\n",
         },
     )
@@ -393,7 +422,7 @@ def test_a_vanished_test_is_caught_by_the_node_inventory(relocating_task: Task) 
     """
     attempt = _grade(
         relocating_task,
-        {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1]\n"},
+        {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1]\nFLAG = 'on'\n"},
     )
     assert attempt.missing_nodes
     assert attempt.outcome == "tests-vanished"
@@ -480,10 +509,54 @@ def test_the_executor_venv_never_reaches_the_candidate_patch(
 
         # The real edit still has to survive alongside it.
         (workspace / "src" / "pkg" / "__init__.py").write_text(
-            "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n"
+            "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"
         )
         patch = capture_candidate(workspace)
 
     assert ".venv" not in patch
     assert "LOCATION = 'extensions'" in patch
     assert len(lock_hash) == 64
+
+
+def test_damage_outranks_a_scope_violation(relocating_task: Task) -> None:
+    """A broken repository must not be reported as a filing error.
+
+    `out-of-scope` reads as benign -- wrote in the wrong place -- and it
+    was being reported for a candidate whose own new doctest failed the
+    suite, because the scope branch was checked first. The first thing a
+    reader needs from an outcome is whether the repository still works.
+    """
+    # The registry-iter shape: the production edit satisfies the oracle,
+    # breaks a base test the oracle command never runs, and writes a test
+    # of its own. All three at once, which is what made the ordering
+    # matter -- node *count* is unchanged, so this is damage rather than
+    # a vanished test.
+    attempt = _grade(
+        relocating_task,
+        {
+            "src/pkg/__init__.py": (
+                "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'off'\n"
+            ),
+            "tests/scratch_test.py": "def test_scratch():\n    assert True\n",
+        },
+    )
+    assert attempt.out_of_scope == ("tests/scratch_test.py",)
+    assert attempt.oracle is not None and attempt.oracle.reason_class == "pass"
+    assert attempt.preservation is not None
+    assert attempt.preservation.reason_class != "pass"
+    assert not attempt.missing_nodes
+    assert attempt.outcome == "progress-but-damaged"
+    assert not attempt.accepted
+
+
+def test_budget_exhaustion_is_read_from_the_transcript() -> None:
+    """A ceiling hit must never be recorded as an inability to do the work."""
+    from harness.screen import budget_exhaustion
+
+    assert budget_exhaustion('{"type":"message_end"}') == "none"
+    assert budget_exhaustion('{"entry":"turn_budget_exhausted"}') == "turns"
+    assert budget_exhaustion('{"entry":"tool_budget_exhausted"}') == "tools"
+    assert (
+        budget_exhaustion("turn_budget_exhausted ... tool_budget_exhausted")
+        == "turns+tools"
+    )

@@ -56,6 +56,18 @@ ENVELOPE_TOOLS = "read,write"
 ENVELOPE_EXTENSION = (
     Path(__file__).resolve().parents[1] / "extensions" / "envelope-cap.ts"
 )
+PROBE_EXTENSION = Path(__file__).resolve().parents[1] / "extensions" / "probe-cap.ts"
+"""Loose budgets for a headroom probe, which is not the same thing as an arm.
+
+The envelope's 16 turns and 30 tool calls mirror the engine's implementer
+child and were calibrated for `read,write` with no way to execute anything.
+Once the executor has a working environment it has more useful work to do
+per task, and the budget did not move with it: on `registry-iter` -- the
+declared floor -- the model closed the whole gap, ran the suite, found a
+doctest it had just broken, and hit the ceiling before it could repair it.
+A probe whose budget truncates repair manufactures the false floor it exists
+to rule out.
+"""
 
 
 @dataclass(frozen=True)
@@ -87,6 +99,15 @@ class Attempt:
     preservation: SuiteResult | None
     oracle: SuiteResult | None
     argv: tuple[str, ...] = field(default=(), repr=False)
+    budget_exhausted: str = "none"
+    """Which budget ran out: "none", "turns", "tools", or "turns+tools".
+
+    Lifted out of the transcript rather than inferred. A run that stopped
+    because it ran out of budget is not a run that could not do the work,
+    and without this the two are the same record -- the extension writes
+    the distinction into the transcript and nothing was carrying it into
+    the result.
+    """
     executor_env_lock_sha256: str = "none"
     """Which environment the *executor* had, or "none" for a bare tree.
 
@@ -138,8 +159,28 @@ class Attempt:
             "preservation": suite(self.preservation),
             "oracle": suite(self.oracle),
             "argv": list(self.argv),
+            "budget_exhausted": self.budget_exhausted,
             "executor_env_lock_sha256": self.executor_env_lock_sha256,
         }
+
+
+def budget_exhaustion(transcript: str) -> str:
+    """Which budgets the cap extension reported exhausted, if any.
+
+    Read from the transcript rather than reconstructed by counting turns
+    here, because the extension is the thing that actually enforces the
+    cap and a second implementation of the same arithmetic would be free
+    to disagree with it.
+    """
+    hit = [
+        name
+        for name, marker in (
+            ("turns", "turn_budget_exhausted"),
+            ("tools", "tool_budget_exhausted"),
+        )
+        if marker in transcript
+    ]
+    return "+".join(hit) if hit else "none"
 
 
 def provision_executor_env(workspace: Path, env_source: Path) -> str:
@@ -302,10 +343,10 @@ def _out_of_scope(
     )
 
 
-GRADING_RULE_VERSION = 5
+GRADING_RULE_VERSION = 6
 """Bumped whenever the acceptance rule changes.
 
-Every grade records it, because five rules have now produced different
+Every grade records it, because six rules have now produced different
 verdicts on identical candidates and a record that does not say which one
 scored it cannot be compared with anything.
 
@@ -314,6 +355,7 @@ scored it cannot be compared with anything.
   3  overlay then --ignore -- a root conftest still loads as a plugin
   4  separate workspaces, production paths only, node inventory
   5  node inventory counts position-keyed nodes instead of naming them
+  6  damage outranks scope violation in the reported outcome
 
 Rule 4 was found by the ceiling replay: the *target's own diff* graded as
 `tests-vanished` on four of nine tasks, because Sybil node ids move when
@@ -397,6 +439,7 @@ def grade_candidate(
     argv: tuple[str, ...] = (),
     suite_timeout: float = 300.0,
     executor_env_lock_sha256: str = "none",
+    budget_exhausted: str = "none",
 ) -> Attempt:
     """Score one saved candidate. Pure, offline, no model call.
 
@@ -461,12 +504,16 @@ def grade_candidate(
         outcome = "accepted"
     elif missing_nodes:
         outcome = "tests-vanished"
-    elif out_of_scope and oracle.reason_class == "pass":
-        outcome = "out-of-scope"
+    # Damage outranks a scope violation. `out-of-scope` reads as benign --
+    # wrote in the wrong place -- and it was being reported for a candidate
+    # whose own new doctest failed the suite. The first thing a reader needs
+    # to know about a candidate is whether it broke the repository.
     elif not preserved and oracle_delta > 0:
         outcome = "progress-but-damaged"
     elif not preserved:
         outcome = "damaged"
+    elif out_of_scope and oracle.reason_class == "pass":
+        outcome = "out-of-scope"
     elif oracle_delta > 0:
         outcome = "partial-progress"
     elif oracle_delta < 0:
@@ -496,6 +543,7 @@ def grade_candidate(
         oracle=oracle,
         argv=argv,
         executor_env_lock_sha256=executor_env_lock_sha256,
+        budget_exhausted=budget_exhausted,
     )
 
 
@@ -508,6 +556,7 @@ def screen_task(
     timeout: float = 900.0,
     suite_timeout: float = 300.0,
     executor_env_source: Path | None = None,
+    extension: Path = ENVELOPE_EXTENSION,
 ) -> tuple[Attempt, str, str]:
     """One bounded model attempt, with its candidate patch and transcript.
 
@@ -539,7 +588,7 @@ def screen_task(
     brief = manifest.brief_path.read_text()
 
     with materialize(clone, manifest.base_sha) as workspace:
-        argv = _pi_command(model, brief, (ENVELOPE_EXTENSION,))
+        argv = _pi_command(model, brief, (extension,))
         argv = argv[:-1] + ["--tools", tools] + argv[-1:]
 
         if executor_env_source is None:
@@ -564,6 +613,7 @@ def screen_task(
         argv=tuple(argv),
         suite_timeout=suite_timeout,
         executor_env_lock_sha256=env_lock,
+        budget_exhausted=budget_exhaustion(child.stdout),
     )
     return attempt, patch, child.stdout
 

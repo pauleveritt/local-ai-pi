@@ -2,10 +2,12 @@
   "accepted": true,
   "argv": [],
   "base_passed": 0,
+  "budget_exhausted": "none",
   "changed_paths": [
     "src/svcs/__init__.py",
     "src/svcs/_autowire.py"
   ],
+  "executor_env_lock_sha256": "none",
   "gap_closed": 1.0,
   "manifest_sha256": "ac23da5a308283879409c86aff12f2abaef91f1a12d038da1a456f7d3348c1e7",
   "missing_nodes": [],
@@ -17,7 +19,7 @@
     "node_count": 67,
     "reason_class": "pass",
     "tests_passed": 67,
-    "wall_seconds": 0.982
+    "wall_seconds": 1.08
   },
   "oracle_delta": 67,
   "out_of_scope": [],
@@ -28,9 +30,9 @@
     "node_count": 130,
     "reason_class": "pass",
     "tests_passed": 130,
-    "wall_seconds": 1.159
+    "wall_seconds": 1.256
   },
-  "rule_version": 5,
+  "rule_version": 6,
   "target_total": 67,
   "task_id": "autowire",
   "tools": "reference-replay"

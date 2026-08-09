@@ -2,10 +2,12 @@
   "accepted": true,
   "argv": [],
   "base_passed": 9,
+  "budget_exhausted": "none",
   "changed_paths": [
     "src/svcs/fastapi.py",
     "src/svcs/starlette.py"
   ],
+  "executor_env_lock_sha256": "none",
   "gap_closed": 1.0,
   "manifest_sha256": "caf96e7f450d5dc713234f057b74848f81ca31eca30c921147c6620a230966e9",
   "missing_nodes": [],
@@ -17,7 +19,7 @@
     "node_count": 24,
     "reason_class": "pass",
     "tests_passed": 24,
-    "wall_seconds": 0.862
+    "wall_seconds": 0.953
   },
   "oracle_delta": 15,
   "out_of_scope": [],
@@ -28,9 +30,9 @@
     "node_count": 182,
     "reason_class": "pass",
     "tests_passed": 182,
-    "wall_seconds": 1.013
+    "wall_seconds": 1.11
   },
-  "rule_version": 5,
+  "rule_version": 6,
   "target_total": 24,
   "task_id": "fastapi-get-registry",
   "tools": "reference-replay"

@@ -38,6 +38,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--timeout", type=float, default=900.0)
     parser.add_argument(
+        "--probe",
+        action="store_true",
+        help=(
+            "use probe-cap.ts budgets (60 turns / 150 tools) instead of the "
+            "16/30 envelope. The envelope mirrors the engine's implementer "
+            "child and was calibrated for read,write with no execution; a "
+            "headroom probe that a budget truncates measures the budget"
+        ),
+    )
+    parser.add_argument(
         "--blind",
         action="store_true",
         help=(
@@ -78,6 +88,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             tools=args.tools,
             timeout=args.timeout,
             executor_env_source=None if args.blind else cohort.env_dir,
+            extension=screen.PROBE_EXTENSION if args.probe else screen.ENVELOPE_EXTENSION,
         )
         # The patch is what a later grading change replays against; the
         # transcript is what a later *reading* replays against. Both cost
@@ -94,6 +105,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             else "no changes written"
         )
         flag = " OUT-OF-SCOPE" if attempt.out_of_scope else ""
+        if attempt.budget_exhausted != "none":
+            flag += f" BUDGET:{attempt.budget_exhausted}"
         print(
             f"{task_id:26} {'ACCEPT' if attempt.accepted else 'reject':7} "
             f"{attempt.outcome:24} {detail:22} {attempt.model_seconds:6.1f}s{flag}"
@@ -109,6 +122,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "arm": f"brief-only:{args.tools}:{'blind' if args.blind else 'env'}",
                 "tools": args.tools,
                 "executor_env": "none" if args.blind else str(cohort.env_dir),
+                "budgets": "probe" if args.probe else "envelope",
                 "accepted": accepted,
                 "attempted": len(rows),
                 "outcomes": {r.task_id: r.outcome for r in rows},

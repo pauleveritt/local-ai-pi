@@ -2,9 +2,11 @@
   "accepted": true,
   "argv": [],
   "base_passed": 34,
+  "budget_exhausted": "none",
   "changed_paths": [
     "src/svcs/_core.py"
   ],
+  "executor_env_lock_sha256": "none",
   "gap_closed": 1.0,
   "manifest_sha256": "e5a96f24fa7ef9c41379febfcd0065d027bdcc822198d271a53ae46a10ac670e",
   "missing_nodes": [],
@@ -16,7 +18,7 @@
     "node_count": 35,
     "reason_class": "pass",
     "tests_passed": 35,
-    "wall_seconds": 0.933
+    "wall_seconds": 0.961
   },
   "oracle_delta": 1,
   "out_of_scope": [],
@@ -27,9 +29,9 @@
     "node_count": 97,
     "reason_class": "pass",
     "tests_passed": 97,
-    "wall_seconds": 1.144
+    "wall_seconds": 1.306
   },
-  "rule_version": 5,
+  "rule_version": 6,
   "target_total": 35,
   "task_id": "registry-iter",
   "tools": "reference-replay"
