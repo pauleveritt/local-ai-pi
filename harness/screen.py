@@ -32,6 +32,8 @@ from pathlib import Path
 
 from harness.processes import run_process
 from harness.runner import _pi_command, pi_env
+from harness.similarity import overlap
+from harness.validity import VALID, assess
 from harness.workload import (
     CohortEnv,
     Manifest,
@@ -99,6 +101,28 @@ class Attempt:
     preservation: SuiteResult | None
     oracle: SuiteResult | None
     argv: tuple[str, ...] = field(default=(), repr=False)
+    reference_overlap: float = -1.0
+    """Share of added production lines found verbatim in the target diff.
+
+    -1 when no reference patch was available to compare against, which
+    is not the same as 0 and must not be averaged with it.
+
+    Recorded, never used to reject. It flagged the copied `autowire`
+    candidate at 100% before anyone read a transcript, but a high score
+    is a reason to read the candidate, not a verdict: `flask-extensions`
+    scores 100% from both models on a six-line change the brief all but
+    dictates.
+    """
+    validity: str = VALID
+    """Whether this is a result at all: "valid", or "void:<reason>".
+
+    Decided from the transcript before grading is consulted, because
+    every outcome the acceptance rule can express assumes the model
+    wrote the candidate -- and Cycle 1 produced one that read the target
+    implementation and the hidden oracle out of a leftover workspace,
+    then deleted the traces. That grade was accurate and meaningless.
+    """
+    validity_evidence: tuple[str, ...] = ()
     model_timeout_seconds: float = 0.0
     """The wall-clock cap the attempt ran under.
 
@@ -179,6 +203,9 @@ class Attempt:
             "preservation": suite(self.preservation),
             "oracle": suite(self.oracle),
             "argv": list(self.argv),
+            "reference_overlap": self.reference_overlap,
+            "validity": self.validity,
+            "validity_evidence": list(self.validity_evidence),
             "model_timeout_seconds": self.model_timeout_seconds,
             "wrote_tests": list(self.wrote_tests),
             "budget_exhausted": self.budget_exhausted,
@@ -487,6 +514,9 @@ def grade_candidate(
     budget_exhausted: str = "none",
     test_paths: tuple[str, ...] = (),
     model_timeout_seconds: float = 0.0,
+    validity: str = VALID,
+    validity_evidence: tuple[str, ...] = (),
+    reference_patch: str | None = None,
 ) -> Attempt:
     """Score one saved candidate. Pure, offline, no model call.
 
@@ -550,9 +580,21 @@ def grade_candidate(
     gap_closed = (oracle_delta / gap) if gap > 0 else 0.0
 
     preserved = preservation.reason_class == "pass" and not missing_nodes
-    accepted = preserved and oracle.reason_class == "pass" and not out_of_scope
+    # Validity gates acceptance, and is checked first. A void attempt can
+    # satisfy every other condition -- the stolen `autowire` candidate
+    # passed preservation, passed the oracle, wrote nothing out of scope
+    # and left the node inventory intact, because it was the target
+    # commit's own code.
+    accepted = (
+        validity == VALID
+        and preserved
+        and oracle.reason_class == "pass"
+        and not out_of_scope
+    )
 
-    if accepted:
+    if validity != VALID:
+        outcome = validity
+    elif accepted:
         outcome = "accepted"
     elif missing_nodes:
         outcome = "tests-vanished"
@@ -598,6 +640,13 @@ def grade_candidate(
         budget_exhausted=budget_exhausted,
         wrote_tests=wrote_tests,
         model_timeout_seconds=model_timeout_seconds,
+        validity=validity,
+        validity_evidence=validity_evidence,
+        reference_overlap=(
+            overlap(patch, reference_patch, manifest.writable_prefixes())
+            if reference_patch is not None
+            else -1.0
+        ),
     )
 
 
@@ -612,6 +661,7 @@ def screen_task(
     executor_env_source: Path | None = None,
     extension: Path = ENVELOPE_EXTENSION,
     test_paths: tuple[str, ...] = (),
+    reference_patch: str | None = None,
 ) -> tuple[Attempt, str, str]:
     """One bounded model attempt, with its candidate patch and transcript.
 
@@ -657,11 +707,17 @@ def screen_task(
         model_seconds = time.monotonic() - started
         patch = capture_candidate(workspace)
 
+    # Before grading, not after: the transcript is the only artifact that
+    # can say whether the patch is the model's work at all.
+    validity, evidence = assess(child.stdout)
+
     attempt = grade_candidate(
         manifest,
         clone,
         env,
         patch,
+        validity=validity,
+        validity_evidence=evidence,
         model_seconds=model_seconds,
         model_timed_out=child.timed_out,
         tools=tools,
@@ -671,6 +727,7 @@ def screen_task(
         budget_exhausted=budget_exhaustion(child.stdout),
         test_paths=test_paths,
         model_timeout_seconds=timeout,
+        reference_patch=reference_patch,
     )
     return attempt, patch, child.stdout
 

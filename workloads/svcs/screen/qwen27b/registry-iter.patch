@@ -1,0 +1,71 @@
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index d90c595..48d5252 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -161,6 +161,23 @@ class Registry:
+         """
+         return svc_type in self._services
+ 
++    def __iter__(self):
++        """
++        Iterate over the registered services.
++
++        Yields:
++            :class:`RegisteredService`: The registered service objects.
++
++        .. doctest::
++
++            >>> reg = svcs.Registry()
++            >>> reg.register_value(int, 42)
++            >>> reg.register_value(str, "hello")
++            >>> [rs.svc_type for rs in reg]
++            [<class 'int'>, <class 'str'>]
++        """
++        yield from self._services.values()
++
+     def __enter__(self) -> Registry:
+         return self
+ 
+diff --git a/tests/test_registry.py b/tests/test_registry.py
+index bc6d01c..e2f9e99 100644
+--- a/tests/test_registry.py
++++ b/tests/test_registry.py
+@@ -281,6 +281,38 @@ class TestRegistry:
+         assert Service in registry
+         assert AnotherService not in registry
+ 
++    def test_iter_empty(self, registry):
++        """
++        Iterating over an empty registry yields nothing.
++        """
++        assert list(registry) == []
++
++    def test_iter_yields_registered_services(self, registry):
++        """
++        Iterating yields RegisteredService objects in registration order.
++        """
++        registry.register_factory(Service, Service)
++        registry.register_value(AnotherService, AnotherService())
++
++        services = list(registry)
++
++        assert len(services) == 2
++        assert services[0].svc_type is Service
++        assert services[1].svc_type is AnotherService
++
++    def test_iter_for_loop(self, registry):
++        """
++        Registry can be used in a for loop.
++        """
++        registry.register_factory(int, lambda: 1)
++        registry.register_factory(str, lambda: "hello")
++
++        types = []
++        for rs in registry:
++            types.append(rs.svc_type)
++
++        assert types == [int, str]
++
+     def test_gc_warning(self, recwarn):
+         """
+         If a registry is gc'ed with pending cleanups, a warning is raised.

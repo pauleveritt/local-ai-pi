@@ -13,13 +13,14 @@
   "missing_nodes": [],
   "model_seconds": 0.0,
   "model_timed_out": false,
+  "model_timeout_seconds": 0.0,
   "oracle": {
     "collection_errors": {},
     "failures": {},
     "node_count": 35,
     "reason_class": "pass",
     "tests_passed": 35,
-    "wall_seconds": 0.923
+    "wall_seconds": 1.029
   },
   "oracle_delta": 1,
   "out_of_scope": [],
@@ -30,12 +31,14 @@
     "node_count": 97,
     "reason_class": "pass",
     "tests_passed": 97,
-    "wall_seconds": 1.245
+    "wall_seconds": 1.235
   },
   "rule_version": 7,
   "target_total": 35,
   "task_id": "registry-iter",
   "tools": "reference-replay",
+  "validity": "valid",
+  "validity_evidence": [],
   "wrote_tests": [
     "tests/test_registry.py"
   ]

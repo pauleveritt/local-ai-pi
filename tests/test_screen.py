@@ -608,3 +608,183 @@ def test_prose_and_packaging_are_still_violations(relocating_task: Task) -> None
     )
     assert attempt.out_of_scope == ("CHANGELOG.md",)
     assert not attempt.accepted
+
+
+def test_the_audit_reads_a_reached_foreign_workspace_as_taint() -> None:
+    """The failure no grade could have caught.
+
+    Cycle 1's `autowire` passed preservation, passed the oracle, showed
+    an empty scope list and an intact node inventory -- every signal the
+    acceptance rule reads was true of a candidate the model had copied
+    out of a leftover workspace, oracle tests included. The theft exists
+    only in the transcript.
+    """
+    from tools.audit_attempt import audit
+
+    transcript = "\n".join(
+        [
+            json.dumps({"type": "session", "cwd": "/tmp/satyrn-workload-mine"}),
+            json.dumps(
+                {
+                    "type": "tool_execution_start",
+                    "toolCallId": "1",
+                    "toolName": "bash",
+                    "args": {"command": "cd /tmp/satyrn-workload-other && cat src/x.py"},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "tool_execution_end",
+                    "toolCallId": "1",
+                    "result": {"content": [{"type": "text", "text": "SECRET = 1\n"}]},
+                }
+            ),
+        ]
+    )
+    own, findings = audit(transcript)
+    assert own == "satyrn-workload-mine"
+    assert [f.reached for f in findings] == [True]
+
+
+def test_the_audit_does_not_mistake_a_garbled_self_reference_for_escape() -> None:
+    """Exit status is not the discriminator; the shell's error message is.
+
+    The model garbles its own workspace name often. `cd /nowhere && ls`
+    fails the `cd`, the rest of the compound command runs in the
+    original directory, and the call returns real content with exit code
+    zero. Three of Cycle 1's eight transcripts look like escapes by exit
+    status and are not -- calling them tainted would have thrown away
+    three sound results.
+    """
+    from tools.audit_attempt import audit
+
+    transcript = "\n".join(
+        [
+            json.dumps({"type": "session", "cwd": "/tmp/satyrn-workload-urf2xlq6"}),
+            json.dumps(
+                {
+                    "type": "tool_execution_start",
+                    "toolCallId": "1",
+                    "toolName": "bash",
+                    "args": {"command": "cd /tmp/satyrn-workload-uirf2q6l; cat README"},
+                }
+            ),
+            json.dumps(
+                {
+                    "type": "tool_execution_end",
+                    "toolCallId": "1",
+                    "result": {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": (
+                                    "/bin/bash: cd: /tmp/satyrn-workload-uirf2q6l: "
+                                    "No such file or directory\nmy own readme\n"
+                                ),
+                            }
+                        ]
+                    },
+                }
+            ),
+        ]
+    )
+    _, findings = audit(transcript)
+    assert [f.reached for f in findings] == [False]
+
+
+def test_a_stale_workspace_is_detectable(tmp_path: Path, monkeypatch) -> None:
+    """The guard that would have prevented it, one layer down.
+
+    A leftover workspace is an answer key: it was materialised from some
+    base commit and holds that commit's tree, so any task whose base is
+    older can be read straight out of it.
+    """
+    from harness.workspace import stale_workspaces
+
+    monkeypatch.setattr("tempfile.gettempdir", lambda: str(tmp_path))
+    assert stale_workspaces() == ()
+    (tmp_path / "satyrn-workload-leftover").mkdir()
+    (tmp_path / "unrelated").mkdir()
+    assert [p.name for p in stale_workspaces()] == ["satyrn-workload-leftover"]
+
+
+def test_a_void_attempt_can_never_be_accepted(relocating_task: Task) -> None:
+    """Validity gates acceptance, and nothing else can override it.
+
+    The candidate here is perfect: it closes the whole gap, preserves
+    everything, writes nothing out of scope. That is exactly the shape
+    the stolen `autowire` candidate had -- it was the target commit's
+    own code, so every signal the acceptance rule reads was true.
+    """
+    manifest = load_manifest(relocating_task.manifest_dir)
+    patch = _candidate(
+        relocating_task,
+        {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"},
+    )
+    clean = grade_candidate(manifest, relocating_task.clone, _fake_env(), patch)
+    assert clean.accepted and clean.outcome == "accepted"
+
+    voided = grade_candidate(
+        manifest,
+        relocating_task.clone,
+        _fake_env(),
+        patch,
+        validity="void:left-workspace",
+        validity_evidence=("bash -> satyrn-workload-other: cat src/x.py",),
+    )
+    assert not voided.accepted
+    assert voided.outcome == "void:left-workspace"
+    assert voided.validity_evidence
+    # Still graded, because the grade is what proved the theft: the
+    # stolen patch was byte-identical to the target commit.
+    assert voided.oracle is not None
+    assert voided.gap_closed == clean.gap_closed
+
+
+def test_a_missing_transcript_is_void_not_valid() -> None:
+    """Absence of evidence must not read as evidence of absence."""
+    from harness.validity import assess
+
+    assert assess("")[0] == "void:no-transcript"
+    assert assess('{"type":"turn_start"}')[0] == "void:no-workspace"
+    assert assess(json.dumps({"type": "session", "cwd": "/tmp/satyrn-workload-a"}))[0] == "valid"
+
+
+def test_overlap_flags_a_verbatim_copy_and_ignores_independent_work() -> None:
+    """The cheapest signal that a result might be recall, not reasoning.
+
+    `svcs` is public and these tasks are real upstream commits, so every
+    model has plausibly seen the answers. This cannot separate recall
+    from capability -- a model that absorbed the shape of a fix and
+    reimplemented it scores zero and looks clean -- but it does catch
+    verbatim reproduction, and it scored the copied `autowire` candidate
+    at 100% before anyone read a transcript.
+    """
+    from harness.similarity import overlap
+
+    reference = (
+        "diff --git a/src/pkg/a.py b/src/pkg/a.py\n"
+        "+def solve():\n+    return 42\n"
+    )
+    copied = reference
+    independent = (
+        "diff --git a/src/pkg/a.py b/src/pkg/a.py\n"
+        "+def solve():\n+    total = 40 + 2\n+    return total\n"
+    )
+    assert overlap(copied, reference, ("src/pkg/",)) == 1.0
+    # Shares the signature line only.
+    assert 0 < overlap(independent, reference, ("src/pkg/",)) < 0.5
+
+    # Files outside the production prefix are not compared at all: a
+    # model-written test matching upstream's says nothing about the fix.
+    tests_only = "diff --git a/tests/t.py b/tests/t.py\n+def test_x():\n+    pass\n"
+    assert overlap(tests_only, reference, ("src/pkg/",)) == 0.0
+
+
+def test_overlap_counts_repeats_as_a_multiset() -> None:
+    """A candidate repeating one line must not score many matches for it."""
+    from harness.similarity import overlap
+
+    reference = "diff --git a/src/pkg/a.py b/src/pkg/a.py\n+x = 1\n"
+    repeated = "diff --git a/src/pkg/a.py b/src/pkg/a.py\n+x = 1\n+x = 1\n+x = 1\n"
+    assert overlap(repeated, reference, ("src/pkg/",)) == round(1 / 3, 3)

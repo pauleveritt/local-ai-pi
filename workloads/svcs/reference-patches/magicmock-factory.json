@@ -13,13 +13,14 @@
   "missing_nodes": [],
   "model_seconds": 0.0,
   "model_timed_out": false,
+  "model_timeout_seconds": 0.0,
   "oracle": {
     "collection_errors": {},
     "failures": {},
     "node_count": 31,
     "reason_class": "pass",
     "tests_passed": 31,
-    "wall_seconds": 0.98
+    "wall_seconds": 1.091
   },
   "oracle_delta": 1,
   "out_of_scope": [],
@@ -30,12 +31,14 @@
     "node_count": 111,
     "reason_class": "pass",
     "tests_passed": 111,
-    "wall_seconds": 1.216
+    "wall_seconds": 1.278
   },
   "rule_version": 7,
   "target_total": 31,
   "task_id": "magicmock-factory",
   "tools": "reference-replay",
+  "validity": "valid",
+  "validity_evidence": [],
   "wrote_tests": [
     "tests/test_integration.py"
   ]

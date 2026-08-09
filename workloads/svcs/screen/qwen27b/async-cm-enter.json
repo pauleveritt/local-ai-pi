@@ -1,5 +1,5 @@
 {
-  "accepted": false,
+  "accepted": true,
   "argv": [
     "pi",
     "--print",
@@ -7,7 +7,7 @@
     "json",
     "--no-session",
     "--model",
-    "dsflash/deepseek-v4-flash",
+    "omlx/Qwen3.6-27B-8bit",
     "--no-extensions",
     "--extension",
     "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/probe-cap.ts",
@@ -23,7 +23,6 @@
   "base_passed": 8,
   "budget_exhausted": "none",
   "changed_paths": [
-    "CHANGELOG.md",
     "src/svcs/_core.py",
     "tests/test_container.py"
   ],
@@ -31,7 +30,7 @@
   "gap_closed": 1.0,
   "manifest_sha256": "d2525a0881164e970db4005e9952bb815af10c9b8aafe06050d3ae25a8e78e2c",
   "missing_nodes": [],
-  "model_seconds": 581.7,
+  "model_seconds": 693.16,
   "model_timed_out": false,
   "model_timeout_seconds": 1800.0,
   "oracle": {
@@ -40,22 +39,20 @@
     "node_count": 10,
     "reason_class": "pass",
     "tests_passed": 10,
-    "wall_seconds": 0.891
+    "wall_seconds": 0.9
   },
   "oracle_delta": 2,
-  "out_of_scope": [
-    "CHANGELOG.md"
-  ],
-  "outcome": "out-of-scope",
+  "out_of_scope": [],
+  "outcome": "accepted",
   "preservation": {
     "collection_errors": {},
     "failures": {},
     "node_count": 121,
     "reason_class": "pass",
     "tests_passed": 121,
-    "wall_seconds": 1.129
+    "wall_seconds": 1.14
   },
-  "reference_overlap": 0.667,
+  "reference_overlap": 0.0,
   "rule_version": 7,
   "target_total": 10,
   "task_id": "async-cm-enter",

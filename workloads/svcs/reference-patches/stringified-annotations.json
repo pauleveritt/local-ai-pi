@@ -14,13 +14,14 @@
   "missing_nodes": [],
   "model_seconds": 0.0,
   "model_timed_out": false,
+  "model_timeout_seconds": 0.0,
   "oracle": {
     "collection_errors": {},
     "failures": {},
     "node_count": 34,
     "reason_class": "pass",
     "tests_passed": 34,
-    "wall_seconds": 0.956
+    "wall_seconds": 1.666
   },
   "oracle_delta": 2,
   "out_of_scope": [],
@@ -31,12 +32,14 @@
     "node_count": 91,
     "reason_class": "pass",
     "tests_passed": 91,
-    "wall_seconds": 1.165
+    "wall_seconds": 1.465
   },
   "rule_version": 7,
   "target_total": 34,
   "task_id": "stringified-annotations",
   "tools": "reference-replay",
+  "validity": "valid",
+  "validity_evidence": [],
   "wrote_tests": [
     "conftest.py",
     "tests/test_registry.py"

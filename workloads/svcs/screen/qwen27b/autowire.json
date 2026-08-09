@@ -7,7 +7,7 @@
     "json",
     "--no-session",
     "--model",
-    "dsflash/deepseek-v4-flash",
+    "omlx/Qwen3.6-27B-8bit",
     "--no-extensions",
     "--extension",
     "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/probe-cap.ts",
@@ -24,51 +24,59 @@
   "budget_exhausted": "none",
   "changed_paths": [
     "src/svcs/__init__.py",
-    "src/svcs/_autowire.py"
+    "src/svcs/_core.py",
+    "tests/test_autowire.py"
   ],
   "executor_env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
-  "gap_closed": 1.0,
+  "gap_closed": 0.776,
   "manifest_sha256": "ac23da5a308283879409c86aff12f2abaef91f1a12d038da1a456f7d3348c1e7",
   "missing_nodes": [],
-  "model_seconds": 728.92,
-  "model_timed_out": false,
+  "model_seconds": 1800.02,
+  "model_timed_out": true,
   "model_timeout_seconds": 1800.0,
   "oracle": {
     "collection_errors": {},
-    "failures": {},
+    "failures": {
+      "tests/test_autowire.py::TestAAutowireClass::test_aautowire_class_signature_shapes[positional_only]": "call:failed",
+      "tests/test_autowire.py::TestAAutowireClass::test_aautowire_class_signature_shapes[positional_only_arg_with_default]": "call:failed",
+      "tests/test_autowire.py::TestAAutowireFunction::test_aautowire_does_not_await_async_context_manager": "call:failed",
+      "tests/test_autowire.py::TestAAutowireFunction::test_aautowire_function_signature_shapes[positional_only]": "call:failed",
+      "tests/test_autowire.py::TestAAutowireFunction::test_aautowire_function_signature_shapes[positional_only_arg_with_default]": "call:failed",
+      "tests/test_autowire.py::TestAAutowireFunction::test_aautowire_rejects_generator_factories": "call:failed",
+      "tests/test_autowire.py::TestAAutowireFunction::test_aautowire_unannotated_required_raises": "call:failed",
+      "tests/test_autowire.py::TestAutowireClass::test_autowire_class_signature_shapes[positional_only]": "call:failed",
+      "tests/test_autowire.py::TestAutowireClass::test_autowire_class_signature_shapes[positional_only_arg_with_default]": "call:failed",
+      "tests/test_autowire.py::TestAutowireFunction::test_autowire_function_signature_shapes[positional_only]": "call:failed",
+      "tests/test_autowire.py::TestAutowireFunction::test_autowire_function_signature_shapes[positional_only_arg_with_default]": "call:failed",
+      "tests/test_autowire.py::TestAutowireFunction::test_autowire_rejects_generator_factories": "call:failed",
+      "tests/test_autowire.py::TestAutowireFunction::test_autowire_resolves_forward_reference_at_call_time": "call:failed",
+      "tests/test_autowire.py::TestAutowireFunction::test_autowire_unannotated_required_raises": "call:failed",
+      "tests/test_autowire.py::TestAutowireFunction::test_autowire_without_signature_raises": "call:failed"
+    },
     "node_count": 67,
-    "reason_class": "pass",
-    "tests_passed": 67,
-    "wall_seconds": 0.919
+    "reason_class": "assertion-failure",
+    "tests_passed": 52,
+    "wall_seconds": 1.099
   },
-  "oracle_delta": 67,
+  "oracle_delta": 52,
   "out_of_scope": [],
-  "outcome": "void:left-workspace",
+  "outcome": "partial-progress",
   "preservation": {
     "collection_errors": {},
     "failures": {},
     "node_count": 130,
     "reason_class": "pass",
     "tests_passed": 130,
-    "wall_seconds": 1.105
+    "wall_seconds": 1.109
   },
-  "reference_overlap": 1.0,
+  "reference_overlap": 0.19,
   "rule_version": 7,
   "target_total": 67,
   "task_id": "autowire",
   "tools": "read,bash,edit,write",
-  "validity": "void:left-workspace",
-  "validity_evidence": [
-    "bash -> satyrn-workload-eir3077s: {\"command\": \"cd /private/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-eir3077s && cat src/svcs/_autow",
-    "bash -> satyrn-workload-eir3077s: {\"command\": \"cd /private/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-eir3077s && git log --oneline -",
-    "bash -> satyrn-workload-eir3077s: {\"command\": \"cd /private/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-eir3077s && diff src/svcs/_core",
-    "bash -> satyrn-workload-eir3077s: {\"command\": \"cd /private/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-eir3077s && diff src/svcs/flask",
-    "bash -> satyrn-workload-eir3077s: {\"command\": \"cd /private/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-eir3077s && ls src/svcs/ && ech",
-    "bash -> satyrn-workload-eir3077s: {\"command\": \"cd /private/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-eir3077s && cat tests/test_auto",
-    "bash -> satyrn-workload-eir3077s: {\"command\": \"cd /private/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-eir3077s && cat tests/fake_serv",
-    "bash -> satyrn-workload-eir3077s: {\"command\": \"cd /private/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-eir3077s && cat tests/ifaces.py",
-    "bash -> satyrn-workload-eir3077s: {\"command\": \"cd /private/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-eir3077s && cat tests/__init__.",
-    "bash -> satyrn-workload-eir3077s: {\"command\": \"cd /private/var/folders/m4/jc_jynrj6z10mk0t80pkj8l80000gn/T/satyrn-workload-wn7e224w && cp /private/var/fol"
-  ],
-  "wrote_tests": []
+  "validity": "valid",
+  "validity_evidence": [],
+  "wrote_tests": [
+    "tests/test_autowire.py"
+  ]
 }

@@ -19,13 +19,14 @@
   "missing_nodes": [],
   "model_seconds": 0.0,
   "model_timed_out": false,
+  "model_timeout_seconds": 0.0,
   "oracle": {
     "collection_errors": {},
     "failures": {},
     "node_count": 24,
     "reason_class": "pass",
     "tests_passed": 24,
-    "wall_seconds": 0.845
+    "wall_seconds": 1.488
   },
   "oracle_delta": 15,
   "out_of_scope": [],
@@ -36,12 +37,14 @@
     "node_count": 182,
     "reason_class": "pass",
     "tests_passed": 182,
-    "wall_seconds": 1.019
+    "wall_seconds": 1.797
   },
   "rule_version": 7,
   "target_total": 24,
   "task_id": "fastapi-get-registry",
   "tools": "reference-replay",
+  "validity": "valid",
+  "validity_evidence": [],
   "wrote_tests": [
     "docs/examples/fastapi/test_simple_fastapi_app.py",
     "docs/examples/starlette/test_simple_starlette_app.py",

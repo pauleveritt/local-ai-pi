@@ -1,0 +1,20 @@
+{
+  "accepted": 6,
+  "arm": "brief-only:read,bash,edit,write:env",
+  "attempted": 8,
+  "budgets": "probe",
+  "executor_env": "workloads/svcs/env",
+  "model": "omlx/Qwen3.6-27B-8bit",
+  "outcomes": {
+    "async-cm-enter": "accepted",
+    "autowire": "partial-progress",
+    "fastapi-get-registry": "partial-progress",
+    "flask-extensions": "accepted",
+    "local-pings": "accepted",
+    "magicmock-factory": "accepted",
+    "registry-iter": "accepted",
+    "stringified-annotations": "accepted"
+  },
+  "server": "http://127.0.0.1:8001",
+  "tools": "read,bash,edit,write"
+}

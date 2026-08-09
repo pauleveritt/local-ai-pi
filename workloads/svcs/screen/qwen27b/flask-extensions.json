@@ -1,5 +1,5 @@
 {
-  "accepted": false,
+  "accepted": true,
   "argv": [
     "pi",
     "--print",
@@ -7,7 +7,7 @@
     "json",
     "--no-session",
     "--model",
-    "dsflash/deepseek-v4-flash",
+    "omlx/Qwen3.6-27B-8bit",
     "--no-extensions",
     "--extension",
     "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/probe-cap.ts",
@@ -23,9 +23,6 @@
   "base_passed": 17,
   "budget_exhausted": "none",
   "changed_paths": [
-    "docs/core-concepts.md",
-    "docs/integrations/flask.md",
-    "docs/why.md",
     "src/svcs/flask.py",
     "tests/integrations/test_flask.py"
   ],
@@ -33,7 +30,7 @@
   "gap_closed": 1.0,
   "manifest_sha256": "c96285e34433f8b34986a2b08b952dda0e394464a0faf9285998c7f3bd06ea62",
   "missing_nodes": [],
-  "model_seconds": 224.21,
+  "model_seconds": 228.68,
   "model_timed_out": false,
   "model_timeout_seconds": 1800.0,
   "oracle": {
@@ -42,22 +39,18 @@
     "node_count": 19,
     "reason_class": "pass",
     "tests_passed": 19,
-    "wall_seconds": 0.884
+    "wall_seconds": 0.898
   },
   "oracle_delta": 2,
-  "out_of_scope": [
-    "docs/core-concepts.md",
-    "docs/integrations/flask.md",
-    "docs/why.md"
-  ],
-  "outcome": "out-of-scope",
+  "out_of_scope": [],
+  "outcome": "accepted",
   "preservation": {
     "collection_errors": {},
     "failures": {},
     "node_count": 109,
     "reason_class": "pass",
     "tests_passed": 109,
-    "wall_seconds": 1.148
+    "wall_seconds": 1.154
   },
   "reference_overlap": 1.0,
   "rule_version": 7,

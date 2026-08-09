@@ -7,7 +7,7 @@
     "json",
     "--no-session",
     "--model",
-    "dsflash/deepseek-v4-flash",
+    "omlx/Qwen3.6-27B-8bit",
     "--no-extensions",
     "--extension",
     "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/probe-cap.ts",
@@ -24,13 +24,13 @@
   "budget_exhausted": "none",
   "changed_paths": [
     "src/svcs/_core.py",
-    "tests/test_integration.py"
+    "tests/test_container.py"
   ],
   "executor_env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
   "gap_closed": 1.0,
   "manifest_sha256": "2208c8bf20e0ef82ad24b21f8366026ba823851f0ca790fe30a3ba38ba34fde7",
   "missing_nodes": [],
-  "model_seconds": 424.56,
+  "model_seconds": 453.02,
   "model_timed_out": false,
   "model_timeout_seconds": 1800.0,
   "oracle": {
@@ -39,7 +39,7 @@
     "node_count": 18,
     "reason_class": "pass",
     "tests_passed": 18,
-    "wall_seconds": 0.896
+    "wall_seconds": 0.9
   },
   "oracle_delta": 3,
   "out_of_scope": [],
@@ -50,9 +50,9 @@
     "node_count": 122,
     "reason_class": "pass",
     "tests_passed": 122,
-    "wall_seconds": 1.129
+    "wall_seconds": 1.142
   },
-  "reference_overlap": 0.0,
+  "reference_overlap": 0.143,
   "rule_version": 7,
   "target_total": 18,
   "task_id": "local-pings",
@@ -60,6 +60,6 @@
   "validity": "valid",
   "validity_evidence": [],
   "wrote_tests": [
-    "tests/test_integration.py"
+    "tests/test_container.py"
   ]
 }

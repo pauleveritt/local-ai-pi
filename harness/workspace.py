@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -18,6 +19,24 @@ GIT_ENV = {
 }
 
 
+def stale_workspaces(prefix: str = "satyrn-") -> tuple[Path, ...]:
+    """Workspaces from earlier runs still sitting in the shared temp dir.
+
+    These are not litter. A workspace materialized from a later base
+    commit legitimately contains every *earlier* task's implementation
+    and tests, and the system temp directory is world-listable to any
+    executor with a shell. In cycle 1 a model listed it, found a
+    leftover, read the hidden oracle out of it, copied the
+    implementation into its own workspace, and deleted the traces --
+    producing the cleanest-looking result of the sweep.
+
+    A killed process never runs the teardown below, and every aborted
+    run leaves one behind. Five did.
+    """
+    root = Path(tempfile.gettempdir())
+    return tuple(sorted(p for p in root.glob(f"{prefix}*") if p.is_dir()))
+
+
 @contextmanager
 def disposable_dir(prefix: str) -> Iterator[Path]:
     """Yield a fresh temp directory, removed on exit including on exception."""
@@ -25,7 +44,18 @@ def disposable_dir(prefix: str) -> Iterator[Path]:
     try:
         yield workspace
     finally:
-        shutil.rmtree(workspace, ignore_errors=True)
+        try:
+            shutil.rmtree(workspace)
+        except OSError as error:
+            # Was `ignore_errors=True`, which is how a workspace that
+            # failed to delete became invisible. A leftover is an
+            # answer key for every later attempt, so a failure to remove
+            # one has to be loud even though it cannot be fixed here.
+            print(
+                f"WARNING: could not remove workspace {workspace}: {error}",
+                file=sys.stderr,
+                flush=True,
+            )
 
 
 def git_init_commit(workspace: Path, message: str) -> None:

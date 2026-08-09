@@ -1,0 +1,97 @@
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index 968b0f4..a893cdd 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -720,16 +720,34 @@ class Container:
+         Returns:
+             A list of services that have registered a ping callable.
+         """
++        # Start with registry services, keyed by type so local registrations
++        # can shadow them.
++        pings: dict[type, RegisteredService] = {
++            rs.svc_type: rs
++            for rs in self.registry._services.values()
++            if rs.ping is not None
++        }
++
++        # Overlay local registrations: they add new pings and can shadow
++        # (suppress) registry pings.
++        if self._lazy_local_registry is not None:
++            for rs in self._lazy_local_registry._services.values():
++                if rs.ping is not None:
++                    pings[rs.svc_type] = rs
++                else:
++                    # Local registration with no ping shadows any registry
++                    # ping for the same type.
++                    pings.pop(rs.svc_type, None)
++
+         return [
+             ServicePing(
+                 rs.name,
+-                iscoroutinefunction(rs.ping),
++                iscoroutinefunction(rs.ping),  # type:ignore[arg-type]
+                 rs.svc_type,
+-                rs.ping,
++                rs.ping,  # type:ignore[arg-type]
+                 self,
+             )
+-            for rs in self.registry._services.values()
+-            if rs.ping is not None
++            for rs in pings.values()
+         ]
+ 
+     def get_abstract(self, *svc_types: type) -> Any:
+diff --git a/tests/test_container.py b/tests/test_container.py
+index 40f5f14..80764d1 100644
+--- a/tests/test_container.py
++++ b/tests/test_container.py
+@@ -336,3 +336,49 @@ class TestServicePing:
+         assert close_me.is_closed
+         assert not container._instantiated
+         assert not container._on_close
++
++    def test_ping_local_service(self, registry, container):
++        """
++        A locally registered service with a ping is reported by get_pings().
++        """
++        local_ping = Mock(spec_set=["__call__"])
++
++        container.register_local_value(int, 42, ping=local_ping)
++
++        pings = container.get_pings()
++
++        assert len(pings) == 1
++        assert pings[0].name == "builtins.int"
++
++    def test_ping_local_shadows_registry(self, registry, container):
++        """
++        A local registration with a ping shadows a registry registration's
++        ping for the same type.
++        """
++        registry_ping = Mock(spec_set=["__call__"])
++        local_ping = Mock(spec_set=["__call__"])
++
++        registry.register_value(int, 1, ping=registry_ping)
++        container.register_local_value(int, 2, ping=local_ping)
++
++        pings = container.get_pings()
++
++        assert len(pings) == 1
++        # The ping should use the local service (value 2), not the registry's.
++        pings[0].ping()
++        local_ping.assert_called_once_with(2)
++        registry_ping.assert_not_called()
++
++    def test_ping_local_no_ping_shadows_registry(self, registry, container):
++        """
++        A local registration with no ping suppresses the registry's ping for
++        the same type — no fallback to the registry ping.
++        """
++        registry_ping = Mock(spec_set=["__call__"])
++
++        registry.register_value(int, 1, ping=registry_ping)
++        container.register_local_value(int, 2)  # no ping
++
++        pings = container.get_pings()
++
++        assert pings == []

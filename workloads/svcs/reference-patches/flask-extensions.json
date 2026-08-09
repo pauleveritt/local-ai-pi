@@ -13,13 +13,14 @@
   "missing_nodes": [],
   "model_seconds": 0.0,
   "model_timed_out": false,
+  "model_timeout_seconds": 0.0,
   "oracle": {
     "collection_errors": {},
     "failures": {},
     "node_count": 19,
     "reason_class": "pass",
     "tests_passed": 19,
-    "wall_seconds": 0.954
+    "wall_seconds": 0.999
   },
   "oracle_delta": 2,
   "out_of_scope": [],
@@ -30,12 +31,14 @@
     "node_count": 109,
     "reason_class": "pass",
     "tests_passed": 109,
-    "wall_seconds": 1.169
+    "wall_seconds": 1.651
   },
   "rule_version": 7,
   "target_total": 19,
   "task_id": "flask-extensions",
   "tools": "reference-replay",
+  "validity": "valid",
+  "validity_evidence": [],
   "wrote_tests": [
     "tests/integrations/test_flask.py"
   ]

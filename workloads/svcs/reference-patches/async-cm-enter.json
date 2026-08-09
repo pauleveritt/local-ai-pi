@@ -13,13 +13,14 @@
   "missing_nodes": [],
   "model_seconds": 0.0,
   "model_timed_out": false,
+  "model_timeout_seconds": 0.0,
   "oracle": {
     "collection_errors": {},
     "failures": {},
     "node_count": 10,
     "reason_class": "pass",
     "tests_passed": 10,
-    "wall_seconds": 0.93
+    "wall_seconds": 1.695
   },
   "oracle_delta": 2,
   "out_of_scope": [],
@@ -30,12 +31,14 @@
     "node_count": 121,
     "reason_class": "pass",
     "tests_passed": 121,
-    "wall_seconds": 1.239
+    "wall_seconds": 2.151
   },
   "rule_version": 7,
   "target_total": 10,
   "task_id": "async-cm-enter",
   "tools": "reference-replay",
+  "validity": "valid",
+  "validity_evidence": [],
   "wrote_tests": [
     "tests/test_container.py"
   ]

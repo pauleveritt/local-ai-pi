@@ -18,8 +18,20 @@ from pathlib import Path
 
 import harness.screen as screen
 import harness.workload as workload
+import harness.workspace as workspace
 from harness.liveness import check_model_server_alive
 from harness.runner import DEFAULT_MODEL
+
+
+def reference_for(task_id: str, root: Path = Path("workloads/svcs/reference-patches")):
+    """The ceiling replay's saved patch for this task, when it exists.
+
+    Read from disk rather than recomputed: the same bytes the ceiling
+    replay graded, so the overlap number and the winnability check are
+    talking about one artifact.
+    """
+    path = root / f"{task_id}.patch"
+    return path.read_text() if path.is_file() else None
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -37,6 +49,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         ),
     )
     parser.add_argument("--timeout", type=float, default=900.0)
+    parser.add_argument(
+        "--allow-stale-workspaces",
+        action="store_true",
+        help="run despite leftover workspaces in the temp dir (unsafe)",
+    )
     parser.add_argument(
         "--probe",
         action="store_true",
@@ -69,6 +86,21 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
+    # Before anything else, and before a single model call: a workspace
+    # left behind by an earlier run is an answer key for every task whose
+    # base predates it, and the executor has a shell and a listable temp
+    # directory. Cycle 1 lost its ceiling task to exactly this.
+    stale = workspace.stale_workspaces()
+    if stale and not args.allow_stale_workspaces:
+        raise SystemExit(
+            f"{len(stale)} stale workspace(s) in the shared temp directory:\n"
+            + "\n".join(f"  {p}" for p in stale[:10])
+            + "\n\nEach was materialized from some base commit and contains that "
+            "commit's tree, so any of them may hold another task's answer. Move "
+            "or remove them, then re-run. --allow-stale-workspaces overrides, and "
+            "every attempt from such a run must be audited before it is believed."
+        )
+
     check_model_server_alive(args.server)
     cohort = workload.load_cohort(args.cohort, require_accounting=True)
     task_ids = args.task or list(cohort.included)
@@ -90,6 +122,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             executor_env_source=None if args.blind else cohort.env_dir,
             extension=screen.PROBE_EXTENSION if args.probe else screen.ENVELOPE_EXTENSION,
             test_paths=cohort.test_paths,
+            reference_patch=reference_for(task_id),
         )
         # The patch is what a later grading change replays against; the
         # transcript is what a later *reading* replays against. Both cost

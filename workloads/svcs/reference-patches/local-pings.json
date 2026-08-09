@@ -13,13 +13,14 @@
   "missing_nodes": [],
   "model_seconds": 0.0,
   "model_timed_out": false,
+  "model_timeout_seconds": 0.0,
   "oracle": {
     "collection_errors": {},
     "failures": {},
     "node_count": 18,
     "reason_class": "pass",
     "tests_passed": 18,
-    "wall_seconds": 0.919
+    "wall_seconds": 1.708
   },
   "oracle_delta": 3,
   "out_of_scope": [],
@@ -30,12 +31,14 @@
     "node_count": 122,
     "reason_class": "pass",
     "tests_passed": 122,
-    "wall_seconds": 1.148
+    "wall_seconds": 2.119
   },
   "rule_version": 7,
   "target_total": 18,
   "task_id": "local-pings",
   "tools": "reference-replay",
+  "validity": "valid",
+  "validity_evidence": [],
   "wrote_tests": [
     "tests/test_container.py"
   ]

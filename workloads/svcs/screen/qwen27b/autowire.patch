@@ -1,0 +1,1013 @@
+diff --git a/src/svcs/__init__.py b/src/svcs/__init__.py
+index 46dc62c..f225620 100644
+--- a/src/svcs/__init__.py
++++ b/src/svcs/__init__.py
+@@ -10,6 +10,8 @@ from ._core import (
+     RegisteredService,
+     Registry,
+     ServicePing,
++    aautowire,
++    autowire,
+ )
+ 
+ 
+@@ -18,6 +20,8 @@ __all__ = [
+     "RegisteredService",
+     "Registry",
+     "ServicePing",
++    "aautowire",
++    "autowire",
+     "exceptions",
+ ]
+ 
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index 1b4d1c0..61f1d48 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -4,6 +4,7 @@
+ 
+ from __future__ import annotations
+ 
++import dataclasses
+ import inspect
+ import logging
+ import sys
+@@ -23,6 +24,8 @@ from inspect import (
+     iscoroutine,
+     iscoroutinefunction,
+     isgeneratorfunction,
++    Parameter,
++    signature,
+ )
+ from types import TracebackType
+ from typing import Any, TypeAlias, TypeVar, overload
+@@ -537,6 +540,258 @@ def _robust_signature(factory: Callable) -> inspect.Signature | None:
+     return None
+ 
+ 
++def _unwrap_initvar(annotation: Any) -> Any:
++    """
++    Unwrap ``dataclasses.InitVar[T]`` to ``T``.
++
++    Handles both ``InitVar[T]`` and bare ``InitVar`` (which resolves to
++    ``InitVar[Any]``).
++    """
++    # InitVar[T] creates an instance with a .type attribute
++    if (
++        type(annotation).__module__ == "dataclasses"
++        and type(annotation).__name__ == "InitVar"
++    ):
++        inner = getattr(annotation, "type", None)
++        if inner is not None:
++            return inner
++        return Any
++    return annotation
++
++
++def _resolve_annotation(
++    annotation: Any,
++    globalns: dict[str, Any] | None,
++    localns: dict[str, Any] | None,
++) -> Any:
++    """
++    Resolve a string annotation to the actual type object.
++
++    If *annotation* is already a type, return it unchanged.
++    """
++    if isinstance(annotation, str):
++        if globalns is None:
++            globalns = {}
++        # Ensure Container is available for resolution
++        globalns = {"Container": Container, **globalns}
++        try:
++            return eval(annotation, globalns, localns)  # noqa: S307
++        except NameError:
++            return annotation
++    return annotation
++
++
++def _collect_params(
++    fn_or_cls: Callable,
++) -> list[tuple[str, Any, Parameter]]:
++    """
++    Collect parameters from *fn_or_cls* that should be autowired.
++
++    Returns a list of ``(name, annotation, parameter)`` tuples for parameters
++    that have annotations (excluding ``*args``, ``**kwargs``, and
++    ``svcs.Container`` which is handled specially).
++
++    Raises ``TypeError`` for required parameters without annotation or default.
++    """
++    sig = signature(fn_or_cls)
++
++    # Get globals for string annotation resolution.
++    # For classes, the __init__ method holds the globals.
++    if inspect.isclass(fn_or_cls):
++        globalns: dict[str, Any] | None = getattr(
++            fn_or_cls.__init__, "__globals__", None
++        )
++    else:
++        globalns = getattr(fn_or_cls, "__globals__", None)
++
++    result: list[tuple[str, Any, Parameter]] = []
++
++    for name, param in sig.parameters.items():
++        # Skip variadic parameters
++        if param.kind in (
++            Parameter.VAR_POSITIONAL,
++            Parameter.VAR_KEYWORD,
++        ):
++            continue
++
++        annotation = param.annotation
++
++        if annotation is Parameter.empty:
++            # No annotation
++            if param.default is Parameter.empty:
++                # Required parameter with no annotation -- error
++                raise TypeError(
++                    f"parameter {name!r} of {_full_name(fn_or_cls)} "
++                    f"has no annotation and no default"
++                )
++            # Has a default but no annotation -- skip it
++            continue
++
++        # Unwrap InitVar
++        annotation = _unwrap_initvar(annotation)
++
++        # Resolve string annotations
++        annotation = _resolve_annotation(annotation, globalns, None)
++
++        result.append((name, annotation, param))
++
++    return result
++
++
++def _resolve_service_sync(
++    container: Container,
++    annotation: Any,
++    param: Parameter,
++) -> Any:
++    """
++    Resolve a single service from *container* by *annotation*.
++
++    If the service is not registered and the parameter has a default, return
++    the default. Otherwise raise ``ServiceNotFoundError``.
++
++    If the service IS registered but its factory raises an error, that error
++    propagates (is not masked by the default).
++    """
++    # Check if the service is registered BEFORE trying to get it.
++    # This lets us distinguish "not registered" from "registered but factory
++    # failed".
++    if annotation not in container.registry:
++        if param.default is not Parameter.empty:
++            return param.default
++        raise ServiceNotFoundError(annotation)
++
++    # Service is registered -- get it and let any errors propagate
++    return container.get(annotation)
++
++
++def autowire(fn_or_cls: Callable) -> Callable:
++    """
++    Create a factory that auto-resolves annotated dependencies from a
++    :class:`svcs.Container`.
++
++    Returns a callable that takes a :class:`svcs.Container`, resolves each of
++    ``fn_or_cls``'s annotated parameters from that container, and calls
++    ``fn_or_cls`` with the resolved services.
++
++    Parameters annotated as :class:`svcs.Container` receive the container
++    itself.  Parameters with a default value that are not registered in the
++    container use their default instead of raising.
++
++    Variadic parameters (``*args``, ``**kwargs``) are ignored.
++
++    ``dataclasses.InitVar`` annotations are unwrapped to the type they wrap.
++
++    String annotations (forward references) are resolved at factory runtime.
++
++    Raises:
++        TypeError:
++            If ``fn_or_cls`` is a bare generator function, or if a required
++            parameter has neither an annotation nor a default value.
++
++    Example:
++
++        >>> class Database:
++        ...     pass
++        >>> class Repository:
++        ...     def __init__(self, db: Database):
++        ...         self.db = db
++        >>> registry.register_factory(Repository, svcs.autowire(Repository))
++
++    .. versionadded:: 26.2.0
++    """
++    # Reject bare generator functions
++    if isgeneratorfunction(fn_or_cls):
++        raise TypeError(
++            f"{_full_name(fn_or_cls)} is a bare generator function; "
++            "its cleanup would be silently lost. "
++            "Use @contextmanager instead."
++        )
++
++    params = _collect_params(fn_or_cls)
++
++    def factory(svcs_container: Container) -> Any:
++        kwargs: dict[str, Any] = {}
++        for name, annotation, param in params:
++            if annotation is Container:
++                kwargs[name] = svcs_container
++            else:
++                kwargs[name] = _resolve_service_sync(
++                    svcs_container, annotation, param
++                )
++        return fn_or_cls(**kwargs)
++
++    return factory
++
++
++async def _resolve_service_async_full(
++    container: Container,
++    annotation: Any,
++    param: Parameter,
++) -> Any:
++    """
++    Resolve a single service from *container* by *annotation* using async
++    lookup (``aget``).
++
++    If the service is not registered and the parameter has a default, return
++    the default. Otherwise raise ``ServiceNotFoundError``.
++
++    If the service IS registered but its factory raises an error, that error
++    propagates (is not masked by the default).
++    """
++    # Check if the service is registered BEFORE trying to get it.
++    if annotation not in container.registry:
++        if param.default is not Parameter.empty:
++            return param.default
++        raise ServiceNotFoundError(annotation)
++
++    # Service is registered -- get it and let any errors propagate
++    return await container.aget(annotation)
++
++
++def aautowire(fn_or_cls: Callable) -> Callable:
++    """
++    Async version of :func:`autowire`.
++
++    Returns an async factory that resolves services through the container's
++    asynchronous lookup and awaits the result of ``fn_or_cls`` when that result
++    is awaitable.
++
++    Works with both synchronous and asynchronous callables and services.
++
++    Raises:
++        TypeError:
++            If ``fn_or_cls`` is a bare async generator function, or if a
++            required parameter has neither an annotation nor a default value.
++
++    .. versionadded:: 26.2.0
++    """
++    # Reject bare async generator functions
++    if isasyncgenfunction(fn_or_cls):
++        raise TypeError(
++            f"{_full_name(fn_or_cls)} is a bare async generator function; "
++            "its cleanup would be silently lost. "
++            "Use @asynccontextmanager instead."
++        )
++
++    params = _collect_params(fn_or_cls)
++
++    async def factory(svcs_container: Container) -> Any:
++        kwargs: dict[str, Any] = {}
++        for name, annotation, param in params:
++            if annotation is Container:
++                kwargs[name] = svcs_container
++            else:
++                kwargs[name] = await _resolve_service_async_full(
++                    svcs_container, annotation, param
++                )
++        result = fn_or_cls(**kwargs)
++        if isawaitable(result):
++            result = await result
++        return result
++
++    return factory
++
++
+ def _takes_container(factory: Callable) -> bool:
+     """
+     Return True if *factory* takes a svcs.Container as its first argument.
+diff --git a/tests/test_autowire.py b/tests/test_autowire.py
+new file mode 100644
+index 0000000..154da8b
+--- /dev/null
++++ b/tests/test_autowire.py
+@@ -0,0 +1,705 @@
++# SPDX-FileCopyrightText: 2023 Hynek Schlawuck <hs@ox.cx>
++#
++# SPDX-License-Identifier: MIT
++
++"""
++Tests for svcs.autowire and svcs.aautowire.
++"""
++
++import asyncio
++import dataclasses
++from contextlib import asynccontextmanager, contextmanager
++from dataclasses import InitVar
++from typing import Any
++
++import pytest
++
++import svcs
++
++from tests.helpers import CloseMe
++from tests.ifaces import AnotherService, Interface, Service, YetAnotherService
++
++
++# ---------------------------------------------------------------------------
++# Fixtures
++# ---------------------------------------------------------------------------
++
++@pytest.fixture
++def registry():
++    return svcs.Registry()
++
++
++@pytest.fixture
++def container(registry):
++    return svcs.Container(registry)
++
++
++# ---------------------------------------------------------------------------
++# Test helpers
++# ---------------------------------------------------------------------------
++
++class Database:
++    """A simple service for testing."""
++
++    def __init__(self, url: str = "sqlite://"):
++        self.url = url
++
++
++class Repository:
++    """A service that depends on Database."""
++
++    def __init__(self, db: Database):
++        self.db = db
++
++
++class Handler:
++    """A service with multiple dependencies."""
++
++    def __init__(self, repo: Repository, db: Database):
++        self.repo = repo
++        self.db = db
++
++
++class WithContainer:
++    """A service that also needs the container itself."""
++
++    def __init__(self, db: Database, container: svcs.Container):
++        self.db = db
++        self.container = container
++
++
++class WithDefault:
++    """A service with a parameter that has a default."""
++
++    def __init__(self, db: Database, name: str = "default"):
++        self.db = db
++        self.name = name
++
++
++class WithOptionalService:
++    """A service with an optional dependency (not registered)."""
++
++    def __init__(self, db: Database, cache: dict | None = None):
++        self.db = db
++        self.cache = cache
++
++
++class WithInitVar:
++    """A service using InitVar."""
++
++    def __init__(self, db: InitVar[Database], name: str):
++        self.name = name
++
++
++@dataclasses.dataclass
++class DataclassService:
++    """A dataclass service with InitVar."""
++    db: InitVar[Database]
++    name: str
++
++    def __post_init__(self, db: Database):
++        self.db_url = db.url
++
++
++# ---------------------------------------------------------------------------
++# autowire -- basic
++# ---------------------------------------------------------------------------
++
++class TestAutowireBasic:
++    def test_simple_dependency(self, registry, container):
++        """autowire resolves a single annotated dependency."""
++        registry.register_factory(Database, Database)
++        registry.register_factory(Repository, svcs.autowire(Repository))
++
++        repo = container.get(Repository)
++
++        assert isinstance(repo.db, Database)
++
++    def test_multiple_dependencies(self, registry, container):
++        """autowire resolves multiple annotated dependencies."""
++        registry.register_factory(Database, Database)
++        registry.register_factory(Repository, svcs.autowire(Repository))
++        registry.register_factory(Handler, svcs.autowire(Handler))
++
++        handler = container.get(Handler)
++
++        assert isinstance(handler.repo, Repository)
++        assert isinstance(handler.db, Database)
++
++    def test_container_annotation(self, registry, container):
++        """Parameters annotated as svcs.Container receive the container."""
++        registry.register_factory(Database, Database)
++        registry.register_factory(WithContainer, svcs.autowire(WithContainer))
++
++        svc = container.get(WithContainer)
++
++        assert isinstance(svc.db, Database)
++        assert svc.container is container
++
++    def test_default_value_used(self, registry, container):
++        """If a service is not registered and param has a default, use default."""
++        registry.register_factory(Database, Database)
++        registry.register_factory(WithDefault, svcs.autowire(WithDefault))
++
++        svc = container.get(WithDefault)
++
++        assert isinstance(svc.db, Database)
++        assert svc.name == "default"
++
++    def test_default_value_overridden(self, registry, container):
++        """If a service IS registered, the registered value is used."""
++        registry.register_factory(Database, Database)
++        registry.register_value(str, "registered")
++        registry.register_factory(WithDefault, svcs.autowire(WithDefault))
++
++        svc = container.get(WithDefault)
++
++        assert svc.name == "registered"
++
++    def test_missing_service_with_default(self, registry, container):
++        """Missing optional service uses default (None)."""
++        registry.register_factory(Database, Database)
++        registry.register_factory(
++            WithOptionalService, svcs.autowire(WithOptionalService)
++        )
++
++        svc = container.get(WithOptionalService)
++
++        assert isinstance(svc.db, Database)
++        assert svc.cache is None
++
++
++# ---------------------------------------------------------------------------
++# autowire -- error cases
++# ---------------------------------------------------------------------------
++
++class TestAutowireErrors:
++    def test_no_annotation_no_default(self):
++        """Required parameter with no annotation and no default raises TypeError."""
++
++        class Bad:
++            def __init__(self, x):
++                self.x = x
++
++        with pytest.raises(TypeError, match="has no annotation and no default"):
++            svcs.autowire(Bad)
++
++    def test_bare_generator_rejected(self):
++        """Bare generator functions are rejected with TypeError."""
++
++        def bad_factory():
++            yield 42
++
++        with pytest.raises(TypeError, match="bare generator function"):
++            svcs.autowire(bad_factory)
++
++    def test_contextmanager_decorated_is_fine(self):
++        """Functions decorated with @contextmanager are accepted."""
++
++        @contextmanager
++        def good_factory():
++            yield 42
++
++        # Should not raise
++        factory = svcs.autowire(good_factory)
++
++        registry = svcs.Registry()
++        registry.register_factory(int, factory)
++        with svcs.Container(registry) as con:
++            assert 42 == con.get(int)
++
++    def test_missing_required_service_raises(self, registry, container):
++        """Missing required service raises ServiceNotFoundError."""
++        registry.register_factory(Repository, svcs.autowire(Repository))
++
++        with pytest.raises(svcs.exceptions.ServiceNotFoundError):
++            container.get(Repository)
++
++
++# ---------------------------------------------------------------------------
++# autowire -- variadic and edge cases
++# ---------------------------------------------------------------------------
++
++class TestAutowireEdgeCases:
++    def test_variadic_ignored(self, registry, container):
++        """*args and **kwargs are ignored."""
++
++        class WithVariadic:
++            def __init__(self, db: Database, *args, **kwargs):
++                self.db = db
++                self.args = args
++                self.kwargs = kwargs
++
++        registry.register_factory(Database, Database)
++        registry.register_factory(
++            WithVariadic, svcs.autowire(WithVariadic)
++        )
++
++        svc = container.get(WithVariadic)
++
++        assert isinstance(svc.db, Database)
++        assert svc.args == ()
++        assert svc.kwargs == {}
++
++    def test_unannotated_with_default_ignored(self, registry, container):
++        """Unannotated parameters with defaults are ignored (not passed)."""
++
++        class Mixed:
++            def __init__(self, db: Database, extra: str = "hello"):
++                self.db = db
++                self.extra = extra
++
++        registry.register_factory(Database, Database)
++        registry.register_factory(Mixed, svcs.autowire(Mixed))
++
++        svc = container.get(Mixed)
++
++        assert isinstance(svc.db, Database)
++        assert svc.extra == "hello"
++
++    def test_initvar_unwrapped(self, registry, container):
++        """InitVar annotations are unwrapped to the inner type."""
++        registry.register_factory(Database, Database)
++
++        # Function that takes InitVar[Database] -- should resolve as Database
++        def make_with_initvar(db: InitVar[Database]) -> WithInitVar:
++            return WithInitVar(db, "from_initvar")
++
++        registry.register_factory(
++            WithInitVar, svcs.autowire(make_with_initvar)
++        )
++
++        svc = container.get(WithInitVar)
++        assert svc.name == "from_initvar"
++
++
++# ---------------------------------------------------------------------------
++# autowire -- string annotations
++# ---------------------------------------------------------------------------
++
++class TestAutowireStringAnnotations:
++    def test_string_annotation_resolved(self, registry, container):
++        """String annotations are resolved at factory runtime."""
++
++        class StringDep:
++            def __init__(self, db: "Database"):
++                self.db = db
++
++        registry.register_factory(Database, Database)
++        registry.register_factory(StringDep, svcs.autowire(StringDep))
++
++        svc = container.get(StringDep)
++        assert isinstance(svc.db, Database)
++
++    def test_forward_reference(self, registry, container):
++        """Forward references work even if defined before the type."""
++
++        class ForwardDep:
++            def __init__(self, repo: "Repository"):
++                self.repo = repo
++
++        registry.register_factory(Database, Database)
++        registry.register_factory(Repository, svcs.autowire(Repository))
++        registry.register_factory(ForwardDep, svcs.autowire(ForwardDep))
++
++        svc = container.get(ForwardDep)
++        assert isinstance(svc.repo, Repository)
++
++    def test_string_container_annotation(self, registry, container):
++        """String 'Container' annotation resolves to the container."""
++
++        class StringContainer:
++            def __init__(self, con: "Container"):
++                self.con = con
++
++        registry.register_factory(StringContainer, svcs.autowire(StringContainer))
++
++        svc = container.get(StringContainer)
++        assert svc.con is container
++
++
++# ---------------------------------------------------------------------------
++# autowire -- context manager factories
++# ---------------------------------------------------------------------------
++
++class TestAutowireContextManagers:
++    def test_cm_factory_entered(self, registry, container, close_me):
++        """Factories returning context managers are entered/cleaned up."""
++
++        @contextmanager
++        def factory(db: Database):
++            yield db
++            close_me.close()
++
++        registry.register_factory(Database, Database)
++        registry.register_factory(Repository, svcs.autowire(factory))
++
++        # The autowired factory wraps the CM
++        svc = container.get(Repository)
++        assert isinstance(svc, Database)
++        assert not close_me.is_closed
++        container.close()
++        assert close_me.is_closed
++
++    def test_class_with_cm_factory(self, registry, container, close_me):
++        """A class registered via autowire with a CM factory works."""
++
++        @contextmanager
++        def make_repo(db: Database):
++            yield Repository(db)
++            close_me.close()
++
++        registry.register_factory(Database, Database)
++        registry.register_factory(Repository, svcs.autowire(make_repo))
++
++        repo = container.get(Repository)
++        assert isinstance(repo, Repository)
++        assert not close_me.is_closed
++        container.close()
++        assert close_me.is_closed
++
++
++# ---------------------------------------------------------------------------
++# aautowire -- basic
++# ---------------------------------------------------------------------------
++
++class TestAautowireBasic:
++    @pytest.mark.asyncio
++    async def test_simple_dependency(self, registry, container):
++        """aautowire resolves a single annotated dependency."""
++        registry.register_factory(Database, Database)
++        registry.register_factory(Repository, svcs.aautowire(Repository))
++
++        repo = await container.aget(Repository)
++
++        assert isinstance(repo.db, Database)
++        await container.aclose()
++
++    @pytest.mark.asyncio
++    async def test_multiple_dependencies(self, registry, container):
++        """aautowire resolves multiple annotated dependencies."""
++        registry.register_factory(Database, Database)
++        registry.register_factory(Repository, svcs.autowire(Repository))
++        registry.register_factory(Handler, svcs.aautowire(Handler))
++
++        handler = await container.aget(Handler)
++
++        assert isinstance(handler.repo, Repository)
++        assert isinstance(handler.db, Database)
++        await container.aclose()
++
++    @pytest.mark.asyncio
++    async def test_container_annotation(self, registry, container):
++        """Parameters annotated as svcs.Container receive the container."""
++        registry.register_factory(Database, Database)
++        registry.register_factory(
++            WithContainer, svcs.aautowire(WithContainer)
++        )
++
++        svc = await container.aget(WithContainer)
++
++        assert isinstance(svc.db, Database)
++        assert svc.container is container
++        await container.aclose()
++
++    @pytest.mark.asyncio
++    async def test_default_value_used(self, registry, container):
++        """If a service is not registered and param has a default, use default."""
++        registry.register_factory(Database, Database)
++        registry.register_factory(
++            WithDefault, svcs.aautowire(WithDefault)
++        )
++
++        svc = await container.aget(WithDefault)
++
++        assert isinstance(svc.db, Database)
++        assert svc.name == "default"
++        await container.aclose()
++
++    @pytest.mark.asyncio
++    async def test_async_factory(self, registry, container):
++        """aautowire works with async factories."""
++
++        async def async_db_factory():
++            await asyncio.sleep(0)
++            return Database("async://")
++
++        registry.register_factory(Database, async_db_factory)
++        registry.register_factory(Repository, svcs.aautowire(Repository))
++
++        repo = await container.aget(Repository)
++        assert repo.db.url == "async://"
++        await container.aclose()
++
++    @pytest.mark.asyncio
++    async def test_awaits_result(self, registry, container):
++        """aautowire awaits the result if fn_or_cls returns an awaitable."""
++
++        async def async_handler(repo: Repository, db: Database) -> Handler:
++            await asyncio.sleep(0)
++            return Handler(repo, db)
++
++        registry.register_factory(Database, Database)
++        registry.register_factory(Repository, svcs.autowire(Repository))
++        registry.register_factory(
++            Handler, svcs.aautowire(async_handler)
++        )
++
++        handler = await container.aget(Handler)
++        assert isinstance(handler, Handler)
++        await container.aclose()
++
++
++# ---------------------------------------------------------------------------
++# aautowire -- error cases
++# ---------------------------------------------------------------------------
++
++class TestAautowireErrors:
++    def test_no_annotation_no_default(self):
++        """Required parameter with no annotation and no default raises TypeError."""
++
++        class Bad:
++            def __init__(self, x):
++                self.x = x
++
++        with pytest.raises(TypeError, match="has no annotation and no default"):
++            svcs.aautowire(Bad)
++
++    def test_bare_async_generator_rejected(self):
++        """Bare async generator functions are rejected with TypeError."""
++
++        async def bad_factory():
++            yield 42
++
++        with pytest.raises(TypeError, match="bare async generator function"):
++            svcs.aautowire(bad_factory)
++
++    def test_asynccontextmanager_decorated_is_fine(self):
++        """Functions decorated with @asynccontextmanager are accepted."""
++
++        @asynccontextmanager
++        async def good_factory():
++            yield 42
++
++        # Should not raise
++        factory = svcs.aautowire(good_factory)
++
++        registry = svcs.Registry()
++        registry.register_factory(int, factory)
++        asyncio.run(self._use_container(registry))
++
++    async def _use_container(self, registry):
++        async with svcs.Container(registry) as con:
++            assert 42 == await con.aget(int)
++
++    @pytest.mark.asyncio
++    async def test_missing_required_service_raises(self, registry, container):
++        """Missing required service raises ServiceNotFoundError."""
++        registry.register_factory(Repository, svcs.aautowire(Repository))
++
++        with pytest.raises(svcs.exceptions.ServiceNotFoundError):
++            await container.aget(Repository)
++
++
++# ---------------------------------------------------------------------------
++# aautowire -- edge cases
++# ---------------------------------------------------------------------------
++
++class TestAautowireEdgeCases:
++    @pytest.mark.asyncio
++    async def test_variadic_ignored(self, registry, container):
++        """*args and **kwargs are ignored."""
++
++        class WithVariadic:
++            def __init__(self, db: Database, *args, **kwargs):
++                self.db = db
++                self.args = args
++                self.kwargs = kwargs
++
++        registry.register_factory(Database, Database)
++        registry.register_factory(
++            WithVariadic, svcs.aautowire(WithVariadic)
++        )
++
++        svc = await container.aget(WithVariadic)
++
++        assert isinstance(svc.db, Database)
++        assert svc.args == ()
++        assert svc.kwargs == {}
++        await container.aclose()
++
++    @pytest.mark.asyncio
++    async def test_works_with_sync_callable(self, registry, container):
++        """aautowire works with synchronous callables."""
++        registry.register_factory(Database, Database)
++        registry.register_factory(Repository, svcs.aautowire(Repository))
++
++        repo = await container.aget(Repository)
++        assert isinstance(repo.db, Database)
++        await container.aclose()
++
++    @pytest.mark.asyncio
++    async def test_string_annotation(self, registry, container):
++        """String annotations are resolved."""
++
++        class StringDep:
++            def __init__(self, db: "Database"):
++                self.db = db
++
++        registry.register_factory(Database, Database)
++        registry.register_factory(StringDep, svcs.aautowire(StringDep))
++
++        svc = await container.aget(StringDep)
++        assert isinstance(svc.db, Database)
++        await container.aclose()
++
++    @pytest.mark.asyncio
++    async def test_string_container_annotation(self, registry, container):
++        """String 'Container' annotation resolves to the container."""
++
++        class StringContainer:
++            def __init__(self, con: "Container"):
++                self.con = con
++
++        registry.register_factory(
++            StringContainer, svcs.aautowire(StringContainer)
++        )
++
++        svc = await container.aget(StringContainer)
++        assert svc.con is container
++        await container.aclose()
++
++
++# ---------------------------------------------------------------------------
++# aautowire -- context managers
++# ---------------------------------------------------------------------------
++
++class TestAautowireContextManagers:
++    @pytest.mark.asyncio
++    async def test_async_cm_factory(self, registry, container, close_me):
++        """Async CM factories are entered and cleaned up."""
++
++        @asynccontextmanager
++        async def make_repo(db: Database):
++            await asyncio.sleep(0)
++            yield Repository(db)
++            await close_me.aclose()
++
++        registry.register_factory(Database, Database)
++        registry.register_factory(Repository, svcs.aautowire(make_repo))
++
++        repo = await container.aget(Repository)
++        assert isinstance(repo, Repository)
++        assert not close_me.is_aclosed
++        await container.aclose()
++        assert close_me.is_aclosed
++
++    @pytest.mark.asyncio
++    async def test_sync_cm_factory(self, registry, container, close_me):
++        """Sync CM factories also work with aautowire."""
++
++        @contextmanager
++        def make_repo(db: Database):
++            yield Repository(db)
++            close_me.close()
++
++        registry.register_factory(Database, Database)
++        registry.register_factory(Repository, svcs.aautowire(make_repo))
++
++        repo = await container.aget(Repository)
++        assert isinstance(repo, Repository)
++        assert not close_me.is_closed
++        await container.aclose()
++        assert close_me.is_closed
++
++
++# ---------------------------------------------------------------------------
++# Edge case: from __future__ import annotations
++# ---------------------------------------------------------------------------
++
++class TestAutowireFutureAnnotations:
++    """Test that autowire works with from __future__ import annotations."""
++
++    def test_future_annotations(self, registry, container):
++        """All annotations are strings with future annotations, still works."""
++        # Import a module that uses from __future__ import annotations
++        import importlib.util
++        import tempfile
++        import os
++
++        code = '''
++from __future__ import annotations
++import svcs
++
++class FutureDep:
++    def __init__(self, db: Database):
++        self.db = db
++'''
++        with tempfile.TemporaryDirectory() as tmpdir:
++            mod_path = os.path.join(tmpdir, "future_mod.py")
++            with open(mod_path, "w") as f:
++                f.write(code)
++
++            spec = importlib.util.spec_from_file_location(
++                "future_mod", mod_path
++            )
++            mod = importlib.util.module_from_spec(spec)
++            # Inject Database into the module's namespace
++            mod.Database = Database
++            spec.loader.exec_module(mod)
++
++            registry.register_factory(Database, Database)
++            registry.register_factory(
++                mod.FutureDep, svcs.autowire(mod.FutureDep)
++            )
++
++            svc = container.get(mod.FutureDep)
++            assert isinstance(svc.db, Database)
++
++    def test_svcs_container_string_annotation(self, registry, container):
++        """String 'svcs.Container' annotation also resolves to the container."""
++
++        class SvcsContainerDep:
++            def __init__(self, con: "svcs.Container"):
++                self.con = con
++
++        registry.register_factory(
++            SvcsContainerDep, svcs.autowire(SvcsContainerDep)
++        )
++
++        svc = container.get(SvcsContainerDep)
++        assert svc.con is container
++
++
++# ---------------------------------------------------------------------------
++# Edge case: default masking
++# ---------------------------------------------------------------------------
++
++class TestAutowireDefaultMasking:
++    """Test that defaults don't mask failures in transitive dependencies."""
++
++    def test_transitive_failure_propagates(self, registry, container):
++        """If a service's factory fails, the error propagates even with defaults."""
++
++        class FailingService:
++            def __init__(self, db: Database):
++                self.db = db
++
++        # FailingService depends on Database which is not registered
++        registry.register_factory(
++            FailingService, svcs.autowire(FailingService)
++        )
++
++        class OuterService:
++            def __init__(self, failing: FailingService = None):  # type: ignore[assignment]
++                self.failing = failing
++
++        registry.register_factory(
++            OuterService, svcs.autowire(OuterService)
++        )
++
++        # The failure in FailingService should propagate, not be masked
++        # by OuterService's default. FailingService IS registered, but its
++        # factory fails because Database is missing.
++        with pytest.raises(svcs.exceptions.ServiceNotFoundError):
++            container.get(OuterService)

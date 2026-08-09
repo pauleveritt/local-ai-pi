@@ -15,6 +15,8 @@ absolute-score headline reads that as a near-miss.
   scope violations  paths outside both `writable` and the test roots
   wrote tests       tests the model added: permitted, never executed, and
                     a finding of its own rather than a failure
+  overlap           share of the candidate found verbatim in the target's
+                    own diff -- flagged above 90%, never acted on
 """
 
 import argparse
@@ -38,9 +40,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"no attempt records in {args.dir}")
         return 1
 
+
+    void = [r for r in records if r.get("validity", "valid") != "valid"]
+    records = [r for r in records if r.get("validity", "valid") == "valid"]
+    for record in void:
+        print(f"VOID     {record['task_id']:26} {record['validity']}")
+        for line in record.get("validity_evidence", [])[:3]:
+            print(f"    {line}")
+    if void:
+        # Printed above the rates and excluded from all of them. A void
+        # attempt is not a weak result; the grade describes a candidate
+        # the model did not write.
+        print()
+
     for record in records:
         violations = record["out_of_scope"]
         note = f"  scope:{list(violations)}" if violations else ""
+        ov = record.get("reference_overlap", -1)
+        # Printed, never acted on. A high score is a reason to read the
+        # candidate; the copied `autowire` scored 100%, and so does a
+        # six-line change the brief all but dictates.
+        if ov >= 0.9:
+            note += f"  OVERLAP:{ov:.0%}"
         if record.get("wrote_tests"):
             note += f"  +tests:{len(record['wrote_tests'])}"
         if record["model_timed_out"]:
@@ -76,6 +97,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"\nwrote tests      {tested}/{total}"
         f"\nbudget exhausted {capped}/{total}"
         f"\nrule version(s)  {rules}"
+        + (f"\nVOID (excluded)  {len(void)}" if void else "")
     )
     if len(rules) > 1:
         print("MIXED RULE VERSIONS -- these records are not comparable")

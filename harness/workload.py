@@ -588,6 +588,15 @@ class Manifest:
     attestations: dict[str, str]
     task_dir: Path
 
+    def writable_prefixes(self) -> tuple[str, ...]:
+        """`writable` as path prefixes, for comparisons that are not globs.
+
+        `src/svcs/**` admits paths by glob; a diff header carries a plain
+        path. Stripping the wildcard is the whole conversion, kept here
+        so the two notions of "production paths" cannot drift apart.
+        """
+        return tuple(p.removesuffix("**").rstrip("/") + "/" for p in self.writable)
+
 
 REQUIRED_ATTESTATIONS = (
     "behavior_not_structure",

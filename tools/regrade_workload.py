@@ -18,6 +18,18 @@ from pathlib import Path
 
 import harness.screen as screen
 import harness.workload as workload
+from harness.validity import assess as validity_of
+
+
+def reference_for(task_id: str, root: Path = Path("workloads/svcs/reference-patches")):
+    """The ceiling replay's saved patch for this task, when it exists.
+
+    Read from disk rather than recomputed: the same bytes the ceiling
+    replay graded, so the overlap number and the winnability check are
+    talking about one artifact.
+    """
+    path = root / f"{task_id}.patch"
+    return path.read_text() if path.is_file() else None
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -42,6 +54,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         prior = json.loads(record.read_text()) if record.is_file() else {}
         previous = prior.get("outcome")
 
+        # Validity is re-derived from the transcript rather than read
+        # back from the record, because records written before validity
+        # existed have no such field and a missing field would default
+        # to "valid" -- which would silently launder the one attempt
+        # this whole mechanism exists to catch. The transcript is the
+        # evidence; the record is only a cache of a judgement about it.
+        transcript = args.candidates / f"{task_id}.jsonl"
+        validity, evidence = (
+            validity_of(transcript.read_text())
+            if transcript.is_file()
+            else ("void:no-transcript", ("no transcript saved beside this candidate",))
+        )
+
         # Model-side fields are carried through, never re-stamped. A
         # regrade re-scores a saved candidate; it does not re-run the
         # model, so defaulting these would erase real facts -- most
@@ -59,7 +84,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             executor_env_lock_sha256=str(prior.get("executor_env_lock_sha256", "none")),
             budget_exhausted=str(prior.get("budget_exhausted", "none")),
             test_paths=cohort.test_paths,
+            reference_patch=reference_for(task_id),
             model_timeout_seconds=float(prior.get("model_timeout_seconds", 0.0)),
+            validity=validity,
+            validity_evidence=evidence,
         )
 
         screen.write_attempt(record, attempt)

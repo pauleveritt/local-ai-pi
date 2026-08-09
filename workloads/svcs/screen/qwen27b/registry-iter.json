@@ -7,7 +7,7 @@
     "json",
     "--no-session",
     "--model",
-    "dsflash/deepseek-v4-flash",
+    "omlx/Qwen3.6-27B-8bit",
     "--no-extensions",
     "--extension",
     "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/probe-cap.ts",
@@ -23,13 +23,14 @@
   "base_passed": 34,
   "budget_exhausted": "none",
   "changed_paths": [
-    "src/svcs/_core.py"
+    "src/svcs/_core.py",
+    "tests/test_registry.py"
   ],
   "executor_env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
   "gap_closed": 1.0,
   "manifest_sha256": "e5a96f24fa7ef9c41379febfcd0065d027bdcc822198d271a53ae46a10ac670e",
   "missing_nodes": [],
-  "model_seconds": 156.26,
+  "model_seconds": 298.63,
   "model_timed_out": false,
   "model_timeout_seconds": 1800.0,
   "oracle": {
@@ -38,7 +39,7 @@
     "node_count": 35,
     "reason_class": "pass",
     "tests_passed": 35,
-    "wall_seconds": 0.907
+    "wall_seconds": 0.918
   },
   "oracle_delta": 1,
   "out_of_scope": [],
@@ -46,17 +47,19 @@
   "preservation": {
     "collection_errors": {},
     "failures": {},
-    "node_count": 100,
+    "node_count": 101,
     "reason_class": "pass",
-    "tests_passed": 100,
-    "wall_seconds": 1.113
+    "tests_passed": 101,
+    "wall_seconds": 1.12
   },
-  "reference_overlap": 0.3,
+  "reference_overlap": 0.154,
   "rule_version": 7,
   "target_total": 35,
   "task_id": "registry-iter",
   "tools": "read,bash,edit,write",
   "validity": "valid",
   "validity_evidence": [],
-  "wrote_tests": []
+  "wrote_tests": [
+    "tests/test_registry.py"
+  ]
 }
