@@ -2580,7 +2580,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 - [x] Phase 7-pre renamed on `phase6-orchestrator-spike` (`8bd690d`); that branch greps clean and resolves every relative link.
 - [ ] `uv run --locked pytest tests/test_workload.py -q -m "not integration"` passes offline with no `svcs` clone present.
-- [ ] A committed `workloads/svcs/env/uv.lock`, a verified 3.14.2 interpreter, and the spec's provisional preservation counts replaced by figures measured against them.
+- [x] A committed `workloads/svcs/env/uv.lock` (sha256 `6d0058e1…`, 57 packages), a verified CPython 3.14.2, and the spec's preservation counts re-measured against them.
 - [ ] At least six qualified tasks: one floor, three medium on different axes, one stretch, the autowiring ceiling.
 - [ ] Zero deselects across the qualified cohort, or a written justification per deselect frozen before any attempt.
 - [ ] Every qualified task's `qualification.json` shows all four conditions run three times in fresh materializations, agreeing at node level, with the base rejection matching its pre-registered fingerprint and every condition under the enforced `max_seconds`.

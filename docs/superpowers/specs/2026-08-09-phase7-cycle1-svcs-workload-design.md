@@ -409,33 +409,39 @@ installable for this cohort.
 artifact of the inspecting venv lacking `httpx2`, not a property of the
 workload.
 
-**The counts below are provisional and are not yet evidence.** They were
-measured against an *unlocked* resolution of the dependency list above. An
-independent reviewer resolved the same list and got different collections —
-203 rather than 191 for `98198df`, 142 rather than 130 for `816403b` — and I
-reproduced my own figures on re-run. Neither set is wrong; two unlocked
-resolutions of one dependency list are simply two different environments. That
-is exactly why `uv.lock` is part of the evidence rather than an implementation
-detail. These numbers are replaced by a re-run against the committed lock, on a
-verified 3.14.2 interpreter, before the cohort is frozen.
+**The counts below are measured against the committed lock**
+(`workloads/svcs/env/uv.lock`, sha256 `6d0058e1…`, 57 packages) on a verified
+CPython **3.14.2**, via the same `materialize` used by qualification.
 
-| Base | Target it precedes | Full-suite result |
-|---|---|---|
-| `32ddce2` | `c016b37` | 131 passed |
-| `f8585ce` | `c91f1f1` | 140 passed |
-| `25d8a0b` | `32ddce2` | 129 passed |
-| `31bc6df` | `52c6689` | 137 passed |
-| `85827a1` | `012b6a9` | 128 passed |
-| `e9d9cc1` | `c5c5f48` | 119 passed |
-| `4b05ab8` | `f81e493` | 121 passed |
-| `98198df` | `7d56b11` | 191 passed |
-| `1676980` | `c0bd379` | 132 passed |
-| `816403b` | `6bb3f28` | 130 passed |
+That verification mattered. An earlier draft of this table came from an
+*unlocked* resolution, and an independent reviewer resolving the same dependency
+list got different collections — 203 rather than 191 for `98198df`, 142 rather
+than 130 for `816403b`. Re-running under the committed lock reproduces the
+figures below exactly. Neither reading was wrong; two unlocked resolutions of one
+dependency list are simply two different environments, which is precisely why the
+lock is part of the evidence rather than an implementation detail.
 
-All well under a second on Python 3.14.2, though several land nearer 0.35 s than
-the 0.3 s an earlier draft claimed — another figure the locked re-run settles.
-The qualitative result is what survives: every base runs its full suite green,
-Pyramid included, so the exclusion is unnecessary.
+| Base | Target it precedes | Full-suite result | pytest |
+|---|---|---|---|
+| `32ddce2` | `c016b37` | 131 passed | 0.29 s |
+| `f8585ce` | `c91f1f1` | 140 passed | 0.26 s |
+| `25d8a0b` | `32ddce2` | 129 passed | 0.25 s |
+| `31bc6df` | `52c6689` | 137 passed | 0.26 s |
+| `85827a1` | `012b6a9` | 128 passed | 0.26 s |
+| `e9d9cc1` | `c5c5f48` | 119 passed | 0.25 s |
+| `4b05ab8` | `f81e493` | 121 passed | 0.25 s |
+| `98198df` | `7d56b11` | 191 passed | 0.28 s |
+| `1676980` | `c0bd379` | 132 passed | 0.26 s |
+| `816403b` | `6bb3f28` | 130 passed | 0.24 s |
+
+Every base runs its full suite green, Pyramid included, so the exclusion is
+unnecessary. Pytest time is 0.24–0.29 s; end-to-end per condition, including
+tree export and `git init`, is 1.1–2.5 s. Twelve conditions per task therefore
+cost well under a minute, which is what makes the three-runs-per-condition
+stability gate affordable rather than aspirational.
+
+Short SHAs appear above for readability. Manifests carry the full
+40-character forms, which `load_manifest` requires.
 
 One property of a union environment must be recorded rather than glossed:
 historical bases run against dependency versions **newer** than they were
