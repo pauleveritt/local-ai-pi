@@ -812,3 +812,123 @@ def test_qualification_records_provenance(
     assert report["env_python"] == platform.python_version()
     assert report["base_sha"] == synthetic_clone.base_sha
     assert report["target_sha"] == synthetic_clone.target_sha
+
+
+def test_a_suite_using_tmp_path_leaves_the_workspace_clean(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """Regression: TMPDIR once pointed into the workspace.
+
+    Any real suite touching `tmp_path` then left `pytest-of-<user>/`
+    behind, which the later cycle that diffs a workspace to find
+    candidate output would read as model changes. The synthetic suite
+    never used tmp_path, so the byte-identical test passed anyway.
+    """
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    with materialize(clone, synthetic_clone.base_sha) as workspace:
+        (workspace / "tests" / "test_tmp.py").write_text(
+            "def test_tmp(tmp_path):\n    (tmp_path / 'x').write_text('x')\n"
+        )
+        (workspace / "tests" / "test_home.py").write_text(
+            "import pathlib\n\n\ndef test_home():\n"
+            "    (pathlib.Path.home() / 'dropped').write_text('x')\n"
+        )
+        result = run_suite(workspace, _QUIET, _fake_env())
+        assert result.reason_class == "pass"
+        dirt = [
+            line
+            for line in _git(workspace, "status", "--short").splitlines()
+            if "test_tmp.py" not in line and "test_home.py" not in line
+        ]
+    assert dirt == []
+
+
+def test_materialized_mtimes_carry_no_commit_timestamp(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """`git archive` stamps each file with the commit time.
+
+    That identifies the base in public history nearly as precisely as
+    the SHA `_undo_export_subst` strips -- the same provenance channel
+    in different clothes.
+    """
+    clone = ensure_clone(str(synthetic_clone.bare), tmp_path / "cache")
+    commit_epoch = int(
+        _git(clone, "show", "-s", "--format=%ct", synthetic_clone.base_sha)
+    )
+    with materialize(clone, synthetic_clone.base_sha) as workspace:
+        mtimes = {
+            p.stat().st_mtime for p in workspace.rglob("*") if ".git" not in p.parts
+        }
+        assert mtimes, "expected files in the workspace"
+        assert commit_epoch not in mtimes
+        assert mtimes == {float(workload_module._FIXED_MTIME)}
+
+
+def test_qualify_checks_the_rejection_fingerprint_on_every_repeat(
+    tmp_path: Path, synthetic_clone: SyntheticClone, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The rejection fingerprint is checked on every repeat, not just the first.
+
+    The motivating hazard: a collection error records no nodes, so its
+    fingerprint is ("collection-error", 2, ()) and the stability gate
+    cannot tell two collection errors apart by cause.
+
+    What this test actually pins down is narrower and worth stating. The
+    sabotage here changes the reason class too, so *stability* would also
+    catch it -- but it would report `failed_gate == "stability"`, naming
+    the wrong problem. With the per-repeat check the run is attributed to
+    `base_rejection` and names which repeat diverged. Constructing a true
+    same-class-different-cause collision synthetically is awkward, since
+    overlay_oracle rewrites the oracle file after any sabotage; that case
+    is argued from the fingerprint's shape rather than demonstrated.
+    """
+    task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    calls = {"n": 0}
+    original = materialize
+
+    @contextmanager
+    def sabotage_later_runs(clone_path: Path, sha: str) -> Iterator[Path]:
+        with original(clone_path, sha) as workspace:
+            if sha == synthetic_clone.base_sha:
+                calls["n"] += 1
+                # Runs 4 and 5 are base_oracle's second and third; break
+                # them for a reason that is NOT the pre-registered symbol.
+                if calls["n"] > 4:
+                    (workspace / "conftest.py").write_text(
+                        "import nonexistent_module_xyz\n"
+                    )
+            yield workspace
+
+    monkeypatch.setattr(workload_module, "materialize", sabotage_later_runs)
+    report = qualify(load_manifest(task_dir), bare, _fake_env())
+
+    assert report["status"] == "disqualified"
+    assert report["failed_gate"] == "base_rejection"
+    assert "run 2" in str(report["detail"])
+
+
+def test_qualify_applies_declared_deselects(
+    tmp_path: Path, synthetic_clone: SyntheticClone
+) -> None:
+    """A deselect that is validated and reported but never applied is a lie."""
+    task_dir, bare = _manifest_with_real_oracle_hash(tmp_path, synthetic_clone)
+    text = (task_dir / "manifest.toml").read_text()
+    (task_dir / "manifest.toml").write_text(
+        text.replace(
+            "deselects = []", 'deselects = ["tests/test_add.py::test_add"]'
+        ).replace(
+            'deselect_reason = ""',
+            'deselect_reason = "exercised by the oracle instead"',
+        )
+    )
+    manifest = load_manifest(task_dir)
+    report = qualify(manifest, bare, _fake_env())
+    assert report["effective_preservation_command"] == [
+        *manifest.preservation_command,
+        "--deselect",
+        "tests/test_add.py::test_add",
+    ]
+    # With its only test deselected, the base suite collects nothing.
+    assert report["status"] == "disqualified"
+    assert report["failed_gate"] == "base_preservation"

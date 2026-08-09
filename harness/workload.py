@@ -194,6 +194,30 @@ def export_tree(clone: Path, sha: str, destination: Path) -> None:
         with tarfile.open(archive.name) as tar:
             tar.extractall(destination, filter="data")
     _undo_export_subst(clone, sha, destination)
+    _normalize_mtimes(destination)
+
+
+# An arbitrary fixed instant (2000-01-01T00:00:00Z). Any constant does;
+# what matters is that it carries no information.
+_FIXED_MTIME = 946684800
+
+
+def _normalize_mtimes(root: Path) -> None:
+    """Stamp every extracted path with one fixed time.
+
+    `git archive` sets each file's mtime to the *commit timestamp*, which
+    identifies the base commit in public history almost as precisely as
+    the SHA that `_undo_export_subst` removes -- the same provenance
+    channel wearing different clothes. Restoring an export-subst file
+    then gives it the current time, which is its own tell: the one file
+    whose timestamp differs is the one that was rewritten.
+
+    Normalising both away costs a `utime` per path and makes materialized
+    trees reproducible stat-for-stat as well as byte-for-byte.
+    """
+    for path in sorted(root.rglob("*"), reverse=True):
+        os.utime(path, (_FIXED_MTIME, _FIXED_MTIME), follow_symlinks=False)
+    os.utime(root, (_FIXED_MTIME, _FIXED_MTIME))
 
 
 @contextmanager
@@ -442,26 +466,34 @@ def run_suite(
     The child environment is built from nothing rather than inherited.
     The cohort env supplies dependencies, PYTHONPATH supplies exactly
     one copy of the project under test, and HOME and TMPDIR point into
-    the disposable workspace so nothing a suite writes lands in the
-    operator's home directory. No proxy variables are passed through --
-    which is most of what "no network" means in practice, and is
-    hygiene rather than a guarantee.
+    the *staging* directory -- not the workspace, and not the operator's
+    home. Pointing TMPDIR at the workspace leaves `pytest-of-<user>/`
+    behind on any suite that uses `tmp_path`, which a later cycle
+    diffing a workspace would read as candidate output. No proxy
+    variables are passed through, which is most of what "no network"
+    means in practice, and is hygiene rather than a guarantee.
 
     Timed here rather than read off `ProcessResult`, which on this
     branch carries no duration.
     """
     with disposable_dir("satyrn-suite-") as staging:
-        shutil.copy2(Path(grading_plugin.__file__), staging / "grading_plugin.py")
+        plugin_dir = staging / "plugin"
+        plugin_dir.mkdir()
+        shutil.copy2(Path(grading_plugin.__file__), plugin_dir / "grading_plugin.py")
+        home = staging / "home"
+        home.mkdir()
+        tmp = staging / "tmp"
+        tmp.mkdir()
         results = staging / "results.txt"
         results.touch()
         child_env = {
             "PATH": os.defpath,
-            "PYTHONPATH": os.pathsep.join([str(workspace / "src"), str(staging)]),
+            "PYTHONPATH": os.pathsep.join([str(workspace / "src"), str(plugin_dir)]),
             "PYTHONDONTWRITEBYTECODE": "1",
-            "HOME": str(workspace),
+            "HOME": str(home),
             "LANG": "C.UTF-8",
             "LC_ALL": "C.UTF-8",
-            "TMPDIR": str(workspace),
+            "TMPDIR": str(tmp),
             grading_plugin.RESULTS_ENV_VAR: str(results),
         }
         started = time.monotonic()
@@ -889,15 +921,18 @@ def qualify(
 
     conditions = report["conditions"]
     assert isinstance(conditions, dict)
+    # Deselects are applied here, not merely recorded. load_manifest
+    # validated them and the report lists them; a manifest whose list was
+    # silently ignored would run the full suite and then disqualify for a
+    # failure it had already declared out of scope.
+    preservation = tuple(manifest.preservation_command) + tuple(
+        argument for entry in manifest.deselects for argument in ("--deselect", entry)
+    )
+    report["effective_preservation_command"] = list(preservation)
     plan = (
-        ("base_preservation", manifest.base_sha, manifest.preservation_command, False),
+        ("base_preservation", manifest.base_sha, preservation, False),
         ("base_oracle", manifest.base_sha, manifest.oracle_command, True),
-        (
-            "target_preservation",
-            manifest.target_sha,
-            manifest.preservation_command,
-            False,
-        ),
+        ("target_preservation", manifest.target_sha, preservation, False),
         ("target_oracle", manifest.target_sha, manifest.oracle_command, True),
     )
 
@@ -910,10 +945,18 @@ def qualify(
         conditions[name] = run.payload()
 
         if name == "base_oracle":
-            mismatch = _rejection_mismatch(manifest, run.first)
-            if mismatch is not None:
-                report["base_oracle_tail"] = run.first.stdout_tail
-                return _disqualify("base_rejection", mismatch)
+            # Every repeat, not just the first. A collection error records
+            # no nodes, so its fingerprint is ("collection-error", 2, ())
+            # and any two collection errors compare stable no matter what
+            # caused them. Checking only run one would let a base reject
+            # for the pre-registered symbol once and for something else
+            # twice and still qualify -- in the exact condition this
+            # instrument exists to establish.
+            for index, attempt in enumerate(run.results):
+                mismatch = _rejection_mismatch(manifest, attempt)
+                if mismatch is not None:
+                    report["base_oracle_tail"] = attempt.stdout_tail
+                    return _disqualify("base_rejection", f"run {index + 1}: {mismatch}")
         elif run.first.reason_class != "pass":
             report[f"{name}_tail"] = run.first.stdout_tail
             return _disqualify(
