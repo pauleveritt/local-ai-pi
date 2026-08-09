@@ -51,11 +51,16 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     rows = []
     for task_id in task_ids:
+        print(f"{task_id:26} running...", flush=True)
         manifest = workload.load_manifest(cohort.task_dir(task_id))
-        attempt = screen.screen_task(
+        attempt, patch = screen.screen_task(
             manifest, clone, env, args.model, tools=args.tools, timeout=args.timeout
         )
+        # The patch is the expensive artifact: it is what a later
+        # grading change can be replayed against without paying for the
+        # model call again.
         screen.write_attempt(args.out / f"{task_id}.json", attempt)
+        (args.out / f"{task_id}.patch").write_text(patch)
         rows.append(attempt)
         oracle = attempt.oracle
         detail = (

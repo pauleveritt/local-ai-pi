@@ -1,0 +1,33 @@
+{
+  "accepted": false,
+  "argv": [
+    "pi",
+    "--print",
+    "--mode",
+    "json",
+    "--no-session",
+    "--model",
+    "omlx/gemma-4-12B-it-MLX-8bit",
+    "--no-extensions",
+    "--extension",
+    "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/envelope-cap.ts",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--approve",
+    "--tools",
+    "read,write",
+    "# Handle string annotations when detecting the container parameter\n\nA factory may declare that it wants the container by annotating its first\nparameter as `svcs.Container`. Detecting that means inspecting the annotation.\n\nAnnotations are not always objects. Under `from __future__ import annotations`,\nand wherever a forward reference is written, the annotation arrives as a string.\nThe current detection mishandles those, so a factory whose container parameter\nis annotated as a string is not recognised as wanting the container.\n\nMake the detection treat string annotations equivalently to their resolved\ncounterparts, so a factory is recognised the same way whether its annotation was\nevaluated or left as a string.\n\nFactories that do not take a container must continue not to receive one.\n"
+  ],
+  "changed_paths": [],
+  "manifest_sha256": "1f4f55ca013bed03b6092c4b0051c3e8c6d46e083615faf97e306397530c629a",
+  "model_seconds": 301.91,
+  "model_timed_out": false,
+  "oracle": null,
+  "out_of_scope": [],
+  "outcome": "no-changes",
+  "preservation": null,
+  "task_id": "stringified-annotations",
+  "tools": "read,write"
+}

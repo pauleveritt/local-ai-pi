@@ -1,0 +1,67 @@
+{
+  "accepted": false,
+  "argv": [
+    "pi",
+    "--print",
+    "--mode",
+    "json",
+    "--no-session",
+    "--model",
+    "omlx/gemma-4-12B-it-MLX-8bit",
+    "--no-extensions",
+    "--extension",
+    "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/envelope-cap.ts",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--approve",
+    "--tools",
+    "read,write",
+    "# Let a factory's cleanup see, and swallow, an error\n\nWhen a container closes, it exits the context managers of the services it\nentered. If the block that used the container raised, that exception is\ncurrently not passed to those cleanups: they are exited as though nothing went\nwrong, so a factory cannot react to a failure, and cannot suppress it.\n\nAdd a *suppress_context_exit* option to `register_factory()` and\n`register_value()`. When set, the error that ended the container's context is\npassed into the registered service's cleanup context manager, which may then act\non it \u2014 including suppressing it, in which case the error does not propagate out\nof the container.\n\nThe default must preserve today's behaviour. Both synchronous and asynchronous\nfactories must support it, and the option must be visible on the registered\nservice the registry stores.\n"
+  ],
+  "changed_paths": [
+    "find_factories.txt",
+    "find_files.txt",
+    "list_files.txt",
+    "search_results.txt"
+  ],
+  "manifest_sha256": "4e705f767f135aabae2276fbdee629489d92eac694e306fc8ba018b2fb69cc80",
+  "model_seconds": 68.72,
+  "model_timed_out": false,
+  "oracle": {
+    "collection_errors": {},
+    "failures": {
+      "tests/test_container.py::TestContainer::test_async_suppress_context_exit_async_factory_no_suppress": "call:failed",
+      "tests/test_container.py::TestContainer::test_async_suppress_context_exit_sync_factory_no_suppress": "call:failed",
+      "tests/test_container.py::TestContainer::test_suppress_context_exit_no_suppress_handled": "call:failed"
+    },
+    "node_count": 15,
+    "reason_class": "assertion-failure",
+    "tests_passed": 12,
+    "wall_seconds": 1.018
+  },
+  "out_of_scope": [
+    "find_factories.txt",
+    "find_files.txt",
+    "list_files.txt",
+    "search_results.txt"
+  ],
+  "outcome": "preservation-broken",
+  "preservation": {
+    "collection_errors": {},
+    "failures": {
+      "tests/test_container.py::TestContainer::test_async_suppress_context_exit_async_factory_no_suppress": "call:failed",
+      "tests/test_container.py::TestContainer::test_async_suppress_context_exit_sync_factory_no_suppress": "call:failed",
+      "tests/test_container.py::TestContainer::test_suppress_context_exit_no_suppress_handled": "call:failed",
+      "tests/test_registry.py::TestRegisteredService::test_name": "setup:failed",
+      "tests/test_registry.py::TestRegisteredService::test_repr": "setup:failed"
+    },
+    "node_count": 137,
+    "reason_class": "assertion-failure",
+    "tests_passed": 132,
+    "wall_seconds": 2.227
+  },
+  "task_id": "suppress-context-exit",
+  "tools": "read,write"
+}

@@ -1,0 +1,33 @@
+{
+  "accepted": false,
+  "argv": [
+    "pi",
+    "--print",
+    "--mode",
+    "json",
+    "--no-session",
+    "--model",
+    "omlx/gemma-4-12B-it-MLX-8bit",
+    "--no-extensions",
+    "--extension",
+    "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/envelope-cap.ts",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--approve",
+    "--tools",
+    "read,write",
+    "# Store the Flask registry where extensions belong\n\nThe Flask integration keeps its `Registry` on the application's `config`\nmapping. Flask provides `app.extensions` for exactly this purpose: state that\nbelongs to an extension rather than user configuration, which should not appear\nalongside a user's own settings or be dumped with them.\n\nMove the registry to `app.extensions`, under the same key. After\n`svcs.flask.init_app(app)`, the registry must be reachable at\n`app.extensions[\"svcs_registry\"]`, and an explicitly supplied registry must be\nthe object stored there.\n\nEvery other part of the Flask integration \u2014 request-scoped containers, teardown,\nand registry closing \u2014 must keep working.\n"
+  ],
+  "changed_paths": [],
+  "manifest_sha256": "c96285e34433f8b34986a2b08b952dda0e394464a0faf9285998c7f3bd06ea62",
+  "model_seconds": 391.02,
+  "model_timed_out": false,
+  "oracle": null,
+  "out_of_scope": [],
+  "outcome": "no-changes",
+  "preservation": null,
+  "task_id": "flask-extensions",
+  "tools": "read,write"
+}

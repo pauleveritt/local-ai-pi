@@ -34,6 +34,7 @@ from harness.workload import (
     CohortEnv,
     Manifest,
     SuiteResult,
+    WorkloadError,
     disposable_dir,
     materialize,
     overlay_oracle,
@@ -102,6 +103,49 @@ class Attempt:
         }
 
 
+def capture_candidate(workspace: Path) -> str:
+    """The model's whole contribution, as a patch.
+
+    This is what makes grading replayable. Every defect found in this
+    harness so far has been in the *acceptance rule*, not in the model's
+    output -- and each one cost a fresh sweep of model calls to re-score
+    work that was already correct. A saved patch turns re-scoring into a
+    pure function over (patch, manifest, environment) that runs offline
+    in seconds.
+
+    The roadmap already asked for this at cycle 5, for admitting
+    components by replay. It applies just as well to the screen that
+    produces the candidates in the first place.
+    """
+    subprocess.run(
+        ["git", "add", "-A"], cwd=workspace, capture_output=True, env=GIT_ENV
+    )
+    diff = subprocess.run(
+        ["git", "diff", "--cached", "--binary"],
+        cwd=workspace,
+        capture_output=True,
+        text=True,
+        env=GIT_ENV,
+    )
+    return diff.stdout
+
+
+def apply_candidate(workspace: Path, patch: str) -> None:
+    """Reapply a saved candidate to a freshly materialized base."""
+    if not patch.strip():
+        return
+    result = subprocess.run(
+        ["git", "apply", "--whitespace=nowarn", "-"],
+        cwd=workspace,
+        input=patch,
+        capture_output=True,
+        text=True,
+        env=GIT_ENV,
+    )
+    if result.returncode != 0:
+        raise WorkloadError(f"candidate patch did not apply: {result.stderr.strip()}")
+
+
 def _changed_paths(workspace: Path) -> tuple[str, ...]:
     """Every path the model added, changed, or deleted.
 
@@ -137,33 +181,36 @@ def _out_of_scope(
     )
 
 
-def screen_task(
+def grade_candidate(
     manifest: Manifest,
     clone: Path,
     env: CohortEnv,
-    model: str,
+    patch: str,
+    model_seconds: float = 0.0,
+    model_timed_out: bool = False,
     tools: str = ENVELOPE_TOOLS,
-    timeout: float = 900.0,
+    argv: tuple[str, ...] = (),
     suite_timeout: float = 300.0,
 ) -> Attempt:
-    """Run one bounded attempt at `manifest`'s task and grade it.
+    """Score one saved candidate. Pure, offline, no model call.
 
-    Grading mirrors qualification's two relevant conditions, both against
-    the model's own workspace: the preservation suite runs in place, and
-    the oracle runs on a *copy* with the hidden tests overlaid, so the
-    workspace the model touched never contains an oracle file.
+    Two independent questions, deliberately measured separately:
+
+    - the **oracle** runs on a copy with the hidden tests overlaid, and
+      says whether the feature works;
+    - **preservation** runs on that same overlaid copy but ignores the
+      oracle files, and says whether anything else survived.
+
+    Overlaying for both is what lets a task legitimately change an
+    existing test's expectations. Ignoring the oracle files in
+    preservation is what stops the oracle being counted twice, which
+    would make "feature incomplete" indistinguishable from "repository
+    damaged".
     """
     manifest_hash = sha256_file(manifest.task_dir / "manifest.toml")
-    brief = manifest.brief_path.read_text()
 
     with materialize(clone, manifest.base_sha) as workspace:
-        argv = _pi_command(model, brief, (ENVELOPE_EXTENSION,))
-        argv = argv[:-1] + ["--tools", tools] + argv[-1:]
-
-        started = time.monotonic()
-        child = run_process(argv, cwd=workspace, timeout=timeout, env=pi_env())
-        model_seconds = time.monotonic() - started
-
+        apply_candidate(workspace, patch)
         changed = _changed_paths(workspace)
         out_of_scope = _out_of_scope(changed, manifest.writable)
 
@@ -177,10 +224,10 @@ def screen_task(
                 changed_paths=changed,
                 out_of_scope=out_of_scope,
                 model_seconds=model_seconds,
-                model_timed_out=child.timed_out,
+                model_timed_out=model_timed_out,
                 preservation=None,
                 oracle=None,
-                argv=tuple(argv),
+                argv=argv,
             )
 
         preservation_command = tuple(manifest.preservation_command) + tuple(
@@ -188,32 +235,6 @@ def screen_task(
             for entry in manifest.deselects
             for argument in ("--deselect", entry)
         )
-
-        # Preservation asks one question: did anything OTHER than this
-        # task's own tests break? So it runs on the overlaid copy -- so
-        # that tests whose expectations the target legitimately changed
-        # are current -- while ignoring the oracle files themselves.
-        #
-        # Both halves of that were learned the hard way, in order.
-        #
-        # Grading preservation against the *base* test files while
-        # grading the oracle against the *target* ones asks the candidate
-        # to satisfy two contradictory specs. flask-extensions exposed
-        # it: moving the registry from app.config to app.extensions makes
-        # the oracle pass 19/19 and necessarily breaks the two base tests
-        # asserting the old location -- the very tests the target commit
-        # updates. Scored that way, correct work reads as damage.
-        #
-        # But overlaying and then running the *whole* suite puts the
-        # oracle's own tests inside the preservation run, so preservation
-        # cannot pass unless the feature is finished. That is the oracle
-        # measured twice, and it mislabels "feature incomplete" as
-        # "repository damaged" -- registry-iter reported preservation
-        # 0/0, which was a collection error on the oracle file itself.
-        #
-        # Ignoring the oracle files keeps the two questions separate:
-        # the oracle says whether the feature works, preservation says
-        # whether everything else survived.
         ignore_oracle = tuple(
             argument
             for oracle_file in manifest.oracle_files
@@ -234,13 +255,14 @@ def screen_task(
     )
     if accepted:
         outcome = "accepted"
-    elif oracle.reason_class == "pass":
-        # The hidden tests pass but something else does not: a broken
-        # preservation suite or a write outside the declared scope. Worth
-        # its own name, because "the feature works but the repository is
-        # damaged" is exactly the failure this whole line of work is about.
-        outcome = "oracle-pass-but-rejected"
+    elif out_of_scope and oracle.reason_class == "pass":
+        outcome = "out-of-scope"
+    elif oracle.reason_class != "pass" and preservation.reason_class != "pass":
+        outcome = "broke-and-missed"
     elif preservation.reason_class != "pass":
+        # The feature works but something else regressed -- "the tests
+        # pass and the repository is damaged" is the failure this whole
+        # line of work exists to catch, so it gets its own name.
         outcome = "preservation-broken"
     else:
         outcome = "oracle-failed"
@@ -254,11 +276,53 @@ def screen_task(
         changed_paths=changed,
         out_of_scope=out_of_scope,
         model_seconds=model_seconds,
-        model_timed_out=child.timed_out,
+        model_timed_out=model_timed_out,
         preservation=preservation,
         oracle=oracle,
-        argv=tuple(argv),
+        argv=argv,
     )
+
+
+def screen_task(
+    manifest: Manifest,
+    clone: Path,
+    env: CohortEnv,
+    model: str,
+    tools: str = ENVELOPE_TOOLS,
+    timeout: float = 900.0,
+    suite_timeout: float = 300.0,
+) -> tuple[Attempt, str]:
+    """One bounded model attempt, returned with its candidate patch.
+
+    The model call is the only expensive step and the only one that
+    cannot be repeated cheaply, so it happens exactly once and its whole
+    result is handed back as a patch. Everything downstream is
+    `grade_candidate`, which can be re-run offline whenever the
+    acceptance rule changes -- and it has changed three times.
+    """
+    brief = manifest.brief_path.read_text()
+
+    with materialize(clone, manifest.base_sha) as workspace:
+        argv = _pi_command(model, brief, (ENVELOPE_EXTENSION,))
+        argv = argv[:-1] + ["--tools", tools] + argv[-1:]
+
+        started = time.monotonic()
+        child = run_process(argv, cwd=workspace, timeout=timeout, env=pi_env())
+        model_seconds = time.monotonic() - started
+        patch = capture_candidate(workspace)
+
+    attempt = grade_candidate(
+        manifest,
+        clone,
+        env,
+        patch,
+        model_seconds=model_seconds,
+        model_timed_out=child.timed_out,
+        tools=tools,
+        argv=tuple(argv),
+        suite_timeout=suite_timeout,
+    )
+    return attempt, patch
 
 
 def write_attempt(path: Path, attempt: Attempt) -> None:
