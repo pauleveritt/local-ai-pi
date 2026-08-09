@@ -25,7 +25,7 @@ DEFAULT_MODEL = "omlx/gemma-4-12B-it-MLX-8bit"
 EXPECTED_PI_VERSION = "0.84.1"
 
 
-def pi_env() -> dict[str, str]:
+def pi_env(inherit_venv: bool = False) -> dict[str, str]:
     """The environment every Pi process the harness starts runs under.
 
     `PI_CODING_AGENT_DIR` points Pi at `pi-agent-dir/` instead of
@@ -64,8 +64,21 @@ def pi_env() -> dict[str, str]:
     The frozen cohort environment was never exposed and was verified
     unaffected -- it lives under `.workloads/env` and is passed to
     `run_suite` explicitly, not through `PATH`.
+
+    `inherit_venv=True` restores the old behaviour, and exists for one
+    reason: phase 5's suites are built on it. Their stack prompts assert
+    that FastAPI, Jinja2, pytest and httpx are installed and forbid
+    installing anything, and that claim is true *because* the workspace
+    is bare and the harness venv is inherited. A false claim there is
+    worse than none -- a model told not to install a missing package
+    cannot recover -- so a closed phase keeps the environment its
+    recorded results were measured under. Phase 7 does not use it:
+    `screen_task` provisions a real per-workspace environment instead,
+    which is what the old arrangement was a poor substitute for.
     """
     env = {**os.environ, "PI_CODING_AGENT_DIR": str(AGENT_DIR)}
+    if inherit_venv:
+        return env
     venv = env.pop("VIRTUAL_ENV", None)
     env.pop("SSH_AUTH_SOCK", None)
     if venv:
@@ -431,7 +444,7 @@ def run_suite(
             command,
             timeout=timeout,
             cwd=workspace,
-            env=pi_env(),
+            env=pi_env(inherit_venv=True),
         )
 
         # Stage everything before diffing: plain `git diff <commit>` never
@@ -666,7 +679,7 @@ def preflight_model(model: str = "omlx/gemma-4-12B-it-MLX-8bit") -> None:
             _pi_command(model, "Reply with exactly SATYRN."),
             cwd=workspace,
             timeout=60,
-            env=pi_env(),
+            env=pi_env(inherit_venv=True),
         )
     if (
         result.timed_out

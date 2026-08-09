@@ -38,6 +38,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--timeout", type=float, default=900.0)
     parser.add_argument(
+        "--blind",
+        action="store_true",
+        help=(
+            "withhold the dev environment from the executor (ablation). "
+            "The default gives it the cohort's dependencies, because "
+            "routine work happens in a repository that has an environment"
+        ),
+    )
+    parser.add_argument(
         "--tools",
         default=screen.ENVELOPE_TOOLS,
         help="Pi tool allowlist for the arm (default: Phase 7-pre's read,write)",
@@ -62,7 +71,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"{task_id:26} running...", flush=True)
         manifest = workload.load_manifest(cohort.task_dir(task_id))
         attempt, patch, transcript = screen.screen_task(
-            manifest, clone, env, args.model, tools=args.tools, timeout=args.timeout
+            manifest,
+            clone,
+            env,
+            args.model,
+            tools=args.tools,
+            timeout=args.timeout,
+            executor_env_source=None if args.blind else cohort.env_dir,
         )
         # The patch is what a later grading change replays against; the
         # transcript is what a later *reading* replays against. Both cost
@@ -91,8 +106,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             {
                 "model": args.model,
                 "server": args.server,
-                "arm": f"brief-only:{args.tools}",
+                "arm": f"brief-only:{args.tools}:{'blind' if args.blind else 'env'}",
                 "tools": args.tools,
+                "executor_env": "none" if args.blind else str(cohort.env_dir),
                 "accepted": accepted,
                 "attempted": len(rows),
                 "outcomes": {r.task_id: r.outcome for r in rows},

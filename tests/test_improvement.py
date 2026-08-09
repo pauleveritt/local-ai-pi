@@ -768,7 +768,7 @@ def test_the_preinstall_claim_is_true_of_the_environment_runs_actually_get():
         probe = subprocess.run(
             ["python", "-c", "import fastapi, jinja2, pytest, httpx"],
             cwd=elsewhere,
-            env=runner.pi_env(),
+            env=runner.pi_env(inherit_venv=True),
             capture_output=True,
             text=True,
         )

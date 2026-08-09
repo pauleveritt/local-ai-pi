@@ -29,13 +29,31 @@ def test_pi_env_keeps_the_inherited_environment():
     would strip `PATH`, and `pi` is resolved through it -- the failure would
     be an unrunnable batch, not a subtly wrong one, but it would cost a
     batch to find out.
+
+    This asserted byte-equality with `os.environ["PATH"]` until `pi_env`
+    began removing the harness virtualenv, which an executor with a shell
+    had been using as its `python3`. Equality was never the property worth
+    holding: what matters is that everything *else* survives, so `pi` is
+    still resolvable. Under `inherit_venv=True` -- phase 5's arrangement --
+    the original equality still holds exactly, and is asserted here.
     """
     import os
 
     env = runner.pi_env()
+    dropped = {"VIRTUAL_ENV", "SSH_AUTH_SOCK"}
+    venv = os.environ.get("VIRTUAL_ENV")
 
-    assert env["PATH"] == os.environ["PATH"]
     assert len(env) > 1
+    assert not dropped & set(env)
+    assert set(os.environ) - dropped <= set(env)
+    kept = [
+        entry
+        for entry in os.environ["PATH"].split(os.pathsep)
+        if entry and not (venv and entry.startswith(venv))
+    ]
+    assert env["PATH"].split(os.pathsep) == kept
+
+    assert runner.pi_env(inherit_venv=True)["PATH"] == os.environ["PATH"]
 
 
 def test_run_suite_runs_pi_under_that_environment(tmp_path, monkeypatch):

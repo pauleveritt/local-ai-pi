@@ -451,3 +451,39 @@ def test_a_named_node_still_vanishes_by_name() -> None:
     assert _vanished(expected_stable, expected_counts, ["tests/test_core.py::test_one"]) == (
         "tests/test_core.py::test_two",
     )
+
+
+def test_the_executor_venv_never_reaches_the_candidate_patch(
+    relocating_task: Task,
+) -> None:
+    """A provisioned environment must be invisible to capture.
+
+    `capture_candidate` diffs `git add -A` against the base commit, so a
+    workspace venv would arrive in the patch as tens of thousands of
+    site-packages files -- and then be applied to the graded
+    materialisations. `.git/info/exclude` keeps it out without touching
+    the tree, which a committed `.gitignore` would not.
+    """
+    from harness.screen import capture_candidate, provision_executor_env
+
+    env_source = relocating_task.clone.parent / "envsrc"
+    env_source.mkdir(exist_ok=True)
+    (env_source / "pyproject.toml").write_text(
+        '[project]\nname = "probe-env"\nversion = "0"\n'
+        'requires-python = ">=3.10"\ndependencies = []\n'
+    )
+    subprocess.run(["uv", "lock", "-q"], cwd=env_source, check=True, capture_output=True)
+
+    with materialize(relocating_task.clone, relocating_task.base_sha) as workspace:
+        lock_hash = provision_executor_env(workspace, env_source)
+        assert (workspace / ".venv" / "bin" / "python").is_file()
+
+        # The real edit still has to survive alongside it.
+        (workspace / "src" / "pkg" / "__init__.py").write_text(
+            "LOCATION = 'extensions'\nCASES = [1, 2, 3]\n"
+        )
+        patch = capture_candidate(workspace)
+
+    assert ".venv" not in patch
+    assert "LOCATION = 'extensions'" in patch
+    assert len(lock_hash) == 64

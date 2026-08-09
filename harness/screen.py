@@ -22,6 +22,7 @@ the complete-contract arm, and results must be reported under that name.
 
 import fnmatch
 import json
+import os
 import re
 import subprocess
 import time
@@ -86,6 +87,15 @@ class Attempt:
     preservation: SuiteResult | None
     oracle: SuiteResult | None
     argv: tuple[str, ...] = field(default=(), repr=False)
+    executor_env_lock_sha256: str = "none"
+    """Which environment the *executor* had, or "none" for a bare tree.
+
+    An arm condition, not a grading one, so it does not bump
+    `GRADING_RULE_VERSION` -- but it changes what a result means as much
+    as the tool list does, and two attempts recorded without it are not
+    comparable. A model that can run the base suite is doing a different
+    task from one that cannot.
+    """
 
     @property
     def summary(self) -> str:
@@ -128,7 +138,72 @@ class Attempt:
             "preservation": suite(self.preservation),
             "oracle": suite(self.oracle),
             "argv": list(self.argv),
+            "executor_env_lock_sha256": self.executor_env_lock_sha256,
         }
+
+
+def provision_executor_env(workspace: Path, env_source: Path) -> str:
+    """Give the executor a working dev environment, and return its lock hash.
+
+    The phase claims a small model can do *routine, pre-chewed coding
+    work*. Routine work happens in a repository that has a working
+    environment; an executor that cannot run anything is being asked to
+    write correct code blind, which is a harder and more artificial task
+    than the one being claimed. The screen measured the difference: a
+    model diagnosed `magicmock-factory` correctly and then spent turns 9
+    through 16 failing to obtain a runnable Python, exhausted its turn
+    budget, and graded `no-changes`.
+
+    Same lock as the grading environment, dependencies only. `svcs`
+    itself is never installed -- `PYTHONPATH` points at the workspace
+    `src/`, exactly as `run_suite` does, so the executor imports the tree
+    it is editing rather than a stale copy.
+
+    Nothing new becomes reachable. Oracle files exist only inside the
+    grading materializations, overlaid after the child has exited. The
+    base tests the executor can now run are the ones already sitting in
+    its workspace: they pass at base, contain no oracle nodes, and give
+    regression signal, which is what a developer has. Editing them to
+    cheat is already defeated -- `apply_candidate(include=writable)`
+    strips test edits before both graded runs.
+
+    The venv is git-excluded rather than gitignored, via `.git/info/exclude`,
+    so the working tree stays byte-identical to base and `capture_candidate`
+    never sweeps 60 MB of site-packages into the candidate patch.
+    """
+    venv = workspace / ".venv"
+    exclude = workspace / ".git" / "info" / "exclude"
+    exclude.parent.mkdir(parents=True, exist_ok=True)
+    with exclude.open("a") as handle:
+        handle.write("\n/.venv/\n")
+
+    environ = {**os.environ, "UV_PROJECT_ENVIRONMENT": str(venv)}
+    result = subprocess.run(
+        ["uv", "sync", "--locked", "--no-install-project", "-q"],
+        cwd=env_source,
+        capture_output=True,
+        text=True,
+        env=environ,
+    )
+    if result.returncode != 0:
+        raise WorkloadError(f"executor env sync failed: {result.stderr.strip()}")
+    if not (venv / "bin" / "python").is_file():
+        raise WorkloadError(f"executor env has no interpreter at {venv}")
+    return sha256_file(env_source / "uv.lock")
+
+
+def executor_env_vars(workspace: Path) -> dict[str, str]:
+    """Point the child's shell at the workspace venv and the workspace source."""
+    venv = workspace / ".venv"
+    env = pi_env()
+    env["VIRTUAL_ENV"] = str(venv)
+    env["PATH"] = os.pathsep.join([str(venv / "bin"), env.get("PATH", "")])
+    # Mirrors `run_suite`. An editable install would be the obvious
+    # alternative and is the wrong one: svcs versions itself with
+    # hatch-vcs, and a materialized workspace is a synthetic single
+    # commit with no tags for it to read.
+    env["PYTHONPATH"] = str(workspace / "src")
+    return env
 
 
 def base_commit(workspace: Path) -> str:
@@ -321,6 +396,7 @@ def grade_candidate(
     tools: str = ENVELOPE_TOOLS,
     argv: tuple[str, ...] = (),
     suite_timeout: float = 300.0,
+    executor_env_lock_sha256: str = "none",
 ) -> Attempt:
     """Score one saved candidate. Pure, offline, no model call.
 
@@ -419,6 +495,7 @@ def grade_candidate(
         preservation=preservation,
         oracle=oracle,
         argv=argv,
+        executor_env_lock_sha256=executor_env_lock_sha256,
     )
 
 
@@ -430,6 +507,7 @@ def screen_task(
     tools: str = ENVELOPE_TOOLS,
     timeout: float = 900.0,
     suite_timeout: float = 300.0,
+    executor_env_source: Path | None = None,
 ) -> tuple[Attempt, str, str]:
     """One bounded model attempt, with its candidate patch and transcript.
 
@@ -453,6 +531,10 @@ def screen_task(
     preservation result, and reporting those makes "wrote nothing" and
     "wrote something useless" comparable instead of collapsing both into
     an early return.
+
+    `executor_env_source` is the arm's environment condition, recorded on
+    the attempt. `None` reproduces the bare tree the first screen ran
+    against, which is now an ablation rather than the default.
     """
     brief = manifest.brief_path.read_text()
 
@@ -460,8 +542,14 @@ def screen_task(
         argv = _pi_command(model, brief, (ENVELOPE_EXTENSION,))
         argv = argv[:-1] + ["--tools", tools] + argv[-1:]
 
+        if executor_env_source is None:
+            child_env, env_lock = pi_env(), "none"
+        else:
+            env_lock = provision_executor_env(workspace, executor_env_source)
+            child_env = executor_env_vars(workspace)
+
         started = time.monotonic()
-        child = run_process(argv, cwd=workspace, timeout=timeout, env=pi_env())
+        child = run_process(argv, cwd=workspace, timeout=timeout, env=child_env)
         model_seconds = time.monotonic() - started
         patch = capture_candidate(workspace)
 
@@ -475,6 +563,7 @@ def screen_task(
         tools=tools,
         argv=tuple(argv),
         suite_timeout=suite_timeout,
+        executor_env_lock_sha256=env_lock,
     )
     return attempt, patch, child.stdout
 
