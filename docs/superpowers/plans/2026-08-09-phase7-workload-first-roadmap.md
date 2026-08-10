@@ -487,39 +487,129 @@ behavior require their own review before a live-session tool uses it.
 ## Status appendix — 2026-08-10
 
 Where the sequence actually stands after the frontier/variance/contract
-work. Numbers and corrections live in
+work, corrected after external review. Numbers live in
 [`../research/2026-08-10-phase7-frontier-contracts-variance.md`](../research/2026-08-10-phase7-frontier-contracts-variance.md);
-this appendix records only cycle status.
+this appendix records cycle status and the re-plan.
 
-- **Qualify (Cycle 2):** closed. Eight qualified tasks, manifests, and
-  reference patches in place.
-- **Screen and freeze (Cycle 3):** open. Screening exists for three
-  models at n=1 and a 24-replicate noise floor for gemma@8192 on four
-  tasks. The cohort is **not frozen**: variance is unmeasured on the
-  other four tasks and on both frontier models, and registry-iter is a
-  0% brief-only floor for gemma that needs a written
-  include-or-exclude argument before freezing.
-- **Package envelope (Cycle 4):** not started.
-- **Admit protections by replay (Cycle 5):** started ahead of order. The
-  shipped loop-breaker fires, by replay over recorded call streams, on
-  both of the newest demonstrated failures (identical-call retry loops
-  in Experiment A r2 and Experiment B r2). Next admission step is a
-  small prespecified live run answering whether the model recovers
-  after the block. The stop-after-fix candidate has transcript evidence
-  but no design and no false-rejection test (rule 7 accepts written
-  tests, so a naive new-file block false-rejects). No other candidate
-  qualifies under rule 7's admission bar.
-- **Planner contracts (Cycle 6):** piloted on one task with one
-  replication set. Finding recorded with its caveat: the authored
-  contract contained the full solution, so the replicated 5/6 measures
-  the planner-derives/executor-transcribes pipeline, not contract-aided
-  reasoning. Before extending to the remaining tasks, decide which
-  claim Cycle 6 is buying and fix the authoring prompt accordingly;
-  three of eight current drafts are empty stubs and must be re-authored
-  either way.
+An earlier version of this appendix said "Qualify (Cycle 2): closed."
+That was wrong in the way this project keeps being wrong: it graded a
+cycle against the work actually done rather than against what the cycle
+specifies. Cycle 2 requires complete contracts with recorded hashes in
+the manifests. No manifest carries a contract. Corrected below.
+
+### Cycle status
+
+- **Qualification:** closed. Eight qualified tasks, manifests, reference
+  patches, and a ceiling replay that all eight target diffs clear.
+- **Contract baseline (Cycle 2's remaining half):** open, not started.
+  No manifest has a `contract` or `contract_sha256`. The eight files
+  under `workloads/svcs/overnight/drafts/` are uncorrected drafts, three
+  of them empty stubs, composed into prompts at runtime and deliberately
+  never written into manifests.
+- **Screen and freeze (Cycle 3):** open, and the measured pilot **is not
+  the arm this cycle specifies**. Cycle 3 names the exact `read,write`
+  coherent envelope; every cell measured so far used
+  `read,bash,edit,write`, probe budgets of 60 turns / 150 tool calls, a
+  provisioned dev environment, and an 1800s wall clock. Those are a
+  different executor. The pilot is informative about models; it is not
+  the envelope control this cycle exists to produce.
+- **Package envelope to candidate commit (Cycle 4):** not started. This
+  is the missing product-shaped milestone and the phase has drifted past
+  it.
+- **Admit protections by replay (Cycle 5):** started ahead of order,
+  which is itself a symptom. The tracked loop-breaker
+  (`.pi/extensions/loop-breaker.ts`) fires by replay on both of the
+  newest demonstrated failures. Fixtures for those two replays are not
+  yet committed, so the result is not reproducible from this branch.
+- **Planner contracts (Cycle 6):** piloted on one task, with the
+  transcription caveat recorded. The unresolved question is which
+  product Cycle 6 is buying — see the decision below.
 - **Pre-registered evidence batch (Cycle 7):** blocked on all of the
-  above. Under rule 8, everything to date — including both experiments —
-  is pilot. Experiment B's threshold was committed before results;
-  Experiment A's was not recorded in the repo before its results
-  commit, which is itself a reason nothing from it can graduate.
+  above. Under rule 8 everything to date is pilot.
+
+### Instrument defects found by external review, 2026-08-10
+
+Ordered by consequence. None invalidate a banked result; all block the
+confirmatory batch.
+
+1. **The grader can accept skipped oracle tests.** `accepted` requires
+   `oracle.reason_class == "pass"` and never `oracle.tests_passed ==
+   target_total`, and `missing_nodes` is computed from the preservation
+   run only — so the oracle run carries no node-inventory check. A
+   candidate that makes the hidden assertions *skip* would be accepted.
+   Verified latent, not live: all 43 banked accepts have
+   `tests_passed == target_total`.
+2. **Void attempts inflate the denominator.** Both `screen_workload` and
+   `regrade_workload` write `attempted = len(rows)` including void
+   attempts. `cycle1/summary.json` reads `attempted: 8, accepted: 2`
+   where the honest cell is 2/7. The reporting CLI excludes void
+   correctly; the stored summary does not.
+3. **The experimental cell is not fully recorded.** Attempt records omit
+   resolved `maxTokens`, context window, extension digest, Pi version,
+   and server configuration. Experiment B's 32768 exists only in its
+   driver and directory name. This violates governing rule 3, which
+   already requires condition recording.
+4. **Contract authoring treats any nonempty text as success.** That is
+   how three 29–80 byte stubs were recorded as authored drafts. Stop
+   reason is neither recorded nor gated.
+5. **Validity checking is narrower than its prose.** The audit matches
+   literal workspace-shaped names and four substrings in tool arguments.
+   Relative traversal, globs, generic `find`, and network access are not
+   detected, and the manifest's `readable` policy is never enforced.
+   "0 tainted" means "no detected escape of these shapes," and no
+   document may say "hermetic executor."
+6. **A prespecified margin was justified with a wrong statistic.**
+   Experiment B's driver cites Fisher one-sided ≈ 0.01 for 1/6 versus
+   6/8; the correct value is 0.0513. The observed 3/8 conclusion is
+   unaffected, but margins must be computed by tested code, not by hand.
+7. **The guard replay is not reproducible here.** The research record
+   cites `extensions/guards/loop-breaker.ts`, which does not exist on
+   this branch; the tracked artifact is `.pi/extensions/loop-breaker.ts`.
+   The two transcript-derived fixtures are uncommitted.
+
+### Re-planned sequence
+
+The correction that matters is direction, not ordering. Phase 7 has
+added roughly six thousand lines of engine, tool and test code, ninety-
+seven mebibytes of tracked workload artifacts, and fifty-six commits,
+and has produced no packaged candidate-delivery path. That is the
+machinery trap the brief names. **The next milestone is fewer moving
+parts and one trustworthy delivery path, not another measured cell.**
+
+**No new model runs until step 3 completes.**
+
+1. **Repair the instrument.** Close defects 1–6 above. Acceptance
+   requires full oracle passage and an oracle node inventory; void
+   attempts leave the denominator; every attempt records its resolved
+   cell (`maxTokens`, context window, extension digest, Pi version,
+   server); authoring gates on stop reason and a minimum viable draft;
+   validity language is narrowed everywhere it appears. Offline, tested,
+   no model calls.
+2. **Make the guard replay reproducible.** Commit the two
+   transcript-derived fixtures against the tracked
+   `.pi/extensions/loop-breaker.ts`, asserting first-block index and
+   blocked count. Correct the research record's path.
+3. **Freeze one executor arm as a cell manifest.** One file naming
+   tools, budgets, caps, environment, model, and extension digest — the
+   thing every later run cites instead of re-deriving. This is the
+   artifact whose absence made defect 3 possible.
+4. **Run the narrow prespecified guard test.** Measured: block observed,
+   no further identical loop, an alternative action taken, accepted by
+   deadline. Small, live, thresholds committed before results.
+5. **Cycle 4 — package the candidate-commit executor.** The missing
+   product milestone. Nothing further is measured until a contributor
+   can install something and get a candidate commit.
+6. **Decide what planner output is.** A solution-bearing implementation
+   plan for safe transcription, or a requirements-only contract intended
+   to improve reasoning. These are different products with different
+   comparisons, and the current authoring prompt silently chose the
+   first. Re-author all eight contracts under whichever is chosen.
+7. **Then** freeze the cohort and pre-register the held-out batch.
+
+### Standing correction to the governing rules
+
+Rule 3 already requires condition recording; defect 3 shows it was
+honoured in prose and not in code. Rule 7 says no component earns
+admission from low runtime alone — the loop-breaker's admission must
+therefore clear step 4's live test, not the replay alone.
 

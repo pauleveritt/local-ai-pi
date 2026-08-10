@@ -116,7 +116,7 @@ hiding behind it. The accept-rate barely moved; the mechanism moved a lot.
 
 Both stuck runs (Exp A r2, Exp B r2) are identical-call retry loops —
 the exact trigger of the already-shipped loop-breaker
-(`extensions/guards/loop-breaker.ts`, main repo: 5 identical calls in a
+(the tracked `.pi/extensions/loop-breaker.ts`: 5 identical calls in a
 20-call window, hard block). Replaying the shipped artifact over the two
 recorded call streams, no model involved:
 
@@ -175,7 +175,9 @@ runs; the 49× and 51× identical-call loops (arg-set dedup on
 provenance (all six patches read against the draft and the reference
 patch); the authoring provenance and all 7 firewall refusals; taint
 audits re-run on all 38 replicate directories, 3 sweeps, and 8 authoring
-transcripts (0 tainted); `models.json` restored and byte-identical to the
+transcripts (0 detected escapes -- the audit matches literal
+workspace-shaped names and four substrings, so this is not a hermeticity
+claim); `models.json` restored and byte-identical to the
 pre-experiment backup; the loop-breaker replay run against the shipped
 TypeScript artifact. Two of the load-bearing claims above (the draft
 containing the literal solution; the 49× identical-call loop ending in
