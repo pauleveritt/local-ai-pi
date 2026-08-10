@@ -59,6 +59,18 @@ ENVELOPE_TOOLS = "read,write"
 ENVELOPE_EXTENSION = (
     Path(__file__).resolve().parents[1] / "extensions" / "envelope-cap.ts"
 )
+AUTHOR_EXTENSION = Path(__file__).resolve().parents[1] / "extensions" / "author-cap.ts"
+"""Budgets for a read-only contract author, which is not an executor.
+
+Separate from the probe budget because inheriting the probe budget cost
+four drafts. Three of the first eight authoring runs ended at exactly 61
+turns under `ctx.abort()` with 28-79 bytes of output, and were recorded
+as "empty stubs" -- read as authors that produced nothing, when they were
+killed mid-sentence while still reading. The locating prompt makes the
+author read more and made it the common case rather than the occasional
+one. See `extensions/author-cap.ts`.
+"""
+
 PROBE_EXTENSION = Path(__file__).resolve().parents[1] / "extensions" / "probe-cap.ts"
 """Loose budgets for a headroom probe, which is not the same thing as an arm.
 

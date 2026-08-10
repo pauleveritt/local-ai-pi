@@ -28,7 +28,7 @@ from pathlib import Path
 from harness.liveness import check_model_server_alive
 from harness.processes import run_process
 from harness.runner import _pi_command, pi_env
-from harness.screen import PROBE_EXTENSION
+from harness.screen import AUTHOR_EXTENSION
 
 # A contract locates and bounds; it does not implement. These are the
 # shapes an implementation takes, and a fenced block containing more than
@@ -145,7 +145,7 @@ def author_one(task: str, args: argparse.Namespace) -> int:
 
     # read only: no bash, no edit, no write. The author cannot go looking
     # and cannot modify the tree it is describing.
-    argv_pi = _pi_command(args.model, prompt, (PROBE_EXTENSION,))
+    argv_pi = _pi_command(args.model, prompt, (AUTHOR_EXTENSION,))
     argv_pi = argv_pi[:-1] + ["--tools", "read"] + argv_pi[-1:]
 
     started = time.monotonic()
@@ -184,6 +184,21 @@ def author_one(task: str, args: argparse.Namespace) -> int:
             if message.get("role") == "assistant":
                 stop_reason = message.get("stopReason") or stop_reason
 
+    # Which budget, if any, ended this run. Without it a short draft is
+    # indistinguishable from an author that had nothing to say -- which is
+    # exactly the reading three aborted runs got when they were filed as
+    # "empty stubs".
+    budgets = []
+    for line in child.stdout.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == "entry_appended":
+            kind = event.get("entry", {}).get("customType", "")
+            if kind.endswith("_exhausted") or kind in ("read_budget_reached", "author_would_not_stop"):
+                budgets.append(kind)
+
     contract = extract_contract(text)
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / f"{task}.md").write_text(contract + "\n")
@@ -202,6 +217,7 @@ def author_one(task: str, args: argparse.Namespace) -> int:
                 "timed_out": child.timed_out,
                 "draft_chars": len(contract),
                 "stop_reason": stop_reason,
+                "budget_events": budgets,
                 "solution_statements": len(solution_statements(contract)),
                 "solution_statements_raw": len(solution_statements(text)),
                 "raw_chars": len(text),
@@ -223,6 +239,10 @@ def author_one(task: str, args: argparse.Namespace) -> int:
         problems.append("timed out")
     if stop_reason not in ("stop", "toolUse"):
         problems.append(f"stopReason={stop_reason}")
+    if any(b.endswith("_exhausted") or b == "author_would_not_stop" for b in budgets):
+        # Named separately from stopReason so the record says *why* the run
+        # ended, not just that it did.
+        problems.append("+".join(sorted(set(b for b in budgets if b != "read_budget_reached"))))
     # Gated on the raw text as well as the extracted body, whichever finds
     # more. Extraction is a heuristic over model prose, and a version of it
     # that mangled fence parity made the gate report zero on a draft whose
@@ -231,13 +251,17 @@ def author_one(task: str, args: argparse.Namespace) -> int:
     handed_over = max(
         solution_statements(contract), solution_statements(text), key=len
     )
-    if len(handed_over) > MAX_SOLUTION_STATEMENTS:
-        problems.append(
-            f"{len(handed_over)} solution statements in code fences "
-            f"(max {MAX_SOLUTION_STATEMENTS}); first: {handed_over[0][:60]!r}"
-        )
 
+    # Counted and reported, no longer fatal. Zero tolerance was demonstrated
+    # to reject good contracts -- a draft quoting the file's existing import
+    # line and showing two caller-side usage examples scored 3 and contained
+    # none of the fix -- and a gate that deletes a draft before the leak
+    # probe can adjudicate it destroys the artifact the probe exists to
+    # judge. Admission is the probe's decision now; this is a flag on the
+    # record and a hint to the reader.
     status = "ok" if not problems else "REJECTED: " + "; ".join(problems)
+    if handed_over and not problems:
+        status = f"ok (WARN: {len(handed_over)} fenced statements, first {handed_over[0][:40]!r})"
     print(f"{task:26} {len(contract):6} chars  {elapsed:6.1f}s  {status}", flush=True)
     if problems:
         # Removed rather than left on disk: a rejected draft that stays

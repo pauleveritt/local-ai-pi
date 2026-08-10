@@ -22,7 +22,6 @@ import harness.workload as workload
 import harness.workspace as workspace
 from harness.liveness import check_model_server_alive
 from harness.runner import DEFAULT_MODEL
-from tools.author_contract import MAX_SOLUTION_STATEMENTS, solution_statements
 
 
 def reference_for(task_id: str, root: Path = Path("workloads/svcs/reference-patches")):
@@ -65,6 +64,12 @@ def main(argv: Sequence[str] | None = None) -> int:
             "composed prompt hash are recorded; task manifests are untouched, "
             "so brief-only cells stay comparable under their frozen hashes"
         ),
+    )
+    parser.add_argument(
+        "--probe-dir",
+        type=Path,
+        default=None,
+        help="leak-probe results; defaults to <contract-draft-dir>/probe",
     )
     parser.add_argument(
         "--guards",
@@ -151,29 +156,48 @@ def main(argv: Sequence[str] | None = None) -> int:
     task_ids = args.task or list(cohort.included)
 
     if args.contract_draft_dir is not None:
-        # The authoring gate ran when the draft was written; nothing until
-        # now re-checked it here. A void draft set -- and every draft
-        # authored before 2026-08-10 is void -- could be pointed at with
-        # `--contract-draft-dir` and enter an arm silently, which is the
-        # failure the authoring tool deletes rejected drafts to prevent.
-        # Deleting them only helps if the consumer also refuses to read one.
-        carriers = {
-            task_id: solution_statements(draft.read_text())
-            for task_id in task_ids
-            if (draft := args.contract_draft_dir / f"{task_id}.md").is_file()
-        }
-        leaking = {t: hits for t, hits in carriers.items() if len(hits) > MAX_SOLUTION_STATEMENTS}
-        if leaking:
-            raise SystemExit(
-                f"{len(leaking)} draft(s) in {args.contract_draft_dir} carry the "
-                f"implementation (max {MAX_SOLUTION_STATEMENTS}):\n"
-                + "\n".join(
-                    f"  {t}: {len(hits)} statements, first {hits[0][:50]!r}"
-                    for t, hits in sorted(leaking.items())
+        # Admission is the leak probe's decision, and it is checked here
+        # rather than trusted to have happened. A contract that discloses the
+        # fix turns this arm into a transcription measurement, which is the
+        # exact result the whole planner-output decision exists to avoid.
+        #
+        # Counting fenced statements was tried here first and withdrawn: it
+        # rejected a draft whose three "statements" were the file's existing
+        # import line and two caller-side examples, and it passed a draft
+        # that gave away the fix in an English sentence. Wrong in both
+        # directions, on the same task, one run apart.
+        #
+        # A missing probe result is refusal, not a pass. Unmeasured is the
+        # state every contaminated arm has been in.
+        probe_dir = args.probe_dir or (args.contract_draft_dir / "probe")
+        unmeasured, leaking = [], {}
+        for task_id in task_ids:
+            if not (args.contract_draft_dir / f"{task_id}.md").is_file():
+                continue
+            result = probe_dir / f"{task_id}.json"
+            if not result.is_file():
+                unmeasured.append(task_id)
+                continue
+            leaked = json.loads(result.read_text()).get("leaked", [])
+            if leaked:
+                leaking[task_id] = leaked
+        if unmeasured or leaking:
+            report = []
+            if leaking:
+                report.append(
+                    f"{len(leaking)} contract(s) disclose the fix:\n"
+                    + "\n".join(
+                        f"  {t}: {', '.join(sig[:4])}" for t, sig in sorted(leaking.items())
+                    )
                 )
-                + "\n\nA contract locates and bounds; a draft that carries the fix "
-                "measures transcription, not the contract. Re-author these."
-            )
+            if unmeasured:
+                report.append(
+                    f"{len(unmeasured)} contract(s) have no leak-probe result in "
+                    f"{probe_dir}: {', '.join(unmeasured)}\n"
+                    "  Run tools.leak_probe first. An unmeasured contract is not a "
+                    "clean one."
+                )
+            raise SystemExit("\n\n".join(report))
 
     clone = workload.ensure_clone(cohort.upstream, args.cache)
     env = workload.ensure_cohort_env(cohort.env_dir, args.cache)
