@@ -482,3 +482,44 @@ behavior require their own review before a live-session tool uses it.
 - [ ] One confirmatory held-out batch.
 - [ ] Research write-up scoped explicitly to `svcs`.
 
+---
+
+## Status appendix — 2026-08-10
+
+Where the sequence actually stands after the frontier/variance/contract
+work. Numbers and corrections live in
+[`../research/2026-08-10-phase7-frontier-contracts-variance.md`](../research/2026-08-10-phase7-frontier-contracts-variance.md);
+this appendix records only cycle status.
+
+- **Qualify (Cycle 2):** closed. Eight qualified tasks, manifests, and
+  reference patches in place.
+- **Screen and freeze (Cycle 3):** open. Screening exists for three
+  models at n=1 and a 24-replicate noise floor for gemma@8192 on four
+  tasks. The cohort is **not frozen**: variance is unmeasured on the
+  other four tasks and on both frontier models, and registry-iter is a
+  0% brief-only floor for gemma that needs a written
+  include-or-exclude argument before freezing.
+- **Package envelope (Cycle 4):** not started.
+- **Admit protections by replay (Cycle 5):** started ahead of order. The
+  shipped loop-breaker fires, by replay over recorded call streams, on
+  both of the newest demonstrated failures (identical-call retry loops
+  in Experiment A r2 and Experiment B r2). Next admission step is a
+  small prespecified live run answering whether the model recovers
+  after the block. The stop-after-fix candidate has transcript evidence
+  but no design and no false-rejection test (rule 7 accepts written
+  tests, so a naive new-file block false-rejects). No other candidate
+  qualifies under rule 7's admission bar.
+- **Planner contracts (Cycle 6):** piloted on one task with one
+  replication set. Finding recorded with its caveat: the authored
+  contract contained the full solution, so the replicated 5/6 measures
+  the planner-derives/executor-transcribes pipeline, not contract-aided
+  reasoning. Before extending to the remaining tasks, decide which
+  claim Cycle 6 is buying and fix the authoring prompt accordingly;
+  three of eight current drafts are empty stubs and must be re-authored
+  either way.
+- **Pre-registered evidence batch (Cycle 7):** blocked on all of the
+  above. Under rule 8, everything to date — including both experiments —
+  is pilot. Experiment B's threshold was committed before results;
+  Experiment A's was not recorded in the repo before its results
+  commit, which is itself a reason nothing from it can graduate.
+
