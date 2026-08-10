@@ -69,3 +69,36 @@ them; a rise would be interesting and unexplained, and is not being predicted.
 Wall clock and token cost. A blocked call is cheap and the runs are short; the
 arm is not designed to measure either, and any difference would be confounded
 by generation-length variance already known to be large in this cell.
+
+---
+
+## Correction, after the run — the test was aimed at the wrong half
+
+**Do not read the 2/6 loop deaths as "the guard does not work."** The
+`registry-iter` loop is structurally invisible to a `tool_call` guard, so this
+half of the test could only ever have produced that result.
+
+Pi validates tool arguments at `agent-loop.js:404` and invokes `beforeToolCall`
+on the next line, inside the same `try`. A call that fails schema validation
+throws one line above every `tool_call` hook. Of the 57 calls in the recorded
+`registry-iter` loop, **52 are schema-validation failures and only 5 reach the
+hook** — there is no window in which five identical calls are visible to it.
+
+The replay that motivated this test said otherwise because its fixture was
+extracted from `tool_execution_start`, which records attempts that never
+reached the hook. That fixture is corrected in the main repo (`7ca49cb`).
+
+**What was not tested:** the `magicmock-factory` half of this plan, which was
+prespecified above and never run. Those anchor-mismatch retries are
+schema-valid — all 60 reach the hook, and the guard fires on them 46 times from
+call 14 in corrected replay. That is the half capable of answering the question
+this test was written to ask, and it remains open.
+
+**The thresholds above stand unchanged for that half.** They are not being
+revised after seeing a result; the primary and secondary bars apply to the
+`magicmock-factory` runs exactly as written.
+
+**What this test did establish**, and it is worth more than the intended
+result: a `tool_call` guard cannot address malformed-call retry loops at all.
+That failure class needs a different mechanism — `tool_result`, or a
+turn-level check — and no amount of tuning the loop breaker will reach it.
