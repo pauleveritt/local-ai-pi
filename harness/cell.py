@@ -33,8 +33,8 @@ from pathlib import Path
 PINNED = (
     "model",
     "tools",
-    "extension",
-    "extension_sha256",
+    "extensions",
+    "extensions_sha256",
     "wall_clock_seconds",
     "max_tokens",
     "context_window",

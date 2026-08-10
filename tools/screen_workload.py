@@ -66,6 +66,15 @@ def main(argv: Sequence[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--guards",
+        action="store_true",
+        help=(
+            "load the shipped loop breaker alongside the budget cap. This is "
+            "a different cell, not the same arm with a helper: the extension "
+            "set is part of what defines an arm"
+        ),
+    )
+    parser.add_argument(
         "--cell",
         type=Path,
         default=None,
@@ -123,14 +132,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             "every attempt from such a run must be audited before it is believed."
         )
 
-    extension = screen.PROBE_EXTENSION if args.probe else screen.ENVELOPE_EXTENSION
+    extensions = (screen.PROBE_EXTENSION if args.probe else screen.ENVELOPE_EXTENSION,)
+    if args.guards:
+        extensions += (screen.GUARD_EXTENSION,)
     if args.cell is not None:
         # Before liveness and before the first call: a mismatch here means
         # the run is not the arm it says it is, and every attempt it
         # produces would be mislabelled.
         declared = cell.load_cell(args.cell)
         declared.verify(
-            screen.resolve_cell(args.model, args.tools, extension, args.timeout)
+            screen.resolve_cell(args.model, args.tools, extensions, args.timeout)
         )
         print(f"cell {declared.name}: live configuration verified", flush=True)
 
@@ -161,7 +172,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             tools=args.tools,
             timeout=args.timeout,
             executor_env_source=None if args.blind else cohort.env_dir,
-            extension=extension,
+            extensions=extensions,
             test_paths=cohort.test_paths,
             reference_patch=reference_for(task_id),
             appended_prompt=appended,

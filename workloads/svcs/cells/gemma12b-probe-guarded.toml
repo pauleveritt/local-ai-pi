@@ -1,0 +1,23 @@
+# The guarded arm. Identical to gemma12b-probe except that the shipped loop
+# breaker is loaded alongside the budget cap -- which makes it a different
+# cell, not the same arm with a helper. The extension set is part of what
+# defines an arm, and its digest is order-sensitive because extensions load
+# in sequence.
+name = "gemma12b-probe-guarded"
+description = """
+Gemma 4 12B under probe budgets with `.pi/extensions/loop-breaker.ts` active.
+Replay over recorded call streams shows the guard firing on both of this
+phase's retry loops (44 blocks from call 7; 46 from call 14) and on neither
+of two accepted runs from the same cells. Replay cannot show whether the
+model then does something else. That is what this cell exists to measure.
+"""
+
+[pinned]
+model = "omlx/gemma-4-12B-it-MLX-8bit"
+tools = "read,bash,edit,write"
+extensions = "probe-cap.ts,loop-breaker.ts"
+extensions_sha256 = "66591674d04cb8aeabdabdcb9c7adce87c3b0bb1b89927f34e598b54ff542f76"
+wall_clock_seconds = "1800.0"
+max_tokens = "8192"
+context_window = "80000"
+base_url = "http://127.0.0.1:8001/v1"

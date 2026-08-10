@@ -14,8 +14,8 @@ then continuing into throwaway diagnostic files.
 [pinned]
 model = "omlx/gemma-4-12B-it-MLX-8bit"
 tools = "read,bash,edit,write"
-extension = "probe-cap.ts"
-extension_sha256 = "097f007b3370645ad35bdf9c0f2e8f49f2cc66bfc37c1d03bc4a7873037664dd"
+extensions = "probe-cap.ts"
+extensions_sha256 = "59f2a92afb6cc72911cc32ca0d0afcb096cfad2f5dc5dee497d737c81a7f6ed4"
 wall_clock_seconds = "1800.0"
 max_tokens = "32768"
 context_window = "80000"

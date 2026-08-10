@@ -36,6 +36,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--tools", default="read,bash,edit,write")
     parser.add_argument("--timeout", default="1800")
     parser.add_argument("--contract-draft-dir", type=Path, default=None)
+    parser.add_argument("--guards", action="store_true")
+    parser.add_argument("--cell", type=Path, default=None)
     args = parser.parse_args(argv)
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -60,6 +62,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             ]
             if args.contract_draft_dir is not None:
                 command += ["--contract-draft-dir", str(args.contract_draft_dir)]
+            if args.guards:
+                command += ["--guards"]
+            if args.cell is not None:
+                command += ["--cell", str(args.cell)]
             with log.open("a") as handle:
                 code = subprocess.run(
                     command, stdout=handle, stderr=subprocess.STDOUT

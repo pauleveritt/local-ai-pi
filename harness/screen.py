@@ -236,7 +236,20 @@ class Attempt:
         }
 
 
-def resolve_cell(model: str, tools: str, extension: Path, timeout: float) -> dict[str, str]:
+GUARD_EXTENSION = Path(__file__).resolve().parents[1] / ".pi" / "extensions" / "loop-breaker.ts"
+"""The shipped loop breaker, the one contributors install.
+
+Adding it changes the extension set, which makes a guarded run a
+different cell from an unguarded one -- not the same arm with a helper.
+Replay shows it fires on both of this phase's recorded retry loops and
+on neither of two accepted runs from the same cells; whether the model
+then does something *else* is what only a live run can answer.
+"""
+
+
+def resolve_cell(
+    model: str, tools: str, extensions: tuple[Path, ...], timeout: float
+) -> dict[str, str]:
     """Everything about this attempt that a later reader must not have to infer.
 
     Resolved by reading the actual configuration -- the model entry Pi
@@ -246,11 +259,17 @@ def resolve_cell(model: str, tools: str, extension: Path, timeout: float) -> dic
     it mid-sweep, which is exactly what happened when an output cap was
     swapped for one stage and restored afterwards.
     """
+    # Order-sensitive on purpose: extensions load in sequence, and two
+    # sets with the same members in a different order are not the same
+    # arm.
+    digests = ":".join(
+        sha256_file(e) if e.is_file() else "absent" for e in extensions
+    )
     cell: dict[str, str] = {
         "model": model,
         "tools": tools,
-        "extension": extension.name,
-        "extension_sha256": sha256_file(extension) if extension.is_file() else "absent",
+        "extensions": ",".join(e.name for e in extensions),
+        "extensions_sha256": hashlib.sha256(digests.encode()).hexdigest(),
         "wall_clock_seconds": str(timeout),
     }
     try:
@@ -780,7 +799,7 @@ def screen_task(
     timeout: float = 900.0,
     suite_timeout: float = 300.0,
     executor_env_source: Path | None = None,
-    extension: Path = ENVELOPE_EXTENSION,
+    extensions: tuple[Path, ...] = (ENVELOPE_EXTENSION,),
     test_paths: tuple[str, ...] = (),
     reference_patch: str | None = None,
     appended_prompt: str = "",
@@ -824,7 +843,7 @@ def screen_task(
     prompt_hash = hashlib.sha256(brief.encode()).hexdigest()
 
     with materialize(clone, manifest.base_sha) as workspace:
-        argv = _pi_command(model, brief, (extension,))
+        argv = _pi_command(model, brief, extensions)
         argv = argv[:-1] + ["--tools", tools] + argv[-1:]
 
         if executor_env_source is None:
@@ -860,7 +879,7 @@ def screen_task(
         model_timeout_seconds=timeout,
         reference_patch=reference_patch,
         prompt_sha256=prompt_hash,
-        cell=resolve_cell(model, tools, extension, timeout),
+        cell=resolve_cell(model, tools, extensions, timeout),
     )
     return attempt, patch, child.stdout
 
