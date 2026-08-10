@@ -911,6 +911,32 @@ def test_the_authoring_gate_rejects_a_handed_over_solution() -> None:
     assert len(solution_statements(handing_over)) > MAX_SOLUTION_STATEMENTS
 
 
+def test_the_arm_refuses_a_draft_set_that_carries_the_fix() -> None:
+    """Deleting rejected drafts only helps if the consumer also refuses one.
+
+    The authoring gate runs when a draft is written. Nothing re-checked it
+    at the point of use, so any directory could be handed to
+    `--contract-draft-dir` -- including the eight void drafts still on
+    disk as evidence, and the duplicate copy of `registry-iter` under
+    `contracts/draft-qwen/`. An arm built on those measures transcription.
+
+    Asserted against the real banked drafts rather than a fixture: the
+    point is that *these bytes*, which are still present and still
+    reachable by a command line, are refused.
+    """
+    from tools.author_contract import MAX_SOLUTION_STATEMENTS, solution_statements
+
+    for path in (
+        Path("workloads/svcs/overnight/drafts/registry-iter.md"),
+        Path("workloads/svcs/contracts/draft-qwen/registry-iter.md"),
+    ):
+        assert path.is_file(), f"{path} is the artifact under test"
+        assert len(solution_statements(path.read_text())) > MAX_SOLUTION_STATEMENTS, (
+            f"{path} must still trip the gate; if it stopped doing so the "
+            "guard in screen_workload no longer protects anything"
+        )
+
+
 def test_extraction_leaves_a_plainly_written_contract_alone() -> None:
     """The destructive case: a contract that was never wrapped.
 

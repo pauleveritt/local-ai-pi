@@ -238,7 +238,7 @@ def author_one(task: str, args: argparse.Namespace) -> int:
         )
 
     status = "ok" if not problems else "REJECTED: " + "; ".join(problems)
-    print(f"{task:26} {len(contract):6} chars  {elapsed:6.1f}s  {status}")
+    print(f"{task:26} {len(contract):6} chars  {elapsed:6.1f}s  {status}", flush=True)
     if problems:
         # Removed rather than left on disk: a rejected draft that stays
         # is a draft the next sweep will silently use.
@@ -293,7 +293,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     for task in tasks:
         existing = args.out / f"{task}.md"
         if existing.is_file() and existing.read_text().strip() and not args.force:
-            print(f"{task:26} {'':6}        {'':6}   draft present, skipped")
+            print(f"{task:26} draft present, skipped", flush=True)
             continue
         # A failure is recorded and the sweep continues. One task whose
         # author ran out of turns should not cost the other seven, and the

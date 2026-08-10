@@ -22,6 +22,7 @@ import harness.workload as workload
 import harness.workspace as workspace
 from harness.liveness import check_model_server_alive
 from harness.runner import DEFAULT_MODEL
+from tools.author_contract import MAX_SOLUTION_STATEMENTS, solution_statements
 
 
 def reference_for(task_id: str, root: Path = Path("workloads/svcs/reference-patches")):
@@ -148,6 +149,31 @@ def main(argv: Sequence[str] | None = None) -> int:
     check_model_server_alive(args.server)
     cohort = workload.load_cohort(args.cohort, require_accounting=True)
     task_ids = args.task or list(cohort.included)
+
+    if args.contract_draft_dir is not None:
+        # The authoring gate ran when the draft was written; nothing until
+        # now re-checked it here. A void draft set -- and every draft
+        # authored before 2026-08-10 is void -- could be pointed at with
+        # `--contract-draft-dir` and enter an arm silently, which is the
+        # failure the authoring tool deletes rejected drafts to prevent.
+        # Deleting them only helps if the consumer also refuses to read one.
+        carriers = {
+            task_id: solution_statements(draft.read_text())
+            for task_id in task_ids
+            if (draft := args.contract_draft_dir / f"{task_id}.md").is_file()
+        }
+        leaking = {t: hits for t, hits in carriers.items() if len(hits) > MAX_SOLUTION_STATEMENTS}
+        if leaking:
+            raise SystemExit(
+                f"{len(leaking)} draft(s) in {args.contract_draft_dir} carry the "
+                f"implementation (max {MAX_SOLUTION_STATEMENTS}):\n"
+                + "\n".join(
+                    f"  {t}: {len(hits)} statements, first {hits[0][:50]!r}"
+                    for t, hits in sorted(leaking.items())
+                )
+                + "\n\nA contract locates and bounds; a draft that carries the fix "
+                "measures transcription, not the contract. Re-author these."
+            )
 
     clone = workload.ensure_clone(cohort.upstream, args.cache)
     env = workload.ensure_cohort_env(cohort.env_dir, args.cache)
