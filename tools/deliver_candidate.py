@@ -48,7 +48,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--writable", action="append", default=None,
         help="glob a candidate may write; repeatable. Omit to allow anything",
     )
-    parser.add_argument("--model", default="omlx/gemma-4-12B-it-MLX-8bit")
+    # Required, not defaulted. The old default named this laptop's local
+    # model, so anyone else's first run failed inside Pi rather than at the
+    # command line, where the fix is legible.
+    parser.add_argument(
+        "--model", required=True, help="a model name your Pi can resolve"
+    )
     parser.add_argument(
         "--server",
         default="http://127.0.0.1:8001",
@@ -58,6 +63,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--skip-server-check",
         action="store_true",
         help="for a hosted model, or a server this cannot see",
+    )
+    parser.add_argument(
+        "--agent-dir",
+        type=Path,
+        default=None,
+        help="Pi agent directory; default is your own ~/.pi/agent, so your "
+        "own models resolve. Pass this repo's pi-agent-dir/ to reproduce a "
+        "measured run instead",
     )
     parser.add_argument("--tools", default="read,bash,edit,write")
     parser.add_argument("--timeout", type=float, default=1800.0)
@@ -89,7 +102,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         argv_pi = _pi_command(args.model, prompt, extensions)
         argv_pi = argv_pi[:-1] + ["--tools", args.tools] + argv_pi[-1:]
         return run_process(
-            argv_pi, cwd=worktree, timeout=args.timeout, env=pi_env()
+            argv_pi,
+            cwd=worktree,
+            timeout=args.timeout,
+            # Your agent directory, not this repo's. The harness pins its own
+            # to keep measured runs hermetic; this is not a measured run, and
+            # pinning it here means your --model does not resolve unless you
+            # have replicated this laptop.
+            env=pi_env(agent_dir=args.agent_dir),
         )
 
     try:

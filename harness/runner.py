@@ -25,8 +25,19 @@ DEFAULT_MODEL = "omlx/gemma-4-12B-it-MLX-8bit"
 EXPECTED_PI_VERSION = "0.84.1"
 
 
-def pi_env(inherit_venv: bool = False) -> dict[str, str]:
+def pi_env(
+    inherit_venv: bool = False, agent_dir: Path | None = AGENT_DIR
+) -> dict[str, str]:
     """The environment every Pi process the harness starts runs under.
+
+    `agent_dir=None` leaves `PI_CODING_AGENT_DIR` unset, so Pi reads the
+    operator's own `~/.pi/agent`. **Measurement must never do this** --
+    everything below is the reason. It exists for `deliver_candidate`,
+    which is not measurement: it runs on a contributor's repository with
+    a contributor's model, and pinning it to this repo's agent directory
+    means their `--model` does not resolve unless they have replicated
+    this laptop. The trade is explicit -- their own extensions then load
+    in delegated children -- and it is theirs to make, not ours.
 
     `PI_CODING_AGENT_DIR` points Pi at `pi-agent-dir/` instead of
     `~/.pi/agent`. The parent does not need this -- it already passes
@@ -76,7 +87,11 @@ def pi_env(inherit_venv: bool = False) -> dict[str, str]:
     `screen_task` provisions a real per-workspace environment instead,
     which is what the old arrangement was a poor substitute for.
     """
-    env = {**os.environ, "PI_CODING_AGENT_DIR": str(AGENT_DIR)}
+    env = dict(os.environ)
+    if agent_dir is not None:
+        env["PI_CODING_AGENT_DIR"] = str(agent_dir)
+    else:
+        env.pop("PI_CODING_AGENT_DIR", None)
     if inherit_venv:
         return env
     venv = env.pop("VIRTUAL_ENV", None)

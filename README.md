@@ -113,6 +113,40 @@ constants are at the top of the file.
 Full page, including what to tune and the evidence behind it:
 [`docs/loop-breaker.md`](docs/loop-breaker.md).
 
+## Running one attempt against your own repository
+
+The other installable piece. It runs a model once against your repo in a
+throwaway git worktree, checks the result against a command *you* declare,
+and leaves either a durable ref you can read or a receipt saying why not.
+Your working tree is never written to, nothing is merged, and nothing is
+promoted.
+
+```bash
+uv run python -m tools.deliver_candidate --repo . --task add-iter --prompt-file brief.md --validation "pytest -q" --writable "src/**" --model your-provider/your-model
+```
+
+Three things must be true first, and only the third announces itself:
+
+1. **Pi is installed** — `pi --version` answers.
+2. **`--model` names a model your Pi can resolve.** It reads *your*
+   `~/.pi/agent`, not this repo's pinned one; pass `--agent-dir` to override.
+3. **The server behind that model is up.** A dead server does not make Pi
+   fail — it exits 0 having written nothing. The tool checks
+   `--server` (default `http://127.0.0.1:8001`) before spending a call;
+   `--skip-server-check` if your model is hosted elsewhere.
+
+Exit codes are the answer, and three of them are distinct on purpose: **0**
+a candidate exists, **1** a candidate was judged and discarded, **2** the
+run was refused before it started (dirty repo, dead server), **3** nothing
+was judged because the setup is broken. If you see 3, the problem is your
+configuration, not the model.
+
+Success prints the ref, and inspecting or discarding it is ordinary git:
+
+```bash
+git show refs/satyrn/candidates/add-iter
+```
+
 ## Running an eval
 
 This is the other half — measuring whether a technique actually helped,

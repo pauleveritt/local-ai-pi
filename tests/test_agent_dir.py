@@ -10,6 +10,7 @@ extensions is a claim about a live run, and lives in the cycle 9 record.
 """
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -21,6 +22,28 @@ def test_pi_env_points_pi_at_the_harness_agent_dir():
     env = runner.pi_env()
 
     assert env["PI_CODING_AGENT_DIR"] == str(runner.AGENT_DIR)
+
+
+def test_the_agent_dir_is_pinned_by_default_and_released_only_on_request(
+    monkeypatch,
+) -> None:
+    """The seam `deliver_candidate` needs, without weakening the default.
+
+    Measurement pins the agent directory so a delegated child cannot load
+    the operator's own extensions. A contributor running against their own
+    repository needs the opposite -- their `--model` only resolves in their
+    own `~/.pi/agent` -- so `agent_dir=None` unsets the variable rather
+    than leaving a stale one behind. Both halves are asserted: the default
+    must not drift, and the release must actually release.
+    """
+    monkeypatch.setenv("PI_CODING_AGENT_DIR", "/somewhere/stale")
+
+    assert runner.pi_env()["PI_CODING_AGENT_DIR"] == str(runner.AGENT_DIR)
+    assert "PI_CODING_AGENT_DIR" not in runner.pi_env(agent_dir=None)
+    assert (
+        runner.pi_env(agent_dir=Path("/tmp/theirs"))["PI_CODING_AGENT_DIR"]
+        == "/tmp/theirs"
+    )
 
 
 def test_pi_env_keeps_the_inherited_environment():
