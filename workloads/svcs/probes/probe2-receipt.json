@@ -1,0 +1,42 @@
+{
+  "base_sha": "80dde351406ba06a5e71dd76ffbf04152618947c",
+  "candidate_commit": "7f10e8cbc524a5f219572bab11c9dc171708bd2d",
+  "candidate_ref": "refs/satyrn/candidates/probe2",
+  "cell": {
+    "base_url": "http://127.0.0.1:8001/v1",
+    "context_window": "80000",
+    "extensions": "probe-cap.ts",
+    "extensions_sha256": "59f2a92afb6cc72911cc32ca0d0afcb096cfad2f5dc5dee497d737c81a7f6ed4",
+    "max_tokens": "8192",
+    "model": "omlx/gemma-4-12B-it-MLX-8bit",
+    "models_json_sha256": "9913c0faa1847f5c1cfc860c976a89fa182dbc37707f23d929ef402764671515",
+    "pi_version": "0.84.1",
+    "tools": "read,bash,edit,write",
+    "wall_clock_seconds": "1800.0"
+  },
+  "changed_paths": [
+    "src/svcs/_core.py"
+  ],
+  "child_timed_out": false,
+  "cleanup": "worktree removed",
+  "out_of_scope": [],
+  "outcome": "candidate-created",
+  "prompt_sha256": "cee6dec21e84d404c69a00e9786c7124b5667e003d67cc186a5380aa2aa224a5",
+  "refusal": "",
+  "repository": "/tmp/probe-repo",
+  "timings_seconds": {
+    "child": 74.459,
+    "commit": 0.103,
+    "total": 75.418,
+    "validation": 0.704
+  },
+  "validation_command": [
+    "sh",
+    "-c",
+    "PYTHONPATH=src /Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/.workloads/env/bin/python -m pytest -q -p no:cacheprovider tests/test_registry.py"
+  ],
+  "validation_exit": 0,
+  "validation_output_sha256": "77078328f5b497c65dc2a67270aa95e73f7671adffa94973c4f786bb9a267122",
+  "validation_tail": "..................................                                       [100%]\n=============================== warnings summary ===============================\n../../../../../../Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/.workloads/env/lib/python3.14/site-packages/pyramid/asset.py:2\n  /Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/.workloads/env/lib/python3.14/site-packages/pyramid/asset.py:2: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.\n    import pkg_resources\n\n../../../../../../Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/.workloads/env/lib/python3.14/site-packages/pkg_resources/__init__.py:3148\n  /Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/.workloads/env/lib/python3.14/site-packages/pkg_resources/__init__.py:3148: DeprecationWarning: Deprecated call to `pkg_resources.declare_namespace('paste')`.\n  Implementing implicit namespace packages (as specified in PEP 420) is preferred to `pkg_resources.declare_namespace`. See https://setuptools.pypa.io/en/latest/references/keywords.html#keyword-namespace-packages\n    declare_namespace(pkg)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n34 passed, 2 warnings in 0.10s\n",
+  "validation_timed_out": false
+}
