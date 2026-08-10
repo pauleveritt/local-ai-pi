@@ -884,3 +884,71 @@ def test_an_unknown_pinned_key_is_rejected(tmp_path: Path) -> None:
     path.write_text('name = "probe"\n\n[pinned]\nmax_tokns = "8192"\n')
     with pytest.raises(cell.CellMismatch, match="unknown pinned keys"):
         cell.load_cell(path)
+
+
+def test_the_authoring_gate_rejects_a_handed_over_solution() -> None:
+    """A contract locates and bounds; it must not contain the fix.
+
+    The first authoring prompt never said so, and the author helpfully
+    wrote the complete `__iter__` method into the contract -- which is
+    why Experiment A measured a 12B transcribing a 27B's answer rather
+    than a contract helping anything.
+    """
+    from tools.author_contract import MAX_SOLUTION_STATEMENTS, solution_statements
+
+    locating = (
+        "# Contract\n\nAdd `__iter__` to `Registry` in `src/svcs/_core.py`,\n"
+        "beside `__contains__` (around line 126). Signature:\n\n"
+        "```python\ndef __iter__(self) -> Iterator[RegisteredService]:\n```\n\n"
+        "Callers should be able to write:\n\n```python\nlist(registry)\n```\n"
+    )
+    assert len(solution_statements(locating)) <= MAX_SOLUTION_STATEMENTS
+
+    handing_over = (
+        "# Contract\n\n```python\ndef __iter__(self):\n"
+        "    return iter(self._services.values())\n```\n"
+    )
+    assert len(solution_statements(handing_over)) > MAX_SOLUTION_STATEMENTS
+
+
+def test_no_existing_draft_survives_the_decision() -> None:
+    """The decision voids the current drafts, for two different reasons.
+
+    Five carry the implementation and the gate rejects them. Three are
+    empty preambles and the length check rejects them. `flask-extensions`
+    passes the gate -- its fences hold a `pytest` command, not code -- and
+    is still void, because it was authored under the superseded prompt
+    and a contract's provenance is part of the arm. That distinction is
+    recorded rather than smoothed over: the gate and the decision are not
+    the same bar.
+    """
+    from tools.author_contract import MAX_SOLUTION_STATEMENTS, solution_statements
+
+    drafts = [
+        d
+        for d in sorted(Path("workloads/svcs/overnight/drafts").glob("*.md"))
+        if not d.name.endswith(".raw.md")
+    ]
+    assert drafts, "expected the committed drafts to still be present"
+
+    gated = [
+        d.stem
+        for d in drafts
+        if len(solution_statements(d.read_text())) > MAX_SOLUTION_STATEMENTS
+    ]
+    stubs = [d.stem for d in drafts if len(d.read_text().strip()) < 400]
+    assert sorted(gated) == [
+        "autowire",
+        "local-pings",
+        "registry-iter",
+        "stringified-annotations",
+    ]
+    assert sorted(stubs) == [
+        "async-cm-enter",
+        "fastapi-get-registry",
+        "magicmock-factory",
+    ]
+    # Every draft is accounted for by one reason or the other, except the
+    # one whose only disqualification is provenance.
+    accounted = set(gated) | set(stubs) | {"flask-extensions"}
+    assert accounted == {d.stem for d in drafts}

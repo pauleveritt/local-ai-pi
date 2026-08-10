@@ -19,6 +19,7 @@ draft into a real `contract.md` is a separate, attended step.
 import argparse
 import hashlib
 import json
+import re
 import sys
 import time
 from collections.abc import Sequence
@@ -27,6 +28,52 @@ from pathlib import Path
 from harness.processes import run_process
 from harness.runner import _pi_command, pi_env
 from harness.screen import PROBE_EXTENSION
+
+# A contract locates and bounds; it does not implement. These are the
+# shapes an implementation takes, and a fenced block containing more than
+# a couple of them is the answer rather than a description of where the
+# answer goes.
+_STATEMENT = re.compile(
+    r"^(return|if|elif|else|for|while|with|try|except|finally|raise|yield"
+    r"|assert|import|from)\b"
+    r"|^[\w\.\[\]]+\s*(=|\+=|-=)\s*[^=]"
+)
+MAX_SOLUTION_STATEMENTS = 0
+"""Zero, not a small number.
+
+A threshold of two looked reasonable until the test for it was written:
+`registry-iter`'s entire fix is `return iter(self._services.values())`,
+one statement, so any tolerance at all admits the whole answer for the
+smallest tasks. A locating contract needs no executable statements --
+signatures and call examples match none of these patterns, and anything
+the executor must import can be named in prose."""
+
+
+def solution_statements(text: str) -> list[str]:
+    """Python statements inside fenced blocks: the shape of a handed-over fix.
+
+    A heuristic, and documented as one. It cannot tell code that
+    *illustrates the problem* from code that *is the answer* --
+    `stringified-annotations`'s first draft showed the current guard and
+    the fixed guard, and both read alike to a line matcher. It errs
+    toward rejection, which costs one authoring call and is the cheaper
+    error. Passing this gate does not prove a draft is free of the
+    answer; it proves the draft is free of the shape the answer usually
+    takes.
+    """
+    inside, hits = False, []
+    for line in text.splitlines():
+        if line.lstrip().startswith("```"):
+            inside = not inside
+            continue
+        if not inside:
+            continue
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or stripped.startswith(">>>"):
+            continue
+        if _STATEMENT.match(stripped):
+            hits.append(stripped)
+    return hits
 
 
 def extract_contract(text: str) -> str:
@@ -139,6 +186,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "timed_out": child.timed_out,
                 "draft_chars": len(contract),
                 "stop_reason": stop_reason,
+                "solution_statements": len(solution_statements(contract)),
                 "raw_chars": len(text),
                 "argv": list(argv_pi[:-1]),
             },
@@ -157,6 +205,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         problems.append("timed out")
     if stop_reason not in ("stop", "toolUse"):
         problems.append(f"stopReason={stop_reason}")
+    handed_over = solution_statements(contract)
+    if len(handed_over) > MAX_SOLUTION_STATEMENTS:
+        problems.append(
+            f"{len(handed_over)} solution statements in code fences "
+            f"(max {MAX_SOLUTION_STATEMENTS}); first: {handed_over[0][:60]!r}"
+        )
 
     status = "ok" if not problems else "REJECTED: " + "; ".join(problems)
     print(f"{args.task:26} {len(contract):6} chars  {elapsed:6.1f}s  {status}")
