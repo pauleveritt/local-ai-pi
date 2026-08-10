@@ -1,0 +1,52 @@
+diff --git a/tests/test_container_annotation_strings.py b/tests/test_container_annotation_strings.py
+new file mode 100644
+index 0000000..e1f8c81
+--- /dev/null
++++ b/tests/test_container_annotation_strings.py
+@@ -0,0 +1,46 @@
++import svcs
++from typing import Annotated
++import pytest
++
++def test_factory_with_string_annotation():
++    registry = svcs.Registry()
++    
++    # This should be recognized because it's annotated with "svcs.Container"
++    def factory(foo: "svcs.Container"):
++        return f"container is {foo}"
++
++    rs = registry.register_factory(str, factory)
++    assert rs.takes_container is True
++
++    with svcs.Container(registry) as container:
++        assert factory(container) == f"container is {container}"
++
++def test_factory_with_string_annotation_with_name():
++    registry = svcs.Registry()
++    
++    # This should be recognized even with a name, because it's annotated with "svcs.Container"
++    def factory(bar: "svcs.Container"):
++        return f"container is {bar}"
++
++    rs = registry.register_factory(str, factory)
++    assert rs.takes_container is True
++
++    with svcs.Container(registry) as container:
++        assert factory(container) == f"container is {container}"
++
++def test_factory_without_container_annotation():
++    registry = svcs.Registry()
++    
++    # This should NOT be recognized
++    def factory(foo: str):
++        return f"foo is {foo}"
++
++    rs = registry.register_factory(str, factory)
++    assert rs.takes_container is False
++
++    with svcs.Container(registry) as container:
++        # It should be called without the container argument
++        assert factory("hello") == "foo is hello"
++
++if __name__ == "__main__":
++    pytest.main([__file__])

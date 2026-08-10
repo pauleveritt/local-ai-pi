@@ -1,0 +1,20 @@
+{
+  "accepted": 3,
+  "arm": "brief-only:read,bash,edit,write:env",
+  "attempted": 8,
+  "budgets": "probe",
+  "executor_env": "workloads/svcs/env",
+  "model": "omlx/gemma-4-12B-it-MLX-8bit",
+  "outcomes": {
+    "async-cm-enter": "no-changes",
+    "autowire": "no-changes",
+    "fastapi-get-registry": "no-progress",
+    "flask-extensions": "accepted",
+    "local-pings": "accepted",
+    "magicmock-factory": "accepted",
+    "registry-iter": "tests-vanished",
+    "stringified-annotations": "no-progress"
+  },
+  "server": "http://127.0.0.1:8001",
+  "tools": "read,bash,edit,write"
+}
