@@ -35,6 +35,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--tools", default="read,bash,edit,write")
     parser.add_argument("--timeout", default="1800")
+    parser.add_argument("--contract-draft-dir", type=Path, default=None)
     args = parser.parse_args(argv)
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -57,6 +58,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "--probe", "--timeout", args.timeout,
                 "--task", task, "--out", str(target),
             ]
+            if args.contract_draft_dir is not None:
+                command += ["--contract-draft-dir", str(args.contract_draft_dir)]
             with log.open("a") as handle:
                 code = subprocess.run(
                     command, stdout=handle, stderr=subprocess.STDOUT
