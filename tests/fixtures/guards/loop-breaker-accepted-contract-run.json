@@ -1,6 +1,6 @@
 {
   "name": "loop-breaker-accepted-contract-run",
-  "source": "phase-7 Experiment A r1: an ACCEPTED registry-iter run under the same contract as the retry-loop fixture. The false-rejection test rule 7 requires: a guard that blocks this would break working work.",
+  "source": "phase-7 Experiment A r1, ACCEPTED. False-rejection test.",
   "calls": [
     {
       "toolName": "bash",

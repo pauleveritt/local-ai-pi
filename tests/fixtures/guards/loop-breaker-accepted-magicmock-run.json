@@ -1,6 +1,6 @@
 {
   "name": "loop-breaker-accepted-magicmock-run",
-  "source": "phase-7 Experiment B r6: an ACCEPTED magicmock-factory run, clean `stop`, 606s, from the same cell as the anchor-mismatch loop.",
+  "source": "phase-7 Experiment B r6, ACCEPTED, clean stop. False-rejection test.",
   "calls": [
     {
       "toolName": "bash",

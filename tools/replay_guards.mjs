@@ -6,6 +6,17 @@
  * This deliberately uses a tiny ExtensionAPI double rather than copying the
  * loop-breaker algorithm into Python. The replay therefore tests the artifact
  * that contributors install, with no model or network involved.
+ *
+ * **Fixtures must contain only calls that reach `beforeToolCall`.** Pi
+ * validates tool arguments at `agent-loop.js:404` and invokes the hook on the
+ * next line, inside the same `try` — so a call that fails schema validation
+ * throws one line above every `tool_call` guard and is never seen by one.
+ * A fixture extracted naively from `tool_execution_start` includes those
+ * calls, and this harness will then report a guard blocking a loop it cannot
+ * reach live. That happened: a fixture of 57 calls reported 44 blocks from
+ * call 7, and the live run blocked nothing, because 52 of the 57 were
+ * validation failures. Filter on the `tool_execution_end` result: drop
+ * anything beginning "Validation failed for tool".
  */
 
 import { readFile } from "node:fs/promises";

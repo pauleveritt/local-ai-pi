@@ -1,6 +1,6 @@
 {
   "name": "loop-breaker-anchor-mismatch-retry",
-  "source": "phase-7 Experiment B r2: magicmock-factory at maxTokens 32768. An `edit` whose anchor text no longer matched the file, retried without re-reading, until the 60-turn budget was exhausted.",
+  "source": "phase-7 Experiment B r2. An `edit` whose anchor text no longer matched, retried without re-reading until the turn budget went. These calls are schema-valid -- all 60 reach the hook -- so this loop IS reachable by a tool_call guard.",
   "calls": [
     {
       "toolName": "bash",
