@@ -1,0 +1,25 @@
+diff --git a/check_context_managers.py b/check_context_managers.py
+new file mode 100644
+index 0000000..3b55db4
+--- /dev/null
++++ b/check_context_managers.py
+@@ -0,0 +1,6 @@
++
++from contextlib import AbstractAsyncContextManager, AbstractContextManager
++print(f"AbstractAsyncContextManager: {AbstractAsyncContextManager}")
++print(f"AbstractContextManager: {AbstractContextManager}")
++print(f"Is AbstractAsyncContextManager a ContextManager? {isinstance(AbstractAsyncContextManager, AbstractContextManager)}")
++print(f"Is AbstractAsyncContextManager a subclass of ContextManager? {issubclass(AbstractAsyncContextManager, AbstractContextManager)}")
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index cd83af4..2f0b374 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -25,7 +25,7 @@ from inspect import (
+     isgeneratorfunction,
+ )
+ from types import TracebackType
+-from typing import Any, TypeVar, overload
++from unittest.mock import MagicMock, AsyncMock
+ 
+ import attrs
+ 

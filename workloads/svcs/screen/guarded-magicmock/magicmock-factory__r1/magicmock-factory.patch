@@ -1,0 +1,61 @@
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index cd83af4..4de6feb 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -24,7 +24,7 @@ from inspect import (
+     iscoroutinefunction,
+     isgeneratorfunction,
+ )
+-from types import TracebackType
++from unittest.mock import Mock
+ from typing import Any, TypeVar, overload
+ 
+ import attrs
+@@ -1013,8 +1013,9 @@ class Container:
+                 raise TypeError(msg)
+ 
+             if rs.enter and isinstance(svc, AbstractContextManager):
+-                self._on_close.append((rs, svc))
+-                svc = svc.__enter__()
++                if not isinstance(svc, Mock):
++                    self._on_close.append((rs, svc))
++                    svc = svc.__enter__()
+ 
+             self._instantiated[svc_type] = (svc, rs)
+ 
+@@ -1147,11 +1148,13 @@ class Container:
+                 continue
+ 
+             if rs.enter and isinstance(svc, AbstractAsyncContextManager):
+-                self._on_close.append((rs, svc))
+-                svc = await svc.__aenter__()
++                if not isinstance(svc, Mock):
++                    self._on_close.append((rs, svc))
++                    svc = await svc.__aenter__()
+             elif rs.enter and isinstance(svc, AbstractContextManager):
+-                self._on_close.append((rs, svc))
+-                svc = svc.__enter__()
++                if not isinstance(svc, Mock):
++                    self._on_close.append((rs, svc))
++                    svc = svc.__enter__()
+             # _lookup() doesn't handle async factories, so we have to live with
+             # some repetition.
+             elif isawaitable(svc):
+@@ -1161,11 +1164,13 @@ class Container:
+ 
+                 # Factory returned a contextmanager.
+                 if rs.enter and isinstance(svc, AbstractAsyncContextManager):
+-                    self._on_close.append((rs, svc))
+-                    svc = await svc.__aenter__()
++                    if not isinstance(svc, Mock):
++                        self._on_close.append((rs, svc))
++                        svc = await svc.__aenter__()
+                 elif rs.enter and isinstance(svc, AbstractContextManager):
+-                    self._on_close.append((rs, svc))
+-                    svc = svc.__enter__()
++                    if not isinstance(svc, Mock):
++                        self._on_close.append((rs, svc))
++                        svc = svc.__enter__()
+ 
+             self._instantiated[svc_type] = (svc, rs)
+ 

@@ -102,3 +102,80 @@ revised after seeing a result; the primary and secondary bars apply to the
 result: a `tool_call` guard cannot address malformed-call retry loops at all.
 That failure class needs a different mechanism — `tool_result`, or a
 turn-level check — and no amount of tuning the loop breaker will reach it.
+
+---
+
+## The magicmock half, run — and four corrections to the correction above
+
+External review caught three errors in the correction I appended, and a fourth
+went stale while I wrote it. All four are verified against Pi 0.84.1's source
+and the run records.
+
+### Results (4 replicates, guarded cell, 8192)
+
+| run | calls | reach hook | longest identical | guard blocks | outcome |
+|---|---|---|---|---|---|
+| r1 | 10 | 10 | 2 | 0 | no-progress |
+| r2 | 13 | 13 | 2 | 0 | tests-vanished |
+| r3 | 23 | 23 | 2 | 0 | **accepted** |
+| r4 | 23 | 23 | 4 | **4** | tests-vanished, delta −30 |
+
+**The guard fired live for the first time in this project** — r4, four blocks.
+The mechanism works on schema-valid repeated calls, as corrected replay
+predicted. And **r4 still failed, badly**: 101 preservation nodes missing, gap
+−3000%. Blocking the repeat did not produce recovery; the model went on to
+damage the repository. "The guard breaks the loop" and "the guard helps" are
+different claims and only the first has any support.
+
+Acceptance was 1/4 against an unguarded baseline of 1/6 at this cap. That
+comparison was explicitly exploratory with no threshold, and 1/4 versus 1/6 is
+not a difference.
+
+### Correction 1 — the intervention path I named was wrong
+
+I wrote that malformed-call loops "need `tool_result`, or a turn-level check."
+The first half is false. A validation failure returns `kind: "immediate"`
+(`agent-loop.js:445`), which skips `executePreparedToolCall` **and**
+`finalizeExecutedToolCall` — and `afterToolCall`, which supplies the
+`tool_result` event, lives inside the latter at line 487. So `tool_result`
+cannot see these calls either.
+
+What remains observable: `tool_execution_start`, `tool_execution_end`, and the
+synthesized tool-result `message_end`. An extension-level response must cache
+arguments at start, recognise validation failures at end, correlate repeats
+itself, and intervene through an injected message, `turn_end`, or abort. **A
+true pre-validation block requires a change to Pi core.**
+
+### Correction 2 — "could only produce not admitted" was too strong
+
+The model might by chance have avoided malformed loops entirely. What was
+structurally impossible was *attributing any improvement to the guard*, which
+had no causal access to those calls. The claim is about attribution, not about
+the outcome being forced.
+
+### Correction 3 — the thresholds do not transfer unchanged
+
+Appending a correction preserved the text but implied the bars carry over
+intact. They do not. The primary bar was "zero loop deaths across **all 10**
+runs" and had already failed. The secondary was `registry-iter`-only and passed
+at 4/6. Magicmock acceptance was explicitly exploratory with no threshold.
+
+So **"not admitted" stands as the outcome of the flawed combined protocol.**
+What is retracted is "the guard failed." These four runs can support a narrower
+claim about schema-valid retry loops; they cannot retroactively make the
+original combined experiment pass.
+
+### Correction 4 — "was never run" was stale on arrival
+
+It was already running when I wrote it.
+
+### What the guard has and has not earned
+
+Earned: it fires live on schema-valid repeated calls, and it does not fire on
+runs that succeed (r1–r3, and the two accepted-run fixtures).
+
+Not earned: any claim that it improves outcomes. One live activation, in a run
+that then destroyed 101 test nodes, is not admission evidence. Under rule 7 the
+loop breaker remains **unadmitted**, and the honest next question is not
+"does it fire" but "does the model do anything better after it fires" — which
+r4 is one datapoint against.

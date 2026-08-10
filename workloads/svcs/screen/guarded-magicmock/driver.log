@@ -1,0 +1,20 @@
+cell gemma12b-probe-guarded: live configuration verified
+magicmock-factory          running...
+magicmock-factory          reject  no-progress              oracle 30/31            169.3s
+
+0/1 accepted
+cell gemma12b-probe-guarded: live configuration verified
+magicmock-factory          running...
+magicmock-factory          reject  tests-vanished           oracle 0/0              591.9s OUT-OF-SCOPE
+
+0/1 accepted
+cell gemma12b-probe-guarded: live configuration verified
+magicmock-factory          running...
+magicmock-factory          ACCEPT  accepted                 oracle 31/31            581.7s
+
+1/1 accepted
+cell gemma12b-probe-guarded: live configuration verified
+magicmock-factory          running...
+magicmock-factory          reject  tests-vanished           oracle 0/0              881.3s
+
+0/1 accepted
