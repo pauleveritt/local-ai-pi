@@ -1,0 +1,50 @@
+diff --git a/reproduce_issue.py b/reproduce_issue.py
+new file mode 100644
+index 0000000..d38e12b
+--- /dev/null
++++ b/reproduce_issue.py
+@@ -0,0 +1,44 @@
++import unittest.mock
++from unittest.mock import MagicMock, AsyncMock
++from contextlib import AbstractContextManager, AbstractAsyncContextManager
++from svcs._core import Container, Registry, RegisteredService
++import attrs
++import asyncio
++
++# Mock a service type
++class MyService:
++    pass
++
++# A factory that returns a MagicMock
++def mock_factory():
++    return MagicMock()
++
++# A factory that returns an AsyncMock
++def async_mock_factory():
++    return AsyncMock()
++
++def test_mock_factory():
++    reg = Registry()
++    reg.register_factory(MyService, mock_factory)
++    con = Container(reg)
++    try:
++        con.get(MyService)
++        print("get(MyService) succeeded")
++    except Exception as e:
++        print(f"get(MyService) failed: {type(e).__name__}: {e}")
++
++def test_async_mock_factory():
++    reg = Registry()
++    reg.register_factory(MyService, async_mock_factory)
++    con = Container(reg)
++    try:
++        asyncio.run(con.aget(MyService))
++        print("aget(MyService) succeeded")
++    except Exception as e:
++        print(f"aget(MyService) failed: {type(e).__name__}: {e}")
++
++if __name__ == "__main__":
++    print("Testing mock_factory:")
++    test_mock_factory()
++    print("\nTesting async_mock_factory:")
++    test_async_mock_factory()

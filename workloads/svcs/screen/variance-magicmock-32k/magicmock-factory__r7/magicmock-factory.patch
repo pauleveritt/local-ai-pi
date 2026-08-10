@@ -1,0 +1,142 @@
+diff --git a/repro.py b/repro.py
+new file mode 100644
+index 0000000..b3947b6
+--- /dev/null
++++ b/repro.py
+@@ -0,0 +1,41 @@
++import pytest
++from unittest.mock import MagicMock, AsyncMock
++from contextlib import contextmanager
++from svcs import Registry, Container
++
++def mock_factory():
++    return MagicMock()
++
++def async_mock_factory():
++    return AsyncMock()
++
++def test_magic_mock_get():
++    reg = Registry()
++    reg.register_factory("MockType", mock_factory)
++    con = Container(reg)
++    
++    # This is expected to fail with TypeError: Use `aget()` for async factories.
++    # because MagicMock is an instance of AbstractAsyncContextManager.
++    with pytest.raises(TypeError) as excinfo:
++         con.get("MockType")
++    assert "Use `aget()` for async factories." in str(excinfo.value)
++
++@pytest.mark.asyncio
++async def test_async_mock_aget():
++    reg = Registry()
++    reg.register_factory("AsyncMockType", async_mock_factory)
++    con = Container(reg)
++    
++    # This should work.
++    svc = await con.aget("AsyncMockType")
++    assert isinstance(svc, AsyncMock)
++
++@pytest.mark.asyncio
++async def test_magic_mock_aget():
++    reg = Registry()
++    reg.register_factory("MagicMockType", mock_factory)
++    con = Container(reg)
++    
++    # This should also work if it's a MagicMock.
++    svc = await con.aget("MagicMockType")
++    assert isinstance(svc, MagicMock)
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index cd83af4..afc379f 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -530,6 +530,14 @@ else:
+             return None
+ 
+ 
++def _is_mock(obj: Any) -> bool:
++    try:
++        from unittest.mock import Mock, AsyncMock
++        return isinstance(obj, (Mock, AsyncMock))
++    except ImportError:
++        return False
++
++
+ def _takes_container(factory: Callable) -> bool:
+     """
+     Return True if *factory* takes a svcs.Container as its first argument.
+@@ -550,6 +558,13 @@ def _takes_container(factory: Callable) -> bool:
+     )
+ 
+ 
++def _is_mock(obj: Any) -> bool:
++    try:
++        from unittest.mock import Mock, AsyncMock
++        return isinstance(obj, (Mock, AsyncMock))
++    except ImportError:
++        return False
++
+ T1 = TypeVar("T1")
+ T2 = TypeVar("T2")
+ T3 = TypeVar("T3")
+@@ -1006,13 +1021,13 @@ class Container:
+                 rv.append(svc)
+                 continue
+ 
+-            if iscoroutine(svc) or isinstance(
++            if not _is_mock(svc) and (iscoroutine(svc) or isinstance(
+                 svc, AbstractAsyncContextManager
+-            ):
++            )):
+                 msg = "Use `aget()` for async factories."
+                 raise TypeError(msg)
+ 
+-            if rs.enter and isinstance(svc, AbstractContextManager):
++            if rs.enter and isinstance(svc, AbstractContextManager) and not _is_mock(svc):
+                 self._on_close.append((rs, svc))
+                 svc = svc.__enter__()
+ 
+@@ -1146,24 +1161,24 @@ class Container:
+                 rv.append(svc)
+                 continue
+ 
+-            if rs.enter and isinstance(svc, AbstractAsyncContextManager):
++            if rs.enter and isinstance(svc, AbstractAsyncContextManager) and not _is_mock(svc):
+                 self._on_close.append((rs, svc))
+                 svc = await svc.__aenter__()
+-            elif rs.enter and isinstance(svc, AbstractContextManager):
++            elif rs.enter and isinstance(svc, AbstractContextManager) and not _is_mock(svc):
+                 self._on_close.append((rs, svc))
+                 svc = svc.__enter__()
+             # _lookup() doesn't handle async factories, so we have to live with
+             # some repetition.
+-            elif isawaitable(svc):
++            elif isawaitable(svc) and not _is_mock(svc):
+                 # Execute the factory. Until now, we've only created the
+                 # awaitable.
+                 svc = await svc
+ 
+                 # Factory returned a contextmanager.
+-                if rs.enter and isinstance(svc, AbstractAsyncContextManager):
++                if rs.enter and isinstance(svc, AbstractAsyncContextManager) and not _is_mock(svc):
+                     self._on_close.append((rs, svc))
+                     svc = await svc.__aenter__()
+-                elif rs.enter and isinstance(svc, AbstractContextManager):
++                elif rs.enter and isinstance(svc, AbstractContextManager) and not _is_mock(svc):
+                     self._on_close.append((rs, svc))
+                     svc = svc.__enter__()
+ 
+diff --git a/test_mock_await.py b/test_mock_await.py
+new file mode 100644
+index 0000000..4962780
+--- /dev/null
++++ b/test_mock_await.py
+@@ -0,0 +1,9 @@
++import asyncio
++from unittest.mock import AsyncMock
++
++async def test():
++    m = AsyncMock()
++    await m
++    print(m)
++
++asyncio.run(test())

@@ -1,0 +1,176 @@
+diff --git a/check_inheritance.py b/check_inheritance.py
+new file mode 100644
+index 0000000..d5d663f
+--- /dev/null
++++ b/check_inheritance.py
+@@ -0,0 +1,2 @@
++from contextlib import AbstractContextManager, AbstractAsyncContextManager
++print(f"AbstractAsyncContextManager is subclass of AbstractContextManager: {issubclass(AbstractAsyncContextManager, AbstractContextManager)}")
+diff --git a/check_inheritance_v2.py b/check_inheritance_v2.py
+new file mode 100644
+index 0000000..d5d663f
+--- /dev/null
++++ b/check_inheritance_v2.py
+@@ -0,0 +1,2 @@
++from contextlib import AbstractContextManager, AbstractAsyncContextManager
++print(f"AbstractAsyncContextManager is subclass of AbstractContextManager: {issubclass(AbstractAsyncContextManager, AbstractContextManager)}")
+diff --git a/check_instance.py b/check_instance.py
+new file mode 100644
+index 0000000..f3c9436
+--- /dev/null
++++ b/check_instance.py
+@@ -0,0 +1,4 @@
++from unittest.mock import MagicMock
++from contextlib import AbstractContextManager
++mock = MagicMock()
++print(f"isinstance(mock, AbstractContextManager): {isinstance(mock, AbstractContextManager)}")
+diff --git a/check_mock.py b/check_mock.py
+new file mode 100644
+index 0000000..1f4067a
+--- /dev/null
++++ b/check_mock.py
+@@ -0,0 +1,3 @@
++from unittest.mock import MagicMock, AsyncMock
++print(f"MagicMock has _mock: {hasattr(MagicMock(), '_mock')}")
++print(f"AsyncMock has _mock: {hasattr(AsyncMock(), '_mock')}")
+diff --git a/reproduce_issue.py b/reproduce_issue.py
+new file mode 100644
+index 0000000..513c262
+--- /dev/null
++++ b/reproduce_issue.py
+@@ -0,0 +1,63 @@
++import asyncio
++import sys
++import os
++
++# Add the current directory to sys.path so we can import svcs
++sys.path.insert(0, os.getcwd())
++
++from unittest.mock import MagicMock, AsyncMock
++from contextlib import AbstractContextManager
++from inspect import isawaitable, iscoroutine
++from typing import Any
++
++try:
++    from svcs._core import Container, Registry, RegisteredService
++    print(f"svcs loaded from: {__import__('svcs').__file__}")
++except ImportError as e:
++    print(f"Import failed: {e}")
++    sys.exit(1)
++
++class MockSvc:
++    pass
++
++class AsyncMockSvc:
++    pass
++
++async def main():
++    registry = Registry()
++    container = Container(registry)
++
++    # Test 1: MagicMock in get()
++    # MagicMock should not be treated as a context manager or coroutine.
++    mock_svc = MagicMock()
++    print(f"isinstance(MagicMock, AbstractContextManager): {isinstance(mock_svc, AbstractContextManager)}")
++    print(f"iscoroutine(MagicMock): {iscoroutine(mock_svc)}")
++    print(f"hasattr(MagicMock, '_mock'): {hasattr(mock_svc, '_mock')}")
++    registry.register_value(MockSvc, mock_svc)
++    
++    try:
++        svc = container.get(MockSvc)
++        print("get() with MagicMock success")
++    except Exception as e:
++        import traceback
++        traceback.print_exc()
++        print(f"get() with MagicMock failed: {e}")
++
++    # Test 2: AsyncMock in aget()
++    # AsyncMock is awaitable.
++    mock_async_svc = AsyncMock()
++    print(f"isinstance(AsyncMock, AbstractContextManager): {isinstance(mock_async_svc, AbstractContextManager)}")
++    print(f"isawaitable(AsyncMock): {isawaitable(mock_async_svc)}")
++    print(f"hasattr(AsyncMock, '_mock'): {hasattr(mock_async_svc, '_mock')}")
++    registry.register_value(AsyncMockSvc, mock_async_svc)
++    
++    try:
++        svc = await container.aget(AsyncMockSvc)
++        print("aget() with AsyncMock success")
++    except Exception as e:
++        import traceback
++        traceback.print_exc()
++        print(f"aget() with AsyncMock failed: {e}")
++
++if __name__ == "__main__":
++    asyncio.run(main())
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index cd83af4..8508d9a 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -1006,15 +1006,16 @@ class Container:
+                 rv.append(svc)
+                 continue
+ 
+-            if iscoroutine(svc) or isinstance(
+-                svc, AbstractAsyncContextManager
+-            ):
+-                msg = "Use `aget()` for async factories."
+-                raise TypeError(msg)
+-
+-            if rs.enter and isinstance(svc, AbstractContextManager):
+-                self._on_close.append((rs, svc))
+-                svc = svc.__enter__()
++            if not hasattr(svc, "_mock"):
++                if iscoroutine(svc) or isinstance(
++                    svc, AbstractAsyncContextManager
++                ):
++                    msg = "Use `aget()` for async factories."
++                    raise TypeError(msg)
++
++                if rs.enter and isinstance(svc, AbstractContextManager):
++                    self._on_close.append((rs, svc))
++                    svc = svc.__enter__()
+ 
+             self._instantiated[svc_type] = (svc, rs)
+ 
+@@ -1146,26 +1147,27 @@ class Container:
+                 rv.append(svc)
+                 continue
+ 
+-            if rs.enter and isinstance(svc, AbstractAsyncContextManager):
+-                self._on_close.append((rs, svc))
+-                svc = await svc.__aenter__()
+-            elif rs.enter and isinstance(svc, AbstractContextManager):
+-                self._on_close.append((rs, svc))
+-                svc = svc.__enter__()
+-            # _lookup() doesn't handle async factories, so we have to live with
+-            # some repetition.
+-            elif isawaitable(svc):
+-                # Execute the factory. Until now, we've only created the
+-                # awaitable.
+-                svc = await svc
+-
+-                # Factory returned a contextmanager.
++            if not hasattr(svc, "_mock"):
+                 if rs.enter and isinstance(svc, AbstractAsyncContextManager):
+                     self._on_close.append((rs, svc))
+                     svc = await svc.__aenter__()
+                 elif rs.enter and isinstance(svc, AbstractContextManager):
+                     self._on_close.append((rs, svc))
+                     svc = svc.__enter__()
++                # _lookup() doesn't handle async factories, so we have to live with
++                # some repetition.
++                elif isawaitable(svc):
++                    # Execute the factory. Until now, we've only created the
++                    # awaitable.
++                    svc = await svc
++
++                    # Factory returned a contextmanager.
++                    if rs.enter and isinstance(svc, AbstractAsyncContextManager):
++                        self._on_close.append((rs, svc))
++                        svc = await svc.__aenter__()
++                    elif rs.enter and isinstance(svc, AbstractContextManager):
++                        self._on_close.append((rs, svc))
++                        svc = svc.__enter__()
+ 
+             self._instantiated[svc_type] = (svc, rs)
+ 
