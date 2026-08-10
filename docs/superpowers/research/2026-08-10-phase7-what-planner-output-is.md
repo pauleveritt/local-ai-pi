@@ -79,9 +79,12 @@ A prompt alone will not hold this. The current prompt never said "do not write
 the code" and the author helpfully complied; a rule stated once in prose is
 exactly what this project has repeatedly found insufficient.
 
-`tools/author_contract.py` now rejects a draft whose fenced blocks contain more
-than two Python statements — `return`, `if`, `for`, `import`, an assignment, and
-so on. Rejected drafts are deleted rather than left on disk, because a rejected
+`tools/author_contract.py` now rejects a draft whose fenced blocks contain
+**any** Python statement — `return`, `if`, `for`, `import`, an assignment.
+Zero, not a small number: a threshold of two survived until the test for it was
+written, and `registry-iter`'s entire fix is one statement, so any tolerance at
+all admits the whole answer for the smallest tasks. Signatures and call examples
+match none of these patterns, so zero is less strict than it sounds. Rejected drafts are deleted rather than left on disk, because a rejected
 draft that stays is one the next sweep silently uses.
 
 **The gate is a heuristic and is documented as one.** It cannot distinguish
