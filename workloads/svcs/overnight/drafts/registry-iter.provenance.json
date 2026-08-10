@@ -1,0 +1,30 @@
+{
+  "argv": [
+    "pi",
+    "--print",
+    "--mode",
+    "json",
+    "--no-session",
+    "--model",
+    "omlx/Qwen3.6-27B-8bit",
+    "--no-extensions",
+    "--extension",
+    "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/probe-cap.ts",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--approve",
+    "--tools",
+    "read"
+  ],
+  "authoring_prompt_sha256": "59a8cf25487bb43231fa910d5c756c87b259c975c923f8a0c808d8c4302d5571",
+  "draft_chars": 7295,
+  "elapsed_seconds": 520.5,
+  "model": "omlx/Qwen3.6-27B-8bit",
+  "packet": "/Users/pauleveritt/.satyrn-authoring/registry-iter",
+  "prompt_sha256": "1fd509a930e51283184b74e32197ba4cf24d53ececec32e13dd8ea230e834a64",
+  "task_id": "registry-iter",
+  "timed_out": false,
+  "tools": "read"
+}

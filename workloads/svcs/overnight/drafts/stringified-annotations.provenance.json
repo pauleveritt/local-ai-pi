@@ -1,0 +1,31 @@
+{
+  "argv": [
+    "pi",
+    "--print",
+    "--mode",
+    "json",
+    "--no-session",
+    "--model",
+    "omlx/Qwen3.6-27B-8bit",
+    "--no-extensions",
+    "--extension",
+    "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/probe-cap.ts",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--approve",
+    "--tools",
+    "read"
+  ],
+  "authoring_prompt_sha256": "59a8cf25487bb43231fa910d5c756c87b259c975c923f8a0c808d8c4302d5571",
+  "draft_chars": 5114,
+  "elapsed_seconds": 516.3,
+  "model": "omlx/Qwen3.6-27B-8bit",
+  "packet": "/Users/pauleveritt/.satyrn-authoring/stringified-annotations",
+  "prompt_sha256": "bd6d7e285cdb8cd22feb94dd2ecb515a2180a740d67ab027393a14248b15d15c",
+  "raw_chars": 5116,
+  "task_id": "stringified-annotations",
+  "timed_out": false,
+  "tools": "read"
+}

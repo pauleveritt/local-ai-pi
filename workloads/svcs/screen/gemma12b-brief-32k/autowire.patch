@@ -1,0 +1,17 @@
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index 1b4d1c0..82b5df8 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -25,10 +25,8 @@ from inspect import (
+     isgeneratorfunction,
+ )
+ from types import TracebackType
+-from typing import Any, TypeAlias, TypeVar, overload
+-from unittest.mock import MagicMock
+-
+-import attrs
++import dataclasses
++from typing import Any, Callable, Awaitable, Union, get_type_hints
+ 
+ from .exceptions import ServiceNotFoundError
+ 

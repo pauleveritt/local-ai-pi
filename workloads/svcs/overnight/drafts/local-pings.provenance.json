@@ -1,0 +1,31 @@
+{
+  "argv": [
+    "pi",
+    "--print",
+    "--mode",
+    "json",
+    "--no-session",
+    "--model",
+    "omlx/Qwen3.6-27B-8bit",
+    "--no-extensions",
+    "--extension",
+    "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/probe-cap.ts",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--approve",
+    "--tools",
+    "read"
+  ],
+  "authoring_prompt_sha256": "59a8cf25487bb43231fa910d5c756c87b259c975c923f8a0c808d8c4302d5571",
+  "draft_chars": 6156,
+  "elapsed_seconds": 507.5,
+  "model": "omlx/Qwen3.6-27B-8bit",
+  "packet": "/Users/pauleveritt/.satyrn-authoring/local-pings",
+  "prompt_sha256": "b2fbfd89da323884e229dc1036952d767d60a1991817b61cca08095282e55c13",
+  "raw_chars": 6158,
+  "task_id": "local-pings",
+  "timed_out": false,
+  "tools": "read"
+}

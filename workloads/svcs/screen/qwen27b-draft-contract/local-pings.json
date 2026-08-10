@@ -1,0 +1,63 @@
+{
+  "accepted": true,
+  "argv": [
+    "pi",
+    "--print",
+    "--mode",
+    "json",
+    "--no-session",
+    "--model",
+    "omlx/Qwen3.6-27B-8bit",
+    "--no-extensions",
+    "--extension",
+    "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/probe-cap.ts",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--approve",
+    "--tools",
+    "read,bash,edit,write",
+    "# Include locally registered services in health pings\n\n`Container.get_pings()` reports only services registered on the registry. A\nservice registered directly on a container \u2014 a local registration \u2014 is invisible\nto it, even when that service declares a ping.\n\nMake `get_pings()` report the pings of every service the container would\nactually resolve:\n\n- a locally registered service that declares a ping is reported;\n- where a local registration shadows a registry registration for the same type,\n  the local ping is the one reported, not the registry's;\n- a local registration that declares *no* ping means no ping is reported for\n  that type at all \u2014 the shadowed registry registration's ping is not used as a\n  fallback.\n\nBehaviour for types that have only a registry registration, and for services\nthat declare no ping anywhere, must not change.\n\nI don't have a write tool available, so I'll provide the complete contract content below. Save it as `contract.md` in the repo root.\n\n---\n\n# Contract: Include locally registered services in health pings\n\n## Problem\n\n`Container.get_pings()` currently only iterates `self.registry._services.values()`.\nIt ignores services registered locally on the container via\n`register_local_factory()` / `register_local_value()`, which live in\n`self._lazy_local_registry`.\n\n## Required Behavior\n\nAfter the change, `get_pings()` must return pings for every service type the\ncontainer would actually resolve, respecting the same shadowing rules as\n`_lookup()`:\n\n1. **Local-only with ping** \u2014 A service registered only on the container that\n   declares a `ping` callback **is** included in the result.\n\n2. **Local shadows registry (with ping)** \u2014 Where both the container and the\n   registry register a service for the same type, and the local registration\n   declares a ping, the **local** ping is reported (not the registry's).\n\n3. **Local shadows registry (no ping)** \u2014 Where both register the same type but\n   the local registration declares **no** ping, **no ping is reported** for that\n   type. The registry's ping is **not** used as a fallback.\n\n4. **Registry-only (unchanged)** \u2014 Types registered only on the registry with a\n   ping continue to be reported exactly as today.\n\n5. **No ping anywhere (unchanged)** \u2014 Types with no ping on either the container\n   or the registry are not reported.\n\n## Files to Change\n\n- **`src/svcs/_core.py`** \u2014 The `Container.get_pings()` method (lines ~714\u2013733).\n\nNo other files need modification. The public API surface (`get_pings()` return\ntype, `ServicePing` attributes) is unchanged.\n\n## Implementation Guidance\n\nThe current implementation (lines 724\u2013733) is:\n\n```python\ndef get_pings(self) -> list[ServicePing]:\n    return [\n        ServicePing(\n            rs.name,\n            iscoroutinefunction(rs.ping),\n            rs.svc_type,\n            rs.ping,\n            self,\n        )\n        for rs in self.registry._services.values()\n        if rs.ping is not None\n    ]\n```\n\nThe `_lookup()` method (lines 756\u2013780) already establishes the shadowing\nprecedence: it checks `_lazy_local_registry` first, then falls back to\n`self.registry`. The same precedence must apply to pings.\n\nA correct approach:\n\n1. Build the ping list from the registry's services (same as today).\n2. If `self._lazy_local_registry` is not `None`, iterate its services and\n   overlay them:\n   - For each local `RegisteredService` whose `svc_type` is **not** already in\n     the result, and which has a `ping`, append it.\n   - For each local `RegisteredService` whose `svc_type` **is** already in the\n     result but which has `ping is None`, remove the existing entry (the local\n     registration shadows the registry one and contributes no ping).\n   - For each local `RegisteredService` whose `svc_type` **is** already in the\n     result and which has a `ping`, replace the existing entry with the local\n     one (the local ping shadows the registry ping).\n\nThe `_lookup` method uses `suppress(ServiceNotFoundError)` when probing the\nlocal registry. The `get_pings` method does not need to call\n`get_registered_service_for()` at all \u2014 it can directly iterate\n`_lazy_local_registry._services.values()` since it's just collecting\ninformation, not resolving a specific type.\n\n### Key structural approach\n\nA clean implementation pattern:\n\n```python\ndef get_pings(self) -> list[ServicePing]:\n    # Start with registry pings\n    pings: dict[type, RegisteredService] = {\n        rs.svc_type: rs\n        for rs in self.registry._services.values()\n        if rs.ping is not None\n    }\n\n    # Overlay local registrations\n    if self._lazy_local_registry is not None:\n        for rs in self._lazy_local_registry._services.values():\n            if rs.ping is not None:\n                pings[rs.svc_type] = rs  # add or replace\n            else:\n                pings.pop(rs.svc_type, None)  # shadow with no-ping\n\n    return [\n        ServicePing(\n            rs.name,\n            iscoroutinefunction(rs.ping),\n            rs.svc_type,\n            rs.ping,\n            self,\n        )\n        for rs in pings.values()\n    ]\n```\n\nThis uses a `dict[type, RegisteredService]` keyed by `svc_type` to naturally\nhandle add/replace/remove semantics in a single pass.\n\n## Invariants to Preserve\n\n1. **Return type** \u2014 `get_pings()` must still return `list[ServicePing]`.\n\n2. **`ServicePing` construction** \u2014 Each `ServicePing` is constructed with\n   `(name, is_async, svc_type, ping, container)` exactly as before. The\n   `iscoroutinefunction(rs.ping)` check must use the **local** ping callable\n   when shadowing, not the registry's.\n\n3. **No side effects** \u2014 `get_pings()` must not instantiate services, modify\n   `_instantiated`, or modify `_on_close`. It is a pure query.\n\n4. **`_lazy_local_registry` may be `None`** \u2014 The method must handle the case\n   where no local registrations exist (the lazy registry was never created).\n\n5. **Registry-only behavior unchanged** \u2014 If `_lazy_local_registry` is `None`,\n   the behavior must be identical to the current implementation.\n\n6. **`_lookup` shadowing consistency** \u2014 The set of types reported by\n   `get_pings()` must be a subset of the types the container can resolve via\n   `_lookup`. Specifically, if `get_pings()` reports a ping for type `T`, then\n   `container.get(T)` must succeed (assuming the type is registered somewhere).\n\n## How to Know the Work Is Done\n\nA reader can verify correctness by checking:\n\n1. **The method body** \u2014 `get_pings()` now references `self._lazy_local_registry`\n   and handles the overlay/shadowing logic described above.\n\n2. **Registry-only path** \u2014 When `_lazy_local_registry is None`, the code path\n   produces the same result as the original implementation (only registry\n   services with pings).\n\n3. **Shadowing logic** \u2014 The overlay step uses `dict` key overwrite for\n   local-with-ping (add/replace) and `pop` for local-without-ping (remove).\n\n4. **No other changes** \u2014 No other methods, classes, or files are modified.\n   The `ServicePing` class is untouched. `_lookup()` is untouched.\n"
+  ],
+  "base_passed": 15,
+  "budget_exhausted": "none",
+  "changed_paths": [
+    "src/svcs/_core.py"
+  ],
+  "executor_env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
+  "gap_closed": 1.0,
+  "manifest_sha256": "2208c8bf20e0ef82ad24b21f8366026ba823851f0ca790fe30a3ba38ba34fde7",
+  "missing_nodes": [],
+  "model_seconds": 776.32,
+  "model_timed_out": false,
+  "model_timeout_seconds": 1800.0,
+  "oracle": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 18,
+    "reason_class": "pass",
+    "tests_passed": 18,
+    "wall_seconds": 0.878
+  },
+  "oracle_delta": 3,
+  "out_of_scope": [],
+  "outcome": "accepted",
+  "preservation": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 122,
+    "reason_class": "pass",
+    "tests_passed": 122,
+    "wall_seconds": 1.107
+  },
+  "prompt_sha256": "22bbd31b8f8b30265c80de120cd42aaa97cb9a967f1de6229648ab4e1d4b4973",
+  "reference_overlap": 0.167,
+  "rule_version": 7,
+  "target_total": 18,
+  "task_id": "local-pings",
+  "tools": "read,bash,edit,write",
+  "validity": "valid",
+  "validity_evidence": [],
+  "wrote_tests": []
+}

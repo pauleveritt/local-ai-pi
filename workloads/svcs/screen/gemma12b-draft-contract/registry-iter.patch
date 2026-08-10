@@ -1,0 +1,30 @@
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index d90c595..d016d31 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -8,7 +8,7 @@ import inspect
+ import logging
+ import warnings
+ 
+-from collections.abc import Awaitable, Callable
++from collections.abc import Awaitable, Callable, Iterator
+ from contextlib import (
+     AbstractAsyncContextManager,
+     AbstractContextManager,
+@@ -161,6 +161,16 @@ class Registry:
+         """
+         return svc_type in self._services
+ 
++    def __iter__(self) -> Iterator[RegisteredService]:
++        """
++        Iterate over the registered services.
++
++        Yields:
++            The :class:`RegisteredService` objects for every type registered on
++            this registry.
++        """
++        return iter(self._services.values())
++
+     def __enter__(self) -> Registry:
+         return self
+ 

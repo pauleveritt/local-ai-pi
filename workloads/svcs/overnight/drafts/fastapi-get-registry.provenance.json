@@ -1,0 +1,31 @@
+{
+  "argv": [
+    "pi",
+    "--print",
+    "--mode",
+    "json",
+    "--no-session",
+    "--model",
+    "omlx/Qwen3.6-27B-8bit",
+    "--no-extensions",
+    "--extension",
+    "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/probe-cap.ts",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--approve",
+    "--tools",
+    "read"
+  ],
+  "authoring_prompt_sha256": "59a8cf25487bb43231fa910d5c756c87b259c975c923f8a0c808d8c4302d5571",
+  "draft_chars": 54,
+  "elapsed_seconds": 1226.1,
+  "model": "omlx/Qwen3.6-27B-8bit",
+  "packet": "/Users/pauleveritt/.satyrn-authoring/fastapi-get-registry",
+  "prompt_sha256": "00883cb759c991209aacd4117a6a8f239be9f4e241a210605ca0c16b125f5dab",
+  "raw_chars": 58,
+  "task_id": "fastapi-get-registry",
+  "timed_out": false,
+  "tools": "read"
+}

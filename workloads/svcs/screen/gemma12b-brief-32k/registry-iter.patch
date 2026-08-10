@@ -1,0 +1,51 @@
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index d90c595..35b852f 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -146,20 +146,18 @@ class Registry:
+     def __repr__(self) -> str:
+         return f"<svcs.Registry(num_services={len(self._services)})>"
+ 
+-    def __contains__(self, svc_type: type) -> bool:
++    def __iter__(self) -> iter[RegisteredService]:
+         """
+-        Check whether this registry knows how to create *svc_type*:
++        Yield the registered services.
+ 
+         .. doctest::
+ 
+             >>> reg = svcs.Registry()
+-            >>> reg.register_value(int, 42)
+-            >>> int in reg
+-            True
+-            >>> str in reg
+-            False
++            >>> reg.register_factory(int, lambda: 42)
++            >>> list(reg)
++            [<RegisteredService(svc_type=int, factory=<function <lambda> at ...>, takes_container=False, enter=True, has_ping=False)>]
+         """
+-        return svc_type in self._services
++        return iter(self._services.values()),
+ 
+     def __enter__(self) -> Registry:
+         return self
+@@ -498,6 +496,19 @@ class Container:
+             f"cleanups={len(self._on_close)})>"
+         )
+ 
++    def __iter__(self) -> iter[RegisteredService]:
++        """
++        Yield the registered services.
++
++        .. doctest::
++
++            >>> reg = svcs.Registry()
++            >>> reg.register_factory(int, lambda: 42)
++            >>> list(reg)
++            [<RegisteredService(svc_type=int, factory=<function <lambda> at ...>, takes_container=False, enter=True, has_ping=False)>]
++        """
++        return iter(self._services.values()),
++
+     def __contains__(self, svc_type: type) -> bool:
+         """
+         Check whether this container has a cached instance of *svc_type*.
