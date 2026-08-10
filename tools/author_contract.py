@@ -25,6 +25,7 @@ import time
 from collections.abc import Sequence
 from pathlib import Path
 
+from harness.liveness import check_model_server_alive
 from harness.processes import run_process
 from harness.runner import _pi_command, pi_env
 from harness.screen import PROBE_EXTENSION
@@ -132,23 +133,8 @@ def extract_contract(text: str) -> str:
     return "\n".join(lines[fences[0] + 1 : fences[-1]]).strip()
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--task", required=True)
-    parser.add_argument("--model", required=True)
-    parser.add_argument("--packets", type=Path, default=Path.home() / ".satyrn-authoring")
-    parser.add_argument("--prompt", type=Path, default=Path("workloads/svcs/authoring-prompt.md"))
-    parser.add_argument("--out", required=True, type=Path)
-    parser.add_argument("--timeout", type=float, default=1800.0)
-    parser.add_argument(
-        "--min-chars",
-        type=int,
-        default=400,
-        help="shortest draft accepted as a contract (stubs ran 29-80 chars)",
-    )
-    args = parser.parse_args(argv)
-
-    packet = args.packets / args.task
+def author_one(task: str, args: argparse.Namespace) -> int:
+    packet = args.packets / task
     repo, brief = packet / "repo", packet / "brief.md"
     for path in (repo, brief, args.prompt):
         if not path.exists():
@@ -200,13 +186,13 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     contract = extract_contract(text)
     args.out.mkdir(parents=True, exist_ok=True)
-    (args.out / f"{args.task}.md").write_text(contract + "\n")
-    (args.out / f"{args.task}.raw.md").write_text(text)
-    (args.out / f"{args.task}.jsonl").write_text(child.stdout)
-    (args.out / f"{args.task}.provenance.json").write_text(
+    (args.out / f"{task}.md").write_text(contract + "\n")
+    (args.out / f"{task}.raw.md").write_text(text)
+    (args.out / f"{task}.jsonl").write_text(child.stdout)
+    (args.out / f"{task}.provenance.json").write_text(
         json.dumps(
             {
-                "task_id": args.task,
+                "task_id": task,
                 "model": args.model,
                 "tools": "read",
                 "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
@@ -252,13 +238,74 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
     status = "ok" if not problems else "REJECTED: " + "; ".join(problems)
-    print(f"{args.task:26} {len(contract):6} chars  {elapsed:6.1f}s  {status}")
+    print(f"{task:26} {len(contract):6} chars  {elapsed:6.1f}s  {status}")
     if problems:
         # Removed rather than left on disk: a rejected draft that stays
         # is a draft the next sweep will silently use.
-        (args.out / f"{args.task}.md").unlink(missing_ok=True)
+        (args.out / f"{task}.md").unlink(missing_ok=True)
         return 1
     return 0
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--task", action="append", default=None,
+        help="repeatable; omit with --cohort to author every included task",
+    )
+    parser.add_argument(
+        "--cohort", type=Path, default=None,
+        help="author the whole cohort, sequentially, resuming over drafts "
+        "already on disk",
+    )
+    parser.add_argument("--model", required=True)
+    parser.add_argument("--server", default="http://127.0.0.1:8001")
+    parser.add_argument("--packets", type=Path, default=Path.home() / ".satyrn-authoring")
+    parser.add_argument("--prompt", type=Path, default=Path("workloads/svcs/authoring-prompt.md"))
+    parser.add_argument("--out", required=True, type=Path)
+    parser.add_argument("--timeout", type=float, default=1800.0)
+    parser.add_argument(
+        "--min-chars",
+        type=int,
+        default=400,
+        help="shortest draft accepted as a contract (stubs ran 29-80 chars)",
+    )
+    parser.add_argument(
+        "--force", action="store_true",
+        help="re-author tasks whose draft is already on disk",
+    )
+    args = parser.parse_args(argv)
+
+    tasks = list(args.task or ())
+    if not tasks:
+        if args.cohort is None:
+            raise SystemExit("give --task, or --cohort to author the whole set")
+        import harness.workload as workload
+
+        tasks = list(workload.load_cohort(args.cohort, require_accounting=True).included)
+
+    # Before the first call, not between the third and fourth. An
+    # unattended sweep that discovers a dead server an hour in has spent
+    # an hour producing timeouts and recording them as drafts.
+    check_model_server_alive(args.server)
+
+    rejected = []
+    for task in tasks:
+        existing = args.out / f"{task}.md"
+        if existing.is_file() and existing.read_text().strip() and not args.force:
+            print(f"{task:26} {'':6}        {'':6}   draft present, skipped")
+            continue
+        # A failure is recorded and the sweep continues. One task whose
+        # author ran out of turns should not cost the other seven, and the
+        # rejected draft is deleted, so a later resume retries exactly the
+        # ones that failed.
+        if author_one(task, args) != 0:
+            rejected.append(task)
+
+    print(f"\n{len(tasks) - len(rejected)}/{len(tasks)} drafts accepted")
+    if rejected:
+        print("rejected: " + ", ".join(rejected))
+    return 1 if rejected else 0
 
 
 if __name__ == "__main__":
