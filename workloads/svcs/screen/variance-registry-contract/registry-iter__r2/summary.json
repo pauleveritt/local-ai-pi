@@ -1,0 +1,13 @@
+{
+  "accepted": 0,
+  "arm": "draft-contract:read,bash,edit,write:env",
+  "attempted": 1,
+  "budgets": "probe",
+  "executor_env": "workloads/svcs/env",
+  "model": "omlx/gemma-4-12B-it-MLX-8bit",
+  "outcomes": {
+    "registry-iter": "no-progress"
+  },
+  "server": "http://127.0.0.1:8001",
+  "tools": "read,bash,edit,write"
+}

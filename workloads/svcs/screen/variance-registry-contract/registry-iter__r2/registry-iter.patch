@@ -1,0 +1,13 @@
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index d90c595..c2f320e 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -8,7 +8,7 @@ import inspect
+ import logging
+ import warnings
+ 
+-from collections.abc import Awaitable, Callable
++from collections.abc import Awaitable, Callable, Iterator
+ from contextlib import (
+     AbstractAsyncContextManager,
+     AbstractContextManager,
