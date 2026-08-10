@@ -22,6 +22,7 @@
   ],
   "base_passed": 0,
   "budget_exhausted": "turns",
+  "cell": {},
   "changed_paths": [
     "src/svcs/__init__.py",
     "src/svcs/_core.py"
@@ -170,7 +171,7 @@
     "node_count": 0,
     "reason_class": "error",
     "tests_passed": 0,
-    "wall_seconds": 0.231
+    "wall_seconds": 0.217
   },
   "oracle_delta": 0,
   "oracle_shortfall": [
@@ -250,7 +251,7 @@
     "node_count": 0,
     "reason_class": "error",
     "tests_passed": 0,
-    "wall_seconds": 0.203
+    "wall_seconds": 0.213
   },
   "prompt_sha256": "",
   "reference_overlap": 0.145,

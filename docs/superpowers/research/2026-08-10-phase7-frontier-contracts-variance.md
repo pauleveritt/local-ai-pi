@@ -21,7 +21,7 @@ docstring word for word — not the reference patch's, which differs — and
 three of the five are byte-identical post-images. What Experiment A
 measured is a pipeline: a read-only 27B planner derived the full fix from
 the base tree and brief (firewall held — 7 attempts to use write/execute
-tools, all refused, 0/8 authoring transcripts tainted), and the 12B
+tools, all refused, 0/8 authoring transcripts showing a detected escape), and the 12B
 executor transcribed it correctly 5 times in 6. That is a legitimate and
 possibly product-shaped result. It is not the result the commit message
 claims ("collapses the model onto one consistent implementation" — the

@@ -141,6 +141,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(f"clean    {path.stem:26} own={own}{note}")
 
     print(f"\n{len(tainted)}/{len(transcripts)} tainted")
+    if not tainted:
+        # Stated at the point the number is read, because this is the
+        # line that gets quoted into write-ups.
+        print(
+            "  (no detected escape of the shapes this audit matches -- "
+            "not a hermeticity claim; see harness/validity.py)"
+        )
     if tainted:
         # Non-zero because a tainted attempt is not a weak result, it is
         # not a result: the grade describes a candidate the model did not

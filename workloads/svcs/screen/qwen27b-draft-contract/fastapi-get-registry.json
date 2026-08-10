@@ -22,6 +22,7 @@
   ],
   "base_passed": 9,
   "budget_exhausted": "none",
+  "cell": {},
   "changed_paths": [
     "src/svcs/fastapi.py",
     "src/svcs/starlette.py",
@@ -53,7 +54,7 @@
     "node_count": 24,
     "reason_class": "assertion-failure",
     "tests_passed": 15,
-    "wall_seconds": 1.082
+    "wall_seconds": 1.037
   },
   "oracle_delta": 6,
   "oracle_shortfall": [
@@ -75,7 +76,7 @@
     "node_count": 182,
     "reason_class": "pass",
     "tests_passed": 182,
-    "wall_seconds": 0.963
+    "wall_seconds": 1.003
   },
   "prompt_sha256": "",
   "reference_overlap": 0.157,

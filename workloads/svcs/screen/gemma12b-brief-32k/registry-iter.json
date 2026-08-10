@@ -22,6 +22,7 @@
   ],
   "base_passed": 34,
   "budget_exhausted": "none",
+  "cell": {},
   "changed_paths": [
     "src/svcs/_core.py"
   ],
@@ -41,7 +42,7 @@
     "node_count": 35,
     "reason_class": "assertion-failure",
     "tests_passed": 33,
-    "wall_seconds": 0.891
+    "wall_seconds": 0.935
   },
   "oracle_delta": -1,
   "oracle_shortfall": [
@@ -59,7 +60,7 @@
     "node_count": 99,
     "reason_class": "assertion-failure",
     "tests_passed": 97,
-    "wall_seconds": 1.083
+    "wall_seconds": 1.11
   },
   "prompt_sha256": "",
   "reference_overlap": 0.125,

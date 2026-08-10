@@ -14,6 +14,15 @@ grader is deliberately pure over `(patch, manifest, environment)` so it
 can be replayed offline -- a property worth keeping, and the reason
 validity is a separate judgement made from a separate artifact.
 
+**What this detects, and what it does not.** It matches workspace-shaped
+identifiers and a fixed list of off-limits substrings in tool arguments.
+It does not catch relative traversal (`cd ..`), globs, a generic `find`,
+network access, or a path it has never seen; it does not enforce the
+manifest's `readable` policy; and it is not a sandbox. "0 tainted" means
+"no detected escape of these shapes" and must never be written up as a
+hermetic or confined executor. It is a tripwire on the one escape route
+that has actually been used, not a boundary.
+
 Order matters and is the point: validity is decided from the transcript
 *first*, and acceptance is gated on it. A void attempt is still graded,
 because knowing the stolen patch was byte-identical to the target was

@@ -22,6 +22,7 @@
   ],
   "base_passed": 0,
   "budget_exhausted": "none",
+  "cell": {},
   "changed_paths": [
     "src/svcs/__init__.py",
     "src/svcs/_autowire.py"
@@ -39,7 +40,7 @@
     "node_count": 67,
     "reason_class": "pass",
     "tests_passed": 67,
-    "wall_seconds": 0.893
+    "wall_seconds": 0.929
   },
   "oracle_delta": 67,
   "oracle_shortfall": [],
@@ -51,7 +52,7 @@
     "node_count": 130,
     "reason_class": "pass",
     "tests_passed": 130,
-    "wall_seconds": 1.055
+    "wall_seconds": 1.111
   },
   "prompt_sha256": "",
   "reference_overlap": 1.0,

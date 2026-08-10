@@ -22,6 +22,7 @@
   ],
   "base_passed": 32,
   "budget_exhausted": "none",
+  "cell": {},
   "changed_paths": [
     "test_hints.py",
     "tests/test_registry.py"
@@ -42,7 +43,7 @@
     "node_count": 34,
     "reason_class": "assertion-failure",
     "tests_passed": 32,
-    "wall_seconds": 0.896
+    "wall_seconds": 0.926
   },
   "oracle_delta": 0,
   "oracle_shortfall": [
@@ -59,7 +60,7 @@
     "node_count": 91,
     "reason_class": "pass",
     "tests_passed": 91,
-    "wall_seconds": 1.073
+    "wall_seconds": 1.141
   },
   "prompt_sha256": "",
   "reference_overlap": 0.0,

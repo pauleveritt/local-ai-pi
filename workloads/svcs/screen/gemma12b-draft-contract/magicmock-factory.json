@@ -22,6 +22,7 @@
   ],
   "base_passed": 30,
   "budget_exhausted": "none",
+  "cell": {},
   "changed_paths": [],
   "executor_env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
   "gap_closed": 0.0,
@@ -38,7 +39,7 @@
     "node_count": 31,
     "reason_class": "assertion-failure",
     "tests_passed": 30,
-    "wall_seconds": 1.04
+    "wall_seconds": 0.96
   },
   "oracle_delta": 0,
   "oracle_shortfall": [
@@ -52,7 +53,7 @@
     "node_count": 111,
     "reason_class": "pass",
     "tests_passed": 111,
-    "wall_seconds": 1.336
+    "wall_seconds": 1.247
   },
   "prompt_sha256": "",
   "reference_overlap": 0.0,

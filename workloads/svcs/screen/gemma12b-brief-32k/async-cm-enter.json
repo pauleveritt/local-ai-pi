@@ -22,6 +22,7 @@
   ],
   "base_passed": 8,
   "budget_exhausted": "none",
+  "cell": {},
   "changed_paths": [
     "src/svcs/_core.py",
     "test_isawaitable.py"
@@ -39,7 +40,7 @@
     "node_count": 10,
     "reason_class": "pass",
     "tests_passed": 10,
-    "wall_seconds": 0.867
+    "wall_seconds": 0.893
   },
   "oracle_delta": 2,
   "oracle_shortfall": [],
@@ -53,7 +54,7 @@
     "node_count": 121,
     "reason_class": "pass",
     "tests_passed": 121,
-    "wall_seconds": 1.099
+    "wall_seconds": 1.156
   },
   "prompt_sha256": "",
   "reference_overlap": 0.0,

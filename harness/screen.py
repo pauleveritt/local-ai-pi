@@ -162,6 +162,16 @@ class Attempt:
     the distinction into the transcript and nothing was carrying it into
     the result.
     """
+    cell: dict[str, str] = field(default_factory=dict)
+    """The resolved experimental cell: what this attempt actually ran under.
+
+    Governing rule 3 requires prompt bytes, model, tools, budgets and
+    environment to be condition-recorded. That was honoured in prose and
+    not in code: Experiment B's 32768 output cap existed only in its
+    driver and its directory name, so a record moved out of that
+    directory could not say what it ran under. Resolved at call time
+    rather than declared, because a declared value is the one that drifts.
+    """
     executor_env_lock_sha256: str = "none"
     """Which environment the *executor* had, or "none" for a bare tree.
 
@@ -221,8 +231,53 @@ class Attempt:
             "model_timeout_seconds": self.model_timeout_seconds,
             "wrote_tests": list(self.wrote_tests),
             "budget_exhausted": self.budget_exhausted,
+            "cell": dict(sorted(self.cell.items())),
             "executor_env_lock_sha256": self.executor_env_lock_sha256,
         }
+
+
+def resolve_cell(model: str, tools: str, extension: Path, timeout: float) -> dict[str, str]:
+    """Everything about this attempt that a later reader must not have to infer.
+
+    Resolved by reading the actual configuration -- the model entry Pi
+    will use, the extension bytes, the installed Pi version -- rather
+    than by restating the flags. A restated flag agrees with the run by
+    convention; a hash of the file disagrees loudly when someone edits
+    it mid-sweep, which is exactly what happened when an output cap was
+    swapped for one stage and restored afterwards.
+    """
+    cell: dict[str, str] = {
+        "model": model,
+        "tools": tools,
+        "extension": extension.name,
+        "extension_sha256": sha256_file(extension) if extension.is_file() else "absent",
+        "wall_clock_seconds": str(timeout),
+    }
+    try:
+        version = subprocess.run(
+            ["pi", "--version"], capture_output=True, text=True, timeout=30
+        )
+        cell["pi_version"] = version.stdout.strip() or version.stderr.strip()
+    except Exception:
+        cell["pi_version"] = "unknown"
+
+    models_json = Path(pi_env(inherit_venv=True).get("PI_CODING_AGENT_DIR", "")) / "models.json"
+    cell["models_json_sha256"] = (
+        sha256_file(models_json) if models_json.is_file() else "absent"
+    )
+    # The resolved per-model limits, not the flag: `maxTokens` is the
+    # value that silently made four of gemma's five failures look like
+    # incapacity, and it appeared in no attempt record.
+    if models_json.is_file():
+        data = json.loads(models_json.read_text())
+        wanted = model.split("/", 1)[-1]
+        for provider in data.get("providers", {}).values():
+            for entry in provider.get("models", []):
+                if entry.get("id") == wanted:
+                    cell["max_tokens"] = str(entry.get("maxTokens", "?"))
+                    cell["context_window"] = str(entry.get("contextWindow", "?"))
+                    cell["base_url"] = str(provider.get("baseUrl", "?"))
+    return cell
 
 
 def budget_exhaustion(transcript: str) -> str:
@@ -564,6 +619,7 @@ def grade_candidate(
     validity_evidence: tuple[str, ...] = (),
     reference_patch: str | None = None,
     prompt_sha256: str = "",
+    cell: dict[str, str] | None = None,
 ) -> Attempt:
     """Score one saved candidate. Pure, offline, no model call.
 
@@ -706,6 +762,7 @@ def grade_candidate(
         validity=validity,
         validity_evidence=validity_evidence,
         prompt_sha256=prompt_sha256,
+        cell=dict(cell or {}),
         reference_overlap=(
             overlap(patch, reference_patch, manifest.writable_prefixes())
             if reference_patch is not None
@@ -803,6 +860,7 @@ def screen_task(
         model_timeout_seconds=timeout,
         reference_patch=reference_patch,
         prompt_sha256=prompt_hash,
+        cell=resolve_cell(model, tools, extension, timeout),
     )
     return attempt, patch, child.stdout
 

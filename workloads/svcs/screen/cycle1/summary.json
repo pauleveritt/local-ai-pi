@@ -1,7 +1,7 @@
 {
   "accepted": 2,
   "arm": "brief-only:read,bash,edit,write:env",
-  "attempted": 8,
+  "attempted": 7,
   "budgets": "probe",
   "executor_env": "workloads/svcs/env",
   "model": "dsflash/deepseek-v4-flash",

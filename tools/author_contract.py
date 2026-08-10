@@ -63,6 +63,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--prompt", type=Path, default=Path("workloads/svcs/authoring-prompt.md"))
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--timeout", type=float, default=1800.0)
+    parser.add_argument(
+        "--min-chars",
+        type=int,
+        default=400,
+        help="shortest draft accepted as a contract (stubs ran 29-80 chars)",
+    )
     args = parser.parse_args(argv)
 
     packet = args.packets / args.task
@@ -98,6 +104,23 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if body.strip():
                     text = body
 
+    # The stop reason, and whether the author actually finished. Three of
+    # the first eight drafts were 29-80 byte preambles -- "Now I'll write
+    # the contract:" and nothing after it -- from runs that ended before
+    # producing anything. All three were recorded as authored, appended
+    # to briefs as if they were contracts, and confounded the arm they
+    # were measured in.
+    stop_reason = "unknown"
+    for line in child.stdout.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == "message_end":
+            message = event.get("message", {})
+            if message.get("role") == "assistant":
+                stop_reason = message.get("stopReason") or stop_reason
+
     contract = extract_contract(text)
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / f"{args.task}.md").write_text(contract + "\n")
@@ -115,6 +138,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "elapsed_seconds": round(elapsed, 1),
                 "timed_out": child.timed_out,
                 "draft_chars": len(contract),
+                "stop_reason": stop_reason,
                 "raw_chars": len(text),
                 "argv": list(argv_pi[:-1]),
             },
@@ -123,9 +147,25 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         + "\n"
     )
-    status = "TIMED-OUT" if child.timed_out else "ok"
+    # A draft has to be long enough to be a contract and has to come from
+    # a run that ended deliberately. Any nonempty string used to count as
+    # success, which is how the stubs got through.
+    problems = []
+    if len(contract.strip()) < args.min_chars:
+        problems.append(f"only {len(contract.strip())} chars (min {args.min_chars})")
+    if child.timed_out:
+        problems.append("timed out")
+    if stop_reason not in ("stop", "toolUse"):
+        problems.append(f"stopReason={stop_reason}")
+
+    status = "ok" if not problems else "REJECTED: " + "; ".join(problems)
     print(f"{args.task:26} {len(contract):6} chars  {elapsed:6.1f}s  {status}")
-    return 0 if contract.strip() and not child.timed_out else 1
+    if problems:
+        # Removed rather than left on disk: a rejected draft that stays
+        # is a draft the next sweep will silently use.
+        (args.out / f"{args.task}.md").unlink(missing_ok=True)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":

@@ -22,6 +22,7 @@
   ],
   "base_passed": 17,
   "budget_exhausted": "none",
+  "cell": {},
   "changed_paths": [
     "src/svcs/flask.py",
     "tests/integrations/test_flask.py"
@@ -39,7 +40,7 @@
     "node_count": 19,
     "reason_class": "pass",
     "tests_passed": 19,
-    "wall_seconds": 0.866
+    "wall_seconds": 0.903
   },
   "oracle_delta": 2,
   "oracle_shortfall": [],
@@ -51,7 +52,7 @@
     "node_count": 109,
     "reason_class": "pass",
     "tests_passed": 109,
-    "wall_seconds": 1.11
+    "wall_seconds": 1.167
   },
   "prompt_sha256": "",
   "reference_overlap": 1.0,

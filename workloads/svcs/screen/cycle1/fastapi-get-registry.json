@@ -22,6 +22,7 @@
   ],
   "base_passed": 9,
   "budget_exhausted": "turns",
+  "cell": {},
   "changed_paths": [
     "docs/integrations/fastapi.md",
     "docs/integrations/starlette.md",
@@ -46,7 +47,7 @@
     "node_count": 24,
     "reason_class": "assertion-failure",
     "tests_passed": 22,
-    "wall_seconds": 0.97
+    "wall_seconds": 0.997
   },
   "oracle_delta": 13,
   "oracle_shortfall": [
@@ -64,7 +65,7 @@
     "node_count": 182,
     "reason_class": "pass",
     "tests_passed": 182,
-    "wall_seconds": 0.913
+    "wall_seconds": 0.949
   },
   "prompt_sha256": "",
   "reference_overlap": 1.0,

@@ -22,6 +22,7 @@
   ],
   "base_passed": 30,
   "budget_exhausted": "none",
+  "cell": {},
   "changed_paths": [
     "src/svcs/_core.py",
     "tests/test_mock_factory.py"
@@ -39,7 +40,7 @@
     "node_count": 31,
     "reason_class": "pass",
     "tests_passed": 31,
-    "wall_seconds": 0.913
+    "wall_seconds": 0.92
   },
   "oracle_delta": 1,
   "oracle_shortfall": [],
@@ -51,7 +52,7 @@
     "node_count": 111,
     "reason_class": "pass",
     "tests_passed": 111,
-    "wall_seconds": 1.174
+    "wall_seconds": 1.17
   },
   "prompt_sha256": "",
   "reference_overlap": 0.0,

@@ -22,6 +22,7 @@
   ],
   "base_passed": 30,
   "budget_exhausted": "none",
+  "cell": {},
   "changed_paths": [
     "CHANGELOG.md",
     "src/svcs/_core.py",
@@ -40,7 +41,7 @@
     "node_count": 31,
     "reason_class": "pass",
     "tests_passed": 31,
-    "wall_seconds": 0.874
+    "wall_seconds": 0.915
   },
   "oracle_delta": 1,
   "oracle_shortfall": [],
@@ -54,7 +55,7 @@
     "node_count": 111,
     "reason_class": "pass",
     "tests_passed": 111,
-    "wall_seconds": 1.105
+    "wall_seconds": 1.188
   },
   "prompt_sha256": "",
   "reference_overlap": 0.0,

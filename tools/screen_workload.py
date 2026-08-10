@@ -182,7 +182,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "executor_env": "none" if args.blind else str(cohort.env_dir),
                 "budgets": "probe" if args.probe else "envelope",
                 "accepted": accepted,
-                "attempted": len(rows),
+                # Void attempts leave the denominator. `attempted` counted
+                # them, so cycle1's stolen `autowire` made an honest 2/7
+                # read as 2/8 in the authoritative-looking summary while
+                # the reporting CLI excluded it correctly -- two numbers
+                # for one cell, and the wrong one written to disk.
+                "attempted": sum(1 for r in rows if r.validity == "valid"),
+                "void": sum(1 for r in rows if r.validity != "valid"),
                 "outcomes": {r.task_id: r.outcome for r in rows},
             },
             indent=2,

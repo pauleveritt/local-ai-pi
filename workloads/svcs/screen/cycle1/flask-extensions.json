@@ -22,6 +22,7 @@
   ],
   "base_passed": 17,
   "budget_exhausted": "none",
+  "cell": {},
   "changed_paths": [
     "docs/core-concepts.md",
     "docs/integrations/flask.md",
@@ -42,7 +43,7 @@
     "node_count": 19,
     "reason_class": "pass",
     "tests_passed": 19,
-    "wall_seconds": 0.894
+    "wall_seconds": 0.907
   },
   "oracle_delta": 2,
   "oracle_shortfall": [],
@@ -58,7 +59,7 @@
     "node_count": 109,
     "reason_class": "pass",
     "tests_passed": 109,
-    "wall_seconds": 1.103
+    "wall_seconds": 1.162
   },
   "prompt_sha256": "",
   "reference_overlap": 1.0,
