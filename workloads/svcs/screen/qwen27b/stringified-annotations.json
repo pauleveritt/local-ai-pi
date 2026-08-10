@@ -39,7 +39,7 @@
     "node_count": 34,
     "reason_class": "pass",
     "tests_passed": 34,
-    "wall_seconds": 0.921
+    "wall_seconds": 0.945
   },
   "oracle_delta": 2,
   "out_of_scope": [],

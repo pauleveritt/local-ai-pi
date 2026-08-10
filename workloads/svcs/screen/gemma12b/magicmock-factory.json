@@ -38,7 +38,7 @@
     "node_count": 31,
     "reason_class": "pass",
     "tests_passed": 31,
-    "wall_seconds": 0.905
+    "wall_seconds": 0.917
   },
   "oracle_delta": 1,
   "out_of_scope": [],
@@ -49,7 +49,7 @@
     "node_count": 111,
     "reason_class": "pass",
     "tests_passed": 111,
-    "wall_seconds": 1.365
+    "wall_seconds": 1.144
   },
   "reference_overlap": 0.0,
   "rule_version": 7,

@@ -1,5 +1,5 @@
 {
-  "accepted": 3,
+  "accepted": 2,
   "arm": "brief-only:read,bash,edit,write:env",
   "attempted": 8,
   "budgets": "probe",
@@ -7,7 +7,7 @@
   "model": "dsflash/deepseek-v4-flash",
   "outcomes": {
     "async-cm-enter": "out-of-scope",
-    "autowire": "accepted",
+    "autowire": "void:left-workspace",
     "fastapi-get-registry": "partial-progress",
     "flask-extensions": "out-of-scope",
     "local-pings": "accepted",
@@ -15,6 +15,8 @@
     "registry-iter": "accepted",
     "stringified-annotations": "no-progress"
   },
+  "rule_version": 7,
   "server": "http://127.0.0.1:8002",
-  "tools": "read,bash,edit,write"
+  "tools": "read,bash,edit,write",
+  "void": 1
 }

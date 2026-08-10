@@ -102,6 +102,27 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
 
     accepted = sum(1 for r in rows if r.accepted)
+
+    # The cached summary is derived, and a derived file that is not
+    # rewritten outlives the truth it summarised. `cycle1/summary.json`
+    # still called the stolen `autowire` attempt "accepted" long after
+    # the record beside it said `void:left-workspace` -- a stale artifact
+    # that reads as authoritative is worse than no artifact, because
+    # nothing about it looks wrong.
+    #
+    # Arm metadata (model, server, tools, budgets) is preserved: it
+    # describes the run and cannot be recomputed from grades.
+    summary_path = args.candidates / "summary.json"
+    if summary_path.is_file() and rows:
+        summary = json.loads(summary_path.read_text())
+        summary["outcomes"] = {r.task_id: r.outcome for r in rows}
+        summary["accepted"] = accepted
+        summary["attempted"] = len(rows)
+        summary["void"] = sum(1 for r in rows if r.validity != "valid")
+        summary["rule_version"] = screen.GRADING_RULE_VERSION
+        summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
+        print(f"rewrote {summary_path}")
+
     print(
         f"\n{accepted}/{len(rows)} accepted; {changed} outcome(s) changed under the new rule"
     )
