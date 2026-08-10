@@ -1,0 +1,186 @@
+"""Candidate delivery, tested without a model or a network.
+
+The model call is injected, so every branch of the lifecycle is
+exercised deterministically. That is what makes the acceptance criteria
+checkable on every change rather than only after a live run: the
+expensive part of this flow is the one part that carries no logic.
+
+The properties under test are the ones the roadmap names: the live
+repository is never mutated, failure leaves no worktree or branch
+behind, success leaves a readable ref, and stale or dirty live state
+causes refusal rather than a copy.
+"""
+
+import subprocess
+import sys
+from pathlib import Path
+
+import pytest
+
+from harness.candidate import (
+    CANDIDATE_NAMESPACE,
+    DeliveryRefused,
+    deliver,
+    preflight,
+)
+from harness.processes import ProcessResult
+from harness.workspace import GIT_ENV
+
+
+def _git(repo: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", *args], cwd=repo, capture_output=True, text=True, env=GIT_ENV
+    ).stdout.strip()
+
+
+@pytest.fixture
+def repo(tmp_path: Path) -> Path:
+    root = tmp_path / "live"
+    root.mkdir()
+    _git(root, "init", "-q")
+    (root / "src").mkdir()
+    (root / "src" / "app.py").write_text("VALUE = 1\n")
+    (root / "check.py").write_text(
+        "import sys\nsys.path.insert(0, 'src')\n"
+        "from app import VALUE\nsys.exit(0 if VALUE == 2 else 1)\n"
+    )
+    _git(root, "add", "-A")
+    _git(root, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "base")
+    return root
+
+
+def _writer(text: str, path: str = "src/app.py"):
+    def run_model(worktree: Path) -> ProcessResult:
+        target = worktree / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text)
+        return ProcessResult(0, "", "", timed_out=False)
+
+    return run_model
+
+
+def _noop(worktree: Path) -> ProcessResult:
+    return ProcessResult(0, "", "", timed_out=False)
+
+
+# sys.executable rather than "python": the interpreter running the
+# tests is the one guaranteed to exist.
+VALIDATION = (sys.executable, "check.py")
+
+
+def test_success_leaves_a_durable_ref_and_a_clean_live_tree(repo: Path) -> None:
+    before = _git(repo, "rev-parse", "HEAD")
+    receipt = deliver(
+        repo, "raise-value", "make VALUE 2", _writer("VALUE = 2\n"), VALIDATION,
+        writable=("src/**",),
+    )
+    assert receipt.outcome == "candidate-created"
+    assert receipt.candidate_ref == f"{CANDIDATE_NAMESPACE}/raise-value"
+    assert receipt.validation_exit == 0
+
+    # The live tree is untouched: same HEAD, nothing modified, no worktree.
+    assert _git(repo, "rev-parse", "HEAD") == before
+    assert _git(repo, "status", "--porcelain") == ""
+    assert "satyrn-worktrees" not in _git(repo, "worktree", "list")
+
+    # The candidate is readable without checking anything out.
+    assert "VALUE = 2" in _git(repo, "show", f"{receipt.candidate_commit}:src/app.py")
+    assert receipt.candidate_commit != before
+
+
+def test_failed_validation_discards_and_leaves_nothing(repo: Path) -> None:
+    before = _git(repo, "rev-parse", "HEAD")
+    receipt = deliver(
+        repo, "wrong", "make VALUE 2", _writer("VALUE = 99\n"), VALIDATION,
+        writable=("src/**",),
+    )
+    assert receipt.outcome == "discarded"
+    assert receipt.validation_exit != 0
+    assert receipt.refusal == "declared validation did not pass"
+    assert receipt.candidate_ref == ""
+
+    assert _git(repo, "rev-parse", "HEAD") == before
+    assert _git(repo, "status", "--porcelain") == ""
+    assert _git(repo, "branch", "--list", "satyrn/candidate/wrong") == ""
+    assert "satyrn-worktrees" not in _git(repo, "worktree", "list")
+
+
+def test_out_of_scope_is_discarded_before_validation(repo: Path) -> None:
+    """Validation must not report on work nobody asked for.
+
+    A candidate that wrote outside its bounds is discarded first, so the
+    receipt never carries a validation result for a diff whose shape was
+    already refused.
+    """
+    receipt = deliver(
+        repo, "stray", "edit", _writer("x = 1\n", path="elsewhere.py"), VALIDATION,
+        writable=("src/**",),
+    )
+    assert receipt.outcome == "discarded"
+    assert receipt.out_of_scope == ("elsewhere.py",)
+    assert receipt.validation_exit is None, "validation must not have run"
+    assert _git(repo, "status", "--porcelain") == ""
+
+
+def test_a_candidate_that_changed_nothing_is_discarded(repo: Path) -> None:
+    receipt = deliver(repo, "empty", "do nothing", _noop, VALIDATION, writable=("src/**",))
+    assert receipt.outcome == "discarded"
+    assert receipt.refusal == "candidate changed nothing"
+    assert receipt.validation_exit is None
+
+
+def test_a_dirty_repository_is_refused_not_stashed(repo: Path) -> None:
+    """Rule 6: partial snapshots are forbidden and complete ones are deferred.
+
+    Refusing is the only safe answer -- the alternative is a candidate
+    whose base is not any commit that exists.
+    """
+    (repo / "src" / "app.py").write_text("VALUE = 7\n")
+    with pytest.raises(DeliveryRefused, match="dirty repository"):
+        deliver(repo, "x", "p", _writer("VALUE = 2\n"), VALIDATION, writable=("src/**",))
+    # The refusal did not touch the user's uncommitted work.
+    assert (repo / "src" / "app.py").read_text() == "VALUE = 7\n"
+
+
+def test_preflight_refuses_a_non_repository(tmp_path: Path) -> None:
+    with pytest.raises(DeliveryRefused, match="not a git repository"):
+        preflight(tmp_path)
+
+
+def test_a_crashing_model_call_still_cleans_up(repo: Path) -> None:
+    """Infrastructure failure must not leave a worktree or branch behind."""
+    def explode(worktree: Path) -> ProcessResult:
+        raise RuntimeError("model process died")
+
+    with pytest.raises(RuntimeError, match="model process died"):
+        deliver(repo, "boom", "p", explode, VALIDATION, writable=("src/**",))
+
+    assert _git(repo, "status", "--porcelain") == ""
+    assert _git(repo, "branch", "--list", "satyrn/candidate/boom") == ""
+    assert "satyrn-worktrees" not in _git(repo, "worktree", "list")
+
+
+def test_delivery_is_repeatable_after_a_failure(repo: Path) -> None:
+    """A stale branch or worktree from a prior run must not block the next.
+
+    The first delivery leaves nothing, but this asserts the recovery path
+    directly rather than trusting the previous test's cleanup.
+    """
+    deliver(repo, "same", "p", _writer("VALUE = 99\n"), VALIDATION, writable=("src/**",))
+    second = deliver(repo, "same", "p", _writer("VALUE = 2\n"), VALIDATION, writable=("src/**",))
+    assert second.outcome == "candidate-created"
+
+
+def test_the_receipt_records_the_conditions(repo: Path) -> None:
+    receipt = deliver(
+        repo, "recorded", "make VALUE 2", _writer("VALUE = 2\n"), VALIDATION,
+        writable=("src/**",), cell={"model": "test/model", "tools": "read,write"},
+    )
+    payload = receipt.payload()
+    assert payload["cell"] == {"model": "test/model", "tools": "read,write"}
+    assert payload["prompt_sha256"] and len(str(payload["prompt_sha256"])) == 64
+    assert payload["validation_command"] == list(VALIDATION)
+    assert payload["base_sha"] == _git(repo, "rev-parse", "HEAD")
+    assert "candidate" in str(payload["outcome"])
+    # No outcome in this cycle is named `promoted` -- rule 5.
+    assert payload["outcome"] != "promoted"
