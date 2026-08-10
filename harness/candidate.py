@@ -59,6 +59,15 @@ class Receipt:
     validation_command: tuple[str, ...] = ()
     validation_exit: int | None = None
     validation_timed_out: bool = False
+    child_exit: int | None = None
+    """The model child's exit status.
+
+    Recorded on every path, because without it a contributor whose model
+    server is unreachable reads `candidate changed nothing` -- a verdict
+    on their model -- for what is a verdict on their setup. That was the
+    first thing this tool said to anyone who had not already replicated
+    the author's laptop.
+    """
     child_timed_out: bool = False
     """Whether the model child was killed at its wall clock.
 
@@ -89,6 +98,7 @@ class Receipt:
             "validation_command": list(self.validation_command),
             "validation_exit": self.validation_exit,
             "validation_timed_out": self.validation_timed_out,
+            "child_exit": self.child_exit,
             "child_timed_out": self.child_timed_out,
             "validation_output_sha256": self.validation_output_sha256,
             "validation_tail": self.validation_tail,
@@ -199,6 +209,28 @@ def deliver(
         ).splitlines()
         changed = tuple(sorted({*tracked, *untracked}))
         outside = _out_of_scope(changed, writable)
+        if not changed and (child.returncode != 0 or child.timed_out):
+            # A child that failed and left nothing is a broken setup, not a
+            # model that declined. Checked before `changed nothing` because
+            # the two are indistinguishable from the tree alone, and the
+            # wrong one of the pair blames the reader's model for their
+            # unreachable server. A child that failed but *did* write is
+            # left to validation: truncated work can still be correct, and
+            # discarding it unread throws away a judgeable candidate.
+            return receipt(
+                "infrastructure-failure",
+                child_seconds=child_seconds,
+                child_exit=child.returncode,
+                child_timed_out=child.timed_out,
+                cleanup=cleanup,
+                refusal=(
+                    f"the model call failed (exit {child.returncode}"
+                    f"{', timed out' if child.timed_out else ''}) and wrote "
+                    "nothing. This is a problem with the setup, not with the "
+                    "candidate: check that the model server is running and "
+                    "that the model name resolves."
+                ),
+            )
         if outside:
             # Discarded before validation on purpose: running a declared
             # validation over a candidate that wrote outside its bounds
@@ -208,6 +240,7 @@ def deliver(
                 changed_paths=changed,
                 out_of_scope=outside,
                 child_seconds=child_seconds,
+                child_exit=child.returncode,
                 child_timed_out=child.timed_out,
                 cleanup=cleanup,
                 refusal="candidate wrote outside the writable policy",
@@ -216,6 +249,7 @@ def deliver(
             return receipt(
                 "discarded",
                 child_seconds=child_seconds,
+                child_exit=child.returncode,
                 child_timed_out=child.timed_out,
                 cleanup=cleanup,
                 refusal="candidate changed nothing",
@@ -237,7 +271,8 @@ def deliver(
         output = (checked.stdout or "") + (checked.stderr or "")
         common = dict(
             changed_paths=changed,
-            child_timed_out=child.timed_out,
+            child_exit=child.returncode,
+                child_timed_out=child.timed_out,
             child_seconds=child_seconds,
             validation_seconds=validation_seconds,
             validation_exit=checked.returncode,

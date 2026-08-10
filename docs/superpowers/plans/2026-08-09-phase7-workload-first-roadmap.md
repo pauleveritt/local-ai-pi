@@ -641,10 +641,20 @@ the guard replay is reproducible, `workloads/svcs/cells/` freezes four
 arms and verifies them against live configuration before any call, the
 narrow live guard test ran and admitted nothing, and Cycle 4 shipped.
 
-Step 6 -- deciding what planner output *is* -- remains open and is now
-the gating decision for the contract baseline. Nothing further should be
-authored until it is settled, since three of the eight current drafts are
-empty stubs and the other five are solution-bearing by accident.
+Step 6 -- deciding what planner output *is* -- is **settled**: a contract
+locates and bounds the work and does not contain the implementation. See
+[`../research/2026-08-10-phase7-what-planner-output-is.md`](../research/2026-08-10-phase7-what-planner-output-is.md).
+All eight current drafts are void, three as empty stubs and five as
+solution-bearing, and re-authoring is the next authoring action.
+
+A review of that work then found the gate it rests on was unsound in
+both directions: `extract_contract` could not tell a document *wrapped
+in* a fence from one *containing* fences, and on a plainly written
+contract with two or more examples it deleted the title, the locating
+prose and the Bounds section, leaving inverted fence parity that made
+the gate read code as prose. Fixed before any re-authoring, and the gate
+now reads the raw text as well as the extracted body. Step 7 is
+unchanged and still last.
 
 **The simplicity budget is the standing risk.** Cycle 4 added roughly 400
 lines and closed a milestone; the guard work added fixtures, cells and a

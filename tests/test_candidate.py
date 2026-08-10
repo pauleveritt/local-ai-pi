@@ -129,6 +129,74 @@ def test_a_candidate_that_changed_nothing_is_discarded(repo: Path) -> None:
     assert receipt.validation_exit is None
 
 
+def test_a_failed_model_call_that_wrote_nothing_is_not_blamed_on_the_model(
+    repo: Path,
+) -> None:
+    """The verdict a contributor sees first must be about the right thing.
+
+    A dead server, an unresolvable model name, a missing Pi -- all of them
+    end with an unchanged tree. Reported as `candidate changed nothing`
+    that reads as a model which declined to act, and the reader goes
+    looking at their prompt instead of their setup.
+    """
+    def failed(worktree: Path) -> ProcessResult:
+        return ProcessResult(1, "", "model 'nope' not found", timed_out=False)
+
+    receipt = deliver(repo, "dead", "p", failed, VALIDATION, writable=("src/**",))
+    assert receipt.outcome == "infrastructure-failure"
+    assert receipt.child_exit == 1
+    assert "setup" in receipt.refusal
+    assert receipt.validation_exit is None, "nothing was judged"
+    assert _git(repo, "status", "--porcelain") == ""
+    assert "satyrn-worktrees" not in _git(repo, "worktree", "list")
+
+
+def test_a_child_that_exited_zero_and_declined_is_still_the_model(repo: Path) -> None:
+    """The other side of the same split, so the fix cannot swallow it.
+
+    Exit 0 and an unchanged tree is a model that chose not to act. That is
+    a real result and must keep its own name.
+    """
+    receipt = deliver(repo, "declined", "p", _noop, VALIDATION, writable=("src/**",))
+    assert receipt.outcome == "discarded"
+    assert receipt.refusal == "candidate changed nothing"
+    assert receipt.child_exit == 0
+
+
+def test_a_failed_child_that_wrote_something_is_still_judged(repo: Path) -> None:
+    """Failure plus work is not the same as failure plus nothing.
+
+    A child killed at its wall clock, or one that errored after editing,
+    may still have written a correct change. Discarding it unread throws
+    away a candidate the declared validation could have judged.
+    """
+    def failed_but_wrote(worktree: Path) -> ProcessResult:
+        (worktree / "src" / "app.py").write_text("VALUE = 2\n")
+        return ProcessResult(1, "", "cut off", timed_out=True)
+
+    receipt = deliver(repo, "partial", "p", failed_but_wrote, VALIDATION, writable=("src/**",))
+    assert receipt.outcome == "candidate-created"
+    assert receipt.child_exit == 1
+    assert receipt.child_timed_out is True
+    assert receipt.validation_exit == 0
+
+
+def test_the_receipt_carries_the_child_exit_on_every_path(repo: Path) -> None:
+    """A field recorded on only some branches is one a reader cannot trust."""
+    outcomes = {
+        "ok": deliver(repo, "a", "p", _writer("VALUE = 2\n"), VALIDATION, writable=("src/**",)),
+        "bad-validation": deliver(
+            repo, "b", "p", _writer("VALUE = 9\n"), VALIDATION, writable=("src/**",)
+        ),
+        "out-of-scope": deliver(
+            repo, "c", "p", _writer("x = 1\n", path="stray.py"), VALIDATION,
+            writable=("src/**",),
+        ),
+    }
+    for name, receipt in outcomes.items():
+        assert receipt.payload()["child_exit"] == 0, name
+
+
 def test_a_dirty_repository_is_refused_not_stashed(repo: Path) -> None:
     """Rule 6: partial snapshots are forbidden and complete ones are deferred.
 

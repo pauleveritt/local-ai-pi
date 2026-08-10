@@ -32,10 +32,6 @@ not knowable at the point the decision is made.
 
 ## What it is worth, measured
 
-Replayed over five banked batches: **zero false positives across 55 healthy
-runs**, and on the worst recorded run it would have prevented **239 of 261
-tool calls**.
-
 Live, in a 16-run batch: it fired in two runs, refusing **12 calls**, and
 **both of those runs still passed their acceptance tests**. One of them had
 repeated a single call 14 times and finished correctly after being steered
@@ -43,6 +39,18 @@ out of it.
 
 That is the whole case for it. It is insurance that mostly does nothing, and
 the runs where it does something are runs you would otherwise have lost.
+
+> **Correction, 2026-08-10.** This section previously led with "zero false
+> positives across 55 healthy runs", from a replay over five banked batches.
+> That replay keyed on `tool_execution_start` events, which include calls
+> that never reach `beforeToolCall` — Pi validates tool arguments first and
+> raises above the hook. The hook therefore sees a *compressed* subsequence
+> of what was replayed, in which identical calls sit closer together, so a
+> window that stayed under threshold in replay can cross it live. The replay
+> errs optimistic and **does not bound the live false-positive rate**; the
+> figure is withdrawn. The 16-run live result above was measured through the
+> hook itself and stands unchanged. The "239 of 261" figure is withdrawn for
+> the same reason.
 
 ## Installing it
 

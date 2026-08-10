@@ -911,6 +911,73 @@ def test_the_authoring_gate_rejects_a_handed_over_solution() -> None:
     assert len(solution_statements(handing_over)) > MAX_SOLUTION_STATEMENTS
 
 
+def test_extraction_leaves_a_plainly_written_contract_alone() -> None:
+    """The destructive case: a contract that was never wrapped.
+
+    A locating contract carrying two fenced examples has more text
+    *between* its first and last fence than outside them, which is what
+    the old size heuristic keyed on. It deleted the title, the locating
+    prose, and the Bounds section, and it left the survivor with inverted
+    fence parity so the gate read code as prose. Both halves are asserted
+    here, because either alone would have let this ship.
+    """
+    from tools.author_contract import (
+        MAX_SOLUTION_STATEMENTS,
+        extract_contract,
+        solution_statements,
+    )
+
+    plain = (
+        "# Contract: iterate the registry\n\n"
+        "## Location\n\n`src/svcs/_core.py`, on `Registry`, beside `__contains__`.\n\n"
+        "## The API\n\nCallers should be able to write:\n\n"
+        "```python\nlist(registry)\n```\n\n"
+        "Registration order is preserved and the registry is not copied. The\n"
+        "executor must not reach into `_services` from outside the class.\n\n"
+        "## Done when\n\nThis selects the new node:\n\n"
+        "```text\ntests/test_registry.py::test_iter\n```\n\n"
+        "## Bounds\n\nDo not touch `container.py`. Do not add a test file.\n"
+    )
+    body = extract_contract(plain)
+    assert body == plain.strip(), "a plainly written contract must survive intact"
+    assert "## Bounds" in body
+    assert body.startswith("# Contract")
+    assert len(solution_statements(body)) <= MAX_SOLUTION_STATEMENTS
+
+
+def test_extraction_still_unwraps_the_apology_it_was_built_for() -> None:
+    """The real case that motivated extraction, still handled."""
+    from tools.author_contract import extract_contract
+
+    wrapped = (
+        "I don't have a write tool available, so I'll present the complete\n"
+        "contract content here:\n\n"
+        "```markdown\n# Contract\n\nAdd `__iter__` to `Registry`.\n\n"
+        "```python\ndef __iter__(self) -> Iterator[RegisteredService]:\n```\n\n"
+        "## Bounds\n\nOne file only.\n```\n"
+    )
+    body = extract_contract(wrapped)
+    assert body.startswith("# Contract")
+    assert "write tool available" not in body
+    assert "## Bounds" in body
+
+
+def test_the_gate_reads_the_raw_text_too() -> None:
+    """Extraction must not be able to hide the answer from the gate.
+
+    Independent of whether extraction is currently correct: the gate takes
+    whichever form finds more statements, so a future extraction bug costs
+    a mangled draft rather than a contaminated arm.
+    """
+    from tools.author_contract import solution_statements
+
+    raw = "prelude\n\n```python\nreturn iter(self._services.values())\n```\n"
+    mangled = "return iter(self._services.values())\n```\n\nprelude\n"
+    assert len(solution_statements(mangled)) == 0, "the mangled form hides it"
+    assert len(solution_statements(raw)) == 1
+    assert len(max(solution_statements(mangled), solution_statements(raw), key=len)) == 1
+
+
 def test_no_existing_draft_survives_the_decision() -> None:
     """The decision voids the current drafts, for two different reasons.
 

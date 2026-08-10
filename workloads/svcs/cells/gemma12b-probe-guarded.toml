@@ -6,10 +6,18 @@
 name = "gemma12b-probe-guarded"
 description = """
 Gemma 4 12B under probe budgets with `.pi/extensions/loop-breaker.ts` active.
-Replay over recorded call streams shows the guard firing on both of this
-phase's retry loops (44 blocks from call 7; 46 from call 14) and on neither
-of two accepted runs from the same cells. Replay cannot show whether the
-model then does something else. That is what this cell exists to measure.
+Corrected replay -- over the calls that actually reach `beforeToolCall`, not
+the full execution stream -- shows the guard firing on ONE of this phase's
+two retry loops: magicmock-factory, 46 blocks from call 14, all 60 calls
+visible. It fires on neither of two accepted runs from the same cells.
+
+The registry-iter loop is NOT in scope and the earlier "44 blocks from call
+7" for it is withdrawn: 52 of its 57 calls are argument-validation failures,
+which Pi raises above every `tool_call` hook, so the guard cannot see that
+loop at all. See commit 58154cf.
+
+Replay cannot show whether the model then does something else. That is what
+this cell exists to measure.
 """
 
 [pinned]

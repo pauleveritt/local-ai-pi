@@ -76,6 +76,17 @@ def solution_statements(text: str) -> list[str]:
     return hits
 
 
+MAX_ASIDE_CHARS = 400
+"""Longest text outside an outer fence that can still be an apology.
+
+Deliberately the same number as `--min-chars`: a contract shorter than
+that is rejected as a stub, so text that short sitting outside a fence
+cannot be the contract -- it is the author explaining itself, above the
+document or below it, and both have been observed."""
+
+_WRAPPER_INFO = ("markdown", "md", "")
+
+
 def extract_contract(text: str) -> str:
     """The contract body, without the model's conversation around it.
 
@@ -86,20 +97,39 @@ def extract_contract(text: str) -> str:
     part of the executor's instructions and the arm partly measures the
     author's apology.
 
-    The largest fenced block wins when one exists; otherwise the text is
-    used as-is, because a model that simply wrote the contract plainly
-    should not be punished for it.
+    A wrapper is unwrapped; anything else is left alone. Telling the two
+    apart is the whole job, and the two errors are not symmetric. Failing
+    to unwrap leaves an apology in the draft, where the gate and the first
+    human reader both see it. Wrongly unwrapping *deletes* -- an earlier
+    version took the span from the first fence to the last whenever that
+    span exceeded half the text, which is true of most **plainly written**
+    contracts carrying two or more fenced examples. On those it removed
+    the title, the locating prose above the first example, and everything
+    below the last one, which in a locating contract is the Bounds
+    section. It also left the survivor with inverted fence parity, so
+    `solution_statements` scanned code as prose and prose as code, and the
+    gate reported zero on a draft whose fences held the answer.
+
+    So the rule is biased toward leaving text alone. Unwrap only when the
+    opening fence *declares* the document -- ```markdown, ```md, or a bare
+    fence -- and the text outside it on either side is too short to be a
+    contract. An examples fence (```python, ```text, ```bash) is never a
+    wrapper, which is what the destructive case always looked like.
     """
     lines = text.splitlines()
     fences = [i for i, line in enumerate(lines) if line.lstrip().startswith("```")]
     if len(fences) < 2:
         return text.strip()
-    # Outermost span, not the first matched pair: a contract legitimately
-    # contains ```python examples, and a toggle parser closes on the first
-    # of them -- which is exactly how the first attempt at this returned
-    # the preamble untouched.
-    body = "\n".join(lines[fences[0] + 1 : fences[-1]])
-    return body.strip() if len(body) > 0.5 * len(text) else text.strip()
+    if lines[fences[0]].lstrip()[3:].strip().lower() not in _WRAPPER_INFO:
+        return text.strip()
+    aside = "\n".join(lines[: fences[0]] + lines[fences[-1] + 1 :]).strip()
+    if len(aside) > MAX_ASIDE_CHARS:
+        return text.strip()
+    # Outermost span, not the first matched pair: a wrapped contract
+    # legitimately contains ```python examples, and a toggle parser closes
+    # on the first of them -- which is how the first attempt at this
+    # returned the preamble untouched.
+    return "\n".join(lines[fences[0] + 1 : fences[-1]]).strip()
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -187,7 +217,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "draft_chars": len(contract),
                 "stop_reason": stop_reason,
                 "solution_statements": len(solution_statements(contract)),
+                "solution_statements_raw": len(solution_statements(text)),
                 "raw_chars": len(text),
+                "unwrapped": contract != text.strip(),
                 "argv": list(argv_pi[:-1]),
             },
             indent=2,
@@ -205,7 +237,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         problems.append("timed out")
     if stop_reason not in ("stop", "toolUse"):
         problems.append(f"stopReason={stop_reason}")
-    handed_over = solution_statements(contract)
+    # Gated on the raw text as well as the extracted body, whichever finds
+    # more. Extraction is a heuristic over model prose, and a version of it
+    # that mangled fence parity made the gate report zero on a draft whose
+    # fences held the answer. The gate must not inherit extraction's
+    # mistakes: a statement anywhere in either form rejects the draft.
+    handed_over = max(
+        solution_statements(contract), solution_statements(text), key=len
+    )
     if len(handed_over) > MAX_SOLUTION_STATEMENTS:
         problems.append(
             f"{len(handed_over)} solution statements in code fences "

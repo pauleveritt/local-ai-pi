@@ -241,9 +241,14 @@ GUARD_EXTENSION = Path(__file__).resolve().parents[1] / ".pi" / "extensions" / "
 
 Adding it changes the extension set, which makes a guarded run a
 different cell from an unguarded one -- not the same arm with a helper.
-Replay shows it fires on both of this phase's recorded retry loops and
-on neither of two accepted runs from the same cells; whether the model
-then does something *else* is what only a live run can answer.
+
+Corrected replay -- over the calls that reach `beforeToolCall`, not the
+full execution stream -- shows it firing on ONE of this phase's two
+recorded retry loops (magicmock-factory, 46 blocks from call 14) and on
+neither of two accepted runs from the same cells. The registry-iter loop
+is invisible to it: 52 of that run's 57 calls fail argument validation,
+which Pi raises above every `tool_call` hook. Whether the model then
+does something *else* is what only a live run can answer.
 """
 
 
@@ -574,6 +579,22 @@ def _expected_nodes(
     evidence: it is what the base and target actually did under this
     environment, so it is the only defensible reference for "did this
     candidate improve on doing nothing".
+
+    **Two tripwires, latent as of 2026-08-10.** The last element is
+    documented as the nodes the target *passed* but is every node the
+    target *recorded*. The two coincide today -- checked: all nine
+    qualified tasks pass 100% of their target oracle nodes -- and the
+    day one does not, this silently demands a node the reference answer
+    itself fails. Second, `_oracle_shortfall` matches node ids by
+    identity, which would false-reject if any oracle node were
+    position-keyed or carried a production-derived parametrisation id;
+    checked, and there are zero of either across all tasks. Candidate-
+    *added* parametrised nodes are extra and correctly ignored.
+
+    Left as-is deliberately. Changing either is a grading-rule change,
+    and rule 8's own history says a rule change is not believed until it
+    has been replayed against the reference answer -- which costs more
+    than a hazard neither task set can currently express.
     """
     record = json.loads((manifest.task_dir / "qualification.json").read_text())
     conditions = record["conditions"]
