@@ -21,6 +21,7 @@ the complete-contract arm, and results must be reported under that name.
 """
 
 import fnmatch
+import hashlib
 import json
 import os
 import re
@@ -101,6 +102,14 @@ class Attempt:
     preservation: SuiteResult | None
     oracle: SuiteResult | None
     argv: tuple[str, ...] = field(default=(), repr=False)
+    prompt_sha256: str = ""
+    """Hash of the exact prompt bytes the executor was given.
+
+    The arm is no longer "the brief" once anything is composed onto it,
+    and a record that names the arm but not the bytes cannot prove two
+    attempts were given the same thing. Governing rule 3 already lists
+    prompt bytes as a recorded condition; nothing was recording them.
+    """
     reference_overlap: float = -1.0
     """Share of added production lines found verbatim in the target diff.
 
@@ -203,6 +212,7 @@ class Attempt:
             "preservation": suite(self.preservation),
             "oracle": suite(self.oracle),
             "argv": list(self.argv),
+            "prompt_sha256": self.prompt_sha256,
             "reference_overlap": self.reference_overlap,
             "validity": self.validity,
             "validity_evidence": list(self.validity_evidence),
@@ -517,6 +527,7 @@ def grade_candidate(
     validity: str = VALID,
     validity_evidence: tuple[str, ...] = (),
     reference_patch: str | None = None,
+    prompt_sha256: str = "",
 ) -> Attempt:
     """Score one saved candidate. Pure, offline, no model call.
 
@@ -642,6 +653,7 @@ def grade_candidate(
         model_timeout_seconds=model_timeout_seconds,
         validity=validity,
         validity_evidence=validity_evidence,
+        prompt_sha256=prompt_sha256,
         reference_overlap=(
             overlap(patch, reference_patch, manifest.writable_prefixes())
             if reference_patch is not None
@@ -662,6 +674,7 @@ def screen_task(
     extension: Path = ENVELOPE_EXTENSION,
     test_paths: tuple[str, ...] = (),
     reference_patch: str | None = None,
+    appended_prompt: str = "",
 ) -> tuple[Attempt, str, str]:
     """One bounded model attempt, with its candidate patch and transcript.
 
@@ -691,6 +704,15 @@ def screen_task(
     against, which is now an ablation rather than the default.
     """
     brief = manifest.brief_path.read_text()
+    if appended_prompt:
+        # Composed here rather than written into the task directory: a
+        # draft contract is an arm condition tonight, not a frozen task
+        # property, and writing it into `manifest.toml` would change
+        # `manifest_sha256` -- which the design calls a different task
+        # wearing the same name, and would retire today's brief-only
+        # cells as comparisons.
+        brief = brief.rstrip() + "\n\n" + appended_prompt.strip() + "\n"
+    prompt_hash = hashlib.sha256(brief.encode()).hexdigest()
 
     with materialize(clone, manifest.base_sha) as workspace:
         argv = _pi_command(model, brief, (extension,))
@@ -728,6 +750,7 @@ def screen_task(
         test_paths=test_paths,
         model_timeout_seconds=timeout,
         reference_patch=reference_patch,
+        prompt_sha256=prompt_hash,
     )
     return attempt, patch, child.stdout
 

@@ -55,6 +55,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="run despite leftover workspaces in the temp dir (unsafe)",
     )
     parser.add_argument(
+        "--contract-draft-dir",
+        type=Path,
+        default=None,
+        help=(
+            "append <dir>/<task_id>.md to each brief. The arm name and the "
+            "composed prompt hash are recorded; task manifests are untouched, "
+            "so brief-only cells stay comparable under their frozen hashes"
+        ),
+    )
+    parser.add_argument(
         "--probe",
         action="store_true",
         help=(
@@ -112,6 +122,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     for task_id in task_ids:
         print(f"{task_id:26} running...", flush=True)
         manifest = workload.load_manifest(cohort.task_dir(task_id))
+        appended = ""
+        if args.contract_draft_dir is not None:
+            draft = args.contract_draft_dir / f"{task_id}.md"
+            if not draft.is_file():
+                # Skipping silently would put a brief-only attempt in a
+                # contract directory and average the two together.
+                raise SystemExit(f"no contract draft for {task_id} at {draft}")
+            appended = draft.read_text()
         attempt, patch, transcript = screen.screen_task(
             manifest,
             clone,
@@ -123,6 +141,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             extension=screen.PROBE_EXTENSION if args.probe else screen.ENVELOPE_EXTENSION,
             test_paths=cohort.test_paths,
             reference_patch=reference_for(task_id),
+            appended_prompt=appended,
         )
         # The patch is what a later grading change replays against; the
         # transcript is what a later *reading* replays against. Both cost
@@ -155,7 +174,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             {
                 "model": args.model,
                 "server": args.server,
-                "arm": f"brief-only:{args.tools}:{'blind' if args.blind else 'env'}",
+                "arm": (
+                    f"{'draft-contract' if args.contract_draft_dir else 'brief-only'}"
+                    f":{args.tools}:{'blind' if args.blind else 'env'}"
+                ),
                 "tools": args.tools,
                 "executor_env": "none" if args.blind else str(cohort.env_dir),
                 "budgets": "probe" if args.probe else "envelope",
