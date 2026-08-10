@@ -1,0 +1,18 @@
+# The 27B cell. Same arm as gemma12b-probe apart from the model and its own
+# resolved limits, which is what makes the two comparable at all.
+name = "qwen27b-probe"
+description = """
+Qwen 3.6 27B under probe budgets with the cohort's dev environment. The cell
+behind the frontier table's 6/8 and the draft-contract sweep. n=1 per task;
+variance unmeasured for this model.
+"""
+
+[pinned]
+model = "omlx/Qwen3.6-27B-8bit"
+tools = "read,bash,edit,write"
+extension = "probe-cap.ts"
+extension_sha256 = "097f007b3370645ad35bdf9c0f2e8f49f2cc66bfc37c1d03bc4a7873037664dd"
+wall_clock_seconds = "1800.0"
+max_tokens = "32768"
+context_window = "80000"
+base_url = "http://127.0.0.1:8001/v1"

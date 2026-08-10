@@ -832,3 +832,55 @@ def test_the_reference_answer_has_no_oracle_shortfall(relocating_task: Task) -> 
     )
     assert attempt.accepted
     assert attempt.oracle_shortfall == ()
+
+
+def test_a_cell_mismatch_aborts_before_any_model_call(tmp_path: Path) -> None:
+    """A declared value nobody checks is drift wearing a filename.
+
+    This is the defect that let Experiment B's 32768 output cap live
+    only in a driver and a directory name: the value was swapped
+    mid-session and restored afterwards with nothing attesting either
+    event, and a record moved out of that directory could not say what
+    it ran under.
+    """
+    import harness.cell as cell
+
+    path = tmp_path / "probe.toml"
+    path.write_text(
+        'name = "probe"\n\n[pinned]\n'
+        'model = "omlx/m"\ntools = "read"\nmax_tokens = "8192"\n'
+    )
+    declared = cell.load_cell(path)
+
+    declared.verify({"model": "omlx/m", "tools": "read", "max_tokens": "8192"})
+
+    with pytest.raises(cell.CellMismatch) as caught:
+        declared.verify({"model": "omlx/m", "tools": "read", "max_tokens": "32768"})
+    assert "max_tokens" in str(caught.value)
+    assert "8192" in str(caught.value) and "32768" in str(caught.value)
+
+
+def test_an_unresolvable_key_is_a_mismatch_not_a_pass(tmp_path: Path) -> None:
+    """An empty resolver must not match everything.
+
+    A resolver that silently failed to read `models.json` would return a
+    dict without the model limits, and treating "absent" as "agrees"
+    would turn the check into decoration on exactly the runs where the
+    configuration could not be read.
+    """
+    import harness.cell as cell
+
+    path = tmp_path / "probe.toml"
+    path.write_text('name = "probe"\n\n[pinned]\nmax_tokens = "8192"\n')
+    with pytest.raises(cell.CellMismatch, match="not resolvable"):
+        cell.load_cell(path).verify({})
+
+
+def test_an_unknown_pinned_key_is_rejected(tmp_path: Path) -> None:
+    """A typo'd key would sit in the file looking like a constraint."""
+    import harness.cell as cell
+
+    path = tmp_path / "probe.toml"
+    path.write_text('name = "probe"\n\n[pinned]\nmax_tokns = "8192"\n')
+    with pytest.raises(cell.CellMismatch, match="unknown pinned keys"):
+        cell.load_cell(path)

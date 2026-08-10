@@ -1,0 +1,23 @@
+# The gemma baseline cell — the one every 12B comparison in this phase is
+# made against. Values are verified against the live configuration before a
+# run starts; a mismatch aborts rather than recording a number that
+# disagrees with reality.
+name = "gemma12b-probe"
+description = """
+Gemma 4 12B under probe budgets, brief-only or contract, with the cohort's
+dev environment. This is the arm behind Cycle 3, the 24-replicate noise
+floor, and Experiment A. It is NOT the roadmap's Cycle 3 envelope, which
+specifies read,write with the 16/30 caps -- a different executor, and the
+distinction is why this file names itself rather than being called "the
+envelope".
+"""
+
+[pinned]
+model = "omlx/gemma-4-12B-it-MLX-8bit"
+tools = "read,bash,edit,write"
+extension = "probe-cap.ts"
+extension_sha256 = "097f007b3370645ad35bdf9c0f2e8f49f2cc66bfc37c1d03bc4a7873037664dd"
+wall_clock_seconds = "1800.0"
+max_tokens = "8192"
+context_window = "80000"
+base_url = "http://127.0.0.1:8001/v1"

@@ -16,6 +16,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+import harness.cell as cell
 import harness.screen as screen
 import harness.workload as workload
 import harness.workspace as workspace
@@ -65,6 +66,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--cell",
+        type=Path,
+        default=None,
+        help=(
+            "a cell manifest under workloads/svcs/cells/. The live "
+            "configuration is verified against it before any model call, and "
+            "the run aborts on a mismatch rather than recording a number that "
+            "disagrees with reality"
+        ),
+    )
+    parser.add_argument(
         "--probe",
         action="store_true",
         help=(
@@ -111,6 +123,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             "every attempt from such a run must be audited before it is believed."
         )
 
+    extension = screen.PROBE_EXTENSION if args.probe else screen.ENVELOPE_EXTENSION
+    if args.cell is not None:
+        # Before liveness and before the first call: a mismatch here means
+        # the run is not the arm it says it is, and every attempt it
+        # produces would be mislabelled.
+        declared = cell.load_cell(args.cell)
+        declared.verify(
+            screen.resolve_cell(args.model, args.tools, extension, args.timeout)
+        )
+        print(f"cell {declared.name}: live configuration verified", flush=True)
+
     check_model_server_alive(args.server)
     cohort = workload.load_cohort(args.cohort, require_accounting=True)
     task_ids = args.task or list(cohort.included)
@@ -138,7 +161,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             tools=args.tools,
             timeout=args.timeout,
             executor_env_source=None if args.blind else cohort.env_dir,
-            extension=screen.PROBE_EXTENSION if args.probe else screen.ENVELOPE_EXTENSION,
+            extension=extension,
             test_paths=cohort.test_paths,
             reference_patch=reference_for(task_id),
             appended_prompt=appended,
@@ -181,6 +204,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "tools": args.tools,
                 "executor_env": "none" if args.blind else str(cohort.env_dir),
                 "budgets": "probe" if args.probe else "envelope",
+                "cell": str(args.cell) if args.cell else "unpinned",
                 "accepted": accepted,
                 # Void attempts leave the denominator. `attempted` counted
                 # them, so cycle1's stolen `autowire` made an honest 2/7

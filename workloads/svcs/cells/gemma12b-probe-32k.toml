@@ -1,0 +1,22 @@
+# Experiment B's cell. Identical to gemma12b-probe except the output cap,
+# which is the single variable that experiment changed. Its existence is the
+# repair for the defect it exposed: the 32768 lived only in a driver and a
+# directory name, so a record moved out of that directory could not say what
+# it ran under.
+name = "gemma12b-probe-32k"
+description = """
+Gemma 4 12B at maxTokens 32768. One variable against gemma12b-probe. Raising
+the cap fixed the failure it was aimed at -- early `length` deaths fell from
+5/6 to 2/8 -- and exposed a second one behind it: closing the oracle gap and
+then continuing into throwaway diagnostic files.
+"""
+
+[pinned]
+model = "omlx/gemma-4-12B-it-MLX-8bit"
+tools = "read,bash,edit,write"
+extension = "probe-cap.ts"
+extension_sha256 = "097f007b3370645ad35bdf9c0f2e8f49f2cc66bfc37c1d03bc4a7873037664dd"
+wall_clock_seconds = "1800.0"
+max_tokens = "32768"
+context_window = "80000"
+base_url = "http://127.0.0.1:8001/v1"
