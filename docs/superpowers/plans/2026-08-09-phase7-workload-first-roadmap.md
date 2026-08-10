@@ -513,14 +513,39 @@ the manifests. No manifest carries a contract. Corrected below.
   provisioned dev environment, and an 1800s wall clock. Those are a
   different executor. The pilot is informative about models; it is not
   the envelope control this cycle exists to produce.
-- **Package envelope to candidate commit (Cycle 4):** not started. This
-  is the missing product-shaped milestone and the phase has drifted past
-  it.
-- **Admit protections by replay (Cycle 5):** started ahead of order,
-  which is itself a symptom. The tracked loop-breaker
-  (`.pi/extensions/loop-breaker.ts`) fires by replay on both of the
-  newest demonstrated failures. Fixtures for those two replays are not
-  yet committed, so the result is not reproducible from this branch.
+- **Package envelope to candidate commit (Cycle 4):** **closed.**
+  `harness/candidate.py` plus `tools/deliver_candidate.py`. Every
+  acceptance criterion demonstrated: the live repository is not mutated,
+  failure leaves no worktree or branch, success leaves a readable ref
+  under `refs/satyrn/candidates/`, and a dirty or non-repository state
+  refuses rather than copies. Nine lifecycle branches are covered by
+  deterministic tests with the model call injected; three live probes
+  confirmed the integrated flow (3/3 candidates, validation exit 0). The
+  transactional boundary costs about 0.1s against a 33-75s model call,
+  under 0.3% -- independently consistent with the Cycle 2 spike's 385ms
+  from a separate implementation. Receipts in `workloads/svcs/probes/`.
+- **Admit protections by replay (Cycle 5):** two investigations, two
+  findings, **nothing admitted.** Rule 7's bar held.
+  - Replay fixtures are now committed and reproducible (main repo,
+    `7ca49cb`), but the first set was wrong: it was extracted from
+    `tool_execution_start`, which records attempts that never reach the
+    hook. Pi validates arguments at `agent-loop.js:404` and calls
+    `beforeToolCall` on the next line, so a malformed call throws above
+    every `tool_call` guard. 52 of one fixture's 57 calls were
+    unreachable, and replay reported 44 blocks for a loop the guard
+    cannot see.
+  - Live test, prespecified: `registry-iter` guarded 4/6 accepted but
+    2/6 loop deaths, and the guard never fired -- that half of the plan
+    was aimed at the unguardable failure class. The `magicmock` half
+    fired once in four runs, and that run was the worst outcome in the
+    set (101 preservation nodes lost). The guard demonstrably fires and
+    does not false-reject; there is no evidence it improves an outcome.
+  - Consequence for the next attempt: malformed-call loops are not
+    reachable from `tool_call` **or** `tool_result` -- a validation
+    failure returns `kind: "immediate"`, skipping
+    `finalizeExecutedToolCall` where `afterToolCall` lives. Only
+    `tool_execution_start`/`end` and the synthesized result message see
+    them. A pre-validation block needs a change to Pi core.
 - **Planner contracts (Cycle 6):** piloted on one task, with the
   transcription caveat recorded. The unresolved question is which
   product Cycle 6 is buying — see the decision below.
@@ -605,6 +630,26 @@ parts and one trustworthy delivery path, not another measured cell.**
    comparisons, and the current authoring prompt silently chose the
    first. Re-author all eight contracts under whichever is chosen.
 7. **Then** freeze the cohort and pre-register the held-out batch.
+
+### What changed since this appendix was written
+
+Steps 1 through 5 of the re-planned sequence below are done: the
+instrument was repaired (rule 8 closes the skipped-oracle hole; void
+attempts leave denominators; the resolved cell is recorded per attempt;
+authoring gates on length and stop reason; validity language narrowed),
+the guard replay is reproducible, `workloads/svcs/cells/` freezes four
+arms and verifies them against live configuration before any call, the
+narrow live guard test ran and admitted nothing, and Cycle 4 shipped.
+
+Step 6 -- deciding what planner output *is* -- remains open and is now
+the gating decision for the contract baseline. Nothing further should be
+authored until it is settled, since three of the eight current drafts are
+empty stubs and the other five are solution-bearing by accident.
+
+**The simplicity budget is the standing risk.** Cycle 4 added roughly 400
+lines and closed a milestone; the guard work added fixtures, cells and a
+diagnostic path and admitted nothing. The next change that earns its
+place is more likely to be a removal than an addition.
 
 ### Standing correction to the governing rules
 
