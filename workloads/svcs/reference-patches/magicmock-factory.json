@@ -20,9 +20,10 @@
     "node_count": 31,
     "reason_class": "pass",
     "tests_passed": 31,
-    "wall_seconds": 1.091
+    "wall_seconds": 0.878
   },
   "oracle_delta": 1,
+  "oracle_shortfall": [],
   "out_of_scope": [],
   "outcome": "accepted",
   "preservation": {
@@ -31,9 +32,11 @@
     "node_count": 111,
     "reason_class": "pass",
     "tests_passed": 111,
-    "wall_seconds": 1.278
+    "wall_seconds": 1.107
   },
-  "rule_version": 7,
+  "prompt_sha256": "",
+  "reference_overlap": -1.0,
+  "rule_version": 8,
   "target_total": 31,
   "task_id": "magicmock-factory",
   "tools": "reference-replay",

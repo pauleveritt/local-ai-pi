@@ -27,7 +27,7 @@ import os
 import re
 import subprocess
 import time
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -95,6 +95,7 @@ class Attempt:
     oracle_delta: int
     gap_closed: float
     missing_nodes: tuple[str, ...]
+    oracle_shortfall: tuple[str, ...]
     changed_paths: tuple[str, ...]
     out_of_scope: tuple[str, ...]
     model_seconds: float
@@ -205,6 +206,7 @@ class Attempt:
             "oracle_delta": self.oracle_delta,
             "gap_closed": self.gap_closed,
             "missing_nodes": list(self.missing_nodes),
+            "oracle_shortfall": list(self.oracle_shortfall),
             "changed_paths": list(self.changed_paths),
             "out_of_scope": list(self.out_of_scope),
             "model_seconds": round(self.model_seconds, 2),
@@ -424,10 +426,10 @@ def _out_of_scope(
     )
 
 
-GRADING_RULE_VERSION = 7
+GRADING_RULE_VERSION = 8
 """Bumped whenever the acceptance rule changes.
 
-Every grade records it, because seven rules have now produced different
+Every grade records it, because eight rules have now produced different
 verdicts on identical candidates and a record that does not say which one
 scored it cannot be compared with anything.
 
@@ -438,6 +440,8 @@ scored it cannot be compared with anything.
   5  node inventory counts position-keyed nodes instead of naming them
   6  damage outranks scope violation in the reported outcome
   7  writing tests is permitted and recorded, not a scope violation
+  8  every oracle node the target passed must pass here -- `pass` alone
+     accepted a suite whose hidden assertions had been skipped
 
 Rule 4 was found by the ceiling replay: the *target's own diff* graded as
 `tests-vanished` on four of nine tasks, because Sybil node ids move when
@@ -486,8 +490,11 @@ def _vanished(
     return tuple(sorted(expected_stable - actual_stable)) + thinned
 
 
-def _expected_nodes(manifest: Manifest) -> tuple[set[str], dict[str, int], int, int]:
-    """Base preservation inventory, base oracle score, target oracle total.
+def _expected_nodes(
+    manifest: Manifest,
+) -> tuple[set[str], dict[str, int], int, int, tuple[str, ...]]:
+    """Base preservation inventory, base oracle score, target oracle total,
+    and the oracle nodes the target actually passed.
 
     Read from the task's own qualification record, which is frozen
     evidence: it is what the base and target actually did under this
@@ -502,12 +509,41 @@ def _expected_nodes(manifest: Manifest) -> tuple[set[str], dict[str, int], int, 
         for node in conditions["base_preservation"]["nodes"]
         if node.split("::")[0] not in oracle_files
     )
+    target_oracle = conditions["target_oracle"]
     return (
         stable,
         counts,
         int(conditions["base_oracle"]["tests_passed"]),
-        int(conditions["target_oracle"]["tests_passed"]),
+        int(target_oracle["tests_passed"]),
+        tuple(target_oracle.get("nodes", ())),
     )
+
+
+def _oracle_shortfall(
+    expected_oracle_nodes: tuple[str, ...], outcomes: Mapping[str, str]
+) -> tuple[str, ...]:
+    """Oracle nodes the target passed that this candidate did not.
+
+    The acceptance rule used to ask only whether the oracle suite ended
+    in `reason_class == "pass"`, and pytest exits zero when tests are
+    *skipped*. A candidate that caused the hidden assertions to skip --
+    a `pytest.skip()` reachable from the new behaviour, a collection
+    condition that excludes them -- would satisfy every other condition
+    and be accepted. Nothing in the banked record did this (all 43
+    accepts passed every target node), but nothing stopped it either.
+
+    Node-level rather than a count, because a count can be restored by
+    a candidate whose production change adds parametrised cases while
+    the original assertion quietly stops running.
+    """
+    missing = []
+    for node in expected_oracle_nodes:
+        outcome = outcomes.get(node)
+        if outcome is None:
+            missing.append(f"{node} (absent)")
+        elif not outcome.endswith(":passed"):
+            missing.append(f"{node} ({outcome})")
+    return tuple(missing)
 
 
 def grade_candidate(
@@ -551,9 +587,13 @@ def grade_candidate(
     for a middle.
     """
     manifest_hash = sha256_file(manifest.task_dir / "manifest.toml")
-    expected_stable, expected_counts, base_passed, target_total = _expected_nodes(
-        manifest
-    )
+    (
+        expected_stable,
+        expected_counts,
+        base_passed,
+        target_total,
+        expected_oracle_nodes,
+    ) = _expected_nodes(manifest)
 
     preservation_command = tuple(manifest.preservation_command) + tuple(
         argument for entry in manifest.deselects for argument in ("--deselect", entry)
@@ -586,6 +626,7 @@ def grade_candidate(
         oracle = run_suite(grading, manifest.oracle_command, env, suite_timeout)
 
     missing_nodes = _vanished(expected_stable, expected_counts, preservation.outcomes)
+    oracle_shortfall = _oracle_shortfall(expected_oracle_nodes, oracle.outcomes)
     oracle_delta = oracle.tests_passed - base_passed
     gap = target_total - base_passed
     gap_closed = (oracle_delta / gap) if gap > 0 else 0.0
@@ -596,10 +637,15 @@ def grade_candidate(
     # passed preservation, passed the oracle, wrote nothing out of scope
     # and left the node inventory intact, because it was the target
     # commit's own code.
+    # `reason_class == "pass"` alone was the hole: pytest exits zero on a
+    # skipped test, so a candidate that made the hidden assertions skip
+    # satisfied every other condition. Acceptance now requires every
+    # oracle node the target passed to have passed here too.
     accepted = (
         validity == VALID
         and preserved
         and oracle.reason_class == "pass"
+        and not oracle_shortfall
         and not out_of_scope
     )
 
@@ -609,6 +655,11 @@ def grade_candidate(
         outcome = "accepted"
     elif missing_nodes:
         outcome = "tests-vanished"
+    # Ranked directly after `tests-vanished` because it is the same
+    # species: the suite reports success while the assertions that define
+    # the task did not run.
+    elif oracle_shortfall and oracle.reason_class == "pass":
+        outcome = "oracle-incomplete"
     # Damage outranks a scope violation. `out-of-scope` reads as benign --
     # wrote in the wrong place -- and it was being reported for a candidate
     # whose own new doctest failed the suite. The first thing a reader needs
@@ -640,6 +691,7 @@ def grade_candidate(
         oracle_delta=oracle_delta,
         gap_closed=round(gap_closed, 3),
         missing_nodes=missing_nodes,
+        oracle_shortfall=oracle_shortfall,
         changed_paths=changed,
         out_of_scope=out_of_scope,
         model_seconds=model_seconds,

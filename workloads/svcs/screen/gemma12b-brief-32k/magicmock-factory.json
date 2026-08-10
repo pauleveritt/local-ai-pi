@@ -38,9 +38,10 @@
     "node_count": 31,
     "reason_class": "pass",
     "tests_passed": 31,
-    "wall_seconds": 0.883
+    "wall_seconds": 0.892
   },
   "oracle_delta": 1,
+  "oracle_shortfall": [],
   "out_of_scope": [],
   "outcome": "accepted",
   "preservation": {
@@ -49,11 +50,11 @@
     "node_count": 111,
     "reason_class": "pass",
     "tests_passed": 111,
-    "wall_seconds": 1.129
+    "wall_seconds": 1.127
   },
-  "prompt_sha256": "c024b3b7a36b66a66a29289f34a7aaf6c744f4191e38603527cc66f3e887b944",
+  "prompt_sha256": "",
   "reference_overlap": 0.0,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 31,
   "task_id": "magicmock-factory",
   "tools": "read,bash,edit,write",

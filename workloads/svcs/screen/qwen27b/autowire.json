@@ -56,9 +56,26 @@
     "node_count": 67,
     "reason_class": "assertion-failure",
     "tests_passed": 52,
-    "wall_seconds": 1.093
+    "wall_seconds": 1.053
   },
   "oracle_delta": 52,
+  "oracle_shortfall": [
+    "tests/test_autowire.py::TestAAutowireClass::test_aautowire_class_signature_shapes[positional_only] (call:failed)",
+    "tests/test_autowire.py::TestAAutowireClass::test_aautowire_class_signature_shapes[positional_only_arg_with_default] (call:failed)",
+    "tests/test_autowire.py::TestAAutowireFunction::test_aautowire_does_not_await_async_context_manager (call:failed)",
+    "tests/test_autowire.py::TestAAutowireFunction::test_aautowire_function_signature_shapes[positional_only] (call:failed)",
+    "tests/test_autowire.py::TestAAutowireFunction::test_aautowire_function_signature_shapes[positional_only_arg_with_default] (call:failed)",
+    "tests/test_autowire.py::TestAAutowireFunction::test_aautowire_rejects_generator_factories (call:failed)",
+    "tests/test_autowire.py::TestAAutowireFunction::test_aautowire_unannotated_required_raises (call:failed)",
+    "tests/test_autowire.py::TestAutowireClass::test_autowire_class_signature_shapes[positional_only] (call:failed)",
+    "tests/test_autowire.py::TestAutowireClass::test_autowire_class_signature_shapes[positional_only_arg_with_default] (call:failed)",
+    "tests/test_autowire.py::TestAutowireFunction::test_autowire_function_signature_shapes[positional_only] (call:failed)",
+    "tests/test_autowire.py::TestAutowireFunction::test_autowire_function_signature_shapes[positional_only_arg_with_default] (call:failed)",
+    "tests/test_autowire.py::TestAutowireFunction::test_autowire_rejects_generator_factories (call:failed)",
+    "tests/test_autowire.py::TestAutowireFunction::test_autowire_resolves_forward_reference_at_call_time (call:failed)",
+    "tests/test_autowire.py::TestAutowireFunction::test_autowire_unannotated_required_raises (call:failed)",
+    "tests/test_autowire.py::TestAutowireFunction::test_autowire_without_signature_raises (call:failed)"
+  ],
   "out_of_scope": [],
   "outcome": "partial-progress",
   "preservation": {
@@ -67,10 +84,11 @@
     "node_count": 130,
     "reason_class": "pass",
     "tests_passed": 130,
-    "wall_seconds": 1.099
+    "wall_seconds": 1.067
   },
+  "prompt_sha256": "",
   "reference_overlap": 0.19,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 67,
   "task_id": "autowire",
   "tools": "read,bash,edit,write",

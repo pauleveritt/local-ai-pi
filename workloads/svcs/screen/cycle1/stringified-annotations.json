@@ -42,9 +42,13 @@
     "node_count": 34,
     "reason_class": "assertion-failure",
     "tests_passed": 32,
-    "wall_seconds": 0.912
+    "wall_seconds": 0.888
   },
   "oracle_delta": 0,
+  "oracle_shortfall": [
+    "tests/test_registry.py::TestTakesContainer::test_annotation_str[\\nfrom __future__ import annotations\\n\\nfrom svcs import Container\\n\\ndef factory(container: Container) -> int:\\n    ...\\n    ] (call:failed)",
+    "tests/test_registry.py::TestTakesContainer::test_annotation_str[\\nfrom __future__ import annotations\\nfrom typing import TYPE_CHECKING\\n\\nif TYPE_CHECKING:\\n    from svcs import Container\\n\\ndef factory(container: Container) -> int:\\n    ...\\n    ] (call:failed)"
+  ],
   "out_of_scope": [],
   "outcome": "no-progress",
   "preservation": {
@@ -53,10 +57,11 @@
     "node_count": 91,
     "reason_class": "pass",
     "tests_passed": 91,
-    "wall_seconds": 1.152
+    "wall_seconds": 1.085
   },
+  "prompt_sha256": "",
   "reference_overlap": 0.222,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 34,
   "task_id": "stringified-annotations",
   "tools": "read,bash,edit,write",

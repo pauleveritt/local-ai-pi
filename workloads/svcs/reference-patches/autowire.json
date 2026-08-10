@@ -25,9 +25,10 @@
     "node_count": 67,
     "reason_class": "pass",
     "tests_passed": 67,
-    "wall_seconds": 1.71
+    "wall_seconds": 0.904
   },
   "oracle_delta": 67,
+  "oracle_shortfall": [],
   "out_of_scope": [],
   "outcome": "accepted",
   "preservation": {
@@ -36,9 +37,11 @@
     "node_count": 130,
     "reason_class": "pass",
     "tests_passed": 130,
-    "wall_seconds": 2.108
+    "wall_seconds": 1.058
   },
-  "rule_version": 7,
+  "prompt_sha256": "",
+  "reference_overlap": -1.0,
+  "rule_version": 8,
   "target_total": 67,
   "task_id": "autowire",
   "tools": "reference-replay",

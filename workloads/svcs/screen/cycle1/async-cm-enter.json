@@ -40,9 +40,10 @@
     "node_count": 10,
     "reason_class": "pass",
     "tests_passed": 10,
-    "wall_seconds": 0.871
+    "wall_seconds": 0.862
   },
   "oracle_delta": 2,
+  "oracle_shortfall": [],
   "out_of_scope": [
     "CHANGELOG.md"
   ],
@@ -55,8 +56,9 @@
     "tests_passed": 121,
     "wall_seconds": 1.099
   },
+  "prompt_sha256": "",
   "reference_overlap": 0.667,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 10,
   "task_id": "async-cm-enter",
   "tools": "read,bash,edit,write",

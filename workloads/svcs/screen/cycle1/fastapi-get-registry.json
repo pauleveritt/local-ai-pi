@@ -46,9 +46,13 @@
     "node_count": 24,
     "reason_class": "assertion-failure",
     "tests_passed": 22,
-    "wall_seconds": 0.978
+    "wall_seconds": 0.97
   },
   "oracle_delta": 13,
+  "oracle_shortfall": [
+    "tests/integrations/test_fastapi.py::test_dep_registry (call:failed)",
+    "tests/integrations/test_fastapi.py::test_get_registry_with_app_and_router_lifespans (call:failed)"
+  ],
   "out_of_scope": [
     "docs/integrations/fastapi.md",
     "docs/integrations/starlette.md"
@@ -60,10 +64,11 @@
     "node_count": 182,
     "reason_class": "pass",
     "tests_passed": 182,
-    "wall_seconds": 0.945
+    "wall_seconds": 0.913
   },
+  "prompt_sha256": "",
   "reference_overlap": 1.0,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 24,
   "task_id": "fastapi-get-registry",
   "tools": "read,bash,edit,write",

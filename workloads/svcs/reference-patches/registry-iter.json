@@ -20,9 +20,10 @@
     "node_count": 35,
     "reason_class": "pass",
     "tests_passed": 35,
-    "wall_seconds": 1.029
+    "wall_seconds": 0.888
   },
   "oracle_delta": 1,
+  "oracle_shortfall": [],
   "out_of_scope": [],
   "outcome": "accepted",
   "preservation": {
@@ -31,9 +32,11 @@
     "node_count": 97,
     "reason_class": "pass",
     "tests_passed": 97,
-    "wall_seconds": 1.235
+    "wall_seconds": 1.247
   },
-  "rule_version": 7,
+  "prompt_sha256": "",
+  "reference_overlap": -1.0,
+  "rule_version": 8,
   "target_total": 35,
   "task_id": "registry-iter",
   "tools": "reference-replay",

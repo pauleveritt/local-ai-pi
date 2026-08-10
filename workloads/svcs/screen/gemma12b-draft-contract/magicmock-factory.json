@@ -38,9 +38,12 @@
     "node_count": 31,
     "reason_class": "assertion-failure",
     "tests_passed": 30,
-    "wall_seconds": 0.884
+    "wall_seconds": 1.04
   },
   "oracle_delta": 0,
+  "oracle_shortfall": [
+    "tests/test_integration.py::test_get_with_magicmock_factory_works (call:failed)"
+  ],
   "out_of_scope": [],
   "outcome": "no-changes",
   "preservation": {
@@ -49,11 +52,11 @@
     "node_count": 111,
     "reason_class": "pass",
     "tests_passed": 111,
-    "wall_seconds": 1.254
+    "wall_seconds": 1.336
   },
-  "prompt_sha256": "11f8151094d4ae0b17b1b19f6773f8b807a57a9957329107a85f3d095f48c3ed",
+  "prompt_sha256": "",
   "reference_overlap": 0.0,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 31,
   "task_id": "magicmock-factory",
   "tools": "read,bash,edit,write",

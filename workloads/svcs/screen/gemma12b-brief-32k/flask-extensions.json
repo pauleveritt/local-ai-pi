@@ -39,9 +39,10 @@
     "node_count": 19,
     "reason_class": "pass",
     "tests_passed": 19,
-    "wall_seconds": 0.862
+    "wall_seconds": 0.866
   },
   "oracle_delta": 2,
+  "oracle_shortfall": [],
   "out_of_scope": [],
   "outcome": "accepted",
   "preservation": {
@@ -50,11 +51,11 @@
     "node_count": 109,
     "reason_class": "pass",
     "tests_passed": 109,
-    "wall_seconds": 1.129
+    "wall_seconds": 1.107
   },
-  "prompt_sha256": "4e8b22c410f84c207a298749cf332d6e00dd3831da5806d04780662a97b5fb9e",
+  "prompt_sha256": "",
   "reference_overlap": 0.667,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 19,
   "task_id": "flask-extensions",
   "tools": "read,bash,edit,write",

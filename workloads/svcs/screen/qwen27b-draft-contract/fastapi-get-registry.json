@@ -53,9 +53,20 @@
     "node_count": 24,
     "reason_class": "assertion-failure",
     "tests_passed": 15,
-    "wall_seconds": 0.984
+    "wall_seconds": 1.082
   },
   "oracle_delta": 6,
+  "oracle_shortfall": [
+    "tests/integrations/test_fastapi.py::test_dep_registry (call:failed)",
+    "tests/integrations/test_fastapi.py::test_get_registry_after_shutdown (call:failed)",
+    "tests/integrations/test_fastapi.py::test_get_registry_no_svcs (call:failed)",
+    "tests/integrations/test_fastapi.py::test_get_registry_test_client_no_svcs (call:failed)",
+    "tests/integrations/test_fastapi.py::test_get_registry_with_app_and_router_lifespans (call:failed)",
+    "tests/integrations/test_starlette.py::test_get_registry_after_shutdown (call:failed)",
+    "tests/integrations/test_starlette.py::test_get_registry_composed_lifespans (call:failed)",
+    "tests/integrations/test_starlette.py::test_get_registry_no_svcs (call:failed)",
+    "tests/integrations/test_starlette.py::test_get_registry_test_client_no_svcs (call:failed)"
+  ],
   "out_of_scope": [],
   "outcome": "partial-progress",
   "preservation": {
@@ -64,11 +75,11 @@
     "node_count": 182,
     "reason_class": "pass",
     "tests_passed": 182,
-    "wall_seconds": 0.937
+    "wall_seconds": 0.963
   },
-  "prompt_sha256": "31c098f8854c58a2a62c7ddcddee01c2322e251b2d38e356f612267ec7ef7046",
+  "prompt_sha256": "",
   "reference_overlap": 0.157,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 24,
   "task_id": "fastapi-get-registry",
   "tools": "read,bash,edit,write",

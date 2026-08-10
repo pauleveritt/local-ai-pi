@@ -42,9 +42,12 @@
     "node_count": 35,
     "reason_class": "assertion-failure",
     "tests_passed": 34,
-    "wall_seconds": 0.983
+    "wall_seconds": 0.888
   },
   "oracle_delta": 0,
+  "oracle_shortfall": [
+    "tests/test_registry.py::TestRegistry::test_contains (call:failed)"
+  ],
   "out_of_scope": [],
   "outcome": "tests-vanished",
   "preservation": {
@@ -53,10 +56,11 @@
     "node_count": 93,
     "reason_class": "pass",
     "tests_passed": 93,
-    "wall_seconds": 1.135
+    "wall_seconds": 1.08
   },
+  "prompt_sha256": "",
   "reference_overlap": 0.333,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 35,
   "task_id": "registry-iter",
   "tools": "read,bash,edit,write",

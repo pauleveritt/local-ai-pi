@@ -39,9 +39,10 @@
     "node_count": 18,
     "reason_class": "pass",
     "tests_passed": 18,
-    "wall_seconds": 0.904
+    "wall_seconds": 0.873
   },
   "oracle_delta": 3,
+  "oracle_shortfall": [],
   "out_of_scope": [],
   "outcome": "accepted",
   "preservation": {
@@ -50,10 +51,11 @@
     "node_count": 122,
     "reason_class": "pass",
     "tests_passed": 122,
-    "wall_seconds": 1.142
+    "wall_seconds": 1.1
   },
+  "prompt_sha256": "",
   "reference_overlap": 0.304,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 18,
   "task_id": "local-pings",
   "tools": "read,bash,edit,write",

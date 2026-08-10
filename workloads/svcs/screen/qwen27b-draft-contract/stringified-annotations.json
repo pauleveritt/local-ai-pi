@@ -39,9 +39,10 @@
     "node_count": 34,
     "reason_class": "pass",
     "tests_passed": 34,
-    "wall_seconds": 0.893
+    "wall_seconds": 0.938
   },
   "oracle_delta": 2,
+  "oracle_shortfall": [],
   "out_of_scope": [],
   "outcome": "accepted",
   "preservation": {
@@ -50,11 +51,11 @@
     "node_count": 91,
     "reason_class": "pass",
     "tests_passed": 91,
-    "wall_seconds": 1.076
+    "wall_seconds": 1.129
   },
-  "prompt_sha256": "b5f818b0532b426a7540419ec1c53d4d7b60e89b22d04b835c9b6006d2bb69a5",
+  "prompt_sha256": "",
   "reference_overlap": 0.0,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 34,
   "task_id": "stringified-annotations",
   "tools": "read,bash,edit,write",

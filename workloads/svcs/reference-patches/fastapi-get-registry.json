@@ -26,9 +26,10 @@
     "node_count": 24,
     "reason_class": "pass",
     "tests_passed": 24,
-    "wall_seconds": 1.488
+    "wall_seconds": 0.779
   },
   "oracle_delta": 15,
+  "oracle_shortfall": [],
   "out_of_scope": [],
   "outcome": "accepted",
   "preservation": {
@@ -37,9 +38,11 @@
     "node_count": 182,
     "reason_class": "pass",
     "tests_passed": 182,
-    "wall_seconds": 1.797
+    "wall_seconds": 0.91
   },
-  "rule_version": 7,
+  "prompt_sha256": "",
+  "reference_overlap": -1.0,
+  "rule_version": 8,
   "target_total": 24,
   "task_id": "fastapi-get-registry",
   "tools": "reference-replay",

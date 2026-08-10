@@ -788,3 +788,47 @@ def test_overlap_counts_repeats_as_a_multiset() -> None:
     reference = "diff --git a/src/pkg/a.py b/src/pkg/a.py\n+x = 1\n"
     repeated = "diff --git a/src/pkg/a.py b/src/pkg/a.py\n+x = 1\n+x = 1\n+x = 1\n"
     assert overlap(repeated, reference, ("src/pkg/",)) == round(1 / 3, 3)
+
+
+def test_a_candidate_that_skips_the_oracle_is_not_accepted(
+    relocating_task: Task,
+) -> None:
+    """The hole rule 8 closes, as a fixture rather than an argument.
+
+    `pytest` exits zero when tests are *skipped*, so the old acceptance
+    rule -- which asked only whether the oracle run ended
+    `reason_class == "pass"` -- would take a candidate that caused the
+    hidden assertions to skip. Preservation passes, scope is clean, the
+    node inventory of the *preservation* run is intact, and the oracle
+    "passed". Nothing in the banked record did this; nothing stopped it.
+
+    Here the production change satisfies nothing and instead makes the
+    oracle's own test skip at runtime.
+    """
+    attempt = _grade(
+        relocating_task,
+        {
+            "src/pkg/__init__.py": (
+                "import pytest\n\n"
+                "LOCATION = 'config'\nCASES = [1, 2, 3]\nFLAG = 'on'\n\n"
+                "pytest.skip('nothing to see', allow_module_level=True)\n"
+            )
+        },
+    )
+    assert not attempt.accepted
+    assert attempt.oracle_shortfall, "the skipped oracle node must be recorded"
+
+
+def test_the_reference_answer_has_no_oracle_shortfall(relocating_task: Task) -> None:
+    """Rule 8 must not reject the right answer.
+
+    Every rule change in this phase is checked against the target's own
+    diff before it is trusted, because rule 4 was caught rejecting the
+    reference on four of nine tasks.
+    """
+    attempt = _grade(
+        relocating_task,
+        {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"},
+    )
+    assert attempt.accepted
+    assert attempt.oracle_shortfall == ()

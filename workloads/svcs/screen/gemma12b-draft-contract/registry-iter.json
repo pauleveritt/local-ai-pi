@@ -38,9 +38,10 @@
     "node_count": 35,
     "reason_class": "pass",
     "tests_passed": 35,
-    "wall_seconds": 0.887
+    "wall_seconds": 0.951
   },
   "oracle_delta": 1,
+  "oracle_shortfall": [],
   "out_of_scope": [],
   "outcome": "accepted",
   "preservation": {
@@ -49,11 +50,11 @@
     "node_count": 97,
     "reason_class": "pass",
     "tests_passed": 97,
-    "wall_seconds": 1.102
+    "wall_seconds": 1.354
   },
-  "prompt_sha256": "cee6dec21e84d404c69a00e9786c7124b5667e003d67cc186a5380aa2aa224a5",
+  "prompt_sha256": "",
   "reference_overlap": 0.556,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 35,
   "task_id": "registry-iter",
   "tools": "read,bash,edit,write",

@@ -15,7 +15,7 @@
     "registry-iter": "tests-vanished",
     "stringified-annotations": "no-progress"
   },
-  "rule_version": 7,
+  "rule_version": 8,
   "server": "http://127.0.0.1:8001",
   "tools": "read,bash,edit,write",
   "void": 0

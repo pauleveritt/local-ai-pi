@@ -39,9 +39,10 @@
     "node_count": 10,
     "reason_class": "pass",
     "tests_passed": 10,
-    "wall_seconds": 0.866
+    "wall_seconds": 0.867
   },
   "oracle_delta": 2,
+  "oracle_shortfall": [],
   "out_of_scope": [
     "test_isawaitable.py"
   ],
@@ -52,11 +53,11 @@
     "node_count": 121,
     "reason_class": "pass",
     "tests_passed": 121,
-    "wall_seconds": 1.212
+    "wall_seconds": 1.099
   },
-  "prompt_sha256": "aa78f8777f0099ab2b5d85f8f1c8c6ca020004480eeaee070fa8c1e1686c462a",
+  "prompt_sha256": "",
   "reference_overlap": 0.0,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 10,
   "task_id": "async-cm-enter",
   "tools": "read,bash,edit,write",

@@ -39,9 +39,10 @@
     "node_count": 19,
     "reason_class": "pass",
     "tests_passed": 19,
-    "wall_seconds": 0.877
+    "wall_seconds": 0.932
   },
   "oracle_delta": 2,
+  "oracle_shortfall": [],
   "out_of_scope": [
     "docs/integrations/flask.md"
   ],
@@ -52,11 +53,11 @@
     "node_count": 109,
     "reason_class": "pass",
     "tests_passed": 109,
-    "wall_seconds": 1.246
+    "wall_seconds": 1.135
   },
-  "prompt_sha256": "bcf8a4375166dab51824b3c915b1374167420bf5aa81550e12769c3920e78c8c",
+  "prompt_sha256": "",
   "reference_overlap": 1.0,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 19,
   "task_id": "flask-extensions",
   "tools": "read,bash,edit,write",

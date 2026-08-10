@@ -39,9 +39,13 @@
     "node_count": 10,
     "reason_class": "assertion-failure",
     "tests_passed": 8,
-    "wall_seconds": 0.891
+    "wall_seconds": 0.874
   },
   "oracle_delta": 0,
+  "oracle_shortfall": [
+    "tests/test_container.py::TestContainer::test_async_context_manager_async_factory (call:failed)",
+    "tests/test_container.py::TestContainer::test_async_context_manager_sync_factory (call:failed)"
+  ],
   "out_of_scope": [],
   "outcome": "no-changes",
   "preservation": {
@@ -50,10 +54,11 @@
     "node_count": 121,
     "reason_class": "pass",
     "tests_passed": 121,
-    "wall_seconds": 1.135
+    "wall_seconds": 1.102
   },
+  "prompt_sha256": "",
   "reference_overlap": 0.0,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 10,
   "task_id": "async-cm-enter",
   "tools": "read,bash,edit,write",

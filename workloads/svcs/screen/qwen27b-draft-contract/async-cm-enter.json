@@ -39,9 +39,10 @@
     "node_count": 10,
     "reason_class": "pass",
     "tests_passed": 10,
-    "wall_seconds": 0.869
+    "wall_seconds": 0.924
   },
   "oracle_delta": 2,
+  "oracle_shortfall": [],
   "out_of_scope": [],
   "outcome": "accepted",
   "preservation": {
@@ -50,11 +51,11 @@
     "node_count": 121,
     "reason_class": "pass",
     "tests_passed": 121,
-    "wall_seconds": 1.091
+    "wall_seconds": 1.144
   },
-  "prompt_sha256": "b6dff52c6468b3295e6229bb3375d616b15f2f7bcef938031fd24c0ccd47f116",
+  "prompt_sha256": "",
   "reference_overlap": 0.0,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 10,
   "task_id": "async-cm-enter",
   "tools": "read,bash,edit,write",

@@ -39,9 +39,10 @@
     "node_count": 67,
     "reason_class": "pass",
     "tests_passed": 67,
-    "wall_seconds": 0.957
+    "wall_seconds": 0.893
   },
   "oracle_delta": 67,
+  "oracle_shortfall": [],
   "out_of_scope": [],
   "outcome": "void:left-workspace",
   "preservation": {
@@ -50,10 +51,11 @@
     "node_count": 130,
     "reason_class": "pass",
     "tests_passed": 130,
-    "wall_seconds": 1.137
+    "wall_seconds": 1.055
   },
+  "prompt_sha256": "",
   "reference_overlap": 1.0,
-  "rule_version": 7,
+  "rule_version": 8,
   "target_total": 67,
   "task_id": "autowire",
   "tools": "read,bash,edit,write",
