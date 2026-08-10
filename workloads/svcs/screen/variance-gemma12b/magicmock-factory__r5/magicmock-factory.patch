@@ -1,0 +1,87 @@
+diff --git a/reproduce_mock_issue.py b/reproduce_mock_issue.py
+new file mode 100644
+index 0000000..382bb88
+--- /dev/null
++++ b/reproduce_mock_issue.py
+@@ -0,0 +1,18 @@
++import unittest
++from unittest.mock import MagicMock, AsyncMock
++from contextlib import AbstractContextManager, AbstractAsyncContextManager
++from typing import Any
++import inspect
++
++def test_mock_types():
++    print(f"MagicMock is AbstractContextManager: {isinstance(MagicMock(), AbstractContextManager)}")
++    print(f"AsyncMock is AbstractAsyncContextManager: {isinstance(AsyncMock(), AbstractAsyncContextManager)}")
++    print(f"AsyncMock is AbstractContextManager: {isinstance(AsyncMock(), AbstractContextManager)}")
++    
++    # Check isawaitable
++    from inspect import isawaitable
++    print(f"MagicMock is awaitable: {isawaitable(MagicMock())}")
++    print(f"AsyncMock is awaitable: {isawaitable(AsyncMock())}")
++
++if __name__ == "__main__":
++    test_mock_types()
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index cd83af4..c8f80cd 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -7,7 +7,7 @@ from __future__ import annotations
+ import inspect
+ import logging
+ import sys
+-import warnings
++import unittest.mock
+ 
+ from collections.abc import Awaitable, Callable, Iterator
+ from contextlib import (
+@@ -550,6 +550,11 @@ def _takes_container(factory: Callable) -> bool:
+     )
+ 
+ 
++def _is_mock(obj: Any) -> bool:
++    return isinstance(obj, unittest.mock.Mock)
++
++
++
+ T1 = TypeVar("T1")
+ T2 = TypeVar("T2")
+ T3 = TypeVar("T3")
+diff --git a/test_mock_behavior.py b/test_mock_behavior.py
+new file mode 100644
+index 0000000..bac31f0
+--- /dev/null
++++ b/test_mock_behavior.py
+@@ -0,0 +1,16 @@
++import unittest
++from unittest.mock import MagicMock, AsyncMock
++from contextlib import AbstractContextManager, AbstractAsyncContextManager
++from typing import Any
++import inspect
++
++def test_mock_behavior():
++    print(f"MagicMock is AbstractContextManager: {isinstance(MagicMock(), AbstractContextManager)}")
++    print(f"MagicMock is Awaitable: {inspect.isawaitable(MagicMock())}")
++    
++    print(f"AsyncMock is AbstractContextManager: {isinstance(AsyncMock(), AbstractContextManager)}")
++    print(f"AsyncMock is AbstractAsyncContextManager: {isinstance(AsyncMock(), AbstractAsyncContextManager)}")
++    print(f"AsyncMock is Awaitable: {inspect.isawaitable(AsyncMock())}")
++
++if __name__ == "__main__":
++    test_mock_behavior()
+diff --git a/test_mock_type.py b/test_mock_type.py
+new file mode 100644
+index 0000000..43f99e6
+--- /dev/null
++++ b/test_mock_type.py
+@@ -0,0 +1,2 @@
++import unittest.mock
++print(f"AsyncMock is Mock: {issubclass(unittest.mock.AsyncMock, unittest.mock.Mock)}")
+diff --git a/test_mock_type_2.py b/test_mock_type_2.py
+new file mode 100644
+index 0000000..43f99e6
+--- /dev/null
++++ b/test_mock_type_2.py
+@@ -0,0 +1,2 @@
++import unittest.mock
++print(f"AsyncMock is Mock: {issubclass(unittest.mock.AsyncMock, unittest.mock.Mock)}")

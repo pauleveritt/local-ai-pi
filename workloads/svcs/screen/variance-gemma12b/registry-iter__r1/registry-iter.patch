@@ -1,0 +1,37 @@
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index d90c595..df42cec 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -24,7 +24,7 @@ from inspect import (
+     isgeneratorfunction,
+ )
+ from types import TracebackType
+-from typing import Any, TypeVar, overload
++from typing import Any, TypeVar, overload, Iterator
+ 
+ import attrs
+ 
+@@ -146,20 +146,11 @@ class Registry:
+     def __repr__(self) -> str:
+         return f"<svcs.Registry(num_services={len(self._services)})>"
+ 
+-    def __contains__(self, svc_type: type) -> bool:
++    def __iter__(self) -> Iterator[RegisteredService]:
+         """
+-        Check whether this registry knows how to create *svc_type*:
+-
+-        .. doctest::
+-
+-            >>> reg = svcs.Registry()
+-            >>> reg.register_value(int, 42)
+-            >>> int in reg
+-            True
+-            >>> str in reg
+-            False
++        Iterate over the registered services.
+         """
+-        return svc_type in self._services
++        return iter(self._services.values())
+ 
+     def __enter__(self) -> Registry:
+         return self

@@ -1,0 +1,79 @@
+diff --git a/repro_check.py b/repro_check.py
+new file mode 100644
+index 0000000..0130394
+--- /dev/null
++++ b/repro_check.py
+@@ -0,0 +1,11 @@
++import inspect
++from unittest.mock import MagicMock, AsyncMock
++from collections.abc import Awaitable, AbstractContextManager
++
++def isawaitable(obj):
++    return inspect.isawaitable(obj)
++
++print(f"MagicMock isawaitable: {isawaitable(MagicMock())}")
++print(f"AsyncMock isawaitable: {isawaitable(AsyncMock())}")
++print(f"MagicMock isinstance AbstractContextManager: {isinstance(MagicMock(), AbstractContextManager)}")
++print(f"AsyncMock isinstance AbstractContextManager: {isinstance(AsyncMock(), AbstractContextManager)}")
+diff --git a/repro_check_2.py b/repro_check_2.py
+new file mode 100644
+index 0000000..04f00af
+--- /dev/null
++++ b/repro_check_2.py
+@@ -0,0 +1,14 @@
++import inspect
++from unittest.mock import MagicMock, AsyncMock
++from collections.abc import Awaitable, AbstractContextManager
++
++def isawaitable(obj):
++    return inspect.isawaitable(obj)
++
++m1 = MagicMock()
++m2 = AsyncMock()
++
++print(f"MagicMock isawaitable: {isawaitable(m1)}")
++print(f"AsyncMock isawaitable: {isawaitable(m2)}")
++print(f"MagicMock is AbstractContextManager: {isinstance(m1, AbstractContextManager)}")
++print(f"AsyncMock is AbstractContextManager: {isinstance(m2, AbstractContextManager)}")
+diff --git a/repro_check_3.py b/repro_check_3.py
+new file mode 100644
+index 0000000..0da924e
+--- /dev/null
++++ b/repro_check_3.py
+@@ -0,0 +1,8 @@
++import inspect
++from unittest.mock import MagicMock, AsyncMock
++from collections.abc import Awaitable
++
++print(f"MagicMock is Awaitable: {isinstance(MagicMock(), Awaitable)}")
++print(f"AsyncMock is Awaitable: {isinstance(AsyncMock(), Awaitable)}")
++print(f"MagicMock isawaitable: {inspect.isawaitable(MagicMock())}")
++print(f"AsyncMock isawaitable: {inspect.isawaitable(AsyncMock())}")
+diff --git a/repro_check_4.py b/repro_check_4.py
+new file mode 100644
+index 0000000..4385a9e
+--- /dev/null
++++ b/repro_check_4.py
+@@ -0,0 +1,8 @@
++import inspect
++from unittest.mock import MagicMock, AsyncMock
++from contextlib import AbstractContextManager, AbstractAsyncContextManager
++
++print(f"MagicMock is AbstractContextManager: {isinstance(MagicMock(), AbstractContextManager)}")
++print(f"MagicMock is AbstractAsyncContextManager: {isinstance(MagicMock(), AbstractAsyncContextManager)}")
++print(f"MagicMock isawaitable: {inspect.isawaitable(MagicMock())}")
++print(f"AsyncMock isawaitable: {inspect.isawaitable(AsyncMock())}")
+diff --git a/repro_check_5.py b/repro_check_5.py
+new file mode 100644
+index 0000000..9f7eac5
+--- /dev/null
++++ b/repro_check_5.py
+@@ -0,0 +1,8 @@
++import inspect
++from unittest.mock import MagicMock, AsyncMock
++from contextlib import AbstractAsyncContextManager, AbstractContextManager
++
++print(f"MagicMock is AbstractContextManager: {isinstance(MagicMock(), AbstractContextManager)}")
++print(f"MagicMock is AbstractAsyncContextManager: {isinstance(MagicMock(), AbstractAsyncContextManager)}")
++print(f"MagicMock isawaitable: {inspect.isawaitable(MagicMock())}")
++print(f"AsyncMock isawaitable: {inspect.isawaitable(AsyncMock())}")

@@ -1,0 +1,75 @@
+{
+  "accepted": false,
+  "argv": [
+    "pi",
+    "--print",
+    "--mode",
+    "json",
+    "--no-session",
+    "--model",
+    "omlx/gemma-4-12B-it-MLX-8bit",
+    "--no-extensions",
+    "--extension",
+    "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/probe-cap.ts",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--approve",
+    "--tools",
+    "read,bash,edit,write",
+    "# Do not crash when a factory returns a mock\n\nService factories are often replaced with `unittest.mock.MagicMock` (or\n`AsyncMock`) in tests. A mock answers *any* attribute access with another mock,\nwhich means checks of the form \"does this look like a context manager?\" or \"is\nthis awaitable?\" answer yes for a mock that is neither.\n\nResolving a service whose factory returns a `MagicMock` currently fails because\nof that. Make it work: `container.get()` returns the mock, and\n`container.aget()` returns the mock for an `AsyncMock`-based factory, without\nattempting cleanup or awaiting that the mock cannot actually support.\n\nResolution of real factories \u2014 including genuine context managers and genuine\nawaitables \u2014 must not change.\n"
+  ],
+  "base_passed": 30,
+  "budget_exhausted": "none",
+  "changed_paths": [
+    "repro_check.py",
+    "repro_check_2.py",
+    "repro_check_3.py",
+    "repro_check_4.py",
+    "repro_check_5.py"
+  ],
+  "executor_env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
+  "gap_closed": 0.0,
+  "manifest_sha256": "ee73e8820472456082dc1030a6ba549d0063ca69b0d36a1fc7b510ff6b17b518",
+  "missing_nodes": [],
+  "model_seconds": 967.57,
+  "model_timed_out": false,
+  "model_timeout_seconds": 1800.0,
+  "oracle": {
+    "collection_errors": {},
+    "failures": {
+      "tests/test_integration.py::test_get_with_magicmock_factory_works": "call:failed"
+    },
+    "node_count": 31,
+    "reason_class": "assertion-failure",
+    "tests_passed": 30,
+    "wall_seconds": 0.889
+  },
+  "oracle_delta": 0,
+  "out_of_scope": [
+    "repro_check.py",
+    "repro_check_2.py",
+    "repro_check_3.py",
+    "repro_check_4.py",
+    "repro_check_5.py"
+  ],
+  "outcome": "no-progress",
+  "preservation": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 111,
+    "reason_class": "pass",
+    "tests_passed": 111,
+    "wall_seconds": 1.18
+  },
+  "prompt_sha256": "c024b3b7a36b66a66a29289f34a7aaf6c744f4191e38603527cc66f3e887b944",
+  "reference_overlap": 0.0,
+  "rule_version": 7,
+  "target_total": 31,
+  "task_id": "magicmock-factory",
+  "tools": "read,bash,edit,write",
+  "validity": "valid",
+  "validity_evidence": [],
+  "wrote_tests": []
+}

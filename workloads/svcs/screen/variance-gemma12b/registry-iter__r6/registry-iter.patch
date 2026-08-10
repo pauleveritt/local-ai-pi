@@ -1,0 +1,28 @@
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index d90c595..4fee7e4 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -146,20 +146,11 @@ class Registry:
+     def __repr__(self) -> str:
+         return f"<svcs.Registry(num_services={len(self._services)})>"
+ 
+-    def __contains__(self, svc_type: type) -> bool:
++    def __iter__(self) -> iter[RegisteredService]:
+         """
+-        Check whether this registry knows how to create *svc_type*:
+-
+-        .. doctest::
+-
+-            >>> reg = svcs.Registry()
+-            >>> reg.register_value(int, 42)
+-            >>> int in reg
+-            True
+-            >>> str in reg
+-            False
++        Yield the registered services.
+         """
+-        return svc_type in self._services
++        return iter(self._services.values())
+ 
+     def __enter__(self) -> Registry:
+         return self

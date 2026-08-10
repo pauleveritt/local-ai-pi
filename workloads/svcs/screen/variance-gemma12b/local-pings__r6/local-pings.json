@@ -1,0 +1,69 @@
+{
+  "accepted": false,
+  "argv": [
+    "pi",
+    "--print",
+    "--mode",
+    "json",
+    "--no-session",
+    "--model",
+    "omlx/gemma-4-12B-it-MLX-8bit",
+    "--no-extensions",
+    "--extension",
+    "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/probe-cap.ts",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--approve",
+    "--tools",
+    "read,bash,edit,write",
+    "# Include locally registered services in health pings\n\n`Container.get_pings()` reports only services registered on the registry. A\nservice registered directly on a container \u2014 a local registration \u2014 is invisible\nto it, even when that service declares a ping.\n\nMake `get_pings()` report the pings of every service the container would\nactually resolve:\n\n- a locally registered service that declares a ping is reported;\n- where a local registration shadows a registry registration for the same type,\n  the local ping is the one reported, not the registry's;\n- a local registration that declares *no* ping means no ping is reported for\n  that type at all \u2014 the shadowed registry registration's ping is not used as a\n  fallback.\n\nBehaviour for types that have only a registry registration, and for services\nthat declare no ping anywhere, must not change.\n"
+  ],
+  "base_passed": 15,
+  "budget_exhausted": "none",
+  "changed_paths": [
+    "tests/test_get_pings_local.py"
+  ],
+  "executor_env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
+  "gap_closed": 0.0,
+  "manifest_sha256": "2208c8bf20e0ef82ad24b21f8366026ba823851f0ca790fe30a3ba38ba34fde7",
+  "missing_nodes": [],
+  "model_seconds": 661.55,
+  "model_timed_out": false,
+  "model_timeout_seconds": 1800.0,
+  "oracle": {
+    "collection_errors": {},
+    "failures": {
+      "tests/test_container.py::TestServicePing::test_local_pings_are_retrieved": "call:failed",
+      "tests/test_container.py::TestServicePing::test_local_pings_override_global_pings": "call:failed",
+      "tests/test_container.py::TestServicePing::test_local_services_without_pings_discard_global_pings": "call:failed"
+    },
+    "node_count": 18,
+    "reason_class": "assertion-failure",
+    "tests_passed": 15,
+    "wall_seconds": 0.897
+  },
+  "oracle_delta": 0,
+  "out_of_scope": [],
+  "outcome": "no-progress",
+  "preservation": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 122,
+    "reason_class": "pass",
+    "tests_passed": 122,
+    "wall_seconds": 1.149
+  },
+  "prompt_sha256": "60b0e1b0922f923ef0ab0fdcf10c527bb095a1a95364aaf0accf7aed7cebead1",
+  "reference_overlap": 0.0,
+  "rule_version": 7,
+  "target_total": 18,
+  "task_id": "local-pings",
+  "tools": "read,bash,edit,write",
+  "validity": "valid",
+  "validity_evidence": [],
+  "wrote_tests": [
+    "tests/test_get_pings_local.py"
+  ]
+}

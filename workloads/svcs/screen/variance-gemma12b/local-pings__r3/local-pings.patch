@@ -1,0 +1,38 @@
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index 968b0f4..15ae1a1 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -720,6 +720,23 @@ class Container:
+         Returns:
+             A list of services that have registered a ping callable.
+         """
++        pings: dict[type, RegisteredService] = {}
++
++        # Add pings from the registry.
++        for rs in self.registry._services.values():
++            if rs.ping is not None:
++                pings[rs.svc_type] = rs
++
++        # Add pings from the local registry, shadowing registry pings.
++        if self._lazy_local_registry is not None:
++            for rs in self._lazy_local_registry._services.values():
++                # If a local registration exists, it shadows the registry.
++                # If the local one has no ping, it's removed from the pings dict.
++                if rs.ping is not None:
++                    pings[rs.svc_type] = rs
++                else:
++                    pings.pop(rs.svc_type, None)
++
+         return [
+             ServicePing(
+                 rs.name,
+@@ -728,8 +745,7 @@ class Container:
+                 rs.ping,
+                 self,
+             )
+-            for rs in self.registry._services.values()
+-            if rs.ping is not None
++            for rs in pings.values()
+         ]
+ 
+     def get_abstract(self, *svc_types: type) -> Any:

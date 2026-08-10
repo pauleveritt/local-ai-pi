@@ -1,0 +1,57 @@
+diff --git a/src/svcs/_core.py b/src/svcs/_core.py
+index 968b0f4..e0f31a1 100644
+--- a/src/svcs/_core.py
++++ b/src/svcs/_core.py
+@@ -720,17 +720,41 @@ class Container:
+         Returns:
+             A list of services that have registered a ping callable.
+         """
+-        return [
+-            ServicePing(
+-                rs.name,
+-                iscoroutinefunction(rs.ping),
+-                rs.svc_type,
+-                rs.ping,
+-                self,
+-            )
+-            for rs in self.registry._services.values()
+-            if rs.ping is not None
+-        ]
++        pings = []
++        seen_types = set()
++
++        # Check local registry first (since it shadows)
++        if self._lazy_local_registry is not None:
++            for svc_type, rs in self._lazy_local_registry._services.items():
++                if svc_type not in seen_types:
++                    if rs.ping is not None:
++                        pings.append(
++                            ServicePing(
++                                rs.name,
++                                iscoroutinefunction(rs.ping),
++                                rs.svc_type,
++                                rs.ping,
++                                self,
++                            )
++                        )
++                    seen_types.add(svc_type)
++
++        # Check registry
++        for svc_type, rs in self.registry._services.items():
++            if svc_type not in seen_types:
++                if rs.ping is not None:
++                    pings.append(
++                        ServicePing(
++                            rs.name,
++                            iscoroutinefunction(rs.ping),
++                            rs.svc_type,
++                            rs.ping,
++                            self,
++                        )
++                    )
++                seen_types.add(svc_type)
++
++        return pings
+ 
+     def get_abstract(self, *svc_types: type) -> Any:
+         """
