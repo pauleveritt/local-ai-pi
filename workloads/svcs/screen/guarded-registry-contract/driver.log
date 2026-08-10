@@ -1,0 +1,30 @@
+cell gemma12b-probe-guarded: live configuration verified
+registry-iter              running...
+registry-iter              reject  no-changes               oracle 34/35            309.3s BUDGET:turns
+
+0/1 accepted
+cell gemma12b-probe-guarded: live configuration verified
+registry-iter              running...
+registry-iter              ACCEPT  accepted                 oracle 35/35             68.1s
+
+1/1 accepted
+cell gemma12b-probe-guarded: live configuration verified
+registry-iter              running...
+registry-iter              ACCEPT  accepted                 oracle 35/35             59.3s
+
+1/1 accepted
+cell gemma12b-probe-guarded: live configuration verified
+registry-iter              running...
+registry-iter              ACCEPT  accepted                 oracle 35/35             50.6s
+
+1/1 accepted
+cell gemma12b-probe-guarded: live configuration verified
+registry-iter              running...
+registry-iter              ACCEPT  accepted                 oracle 35/35             42.7s
+
+1/1 accepted
+cell gemma12b-probe-guarded: live configuration verified
+registry-iter              running...
+registry-iter              reject  no-changes               oracle 34/35            613.6s BUDGET:turns
+
+0/1 accepted
