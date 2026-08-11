@@ -137,11 +137,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--task", action="append", default=None)
     parser.add_argument("--out", required=True, type=Path)
-    parser.add_argument("--samples", type=int, default=3)
+    parser.add_argument(
+        "--samples",
+        type=int,
+        default=5,
+        help=(
+            "3 produced a full leaked-to-clean flip on identical bytes for "
+            "two tasks overnight -- too few for a gate decision"
+        ),
+    )
     parser.add_argument(
         "--threshold",
         type=int,
-        default=2,
+        default=3,
         help="samples that must agree before a signal counts as reconstructed",
     )
     parser.add_argument("--timeout", type=float, default=600.0)
