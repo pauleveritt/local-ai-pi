@@ -5,6 +5,38 @@ real file, is
 [`2026-08-10-phase7-cycle3-envelope-screen.md`](2026-08-10-phase7-cycle3-envelope-screen.md).
 This is the short version, in the order you'd want to hear it.
 
+## Update — decisions 1, 2 (partial), 3 actioned since this was written
+
+1. **flask-extensions scope defect — fixed.** `tools/author_contract.py`
+   now injects each task's real writable scope into the authoring prompt
+   (`compose_prompt()`, commit `dfe43d5`).
+2. **Tool-set/max_tokens — partial.** Found the real product's implementer
+   config on branch `phase6-orchestrator-spike`: turn/tool caps matched
+   exactly, and its `MAX_PROPOSAL_BYTES = 32KB` write-size limit is real
+   and deliberate — gemma was pinned at `maxTokens: 8192` historically
+   too, so the constraint is inherited, not an artifact of this cell.
+   Added `extensions/proposal-limit.ts`, mirroring that limit with a clean
+   refusal instead of silent truncation (`dfe43d5`).
+   **Then ran the minimal probe**: raised `maxTokens` to 16384 for gemma,
+   re-ran the 2 tasks that hit the token wall, 1 rep each (`data(phase7):
+   minimal maxTokens=16384 probe`, follow-up commit). Result: **fixes the
+   symptom, not the outcome.** `autowire`'s write completed cleanly for
+   the first time all night (no truncation) — but to the wrong filename,
+   and it then ran out of the 16-turn cap before finishing.
+   `stringified-annotations` errored on an unrelated targeting mistake.
+   Both still failed; the bottleneck moved to turn budget and residual
+   navigation imprecision. `models.json` restored to 8192 after; the
+   frozen `gemma12b-envelope.toml` cell was never touched — the probe used
+   a separate `gemma12b-envelope-16k.toml`. Still open: whether 16 turns
+   is also too tight, and whether `edit` (not just more tokens) is the
+   real fix — the real implementer doesn't have `edit` either, so this
+   isn't a slam-dunk either way.
+3. **Leak probe sample count — fixed.** 3→5 samples, threshold 2→3
+   (`tools/leak_probe.py`).
+4. **Re-authoring the 5 foreclosed tasks — still correctly blocked.** More
+   so now: raising the token cap alone didn't produce a success, so there
+   isn't yet a config worth re-authoring against.
+
 ## What actually ran, and why the shape changed mid-plan
 
 The planned three stages ran, but stage 4/5's scope narrowed partway
