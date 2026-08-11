@@ -11,12 +11,13 @@ contract itself tells the child the parent will run.
 """
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
 
 import harness.candidate as candidate_mod
+import harness.screen as screen
 import tools.deliver_candidate as deliver_candidate
 from harness.typed_contract import _effective_preservation_command
 from harness.workload import load_manifest
@@ -140,3 +141,70 @@ def test_cell_refuses_an_explicit_timeout_alongside_it(tmp_path, monkeypatch):
             "--skip-server-check",
             "--timeout", "60",
         ])
+
+
+def test_implementer_extension_closure_lists_every_same_repo_import():
+    # Confirmed by reading every `import` line in the chain (see the
+    # constant's own comment), not by trusting this list to stay in sync
+    # on its own. This test is the tripwire for that drift: it re-derives
+    # the closure from the actual import graph and fails if the constant
+    # and the source disagree.
+    import re
+
+    root = deliver_candidate._EXTENSIONS_ROOT
+    seen = {deliver_candidate.IMPLEMENTER_EXTENSION}
+    frontier = [deliver_candidate.IMPLEMENTER_EXTENSION]
+    while frontier:
+        current = frontier.pop()
+        for match in re.finditer(r'from "(\.[^"]+)"', current.read_text()):
+            relative = match.group(1)
+            if not relative.startswith((".", "..")):
+                continue
+            candidate = (current.parent / relative).resolve().with_suffix(".ts")
+            if candidate.is_relative_to(root) and candidate not in seen:
+                seen.add(candidate)
+                frontier.append(candidate)
+
+    assert seen == set(deliver_candidate.IMPLEMENTER_EXTENSION_CLOSURE)
+
+
+def test_cell_digest_changes_if_a_dependency_file_changes(tmp_path, monkeypatch):
+    # The bug this whole fix closes: extensions_sha256 used to hash only
+    # implementer.ts's own bytes, so an edit to a file it imports (e.g.
+    # mutation-engine.ts) changed this arm's real behavior without
+    # changing the digest verify() checks. Proven here by editing a copy
+    # of the closure with one dependency file's content changed, and
+    # asserting the resolved digest differs from the real one.
+    real_extensions = deliver_candidate.IMPLEMENTER_EXTENSION_CLOSURE
+    unmodified = screen.resolve_cell(
+        "omlx/gemma-4-12B-it-MLX-8bit", "read,write,edit", real_extensions, 900.0
+    )["extensions_sha256"]
+
+    shadow_root = tmp_path / "extensions"
+    shadow_root.mkdir()
+    (shadow_root / "orchestration").mkdir()
+    (shadow_root / "guards").mkdir()
+    shadowed = []
+    for path in real_extensions:
+        relative = path.relative_to(deliver_candidate._EXTENSIONS_ROOT)
+        shadow_path = shadow_root / relative
+        shadow_path.write_bytes(path.read_bytes())
+        shadowed.append(shadow_path)
+    # Touch exactly one dependency, not the entry point itself.
+    dependency = shadow_root / "orchestration" / "mutation-engine.ts"
+    dependency.write_text(dependency.read_text() + "\n// a change nobody asked for\n")
+
+    modified = screen.resolve_cell(
+        "omlx/gemma-4-12B-it-MLX-8bit", "read,write,edit", tuple(shadowed), 900.0
+    )["extensions_sha256"]
+
+    assert modified != unmodified
+
+
+def test_cell_records_the_full_closure_not_just_the_entry_point():
+    declared = deliver_candidate.cell_module.load_cell(
+        Path("workloads/svcs/cells/gemma12b-implementer-v1.toml")
+    )
+    names = declared.pinned["extensions"].split(",")
+    assert names == [p.name for p in deliver_candidate.IMPLEMENTER_EXTENSION_CLOSURE]
+    assert len(names) > 1, "a single-file digest is exactly the bug this closes"

@@ -40,8 +40,31 @@ from harness.typed_contract import TypedHandoff, build_typed_handoff
 # mediated by the mutation engine, not raw Pi tools. Not in `harness/screen.py`
 # alongside the other named extensions because it is orchestration, not a
 # measurement probe -- it belongs beside the module it wires together.
-IMPLEMENTER_EXTENSION = (
-    Path(__file__).resolve().parents[1] / "extensions" / "orchestration" / "implementer.ts"
+_EXTENSIONS_ROOT = Path(__file__).resolve().parents[1] / "extensions"
+IMPLEMENTER_EXTENSION = _EXTENSIONS_ROOT / "orchestration" / "implementer.ts"
+
+# `screen.resolve_cell`'s extensions_sha256 hashes exactly the Path tuple
+# it's given, in order -- it does not follow imports. Passed only
+# implementer.ts, that digest is blind to its own dependencies: an edit to
+# mutation-engine.ts changes this arm's real behavior without changing the
+# recorded digest, so `gemma12b-implementer-v1.toml`'s verify() would keep
+# passing against a silently different implementation. This is
+# implementer.ts's complete same-repo import closure (external deps --
+# node builtins, typebox, @earendil-works/pi-coding-agent -- are not ours
+# to version here), confirmed by reading every `import` line in the chain,
+# not guessed. Order is fixed and must not change independently of the
+# cell file's own recorded extensions_sha256 (re-run
+# `screen.resolve_cell(model, tools, IMPLEMENTER_EXTENSION_CLOSURE,
+# timeout)` and update the cell whenever this tuple's membership changes).
+IMPLEMENTER_EXTENSION_CLOSURE = (
+    _EXTENSIONS_ROOT / "guards" / "types.ts",
+    _EXTENSIONS_ROOT / "guards" / "loop-breaker.ts",
+    _EXTENSIONS_ROOT / "guards" / "preserve-symbols.ts",
+    _EXTENSIONS_ROOT / "orchestration" / "handoff-contract.ts",
+    _EXTENSIONS_ROOT / "orchestration" / "tool-target.ts",
+    _EXTENSIONS_ROOT / "orchestration" / "implementer-policy.ts",
+    _EXTENSIONS_ROOT / "orchestration" / "mutation-engine.ts",
+    IMPLEMENTER_EXTENSION,
 )
 
 CONTRACT_ENV = "SATYRN_HANDOFF_CONTRACT"
@@ -177,13 +200,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         prompt = args.prompt_file.read_text() if args.prompt_file else ""
 
+    # What Pi actually loads via --extension (a single entry point; Pi's own
+    # bundler resolves its relative imports) versus what a cell's digest
+    # must cover (that entry point's whole same-repo import closure, so an
+    # edit to a dependency isn't invisible to verify()) are different sets
+    # on purpose -- see IMPLEMENTER_EXTENSION_CLOSURE's comment.
     extensions = (IMPLEMENTER_EXTENSION,) if args.contract_task is not None else (screen.PROBE_EXTENSION,)
+    digest_extensions = IMPLEMENTER_EXTENSION_CLOSURE if args.contract_task is not None else (screen.PROBE_EXTENSION,)
 
     if declared_cell is not None:
         # Before liveness and before the first call: a mismatch here means
         # this run is not the arm it claims to be, and every receipt it
         # produces would be mislabelled.
-        declared_cell.verify(screen.resolve_cell(args.model, args.tools, extensions, args.timeout))
+        declared_cell.verify(screen.resolve_cell(args.model, args.tools, digest_extensions, args.timeout))
         print(f"cell {declared_cell.name}: live configuration verified", flush=True)
 
     # Before the worktree, before the call. A dead server is the one
@@ -235,7 +264,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             run_model,
             tuple(shlex.split(args.validation)),
             writable=tuple(args.writable or ()),
-            cell=screen.resolve_cell(args.model, args.tools, extensions, args.timeout),
+            cell=screen.resolve_cell(args.model, args.tools, digest_extensions, args.timeout),
             validation_timeout=args.validation_timeout,
         )
     except DeliveryRefused as refusal:
