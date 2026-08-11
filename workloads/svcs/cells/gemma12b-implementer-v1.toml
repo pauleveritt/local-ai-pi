@@ -1,0 +1,50 @@
+# The 2026-08-11 re-plan's step-4 executor cell: the real implementer
+# extension (extensions/orchestration/implementer.ts), not a probe or the
+# bare envelope. `read` is Pi's built-in; `write` and `edit` are both
+# overridden by the extension's registerTool calls and routed through the
+# revision-checked mutation engine -- MutationEngine.propose() for whole-
+# file writes, MutationEngine.proposeEdits() for the diff-shaped path this
+# cell exists to exercise. No raw `bash`.
+#
+# max_tokens 32768, not the 8192 the bare envelope cells are pinned to.
+# That pin belongs to a whole-file-write world the edit path retires, and
+# 8192 is not "the server's limit" -- it is `gemma12b-envelope.toml`'s own
+# arm-defining choice, frozen there on purpose (see that file's header;
+# do not touch it). 32768 is not picked uncritically either: it is the
+# exact value `gemma12b-probe-32k.toml` already ran live against this same
+# server (omlx, port 8001) and recorded a real completion under -- "early
+# `length` deaths fell from 5/6 to 2/8" -- so this is evidenced server
+# support, not a copy of the separate (and only partially conclusive)
+# 16384 probe. models.json's gemma entry must be pointed at 32768 before
+# this cell's verify() will pass; it is not the checked-in default because
+# gemma12b-envelope.toml verifies against the same shared models.json
+# entry at 8192, and only one value can be live at a time. Bump, verify,
+# run, restore -- the same discipline the 16k probe already used.
+#
+# extensions_sha256 covers only implementer.ts's own bytes, matching how
+# every other cell in this directory hashes a single entry file -- it does
+# not see extensions/orchestration/{mutation-engine,implementer-policy,
+# handoff-contract,tool-target}.ts or extensions/guards/*.ts, which
+# implementer.ts imports at load time. An edit to any of those changes
+# this arm's real behavior without changing this digest; that is a
+# pre-existing limitation of the resolver this cell inherits; not
+# something introduced here.
+name = "gemma12b-implementer-v1"
+description = """
+Gemma 4 12B under the real implementer extension: read/write/edit mediated
+by the revision-checked mutation engine, 16-turn / 30-tool caps enforced
+by the extension itself (not envelope-cap.ts). Drives
+`tools/deliver_candidate.py --cell gemma12b-implementer-v1 --contract-task
+<task>`. Pilot smoke only -- see the 2026-08-11 re-plan's step 5. No
+results are recorded under this cell yet.
+"""
+
+[pinned]
+model = "omlx/gemma-4-12B-it-MLX-8bit"
+tools = "read,write,edit"
+extensions = "implementer.ts"
+extensions_sha256 = "74809f47151a674953f84d92a17e78edd4e68de3ea9019253bea24c2d3a6032b"
+wall_clock_seconds = "900.0"
+max_tokens = "32768"
+context_window = "80000"
+base_url = "http://127.0.0.1:8001/v1"
