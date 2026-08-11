@@ -66,7 +66,14 @@ def test_an_absent_writable_target_is_a_legitimate_absent_baseline(tmp_path):
 
 def test_autowire_falls_back_to_its_named_override_since_its_manifest_is_a_glob(tmp_path):
     handoff = build_typed_handoff("autowire", tmp_path)
-    assert handoff.contract["writableFiles"] == [{"path": "src/svcs/_autowire.py"}]
+    # Two paths, not one: the real target diff also touches __init__.py
+    # (a 3-line export addition) -- without it the oracle's own
+    # `from svcs import autowire, aautowire` is unsatisfiable no matter
+    # what the new module contains.
+    assert handoff.contract["writableFiles"] == [
+        {"path": "src/svcs/_autowire.py"},
+        {"path": "src/svcs/__init__.py"},
+    ]
 
 
 def test_refuses_a_task_with_no_locating_contract(tmp_path, monkeypatch):

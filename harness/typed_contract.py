@@ -37,6 +37,17 @@ LOCATING_CONTRACTS_DIR = (
 # `candidate_output` contains no exact (non-glob) path.
 AUTOWIRE_TARGET = "src/svcs/_autowire.py"
 
+# The real target diff (base 816403b..target 6bb3f28) touches exactly one
+# other file: src/svcs/__init__.py, a 3-line export addition
+# (`from ._autowire import aautowire, autowire` plus two __all__ entries).
+# Without this, the contract was structurally unsatisfiable -- the oracle
+# imports `from svcs import autowire, aautowire`, which nothing written to
+# AUTOWIRE_TARGET alone can supply. Confirmed against the clone, not
+# guessed: this is not a claim that AUTOWIRE_TARGET's own name is right
+# (see the module docstring), only that these two paths are what the real
+# fix touches.
+AUTOWIRE_INIT = "src/svcs/__init__.py"
+
 
 class TypedContractError(Exception):
     """The manifest, locating contract, or worktree could not produce a usable handoff."""
@@ -62,7 +73,7 @@ def _exact_candidate_paths(manifest: Manifest) -> tuple[str, ...]:
     if exact:
         return exact
     if manifest.task_id == "autowire":
-        return (AUTOWIRE_TARGET,)
+        return (AUTOWIRE_TARGET, AUTOWIRE_INIT)
     raise TypedContractError(
         f"{manifest.task_id}: candidate_output has no exact path and no override is known"
     )
