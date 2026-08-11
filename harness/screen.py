@@ -847,6 +847,7 @@ def screen_task(
     test_paths: tuple[str, ...] = (),
     reference_patch: str | None = None,
     appended_prompt: str = "",
+    system_prompt: Path | None = None,
 ) -> tuple[Attempt, str, str]:
     """One bounded model attempt, with its candidate patch and transcript.
 
@@ -874,6 +875,11 @@ def screen_task(
     `executor_env_source` is the arm's environment condition, recorded on
     the attempt. `None` reproduces the bare tree the first screen ran
     against, which is now an ablation rather than the default.
+
+    `system_prompt` is appended via `--append-system-prompt`, not folded
+    into `appended_prompt` -- coaching about how a tool works belongs in
+    the system prompt the same way it does in `implementer.ts`'s
+    `promptFor()`, not mixed into the task's own instructions.
     """
     brief = manifest.brief_path.read_text()
     if appended_prompt:
@@ -887,7 +893,7 @@ def screen_task(
     prompt_hash = hashlib.sha256(brief.encode()).hexdigest()
 
     with materialize(clone, manifest.base_sha) as workspace:
-        argv = _pi_command(model, brief, extensions)
+        argv = _pi_command(model, brief, extensions, system_prompt)
         argv = argv[:-1] + ["--tools", tools] + argv[-1:]
 
         if executor_env_source is None:
