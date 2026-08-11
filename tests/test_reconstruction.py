@@ -76,6 +76,29 @@ def test_test_files_are_not_disclosure() -> None:
     assert "test_iter" not in kept
 
 
+def test_only_prefixes_excludes_content_outside_writable_scope() -> None:
+    """External review caught this: fastapi-get-registry's reference patch
+    also touches docs/examples/** and typing_tests/**, neither writable
+    (writable = src/svcs/**). Without only_prefixes, the leak probe's
+    target set included signals no contract-following executor could ever
+    legitimately reconstruct -- diluting floor and ceiling with content
+    nobody could act on."""
+    patch = (
+        "--- a/src/svcs/fastapi.py\n+++ b/src/svcs/fastapi.py\n"
+        "+def get_registry(app):\n+    return app.state.svcs_registry\n"
+        "--- a/docs/examples/fastapi/test_app.py\n+++ b/docs/examples/fastapi/test_app.py\n"
+        "+client = TestClient(app)\n"
+        "--- a/typing_tests/fastapi.py\n+++ b/typing_tests/fastapi.py\n"
+        "+assert_type(get_registry(app), Registry)\n"
+    )
+    unscoped = signals(added_source_lines(patch))
+    scoped = signals(added_source_lines(patch, only_prefixes=("src/svcs/",)))
+    assert "app.state.svcs_registry" in scoped or "state.svcs_registry" in scoped
+    assert "TestClient()" not in scoped
+    assert "assert_type()" not in scoped
+    assert "TestClient()" in unscoped, "sanity: the unscoped version must have picked it up"
+
+
 def test_docstrings_in_the_reference_are_not_the_answer() -> None:
     patch = (
         "--- a/src/x.py\n+++ b/src/x.py\n"

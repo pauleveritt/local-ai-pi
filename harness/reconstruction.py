@@ -100,13 +100,27 @@ def _parse_forgivingly(code: str) -> list[ast.AST]:
     return trees
 
 
-def added_source_lines(patch: str, skip_prefixes: tuple[str, ...] = ("tests/",)) -> str:
+def added_source_lines(
+    patch: str,
+    skip_prefixes: tuple[str, ...] = ("tests/",),
+    only_prefixes: tuple[str, ...] | None = None,
+) -> str:
     """The reference patch's added production lines, docstrings excluded.
 
     Test files are skipped because the executor is forbidden to write them,
     so a contract disclosing a test discloses nothing about the work being
     graded. Docstring and comment lines are skipped because prose in the
     reference answer is not the answer.
+
+    `only_prefixes`, when given, additionally requires a file to fall
+    inside them -- pass a task's `manifest.writable_prefixes()`. Without
+    this, `fastapi-get-registry`'s reference patch (which also touches
+    `docs/examples/**` and `typing_tests/**`, neither writable) pollutes
+    the leak probe's target set with signals no contract-following
+    executor could ever legitimately reconstruct, diluting floor and
+    ceiling with content nobody could act on. Optional and defaulted to
+    off so callers that already pass the full patch (the ceiling replay,
+    which grades via `git apply` against the whole diff) are unaffected.
     """
     kept: list[str] = []
     current_file = ""
@@ -119,6 +133,10 @@ def added_source_lines(patch: str, skip_prefixes: tuple[str, ...] = ("tests/",))
         if not line.startswith("+") or line.startswith("+++"):
             continue
         if any(current_file.startswith(prefix) for prefix in skip_prefixes):
+            continue
+        if only_prefixes is not None and not any(
+            current_file.startswith(prefix) for prefix in only_prefixes
+        ):
             continue
         body = line[1:]
         stripped = body.strip()

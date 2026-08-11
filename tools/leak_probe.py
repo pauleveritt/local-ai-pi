@@ -107,8 +107,11 @@ def probe_task(
     samples: int,
     threshold: int,
     timeout: float,
+    writable_prefixes: tuple[str, ...] = (),
 ) -> Reconstruction:
-    target = tuple(sorted(signals(added_source_lines(reference))))
+    target = tuple(
+        sorted(signals(added_source_lines(reference, only_prefixes=writable_prefixes or None)))
+    )
     conditions = {
         "brief": f"{INSTRUCTION}\n---\n\n{brief.strip()}\n",
         "contract": f"{INSTRUCTION}\n---\n\n{brief.strip()}\n\n---\n\n{contract.strip()}\n",
@@ -182,6 +185,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.samples,
             args.threshold,
             args.timeout,
+            manifest.writable_prefixes(),
         )
         results.append(result)
         (args.out / f"{task_id}.json").write_text(
