@@ -1,0 +1,23 @@
+{
+  "ceiling": 1.0,
+  "floor": 0.667,
+  "leaked": [
+    "Container()"
+  ],
+  "margin": 0.333,
+  "reconstructed_from_brief": [
+    "Registry()",
+    "extensions"
+  ],
+  "reconstructed_from_contract": [
+    "Container()",
+    "Registry()",
+    "extensions"
+  ],
+  "target_signals": [
+    "Container()",
+    "Registry()",
+    "extensions"
+  ],
+  "task_id": "flask-extensions"
+}

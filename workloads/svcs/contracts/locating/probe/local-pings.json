@@ -1,0 +1,27 @@
+{
+  "ceiling": 0.667,
+  "floor": 0.0,
+  "leaked": [
+    "_lazy_local_registry",
+    "iscoroutinefunction()",
+    "ping",
+    "set()"
+  ],
+  "margin": 1.0,
+  "reconstructed_from_brief": [],
+  "reconstructed_from_contract": [
+    "_lazy_local_registry",
+    "iscoroutinefunction()",
+    "ping",
+    "set()"
+  ],
+  "target_signals": [
+    "_lazy_local_registry",
+    "iscoroutinefunction()",
+    "name",
+    "ping",
+    "set()",
+    "svc_type"
+  ],
+  "task_id": "local-pings"
+}

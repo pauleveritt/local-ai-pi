@@ -1,0 +1,12 @@
+{
+  "ceiling": 0.0,
+  "floor": 0.0,
+  "leaked": [],
+  "margin": 1.0,
+  "reconstructed_from_brief": [],
+  "reconstructed_from_contract": [],
+  "target_signals": [
+    "signature"
+  ],
+  "task_id": "stringified-annotations"
+}

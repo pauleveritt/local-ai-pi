@@ -1,0 +1,8 @@
+diff --git a/ls_output.txt b/ls_output.txt
+new file mode 100644
+index 0000000..a76b468
+--- /dev/null
++++ b/ls_output.txt
+@@ -0,0 +1 @@
++ls -R
+\ No newline at end of file

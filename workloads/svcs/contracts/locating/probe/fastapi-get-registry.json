@@ -1,0 +1,54 @@
+{
+  "ceiling": 0.094,
+  "floor": 0.094,
+  "leaked": [
+    "app",
+    "registry"
+  ],
+  "margin": 0.906,
+  "reconstructed_from_brief": [
+    "getattr()",
+    "hasattr()",
+    "import:starlette.testclient.TestClient"
+  ],
+  "reconstructed_from_contract": [
+    "app",
+    "hasattr()",
+    "registry"
+  ],
+  "target_signals": [
+    "Depends()",
+    "JSONResponse()",
+    "LookupError()",
+    "Registry",
+    "TestClient()",
+    "_state",
+    "app",
+    "assert_type()",
+    "cast()",
+    "delattr()",
+    "fastapi",
+    "fastapi.get_registry",
+    "getattr()",
+    "hasattr()",
+    "import:.svcs",
+    "import:fastapi.testclient.TestClient",
+    "import:simple_fastapi_app.Database",
+    "import:simple_fastapi_app.app",
+    "import:simple_starlette_app.Database",
+    "import:simple_starlette_app.app",
+    "import:starlette.testclient.TestClient",
+    "import:typing.Annotated",
+    "import:typing.Any",
+    "import:typing.TYPE_CHECKING",
+    "import:typing.TypeAlias",
+    "import:typing.cast",
+    "import:typing.overload",
+    "registry",
+    "setattr()",
+    "starlette",
+    "starlette.get_registry",
+    "state"
+  ],
+  "task_id": "fastapi-get-registry"
+}

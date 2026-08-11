@@ -1,0 +1,78 @@
+{
+  "accepted": false,
+  "argv": [
+    "pi",
+    "--print",
+    "--mode",
+    "json",
+    "--no-session",
+    "--model",
+    "omlx/gemma-4-12B-it-MLX-8bit",
+    "--no-extensions",
+    "--extension",
+    "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/envelope-cap.ts",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--approve",
+    "--tools",
+    "read,write",
+    "# Make a registry iterable\n\n`Registry` holds the services that have been registered on it, but there is no\nsupported way to walk them: a caller who wants to inspect what a registry knows\nabout has to reach past the public API.\n\nMake `Registry` iterable. Iterating one yields the registered services \u2014 the\nsame objects the registry stores for each registered type \u2014 so that\n`list(registry)` and `for service in registry:` both work.\n\nRegistration, lookup, and lifecycle behaviour must not change.\n"
+  ],
+  "base_passed": 34,
+  "budget_exhausted": "none",
+  "cell": {
+    "base_url": "http://127.0.0.1:8001/v1",
+    "context_window": "80000",
+    "extensions": "envelope-cap.ts",
+    "extensions_sha256": "b7455133f3be8c2661b0716f8624e86d4b6def84dec4eb2b74217fc55467f4f3",
+    "max_tokens": "8192",
+    "model": "omlx/gemma-4-12B-it-MLX-8bit",
+    "models_json_sha256": "9913c0faa1847f5c1cfc860c976a89fa182dbc37707f23d929ef402764671515",
+    "pi_version": "0.84.1",
+    "tools": "read,write",
+    "wall_clock_seconds": "900.0"
+  },
+  "changed_paths": [],
+  "executor_env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
+  "gap_closed": 0.0,
+  "manifest_sha256": "e5a96f24fa7ef9c41379febfcd0065d027bdcc822198d271a53ae46a10ac670e",
+  "missing_nodes": [],
+  "model_seconds": 18.43,
+  "model_timed_out": false,
+  "model_timeout_seconds": 900.0,
+  "oracle": {
+    "collection_errors": {},
+    "failures": {
+      "tests/test_registry.py::TestRegistry::test_iterate": "call:failed"
+    },
+    "node_count": 35,
+    "reason_class": "assertion-failure",
+    "tests_passed": 34,
+    "wall_seconds": 0.467
+  },
+  "oracle_delta": 0,
+  "oracle_shortfall": [
+    "tests/test_registry.py::TestRegistry::test_iterate (call:failed)"
+  ],
+  "out_of_scope": [],
+  "outcome": "no-changes",
+  "preservation": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 97,
+    "reason_class": "pass",
+    "tests_passed": 97,
+    "wall_seconds": 0.839
+  },
+  "prompt_sha256": "e5d919e212ce6a2d2d08cdd167afc687d35823c9c708628bc7cabb2e93d977a4",
+  "reference_overlap": 0.0,
+  "rule_version": 8,
+  "target_total": 35,
+  "task_id": "registry-iter",
+  "tools": "read,write",
+  "validity": "valid",
+  "validity_evidence": [],
+  "wrote_tests": []
+}

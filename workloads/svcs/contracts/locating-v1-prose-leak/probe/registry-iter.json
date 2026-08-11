@@ -1,0 +1,31 @@
+{
+  "ceiling": 0.833,
+  "floor": 0.167,
+  "leaked": [
+    "_services",
+    "_services.values",
+    "import:collections.abc.Awaitable",
+    "import:collections.abc.Callable",
+    "import:collections.abc.Iterator"
+  ],
+  "margin": 0.833,
+  "reconstructed_from_brief": [
+    "iter()"
+  ],
+  "reconstructed_from_contract": [
+    "_services",
+    "_services.values",
+    "import:collections.abc.Awaitable",
+    "import:collections.abc.Callable",
+    "import:collections.abc.Iterator"
+  ],
+  "target_signals": [
+    "_services",
+    "_services.values",
+    "import:collections.abc.Awaitable",
+    "import:collections.abc.Callable",
+    "import:collections.abc.Iterator",
+    "iter()"
+  ],
+  "task_id": "registry-iter"
+}

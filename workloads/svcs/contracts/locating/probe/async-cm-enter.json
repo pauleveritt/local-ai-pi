@@ -1,0 +1,25 @@
+{
+  "ceiling": 1.0,
+  "floor": 0.0,
+  "leaked": [
+    "__aenter__",
+    "__enter__",
+    "_on_close",
+    "_on_close.append"
+  ],
+  "margin": 1.0,
+  "reconstructed_from_brief": [],
+  "reconstructed_from_contract": [
+    "__aenter__",
+    "__enter__",
+    "_on_close",
+    "_on_close.append"
+  ],
+  "target_signals": [
+    "__aenter__",
+    "__enter__",
+    "_on_close",
+    "_on_close.append"
+  ],
+  "task_id": "async-cm-enter"
+}

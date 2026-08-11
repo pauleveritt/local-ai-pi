@@ -1,0 +1,17 @@
+{
+  "ceiling": 0.5,
+  "floor": 0.0,
+  "leaked": [
+    "import:unittest.mock.MagicMock"
+  ],
+  "margin": 1.0,
+  "reconstructed_from_brief": [],
+  "reconstructed_from_contract": [
+    "import:unittest.mock.MagicMock"
+  ],
+  "target_signals": [
+    "import:unittest.mock.MagicMock",
+    "iscoroutine()"
+  ],
+  "task_id": "magicmock-factory"
+}
