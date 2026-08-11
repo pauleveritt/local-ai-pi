@@ -322,7 +322,12 @@ export class MutationEngine {
 			throw new MutationRefusal("A file declared absent appeared outside this engine invocation.", { path: relative });
 		}
 
-		const next = applyEdits(before, edits, relative);
+		// Same normalization propose() applies to desiredContent -- without
+		// it, an LF newText applied to a CRLF file produces mixed line
+		// endings on disk. Anchor matching itself still happens against
+		// `before`'s raw (unnormalized) content in applyEdits above; this
+		// only cleans up the write.
+		const next = normalizedNewlines(applyEdits(before, edits, relative), baseline.lineEnding ?? lineEnding(before));
 		return this.#reconcileExisting(relative, absolute, baseline, stat, before, next);
 	}
 

@@ -22,6 +22,7 @@ and a real planner/contract-authoring pass would decide it properly
 """
 
 import hashlib
+import shlex
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -120,8 +121,15 @@ def build_typed_handoff(task_id: str, worktree: Path) -> TypedHandoff:
         "preservedBehavior": [],
         "knownFacts": [],
         # Safe to reveal: the preservation suite, not the hidden oracle
-        # command deliver() actually gates on below.
-        "validation": " ".join(manifest.preservation_command),
+        # command -- deliver_candidate.py's --contract-task gates on this
+        # same string, not the oracle command, so what the model is told
+        # the parent will run is what the parent actually runs.
+        # shlex.join, not a plain " ".join: deliver_candidate.py
+        # re-tokenizes this with shlex.split before handing it to
+        # deliver(), and a future preservation command with a quoted or
+        # spaced argument would round-trip wrong under plain whitespace
+        # joining.
+        "validation": shlex.join(manifest.preservation_command),
     }
     return TypedHandoff(
         contract=contract,

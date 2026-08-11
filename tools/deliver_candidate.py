@@ -132,8 +132,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--receipt", type=Path, default=None)
     args = parser.parse_args(argv)
 
-    if args.cell is not None and (args.model or args.tools != "read,bash,edit,write"):
-        parser.error("--cell supplies --model/--tools; do not also pass them explicitly")
+    if args.cell is not None and (args.model or args.tools != "read,bash,edit,write" or args.timeout != 1800.0):
+        parser.error("--cell supplies --model/--tools/--timeout; do not also pass them explicitly")
     if args.cell is None and not args.model:
         parser.error("--model is required unless --cell is given")
     if args.contract_task is None and not args.prompt_file:

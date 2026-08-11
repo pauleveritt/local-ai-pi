@@ -441,4 +441,14 @@ describe("proposeEdits: diff-shaped mutation", () => {
 		expect(fs.readFileSync(path.join(cwd, "guard.py"), "utf8")).toContain("def home");
 		expect(fs.readFileSync(path.join(cwd, "guard.py"), "utf8")).toContain("def contact");
 	});
+
+	test("an LF newText into a CRLF file does not leave mixed line endings", () => {
+		fs.writeFileSync(path.join(cwd, "crlf.py"), "x = 1\r\ny = 2\r\n");
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["crlf.py"]));
+		const receipt = engine.readReceipt("crlf.py");
+		// A newText with a bare \n, as any ordinary edit call supplies.
+		engine.proposeEdits("crlf.py", receipt.sha256, [{ oldText: "x = 1", newText: "x = 10\ny = 20" }]);
+		const written = fs.readFileSync(path.join(cwd, "crlf.py"), "utf8");
+		expect(written).toBe("x = 10\r\ny = 20\r\ny = 2\r\n");
+	});
 });

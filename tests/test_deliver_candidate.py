@@ -104,7 +104,7 @@ def test_an_explicit_validation_still_overrides_the_contract_task_default(monkey
 
     monkeypatch.setattr(deliver_candidate, "deliver", fake_deliver)
 
-    deliver_candidate.main([
+    rc = deliver_candidate.main([
         "--repo", str(tmp_path),
         "--task", "flask-extensions",
         "--contract-task", "flask-extensions",
@@ -113,4 +113,29 @@ def test_an_explicit_validation_still_overrides_the_contract_task_default(monkey
         "--validation", "echo explicit",
     ])
 
+    assert rc == 0
     assert captured["validation"] == ("echo", "explicit")
+
+
+def test_cell_refuses_an_explicit_timeout_alongside_it(tmp_path, monkeypatch):
+    # --cell's own help text claims --model/--tools/--timeout are all
+    # refused alongside it, "so there is exactly one source of truth for
+    # the arm" -- the code used to check only --model/--tools. The refusal
+    # must happen before the cell is even loaded, independent of whatever
+    # workloads/svcs/cells/*.toml happens to verify against live
+    # pi-agent-dir/models.json right now -- load_cell raising proves this
+    # test isn't accidentally passing because of an unrelated CellMismatch.
+    def fail_if_reached(*args, **kwargs):
+        raise AssertionError("--cell should have been refused before loading it")
+
+    monkeypatch.setattr(deliver_candidate.cell_module, "load_cell", fail_if_reached)
+
+    with pytest.raises(SystemExit):
+        deliver_candidate.main([
+            "--repo", str(tmp_path),
+            "--task", "flask-extensions",
+            "--contract-task", "flask-extensions",
+            "--cell", "workloads/svcs/cells/gemma12b-implementer-v1.toml",
+            "--skip-server-check",
+            "--timeout", "60",
+        ])
