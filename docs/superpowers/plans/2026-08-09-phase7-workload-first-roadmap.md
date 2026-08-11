@@ -668,3 +668,186 @@ honoured in prose and not in code. Rule 7 says no component earns
 admission from low runtime alone — the loop-breaker's admission must
 therefore clear step 4's live test, not the replay alone.
 
+## Re-plan — 2026-08-11: evidence mode ends, build the executor
+
+**Decision, from the owner directly.** Evidence mode ends here. The next
+milestone is the executor the Goal section has named since this
+roadmap's first draft — "turning the coherent envelope into the smallest
+useful repository-safe executor" — not another measured cell. Remaining
+measurement (the qwen27b extension, leak-probe sample-count hardening,
+re-authoring the rest of the cohort) moves behind the executor as a thin
+validation layer, not in front of it as a gate.
+
+### What licenses the pivot
+
+The last four significant findings were all about the instrument or the
+primitive, not the model: the exact envelope's two walls (no enumeration
+tool under `read,write`; an 8192-token cap below a ~30KB whole-file
+write), a named cell mutated in place after producing results, and a
+mechanism screen showing a naked `write` tool destroying a file instead
+of failing safely. Contract-authoring defects (flask-extensions'
+out-of-scope docs instruction, fastapi-get-registry's wrong-mechanism
+contract) are now understood and have code-level fixes
+(`compose_prompt`'s scope injection). The model itself has shown genuine
+partial capability on hard tasks (autowire's structurally plausible
+137-line module, partial oracle credit) when navigation is not the
+question. Diminishing returns from more measurement of the same
+envelope; the open questions now require building the executor to
+answer, not another screen.
+
+**Named assumptions this build carries**, per rule 8 — pilot data
+selects, it does not confirm, and these are the selections:
+
+1. A small local model, given a locating contract and a real edit
+   primitive, yields a nonzero accept rate. Evidenced today by exactly
+   one task (flask-extensions, modulo the now-fixed scope defect) — if
+   the smoke runs in step 5 below come back at 0, that is a capability
+   finding the plan must reckon with, not paper over.
+2. Contract authoring is reliable under the current prompt and gate.
+   Unproven in combination — every one of the eight current drafts is
+   void, and the scope-injection and leak-probe fixes have not yet been
+   exercised together on a real re-authoring pass.
+3. 16 turns is enough once navigation and mutation are both cheap. Open
+   since the morning summary; step 5 measures it rather than assumes it.
+
+### The mechanism-screen finding, corrected
+
+The night's last result (both `stringified-annotations` and
+`local-pings` destroyed by a fragment `write`, `stopReason: stop` at
+tiny output, nowhere near any token or size ceiling) was first attributed
+by an external review to contamination from the void, solution-bearing
+drafts under `workloads/svcs/overnight/drafts/`. Checked directly against
+the actual script: it read `workloads/svcs/contracts/locating/`, a
+different and well-formed pair of locating contracts with no bare
+fragment and no misleading preamble. That attribution is wrong and is not
+carried forward.
+
+What is verified and does carry forward: nothing in this envelope's
+prompt path ever tells the model that `write` requires the complete file.
+Pi's built-in description is `write - Write files (creates/overwrites)`,
+and neither `envelope-cap.ts` nor `proposal-limit.ts` touch prompt
+content — they intercept tool calls, not compose instructions. The real
+implementer's system prompt (`phase6-orchestrator-spike`,
+`implementer.ts`) says explicitly: *"Read a writable file when its
+current content is useful, then call write with complete desired
+content."* That sentence does not exist anywhere in tonight's arm. The
+model was never told the rule it broke.
+
+This is n=1 per task and should not be written up as a general
+capability claim — record it as "under these inputs, the naked write
+destroyed the file," which is what step 5 below is built to re-test at
+higher n once the primitive changes.
+
+A milder form of the withdrawn preamble concern does hold: both
+`stringified-annotations.md` and `local-pings.md` open with harmless
+authoring-model narration ("Now I have a clear picture... Here is the
+contract:"). `screen_workload.py` appends draft bytes raw; the
+composition path should strip or refuse leading narration rather than
+pass it into the executor's prompt untouched.
+
+**Cheapest possible check, before step 1's port:** re-run
+`stringified-annotations` and `local-pings` exactly as tonight, adding
+only the one coaching sentence from `implementer.ts`'s prompt ("call
+write with complete desired content") — no edit tool, no engine, two
+runs, minutes. If the fragment write disappears, Confound C is confirmed
+as the mechanism rather than the best explanation at n=2, and the port
+in steps 1-2 is de-risked before any of it is written. `local-pings` is
+the cleaner of the two for this — its contract quotes only a signature,
+where `stringified-annotations`'s contract legitimately quotes the
+existing line being modified (permitted under the authoring prompt),
+giving it a residual transcription pull independent of coaching.
+
+### The synthesis: edit is the headroom, the mutation engine is the safety
+
+The owner's hypothesis — *figuring out edit vs. write may give us enough
+headroom* — is adopted, with one amendment. Edit alone gets the headroom
+(a diff fits trivially in any realistic token budget, un-foreclosing
+every `_core.py` task). It does not get the safety: a model that writes
+a fragment as a whole file today would, just as readily, propose a
+destructive *edit* tomorrow. The historical implementer already solved
+this — `extensions/orchestration/mutation-engine.ts` on
+`phase6-orchestrator-spike` runs `lostSymbols()` on every proposed
+change and refuses with an actionable message when a `def`/`class` the
+model did not declare removing would disappear. Verified directly: that
+check would have refused both of tonight's destructive writes. Edit
+without the engine trades "destroys the file" for "silently accepts a
+plausible-looking bad edit"; the engine without edit still cannot touch
+a 30KB file. Neither alone is the plan. Together: the model speaks
+diffs, the engine computes and checks the resulting whole file before
+anything touches disk.
+
+One porting detail that must change, not copy verbatim:
+`MAX_PROPOSAL_BYTES` currently checks the *reconstructed file*; on the
+edit path it must check the *model-emitted payload* (the edit content),
+or the five `_core.py` tasks stay foreclosed even with edit in hand.
+
+### Steps
+
+1. **Port the phase6 orchestration stack wholesale**, not reinvented:
+   `mutation-engine.ts`, `implementer.ts`, `implementer-policy.ts`,
+   `handoff-contract.ts`, `tool-target.ts`, `guards/loop-breaker.ts`,
+   `guards/preserve-symbols.ts`, and their tests, from
+   `phase6-orchestrator-spike` into this branch. Deterministic, zero
+   model calls. `ImplementerPolicy`'s exact-path readable/writable
+   enforcement would have caught flask-extensions' docs write at the
+   moment of the call, not at grading.
+2. **Add the edit path to `MutationEngine`**: `proposeEdits(path,
+   expectedSha256, edits[])` applies `{oldText, newText}` pairs against
+   the revision-checked baseline inside the engine, then runs the
+   existing symbol-ledger check on the *resulting* file before an atomic
+   write. Register a model-facing `edit` tool beside `write` in
+   `implementer.ts`; extend its system prompt with the write-complete-
+   content sentence the bare envelope was missing, and the corresponding
+   edit-for-existing/write-for-new-files rule. Unit-test the false-
+   rejection paths rule 7 will eventually require: a legitimate small-file
+   whole-file rewrite, a declared move/rename.
+3. **Bridge contracts to the typed handoff.** Extend
+   `tools/author_contract.py` to emit `HandoffContract` JSON —
+   `writableFiles` sourced from the manifest, not the author's judgment
+   (the manifest is what failed to reach the author on flask-extensions);
+   `validation` from the manifest's command. `inspectContract` becomes
+   the admission gate; the leak probe remains a screen behind it, not a
+   hard gate on its own. Re-authoring targets only the smoke set in step
+   5 — every existing draft is void regardless.
+4. **Wire into Cycle 4 delivery.** A new cell,
+   `workloads/svcs/cells/gemma12b-implementer-v1.toml` — model, the
+   `read,write,edit` set as mediated by the extension, budgets, digests,
+   and `maxTokens` raised from the 8192 pin inherited from a whole-file
+   world the edit path retires. `tools/deliver_candidate.py --cell
+   gemma12b-implementer-v1 <task>` becomes the installable artifact. The
+   frozen envelope cells (`gemma12b-envelope.toml`,
+   `qwen27b-envelope.toml`) are not touched — they remain the behavioral
+   control the eventual confirmatory batch cites.
+5. **Smoke validation — pilot, not confirmatory, per rule 8.** Four
+   tasks, 2-3 reps: `flask-extensions` (known-capable once the scope
+   defect is fixed; the end-to-end truth of the whole new path),
+   `stringified-annotations` and `local-pings` (previously foreclosed by
+   wall 2; the direct test that edit dissolves it and the engine
+   prevents destruction), `autowire` (capability stretch). **Success bar
+   for this milestone: at least one task yields an accepted candidate ref,
+   end to end, from a re-authored locating contract.** Read out
+   alongside acceptance: turn-budget adequacy (assumption 3 above), and
+   whether the fragment-write failure recurs now that the prompt states
+   the rule and the engine backstops it.
+6. **Deferred behind the executor, explicitly, nothing dropped:** the
+   qwen27b extension (one cell file once the executor exists); leak-probe
+   sample-count hardening (screen, not gate, until then); re-authoring
+   the remaining cohort contracts; Cycles 5-7 unchanged in content, now
+   sequenced after a working executor exists, since the confirmatory
+   batch should measure the product, not a proxy arm.
+
+### Governing-rules notes for this pivot
+
+Rule 3 (condition recording) is already satisfied by the cell-manifest
+machinery; the new implementer cell uses it the same way. Rule 5 (no
+promotion) is untouched — the executor still terminates in a candidate
+ref via the existing Cycle 4 path. Rule 7 (no admission from replay
+alone) applies to the mutation engine the moment any of its checks are
+cited as improving a *measured* arm rather than shipped as product
+machinery outright — the named failure now exists (tonight's fragment
+writes); the false-rejection tests in step 2 are what rule 7 will ask
+for first. Rule 8 (pilot selects, never confirms) governs step 5 in
+full — none of the frozen envelope cells are touched to make the smoke
+runs look better, and a 0-accept smoke result is a finding to report,
+not a run to quietly redo.
+
