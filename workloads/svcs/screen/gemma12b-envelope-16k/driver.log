@@ -1,0 +1,10 @@
+cell gemma12b-envelope-16k: live configuration verified
+autowire                   running...
+autowire                   reject  no-progress              oracle 0/0              762.0s BUDGET:turns
+
+0/1 accepted
+cell gemma12b-envelope-16k: live configuration verified
+stringified-annotations    running...
+stringified-annotations    reject  no-changes               oracle 32/34            104.4s BUDGET:turns
+
+0/1 accepted

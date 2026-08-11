@@ -1,0 +1,25 @@
+# A probe cell, not a frozen arm. Tests whether raising maxTokens alone
+# lets a full-file write clear MAX_PROPOSAL_BYTES (proposal-limit.ts)
+# instead of the model's own generation cap truncating first -- at 8192,
+# the two ceilings are close enough that autowire__r3 and
+# stringified-annotations__r1 hit stopReason:length before completing a
+# write, and proposal-limit.ts's check never got a chance to fire.
+# Separate from gemma12b-envelope.toml on purpose: that cell is already
+# cited by published results at max_tokens=8192, and mutating it in place
+# would silently change what those citations mean.
+name = "gemma12b-envelope-16k"
+description = """
+Identical to gemma12b-envelope except max_tokens: 16384, not 8192.
+Temporary probe cell for one question -- does a full ~30-35KB write
+survive raw generation now, or still truncate.
+"""
+
+[pinned]
+model = "omlx/gemma-4-12B-it-MLX-8bit"
+tools = "read,write"
+extensions = "envelope-cap.ts,proposal-limit.ts"
+extensions_sha256 = "62a97f970e3c5b81b521087e60a873791c858f11b9a3f3f32e7d58d9ba27cb9b"
+wall_clock_seconds = "900.0"
+max_tokens = "16384"
+context_window = "80000"
+base_url = "http://127.0.0.1:8001/v1"
