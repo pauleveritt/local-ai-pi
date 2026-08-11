@@ -37,6 +37,48 @@ This is the short version, in the order you'd want to hear it.
    so now: raising the token cap alone didn't produce a success, so there
    isn't yet a config worth re-authoring against.
 
+## Update — an external review found real errors below, and a follow-up test found a bigger one
+
+A review of this doc caught three things that needed fixing, not just
+noting: (a) **"5 tasks unconditionally foreclosed" was wrong.** Checked
+each task's actual `_core.py` size at its own base commit: only
+`local-pings` (33,130B) and `magicmock-factory` (34,193B) exceed the
+product's real 32KB limit. `stringified-annotations` (25,850B),
+`async-cm-enter` (29,069B), and `registry-iter` (29,684B) are all under
+it. (b) **The `fastapi-get-registry` "capability gap" attribution was
+wrong.** The contract explicitly told the executor the registry lives on
+`app.router.lifespan_context`; the real fix uses `app.state`. The model
+followed the contract's wrong mechanism — this is a contract-authoring
+failure, not evidence about executor capability, and shouldn't have been
+grouped with `autowire` as "genuine capability attempts." (c) **A named
+cell had been mutated in place.** `gemma12b-envelope.toml` was edited to
+add `proposal-limit.ts` *after* stage 2 and stage 5 had already run
+without it — rerunning that cell name today would have silently stopped
+reproducing the arm those results are filed under. Restored; the addition
+now lives in a separately-named `gemma12b-envelope-v2.toml`, opt-in via
+`--proposal-limit`, not default. Also fixed on the same pass: the leak
+probe's target signals included content from `docs/` and `typing_tests/`,
+outside any task's writable scope — scoped to `manifest.writable_prefixes()`
+now.
+
+**Then ran the review's suggested follow-up, and it found something more
+fundamental than what was asked.** The question was whether
+`stringified-annotations` (25.9KB, should fit) and `local-pings` (33.1KB,
+should hit the 32KB refusal) could resolve the size question with an
+exact locator at 16k tokens. Neither did — **both wrote only the changed
+fragment as the entire file**, which `write` then used to overwrite
+everything else: 942 lines → 2, 717 lines → 3. `stopReason: stop` at 115
+and 480 output tokens — nowhere near either ceiling. `proposal-limit.ts`
+never had anything to check; the content was tiny. The model isn't
+failing to fit a large write, it's failing to understand that `write`
+requires the *whole* file — a tool-semantics failure, one step upstream
+of the size question, and more damaging: the earlier failures at least
+left the file unchanged, this destroys it. Independently and more
+sharply confirms the review's actual recommendation (a real edit/patch
+primitive, not more tokens) than either predicted outcome would have. The
+real product's implementer also only has `write`, not `edit` — this may
+not be a harness-only risk.
+
 ## What actually ran, and why the shape changed mid-plan
 
 The planned three stages ran, but stage 4/5's scope narrowed partway
