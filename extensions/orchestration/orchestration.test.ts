@@ -17,6 +17,7 @@ import { targetOf } from "./tool-target";
 import {
 	ABSENT_REVISION,
 	captureFileBaselines,
+	MAX_PROPOSAL_BYTES,
 	MutationEngine,
 	MutationRefusal,
 	sha256,
@@ -157,6 +158,12 @@ describe("implementer tool policy", () => {
 		expect(policy.inspect("write", { path: "src/shared.ts", content: "export const revised = true;\n" })).toBeUndefined();
 	});
 
+	test("permits a declared edit and blocks one outside exact packet scope", () => {
+		const policy = new ImplementerPolicy(contract, cwd);
+		expect(policy.inspect("edit", { path: "src/shared.ts", edits: [{ oldText: "old", newText: "new" }] })).toBeUndefined();
+		expect(policy.inspect("edit", { path: "README.md", edits: [{ oldText: "old", newText: "new" }] })?.kind).toBe("scope_blocked");
+	});
+
 	test("allows declared absent-file writes and enforces the hard budget", () => {
 		const policy = new ImplementerPolicy(contract, cwd, 2);
 		expect(policy.inspect("write", { path: "src/feature.ts", content: "answer = 42\n" })).toBeUndefined();
@@ -262,5 +269,129 @@ describe("refactoring through the mutation engine", () => {
 		// this invocation is permitted to drop `about`.
 		expect(() => mutations.propose("app.py", receipt.sha256, 'def summary():\n    return "x"\n'))
 			.toThrow(/function:home/);
+	});
+});
+
+// proposeEdits: the 2026-08-11 re-plan's step 2. A model that reliably
+// speaks diffs was, under `write` alone, emitting the changed fragment as
+// if it were the complete file; `write` then overwrote everything else.
+// These tests are this task's rule-7 obligation: the mutation engine's
+// checks do not get cited as validated until they clear a false-rejection
+// test, same as any other admitted component.
+describe("proposeEdits: diff-shaped mutation", () => {
+	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "satyrn-edit-"));
+	afterAll(() => fs.rmSync(cwd, { recursive: true, force: true }));
+
+	test("applies a unique anchor and reconciles like a whole-file write", () => {
+		fs.writeFileSync(path.join(cwd, "app.py"), 'def home():\n    return "home"\n');
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["app.py"]));
+		const receipt = engine.readReceipt("app.py");
+		const result = engine.proposeEdits("app.py", receipt.sha256, [
+			{ oldText: 'return "home"', newText: 'return "home page"' },
+		]);
+		expect(result.operation).toBe("reconcile");
+		expect(fs.readFileSync(path.join(cwd, "app.py"), "utf8")).toBe('def home():\n    return "home page"\n');
+	});
+
+	test("applies edits in order, each against the previous edit's result", () => {
+		fs.writeFileSync(path.join(cwd, "seq.py"), "a = 1\nb = 2\n");
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["seq.py"]));
+		const receipt = engine.readReceipt("seq.py");
+		engine.proposeEdits("seq.py", receipt.sha256, [
+			{ oldText: "a = 1", newText: "a = 10" },
+			{ oldText: "a = 10\nb = 2", newText: "a = 10\nb = 20" },
+		]);
+		expect(fs.readFileSync(path.join(cwd, "seq.py"), "utf8")).toBe("a = 10\nb = 20\n");
+	});
+
+	test("refuses an oldText that is not present", () => {
+		fs.writeFileSync(path.join(cwd, "missing.py"), "a = 1\n");
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["missing.py"]));
+		const receipt = engine.readReceipt("missing.py");
+		expect(() => engine.proposeEdits("missing.py", receipt.sha256, [{ oldText: "b = 2", newText: "b = 3" }]))
+			.toThrow(MutationRefusal);
+		expect(fs.readFileSync(path.join(cwd, "missing.py"), "utf8")).toBe("a = 1\n");
+	});
+
+	test("refuses an ambiguous oldText that matches more than once", () => {
+		fs.writeFileSync(path.join(cwd, "dup.py"), "x = 1\nx = 1\n");
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["dup.py"]));
+		const receipt = engine.readReceipt("dup.py");
+		expect(() => engine.proposeEdits("dup.py", receipt.sha256, [{ oldText: "x = 1", newText: "x = 2" }]))
+			.toThrow(/unique/);
+	});
+
+	test("refuses editing an absent file; write is required to create one", () => {
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["new.py"]));
+		expect(() => engine.proposeEdits("new.py", ABSENT_REVISION, [{ oldText: "x", newText: "y" }]))
+			.toThrow(/write/);
+	});
+
+	test("refuses a stale revision without changing the file", () => {
+		fs.writeFileSync(path.join(cwd, "stale.py"), "a = 1\n");
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["stale.py"]));
+		expect(() => engine.proposeEdits("stale.py", "not-the-real-sha", [{ oldText: "a = 1", newText: "a = 2" }]))
+			.toThrow(MutationRefusal);
+		expect(fs.readFileSync(path.join(cwd, "stale.py"), "utf8")).toBe("a = 1\n");
+	});
+
+	test("refuses undeclared, uncompensated symbol loss the same as propose()", () => {
+		fs.writeFileSync(path.join(cwd, "guarded.py"), 'def home():\n    return "home"\n\ndef about():\n    return "about"\n');
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["guarded.py"]));
+		const receipt = engine.readReceipt("guarded.py");
+		expect(() => engine.proposeEdits("guarded.py", receipt.sha256, [
+			{ oldText: 'def about():\n    return "about"\n', newText: "" },
+		])).toThrow(/removableSymbols/);
+	});
+
+	test("a declared rename survives through the edit path", () => {
+		fs.writeFileSync(path.join(cwd, "rename.py"), 'def home():\n    return "home"\n\ndef about():\n    return "about"\n');
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["rename.py"]), ["about"]);
+		const receipt = engine.readReceipt("rename.py");
+		const result = engine.proposeEdits("rename.py", receipt.sha256, [
+			{ oldText: "def about():", newText: "def summary():" },
+		]);
+		expect(result.operation).toBe("reconcile");
+		expect(fs.readFileSync(path.join(cwd, "rename.py"), "utf8")).toContain("def summary():");
+	});
+
+	test("a move survives through the edit path when the destination is written first", () => {
+		const dir = path.join(cwd, "move");
+		fs.mkdirSync(dir);
+		fs.writeFileSync(path.join(dir, "app.py"), 'def home():\n    return "home"\n\ndef about():\n    return "about"\n');
+		const engine = new MutationEngine(dir, captureFileBaselines(dir, ["app.py", "views.py"]));
+		engine.propose("views.py", ABSENT_REVISION, 'def about():\n    return "about"\n');
+		const receipt = engine.readReceipt("app.py");
+		const result = engine.proposeEdits("app.py", receipt.sha256, [
+			{ oldText: '\n\ndef about():\n    return "about"\n', newText: "\n" },
+		]);
+		expect(result.operation).toBe("reconcile");
+		expect(fs.readFileSync(path.join(dir, "app.py"), "utf8")).not.toContain("def about");
+	});
+
+	// The load-bearing property this whole path exists for: `propose()`'s
+	// MAX_PROPOSAL_BYTES check is on the reconstructed whole file, which
+	// forecloses any edit to a file already near or over the limit. The
+	// edit path must check the payload the model actually emits instead, so
+	// a one-line change to a large file stays cheap regardless of the
+	// file's own size.
+	test("the size check is on the edit payload, not the file it produces", () => {
+		const big = `x = 1\n${"# padding line\n".repeat(3000)}`;
+		expect(Buffer.byteLength(big, "utf8")).toBeGreaterThan(MAX_PROPOSAL_BYTES);
+		fs.writeFileSync(path.join(cwd, "big.py"), big);
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["big.py"]));
+		const receipt = engine.readReceipt("big.py");
+		const result = engine.proposeEdits("big.py", receipt.sha256, [{ oldText: "x = 1", newText: "x = 2" }]);
+		expect(result.operation).toBe("reconcile");
+		expect(fs.readFileSync(path.join(cwd, "big.py"), "utf8").startsWith("x = 2\n")).toBe(true);
+	});
+
+	test("refuses an edit payload that itself exceeds the proposal limit", () => {
+		fs.writeFileSync(path.join(cwd, "hugepayload.py"), "x = 1\n");
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["hugepayload.py"]));
+		const receipt = engine.readReceipt("hugepayload.py");
+		const huge = "y".repeat(MAX_PROPOSAL_BYTES + 1);
+		expect(() => engine.proposeEdits("hugepayload.py", receipt.sha256, [{ oldText: "x = 1", newText: huge }]))
+			.toThrow(/proposal limit/);
 	});
 });

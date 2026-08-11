@@ -5,7 +5,7 @@ import { createLoopBreaker } from "../guards/loop-breaker";
 import type { ToolCall } from "../guards/types";
 import type { HandoffContract } from "./handoff-contract";
 import { ImplementerPolicy } from "./implementer-policy";
-import { MutationEngine, MutationRefusal, type FileBaseline } from "./mutation-engine";
+import { MutationEngine, MutationRefusal, type EditOp, type FileBaseline } from "./mutation-engine";
 import { targetOf } from "./tool-target";
 
 const CONTRACT_ENV = "SATYRN_HANDOFF_CONTRACT";
@@ -74,11 +74,16 @@ function promptFor(contract: HandoffContract | null): string {
 You are the bounded writer in a two-agent development workflow. Implement the
 typed handoff below; do not redesign it or delegate.
 
-- You have read and write only. The parent owns validation.
+- You have read, write and edit only. The parent owns validation.
 - Read only the declared readable and writable files.
 - Read a writable file when its current content is useful, then call write
   with complete desired content. The extension carries the parent-captured
   SHA-256 baseline and refuses intervening drift for you.
+- Use edit, not write, for a small change to a file that already exists:
+  supply the exact oldText you read and the newText that replaces it. Use
+  write only to create a file that does not exist yet, or to replace one
+  wholesale. Never submit only the changed fragment through write -- write
+  always replaces the complete file with exactly what you send it.
 - If a declared writable file is absent, do not call read on it; submit its
   complete initial content with write.
 - Code, not you, chooses create versus reconcile and rejects stale revisions
@@ -93,6 +98,17 @@ typed handoff below; do not redesign it or delegate.
 const WriteParameters = Type.Object({
 	path: Type.String({ description: "Exact writable workspace-relative path" }),
 	content: Type.String({ description: "Complete desired UTF-8 file content within the proposal limit" }),
+});
+
+const EditParameters = Type.Object({
+	path: Type.String({ description: "Exact writable workspace-relative path of an existing file" }),
+	edits: Type.Array(
+		Type.Object({
+			oldText: Type.String({ description: "Exact text to replace; must be unique in the current file content" }),
+			newText: Type.String({ description: "Text to replace it with" }),
+		}),
+		{ description: "One or more edits, applied in order", minItems: 1 },
+	),
 });
 
 export default function implementer(pi: ExtensionAPI) {
@@ -131,7 +147,7 @@ export default function implementer(pi: ExtensionAPI) {
 		baseline.sha256 ?? "<absent>",
 	]));
 	const loopBreaker = createLoopBreaker();
-	const failedWriteCalls = new Set<string>();
+	const failedMutationCalls = new Set<string>();
 
 	pi.on("before_agent_start", async (event) => ({
 		systemPrompt: `${event.systemPrompt}\n${promptFor(contract)}`,
@@ -172,7 +188,9 @@ export default function implementer(pi: ExtensionAPI) {
 	});
 
 	pi.on("tool_result", async (event) => {
-		if (event.toolName === "write") return failedWriteCalls.delete(event.toolCallId) ? { isError: true } : undefined;
+		if (event.toolName === "write" || event.toolName === "edit") {
+			return failedMutationCalls.delete(event.toolCallId) ? { isError: true } : undefined;
+		}
 		if (event.toolName !== "read" || !policy || !mutations) return undefined;
 		const target = targetOf(event.input);
 		if (!target) return undefined;
@@ -204,14 +222,14 @@ export default function implementer(pi: ExtensionAPI) {
 		parameters: WriteParameters,
 		async execute(_id, params) {
 			if (!mutations) {
-				failedWriteCalls.add(_id);
+				failedMutationCalls.add(_id);
 				return { content: [{ type: "text" as const, text: "No valid mutation baseline was supplied." }], details: undefined };
 			}
 			try {
 				const receipt = mutations.readReceipt(params.path);
 				const expectedSha256 = revisions.get(receipt.path);
 				if (!expectedSha256) {
-					failedWriteCalls.add(_id);
+					failedMutationCalls.add(_id);
 					return { content: [{ type: "text" as const, text: `${receipt.path} is outside the declared mutation baseline.` }], details: undefined };
 				}
 				const result = mutations.propose(params.path, expectedSha256, params.content);
@@ -222,7 +240,44 @@ export default function implementer(pi: ExtensionAPI) {
 				};
 			} catch (error) {
 				const refusal = error instanceof MutationRefusal ? error : undefined;
-				failedWriteCalls.add(_id);
+				failedMutationCalls.add(_id);
+				return {
+					content: [{ type: "text" as const, text: refusal?.message ?? (error instanceof Error ? error.message : String(error)) }],
+					details: undefined,
+				};
+			}
+		},
+	});
+
+	pi.registerTool({
+		// Same replace-a-built-in shape as `write` above, and the same reason:
+		// the model-facing edit contract it already knows, routed through the
+		// revision-checked engine rather than Pi's own filesystem editor.
+		name: "edit",
+		label: "Propose a diff-shaped file revision",
+		description: "Apply one or more {oldText, newText} replacements to an existing declared file after reading it. Each oldText must be an exact, unique match in the current content. The engine checks the read revision and rejects an edit that would delete a public symbol without replacing it.",
+		parameters: EditParameters,
+		async execute(_id, params) {
+			if (!mutations) {
+				failedMutationCalls.add(_id);
+				return { content: [{ type: "text" as const, text: "No valid mutation baseline was supplied." }], details: undefined };
+			}
+			try {
+				const receipt = mutations.readReceipt(params.path);
+				const expectedSha256 = revisions.get(receipt.path);
+				if (!expectedSha256) {
+					failedMutationCalls.add(_id);
+					return { content: [{ type: "text" as const, text: `${receipt.path} is outside the declared mutation baseline.` }], details: undefined };
+				}
+				const result = mutations.proposeEdits(params.path, expectedSha256, params.edits as EditOp[]);
+				revisions.set(result.path, result.sha256);
+				return {
+					content: [{ type: "text" as const, text: `${result.operation} applied to ${result.path}; sha256=${result.sha256}; changed lines=${result.changedLines}\n${result.patch}` }],
+					details: result,
+				};
+			} catch (error) {
+				const refusal = error instanceof MutationRefusal ? error : undefined;
+				failedMutationCalls.add(_id);
 				return {
 					content: [{ type: "text" as const, text: refusal?.message ?? (error instanceof Error ? error.message : String(error)) }],
 					details: undefined,

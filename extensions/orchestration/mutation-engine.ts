@@ -23,6 +23,11 @@ export interface MutationResult {
 	patch: string;
 }
 
+export interface EditOp {
+	oldText: string;
+	newText: string;
+}
+
 export class MutationRefusal extends Error {
 	constructor(message: string, readonly details: Record<string, unknown>) {
 		super(message);
@@ -40,6 +45,39 @@ function lineEnding(content: string): "LF" | "CRLF" {
 function normalizedNewlines(content: string, ending: "LF" | "CRLF"): string {
 	const lf = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 	return ending === "CRLF" ? lf.replace(/\n/g, "\r\n") : lf;
+}
+
+function occurrences(haystack: string, needle: string): number {
+	if (needle === "") return 0;
+	return haystack.split(needle).length - 1;
+}
+
+/**
+ * Apply `{oldText, newText}` pairs against `content`, in order, each against
+ * the result of the previous edit.
+ *
+ * `oldText` must be a unique anchor in the content it applies to -- an
+ * ambiguous match is refused rather than guessed at, the same contract Pi's
+ * own built-in edit tool documents to the model. An anchor that has already
+ * been consumed by an earlier edit in the same call is expected to be gone
+ * by the time a later edit looks for it; a symbol that moves between two
+ * edits of the same call (delete here, re-add there) is refactoring, which
+ * `#reconcileExisting`'s `lostSymbols` check (via the invocation-wide
+ * `#gained` ledger) already tolerates once both edits have applied.
+ */
+function applyEdits(content: string, edits: readonly EditOp[], relative: string): string {
+	let result = content;
+	for (const { oldText, newText } of edits) {
+		const count = occurrences(result, oldText);
+		if (count === 0) {
+			throw new MutationRefusal("An edit's oldText was not found in the current file content.", { path: relative, oldText });
+		}
+		if (count > 1) {
+			throw new MutationRefusal(`An edit's oldText matches ${count} locations; it must be unique.`, { path: relative, oldText, count });
+		}
+		result = result.replace(oldText, newText);
+	}
+	return result;
 }
 
 function lostSymbols(before: string, after: string): FoundSymbol[] {
@@ -208,6 +246,67 @@ export class MutationEngine {
 			throw new MutationRefusal("A file declared absent appeared outside this engine invocation.", { path: relative });
 		}
 		const next = normalizedNewlines(desiredContent, baseline.lineEnding ?? lineEnding(before));
+		return this.#reconcileExisting(relative, absolute, baseline, stat, before, next);
+	}
+
+	/**
+	 * Apply a diff-shaped edit instead of a whole-file rewrite.
+	 *
+	 * Exists because a model that reliably speaks diffs was, under `write`
+	 * alone, emitting the changed fragment as if it were the complete file --
+	 * `write` then overwrote everything else. See the 2026-08-11 re-plan's
+	 * "mechanism-screen finding" for the verified failure this closes.
+	 *
+	 * The size check below is deliberately on the *edit payload*, not the
+	 * reconstructed file -- `propose()`'s `MAX_PROPOSAL_BYTES` check on
+	 * `desiredContent` is what keeps every `_core.py`-sized task foreclosed
+	 * even with an edit tool in hand, since the model would still have to
+	 * emit the whole file to pass that check. A diff for a small change is
+	 * tiny regardless of file size, so checking the diff payload instead is
+	 * what actually un-forecloses those tasks.
+	 */
+	proposeEdits(candidate: string, expectedSha256: string, edits: readonly EditOp[]): MutationResult {
+		const { relative, absolute } = safePath(this.cwd, candidate);
+		const baseline = this.#baselines.get(relative);
+		if (!baseline) throw new MutationRefusal("Mutation path is outside the declared writable scope.", { path: relative });
+		if (edits.length === 0) throw new MutationRefusal("No edits were supplied.", { path: relative });
+
+		const payloadBytes = Buffer.byteLength(JSON.stringify(edits), "utf8");
+		if (payloadBytes > MAX_PROPOSAL_BYTES) {
+			throw new MutationRefusal("Edit payload exceeds the bounded proposal limit.", {
+				path: relative, limitBytes: MAX_PROPOSAL_BYTES, actualBytes: payloadBytes,
+			});
+		}
+
+		if (!fs.existsSync(absolute)) {
+			throw new MutationRefusal("edit requires an existing file; call write to create a new file.", { path: relative });
+		}
+		const stat = fs.statSync(absolute);
+		if (!stat.isFile()) throw new MutationRefusal("Mutation target is not a regular file.", { path: relative });
+		const before = fs.readFileSync(absolute, "utf8");
+		const actualSha256 = sha256(before);
+		if (expectedSha256 !== actualSha256) {
+			throw new MutationRefusal("File changed after the revision that was read; read it again before proposing a mutation.", {
+				path: relative, expectedSha256, actualSha256,
+			});
+		}
+		if (baseline.state === "absent" && !this.#created.has(relative)) {
+			throw new MutationRefusal("A file declared absent appeared outside this engine invocation.", { path: relative });
+		}
+
+		const next = applyEdits(before, edits, relative);
+		return this.#reconcileExisting(relative, absolute, baseline, stat, before, next);
+	}
+
+	/** Shared tail of `propose()` and `proposeEdits()` once `next` is known: refuse undeclared symbol loss, then write. */
+	#reconcileExisting(
+		relative: string,
+		absolute: string,
+		baseline: FileBaseline,
+		stat: fs.Stats,
+		before: string,
+		next: string,
+	): MutationResult {
 		const removed = lostSymbols(before, next).filter(
 			(symbol) => !this.#gained.has(symbolKey(symbol)) && !declared(this.#removable, symbol),
 		);

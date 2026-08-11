@@ -68,10 +68,10 @@ export class ImplementerPolicy {
 			};
 		}
 
-		if (!new Set(["read", "write"]).has(toolName)) {
+		if (!new Set(["read", "write", "edit"]).has(toolName)) {
 			return {
 				kind: "scope_blocked",
-				reason: `The implementer may use only read and write; ${toolName} is not available for this handoff.`,
+				reason: `The implementer may use only read, write and edit; ${toolName} is not available for this handoff.`,
 				data: { tool: toolName },
 			};
 		}
