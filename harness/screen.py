@@ -32,7 +32,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from harness.processes import run_process
-from harness.runner import _pi_command, pi_env
+from harness.pi_invocation import pi_command, pi_env
 from harness.similarity import overlap
 from harness.validity import VALID, assess
 from harness.workload import (
@@ -893,7 +893,7 @@ def screen_task(
     prompt_hash = hashlib.sha256(brief.encode()).hexdigest()
 
     with materialize(clone, manifest.base_sha) as workspace:
-        argv = _pi_command(model, brief, extensions, system_prompt)
+        argv = pi_command(model, brief, extensions, system_prompt)
         argv = argv[:-1] + ["--tools", tools] + argv[-1:]
 
         if executor_env_source is None:

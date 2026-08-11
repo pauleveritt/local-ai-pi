@@ -283,7 +283,10 @@ def test_pi_command_contains_trusted_session_and_isolation_flags():
         "model-name", "--no-extensions",
     ]
     assert command[-1] == "task text"
-    assert "--extension" in command
+    # Extension-flag presence/absence is covered by
+    # test_pi_command_defaults_to_no_extensions and
+    # test_pi_command_emits_one_extension_flag_per_path_in_order; this test
+    # is about the trust/isolation flags, which do not depend on extensions.
 
 
 def test_preflight_requires_real_assistant_content(monkeypatch):
@@ -579,12 +582,20 @@ def test_pi_command_emits_one_extension_flag_per_path_in_order():
     assert flagged == ["/a/one.ts", "/b/two.ts"]
 
 
-def test_pi_command_defaults_to_the_projects_extensions():
+def test_pi_command_defaults_to_no_extensions():
+    """`pi_command` moved to `harness.pi_invocation` (2026-08-11
+    distribution brief, step 4) and its default changed from this suite's
+    own `hello-world.ts` to empty -- every real caller, inside and outside
+    `runner.py`, already passes `extensions` explicitly, so an empty
+    default is the honest one for a module with no suite-specific
+    extension of its own. `runner.py`'s own callers (`run_suite`,
+    `run_batch`, `preflight_model`) still end up using `runner.EXTENSIONS`
+    -- they build it into the `extensions` argument they pass, not by
+    relying on this function's default.
+    """
     command = _pi_command("model-name", "task text")
 
-    assert command.count("--extension") == len(runner.EXTENSIONS)
-    for extension in runner.EXTENSIONS:
-        assert str(extension) in command
+    assert command.count("--extension") == 0
 
 
 @pytest.mark.skipif(

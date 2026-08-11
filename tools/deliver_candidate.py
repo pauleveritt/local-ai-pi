@@ -33,7 +33,7 @@ import harness.screen as screen
 from harness.candidate import DeliveryRefused, deliver
 from harness.liveness import ModelServerDown, check_model_server_alive
 from harness.processes import ProcessResult, run_process
-from harness.runner import _pi_command, pi_env
+from harness.pi_invocation import pi_command, pi_env
 from harness.typed_contract import TypedHandoff, build_typed_handoff
 
 # The 2026-08-11 re-plan's step 4 executor extension: `read`/`write`/`edit`
@@ -242,7 +242,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 2
 
     def run_model(worktree: Path) -> ProcessResult:
-        argv_pi = _pi_command(args.model, prompt, extensions)
+        argv_pi = pi_command(args.model, prompt, extensions)
         argv_pi = argv_pi[:-1] + ["--tools", args.tools] + argv_pi[-1:]
         env = pi_env(agent_dir=args.agent_dir)
         if handoff is not None:

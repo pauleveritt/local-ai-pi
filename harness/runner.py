@@ -7,6 +7,8 @@ from pathlib import Path
 
 from harness.grading import GradeResult, grade
 from harness.liveness import check_model_server_alive
+from harness.pi_invocation import AGENT_DIR, DEFAULT_MODEL, pi_env
+from harness.pi_invocation import pi_command as _pi_command
 from harness.processes import run_process
 from harness.workspace import prepare_workspace
 
@@ -14,98 +16,14 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = REPO_ROOT / "examples"
 EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / ".pi" / "extensions" / "hello-world.ts",)
 LOOP_BREAKER = REPO_ROOT / ".pi" / "extensions" / "loop-breaker.ts"
-AGENT_DIR = REPO_ROOT / "pi-agent-dir"
 AGENT_DIR_FILES: tuple[str, ...] = (
     "README.md",
     "settings.json",
     "models.json",
     "extensions/loop-breaker.ts",
 )
-DEFAULT_MODEL = "omlx/gemma-4-12B-it-MLX-8bit"
 EXPECTED_PI_VERSION = "0.84.1"
 
-
-def pi_env(
-    inherit_venv: bool = False, agent_dir: Path | None = AGENT_DIR
-) -> dict[str, str]:
-    """The environment every Pi process the harness starts runs under.
-
-    `agent_dir=None` leaves `PI_CODING_AGENT_DIR` unset, so Pi reads the
-    operator's own `~/.pi/agent`. **Measurement must never do this** --
-    everything below is the reason. It exists for `deliver_candidate`,
-    which is not measurement: it runs on a contributor's repository with
-    a contributor's model, and pinning it to this repo's agent directory
-    means their `--model` does not resolve unless they have replicated
-    this laptop. The trade is explicit -- their own extensions then load
-    in delegated children -- and it is theirs to make, not ours.
-
-    `PI_CODING_AGENT_DIR` points Pi at `pi-agent-dir/` instead of
-    `~/.pi/agent`. The parent does not need this -- it already passes
-    `--no-extensions --no-skills --no-prompt-templates --no-themes
-    --no-context-files` and is hermetic. **The child does.**
-
-    The delegated child is spawned by Pi's shipped subagent extension as
-    `pi --mode json -p --no-session [...]`, carrying none of those flags,
-    and user-scope resources load unconditionally -- so before phase 5
-    cycle 9 the child loaded the operator's own `~/.pi/agent/extensions/`
-    and packages. That was not a theory: recorded child transcripts show
-    `ls -R` returning the output of `rtk ls -R`, because the operator's
-    `rtk.ts` rewrites bash commands on `tool_call`.
-
-    An environment variable is the only seam that reaches the child. The
-    shipped extension calls `spawn` without an `env` argument, so the child
-    inherits ours; its *arguments* are fixed and its project-local resources
-    are trust-gated away in a headless run.
-
-    **The harness's own virtualenv is stripped.** Passing `os.environ`
-    through put `.venv/bin` first on the child's `PATH` and set
-    `VIRTUAL_ENV`, so an executor with a shell had the *grader's*
-    interpreter as its `python3`. That was harmless while the envelope was
-    `read,write`; the first screen run with `bash` in the tool set spent
-    eight turns trying to make `import svcs` work, ran `ensurepip`, and
-    then `pip install`ed attrs, pytest and pytest-asyncio into the
-    harness venv -- replacing the pinned pytest 8.3.4 with 9.1.1. An
-    executor that can change the tooling that grades it is not being
-    measured, and a workspace it can reach outside of is not hermetic.
-
-    `SSH_AUTH_SOCK` goes for the same reason: a live agent socket is
-    push access to every remote the operator can reach, and nothing in a
-    replay task needs the network.
-
-    The frozen cohort environment was never exposed and was verified
-    unaffected -- it lives under `.workloads/env` and is passed to
-    `run_suite` explicitly, not through `PATH`.
-
-    `inherit_venv=True` restores the old behaviour, and exists for one
-    reason: phase 5's suites are built on it. Their stack prompts assert
-    that FastAPI, Jinja2, pytest and httpx are installed and forbid
-    installing anything, and that claim is true *because* the workspace
-    is bare and the harness venv is inherited. A false claim there is
-    worse than none -- a model told not to install a missing package
-    cannot recover -- so a closed phase keeps the environment its
-    recorded results were measured under. Phase 7 does not use it:
-    `screen_task` provisions a real per-workspace environment instead,
-    which is what the old arrangement was a poor substitute for.
-    """
-    env = dict(os.environ)
-    if agent_dir is not None:
-        env["PI_CODING_AGENT_DIR"] = str(agent_dir)
-    else:
-        env.pop("PI_CODING_AGENT_DIR", None)
-    if inherit_venv:
-        return env
-    venv = env.pop("VIRTUAL_ENV", None)
-    env.pop("SSH_AUTH_SOCK", None)
-    if venv:
-        # Filtered by prefix rather than exact match: `.venv/bin` is what
-        # lands on PATH, and a future layout could add more than one entry
-        # under the same root.
-        env["PATH"] = os.pathsep.join(
-            entry
-            for entry in env.get("PATH", "").split(os.pathsep)
-            if entry and not Path(entry).is_relative_to(venv)
-        )
-    return env
 
 
 @dataclass(frozen=True)
@@ -511,45 +429,6 @@ def run_suite(
     )
 
 
-def _pi_command(
-    model: str,
-    prompt: str,
-    extensions: tuple[Path, ...] = EXTENSIONS,
-    system_prompt: Path | None = None,
-) -> list[str]:
-    command = [
-        "pi",
-        "--print",
-        "--mode",
-        "json",
-        "--no-session",
-        "--model",
-        model,
-        "--no-extensions",
-    ]
-    for extension in extensions:
-        command += ["--extension", str(extension)]
-    # `--approve` is not an isolation flag: Pi's help defines it as "Trust
-    # project-local files for this run" (cli/args.js:263). It widens trust.
-    # Project-local extensions are excluded by `--no-extensions` above, not
-    # by anything here -- so removing that flag would make a model-written
-    # `.pi/extensions/*.ts` in the workspace loadable.
-    command += [
-        "--no-skills",
-        "--no-prompt-templates",
-        "--no-themes",
-        "--no-context-files",
-        "--approve",
-    ]
-    # Before the prompt, never after: `_conditions` normalizes the *last*
-    # element to "<task-spec>", so a flag appended after the prompt would
-    # be hashed as the prompt and the real prompt recorded verbatim.
-    if system_prompt is not None:
-        command += ["--append-system-prompt", str(system_prompt)]
-    command.append(prompt)
-    return command
-
-
 def _path_digest(path: Path) -> str:
     """SHA-256 of one file, or of a directory tree's contents.
 
@@ -691,7 +570,12 @@ def preflight_model(model: str = "omlx/gemma-4-12B-it-MLX-8bit") -> None:
     check_model_server_alive()
     with prepare_workspace() as workspace:
         result = run_process(
-            _pi_command(model, "Reply with exactly SATYRN."),
+            # EXTENSIONS passed explicitly: harness.pi_invocation.pi_command
+            # (imported above as _pi_command) defaults extensions to ()
+            # now that it is a shared module with no suite-specific
+            # extension of its own -- this call needs runner.py's own
+            # hello-world.ts, so it can no longer rely on the old default.
+            _pi_command(model, "Reply with exactly SATYRN.", EXTENSIONS),
             cwd=workspace,
             timeout=60,
             env=pi_env(inherit_venv=True),

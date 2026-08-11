@@ -38,7 +38,7 @@ import harness.workload as workload
 from harness.liveness import check_model_server_alive
 from harness.processes import run_process
 from harness.reconstruction import Reconstruction, added_source_lines, contract_hash, signals
-from harness.runner import _pi_command, pi_env
+from harness.pi_invocation import pi_command, pi_env
 
 INSTRUCTION = """\
 You cannot read any files. You have no tools. Answer only from the document below.
@@ -59,8 +59,8 @@ def _fenced(text: str) -> str:
 
 
 def _reply(model: str, prompt: str, timeout: float) -> str:
-    argv = _pi_command(model, prompt, ())
-    # Before the prompt, like every other flag: `_pi_command` appends the
+    argv = pi_command(model, prompt, ())
+    # Before the prompt, like every other flag: `pi_command` appends the
     # prompt last on purpose.
     argv = argv[:-1] + ["--no-tools"] + argv[-1:]
     child = run_process(argv, cwd=Path.cwd(), timeout=timeout, env=pi_env())

@@ -27,7 +27,7 @@ from pathlib import Path
 
 from harness.liveness import check_model_server_alive
 from harness.processes import run_process
-from harness.runner import _pi_command, pi_env
+from harness.pi_invocation import pi_command, pi_env
 from harness.screen import AUTHOR_EXTENSION
 
 # A contract locates and bounds; it does not implement. These are the
@@ -172,7 +172,7 @@ def author_one(task: str, args: argparse.Namespace) -> int:
 
     # read only: no bash, no edit, no write. The author cannot go looking
     # and cannot modify the tree it is describing.
-    argv_pi = _pi_command(args.model, prompt, (AUTHOR_EXTENSION,))
+    argv_pi = pi_command(args.model, prompt, (AUTHOR_EXTENSION,))
     argv_pi = argv_pi[:-1] + ["--tools", "read"] + argv_pi[-1:]
 
     started = time.monotonic()
