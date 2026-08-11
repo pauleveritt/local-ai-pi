@@ -11,7 +11,7 @@ import {
 	renderContract,
 	type HandoffContract,
 } from "./handoff-contract";
-import { emitPromptTelemetry, promptFromArgv } from "./implementer";
+import implementer, { emitPromptTelemetry, promptFromArgv } from "./implementer";
 import { ImplementerPolicy } from "./implementer-policy";
 import { targetOf } from "./tool-target";
 import {
@@ -132,30 +132,77 @@ describe("child tool telemetry", () => {
 	});
 });
 
-describe("implementer guard wiring", () => {
-	// createPreserveSymbols() itself is pinned by extensions/guards/guards.test.ts;
-	// what's new here is that implementer.ts actually calls it. No live Pi
-	// harness runs in a unit test, so this follows the same source-reading
-	// convention the rest of this describe block already uses for wiring
-	// that can't be exercised any other way here.
+describe("implementer: the mutation engine is the sole gate on edit", () => {
+	// The contract-blind preserve-symbols guard used to run ahead of
+	// MutationEngine.proposeEdits() in the tool_call handler and had no way
+	// to see HandoffContract.removableSymbols, so it refused a
+	// contract-authorized rename before the engine -- the only place that
+	// check is actually contract-aware -- ever ran (2026-08-11 distribution
+	// review). Removed rather than made contract-aware: the guard's own
+	// docstring states it must never consult the contract, and the engine
+	// already does everything the guard did plus the cases it couldn't see
+	// (removableSymbols, cross-file moves).
 	const source = fs.readFileSync(new URL("./implementer.ts", import.meta.url), "utf8");
 
-	test("imports and instantiates the preserve-symbols guard", () => {
-		expect(source).toContain('import { createPreserveSymbols } from "../guards/preserve-symbols"');
-		expect(source).toContain("const preserveSymbols = createPreserveSymbols()");
+	test("no pre-edit guard is imported or wired ahead of the engine", () => {
+		expect(source).not.toContain("preserve-symbols");
+		expect(source).not.toContain("createPreserveSymbols");
 	});
 
-	test("the tool_call handler consults it and blocks on a hit", () => {
-		const handlerStart = source.indexOf('pi.on("tool_call"');
-		expect(handlerStart).toBeGreaterThan(-1);
-		const inspectIndex = source.indexOf("preserveSymbols.inspect(call)", handlerStart);
-		expect(inspectIndex).toBeGreaterThan(handlerStart);
-		// Its own block: true must reach the model, not just be computed and
-		// discarded -- checked structurally, the same way this file's other
-		// wiring tests avoid a single substring match that could be
-		// satisfied by unrelated code elsewhere in the handler.
-		const afterInspect = source.slice(inspectIndex, inspectIndex + 300);
-		expect(afterInspect).toContain("block: true");
+	test("a contract-authorized rename survives through the real tool_call and registered edit path", async () => {
+		const originalCwd = process.cwd();
+		const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "satyrn-implementer-"));
+		fs.mkdirSync(path.join(cwd, "src"));
+		// Python `def` syntax deliberately -- preserve-symbols.ts's SYMBOL_PATTERNS
+		// only recognize def/class/route decorators (this cohort's Flask/svcs
+		// workloads), so a TS-syntax fixture would never exercise the guard's
+		// detection at all and this test would pass for the wrong reason.
+		const before = "def old_name():\n    return 1\n";
+		fs.writeFileSync(path.join(cwd, "src/feature.py"), before);
+
+		const contract: HandoffContract = {
+			...CONTRACT,
+			writableFiles: [{ path: "src/feature.py" }],
+			removableSymbols: ["old_name"],
+		};
+		process.env.SATYRN_HANDOFF_CONTRACT = JSON.stringify(contract);
+		process.env.SATYRN_FILE_BASELINES = JSON.stringify([
+			{ path: "src/feature.py", state: "present", sha256: sha256(before), mode: 0o644, lineEnding: "LF" },
+		]);
+		process.chdir(cwd);
+
+		try {
+			const handlers: Record<string, ((event: unknown) => Promise<unknown>)[]> = {};
+			const tools: Record<string, { execute: (id: string, params: unknown) => Promise<{ details?: { operation?: string } }> }> = {};
+			const fakePi = {
+				on(event: string, handler: (event: unknown) => Promise<unknown>) {
+					(handlers[event] ??= []).push(handler);
+				},
+				registerTool(tool: { name: string; execute: (id: string, params: unknown) => Promise<unknown> }) {
+					tools[tool.name] = tool as (typeof tools)[string];
+				},
+				appendEntry() {},
+			};
+
+			implementer(fakePi as unknown as Parameters<typeof implementer>[0]);
+
+			const editInput = {
+				path: "src/feature.py",
+				edits: [{ oldText: before, newText: "def new_name():\n    return 1\n" }],
+			};
+			const decision = await handlers["tool_call"][0]({ toolName: "edit", input: editInput });
+			// No pre-edit guard left to refuse this ahead of the engine.
+			expect(decision).toBeUndefined();
+
+			const result = await tools.edit.execute("call-1", editInput);
+			expect(result.details?.operation).toBe("reconcile");
+			expect(fs.readFileSync(path.join(cwd, "src/feature.py"), "utf8")).toContain("new_name");
+		} finally {
+			process.chdir(originalCwd);
+			delete process.env.SATYRN_HANDOFF_CONTRACT;
+			delete process.env.SATYRN_FILE_BASELINES;
+			fs.rmSync(cwd, { recursive: true, force: true });
+		}
 	});
 });
 
