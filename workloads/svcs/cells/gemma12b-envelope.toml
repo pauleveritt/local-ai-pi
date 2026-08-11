@@ -1,0 +1,23 @@
+# The roadmap's actual Cycle 3 executor, run for the first time tonight.
+# `gemma12b-probe.toml` names the arm every existing gemma number comes
+# from and says plainly it is not this. This is: read,write only, the
+# 16-turn/30-tool caps that mirror the engine's real implementer child,
+# no execution tool. Every number under this cell is the first honest
+# answer to "does the exact envelope work on real work."
+name = "gemma12b-envelope"
+description = """
+Gemma 4 12B under the exact coherent envelope: read,write only, 16 turns,
+30 tool calls, no shell. This is the behavioral control the roadmap
+defines and Cycle 3 has never actually measured -- every prior gemma
+number used probe budgets (60/150) and read,bash,edit,write instead.
+"""
+
+[pinned]
+model = "omlx/gemma-4-12B-it-MLX-8bit"
+tools = "read,write"
+extensions = "envelope-cap.ts"
+extensions_sha256 = "b7455133f3be8c2661b0716f8624e86d4b6def84dec4eb2b74217fc55467f4f3"
+wall_clock_seconds = "900.0"
+max_tokens = "8192"
+context_window = "80000"
+base_url = "http://127.0.0.1:8001/v1"

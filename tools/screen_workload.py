@@ -21,7 +21,66 @@ import harness.screen as screen
 import harness.workload as workload
 import harness.workspace as workspace
 from harness.liveness import check_model_server_alive
+from harness.reconstruction import contract_hash
 from harness.runner import DEFAULT_MODEL
+
+
+def contract_admission(
+    task_ids: Sequence[str], contract_draft_dir: Path, probe_dir: Path
+) -> str:
+    """Refuse-or-empty for the contract arm's gate, as a testable string.
+
+    Empty string means every drafted task is clean and bound to a
+    current probe result. Anything else is the exact refusal message
+    `main` raises, so this function carries the whole decision and
+    `main` only has to act on it.
+    """
+    unmeasured, stale, leaking = [], [], {}
+    for task_id in task_ids:
+        draft = contract_draft_dir / f"{task_id}.md"
+        if not draft.is_file():
+            continue
+        result = probe_dir / f"{task_id}.json"
+        if not result.is_file():
+            unmeasured.append(task_id)
+            continue
+        payload = json.loads(result.read_text())
+        # Bound to the exact bytes the probe scored, not just "a probe
+        # result exists for this task name". A re-authoring loop that
+        # overwrites a draft in place, or resumes into a directory
+        # holding a mix of old and new attempts, must not let a stale
+        # clean verdict pass a new, unmeasured draft.
+        if contract_hash(draft.read_text()) != payload.get("contract_sha256"):
+            stale.append(task_id)
+            continue
+        leaked = payload.get("leaked", [])
+        if leaked:
+            leaking[task_id] = leaked
+
+    if not (unmeasured or stale or leaking):
+        return ""
+    report = []
+    if leaking:
+        report.append(
+            f"{len(leaking)} contract(s) disclose the fix:\n"
+            + "\n".join(f"  {t}: {', '.join(sig[:4])}" for t, sig in sorted(leaking.items()))
+        )
+    if stale:
+        report.append(
+            f"{len(stale)} contract(s) changed since their leak-probe result "
+            f"was recorded: {', '.join(stale)}\n"
+            "  Re-run tools.leak_probe against the current draft. A hash "
+            "mismatch means the probe scored different bytes than the ones "
+            "about to enter this arm."
+        )
+    if unmeasured:
+        report.append(
+            f"{len(unmeasured)} contract(s) have no leak-probe result in "
+            f"{probe_dir}: {', '.join(unmeasured)}\n"
+            "  Run tools.leak_probe first. An unmeasured contract is not a "
+            "clean one."
+        )
+    return "\n\n".join(report)
 
 
 def reference_for(task_id: str, root: Path = Path("workloads/svcs/reference-patches")):
@@ -170,34 +229,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         # A missing probe result is refusal, not a pass. Unmeasured is the
         # state every contaminated arm has been in.
         probe_dir = args.probe_dir or (args.contract_draft_dir / "probe")
-        unmeasured, leaking = [], {}
-        for task_id in task_ids:
-            if not (args.contract_draft_dir / f"{task_id}.md").is_file():
-                continue
-            result = probe_dir / f"{task_id}.json"
-            if not result.is_file():
-                unmeasured.append(task_id)
-                continue
-            leaked = json.loads(result.read_text()).get("leaked", [])
-            if leaked:
-                leaking[task_id] = leaked
-        if unmeasured or leaking:
-            report = []
-            if leaking:
-                report.append(
-                    f"{len(leaking)} contract(s) disclose the fix:\n"
-                    + "\n".join(
-                        f"  {t}: {', '.join(sig[:4])}" for t, sig in sorted(leaking.items())
-                    )
-                )
-            if unmeasured:
-                report.append(
-                    f"{len(unmeasured)} contract(s) have no leak-probe result in "
-                    f"{probe_dir}: {', '.join(unmeasured)}\n"
-                    "  Run tools.leak_probe first. An unmeasured contract is not a "
-                    "clean one."
-                )
-            raise SystemExit("\n\n".join(report))
+        refusal = contract_admission(task_ids, args.contract_draft_dir, probe_dir)
+        if refusal:
+            raise SystemExit(refusal)
 
     clone = workload.ensure_clone(cohort.upstream, args.cache)
     env = workload.ensure_cohort_env(cohort.env_dir, args.cache)

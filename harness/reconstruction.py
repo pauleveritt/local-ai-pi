@@ -29,6 +29,7 @@ receiver dropped: both reduce to `_services.values`.
 """
 
 import ast
+import hashlib
 from dataclasses import dataclass
 
 
@@ -140,6 +141,15 @@ class Reconstruction:
     target: tuple[str, ...]
     from_brief: tuple[str, ...]
     from_contract: tuple[str, ...]
+    contract_sha256: str = ""
+    """Hash of the contract text this result was measured against.
+
+    An unattended re-authoring loop that overwrites a draft in place, or
+    resumes into a directory holding a mix of old and new drafts, can
+    silently point a screen at a probe result for bytes that no longer
+    exist. `screen_workload`'s gate checks this against the draft on
+    disk before trusting a clean verdict -- an unmeasured contract and a
+    stale-measured one must both refuse, not just the first."""
 
     @property
     def leaked(self) -> tuple[str, ...]:
@@ -172,6 +182,7 @@ class Reconstruction:
     def payload(self) -> dict[str, object]:
         return {
             "task_id": self.task_id,
+            "contract_sha256": self.contract_sha256,
             "target_signals": list(self.target),
             "reconstructed_from_brief": list(self.from_brief),
             "reconstructed_from_contract": list(self.from_contract),
@@ -180,6 +191,11 @@ class Reconstruction:
             "ceiling": round(self.ceiling, 3),
             "margin": round(self.margin, 3),
         }
+
+
+def contract_hash(text: str) -> str:
+    """The hash a probe result is bound to. Same normalization everywhere it's computed."""
+    return hashlib.sha256(text.strip().encode()).hexdigest()
 
 
 def _share(found: tuple[str, ...], target: tuple[str, ...]) -> float:

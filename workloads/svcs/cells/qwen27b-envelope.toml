@@ -1,0 +1,21 @@
+# Same arm as gemma12b-envelope, 27B in place of 12B. Written for the
+# overnight spike's conditional stage 8 -- broadening the exact-envelope
+# baseline across the frontier once gemma's own envelope run is in --
+# not authored blind at run time.
+name = "qwen27b-envelope"
+description = """
+Qwen 3.6 27B under the exact coherent envelope: read,write only, 16
+turns, 30 tool calls, no shell. qwen27b's only prior number, 6/8, is
+n=1 under probe budgets; this is the first envelope-config measurement
+for this model.
+"""
+
+[pinned]
+model = "omlx/Qwen3.6-27B-8bit"
+tools = "read,write"
+extensions = "envelope-cap.ts"
+extensions_sha256 = "b7455133f3be8c2661b0716f8624e86d4b6def84dec4eb2b74217fc55467f4f3"
+wall_clock_seconds = "900.0"
+max_tokens = "32768"
+context_window = "80000"
+base_url = "http://127.0.0.1:8001/v1"

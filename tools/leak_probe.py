@@ -37,7 +37,7 @@ from pathlib import Path
 import harness.workload as workload
 from harness.liveness import check_model_server_alive
 from harness.processes import run_process
-from harness.reconstruction import Reconstruction, added_source_lines, signals
+from harness.reconstruction import Reconstruction, added_source_lines, contract_hash, signals
 from harness.runner import _pi_command, pi_env
 
 INSTRUCTION = """\
@@ -121,7 +121,9 @@ def probe_task(
         ]
         seen[name] = _majority(drawn, threshold)
         print(f"  {task_id:26} {name:9} {len(seen[name]):3}/{len(target)}", flush=True)
-    return Reconstruction(task_id, target, seen["brief"], seen["contract"])
+    return Reconstruction(
+        task_id, target, seen["brief"], seen["contract"], contract_hash(contract)
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
