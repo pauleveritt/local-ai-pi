@@ -1,14 +1,25 @@
 {
-  "ceiling": 0.0,
-  "contract_sha256": "9a0943ece478f6566628f48fd40fc3a980fe9ae437f2d51b9e6f0a042e5ccc69",
-  "floor": 0.062,
-  "leaked": [],
-  "margin": 0.938,
-  "reconstructed_from_brief": [
+  "ceiling": 0.188,
+  "contract_sha256": "c0815caff46548461ac79bf8e35d1e161e63b9508742639a553d7d987555cc91",
+  "floor": 0.0,
+  "leaked": [
     "app",
-    "hasattr()"
+    "getattr()",
+    "hasattr()",
+    "import:fastapi.testclient.TestClient",
+    "import:starlette.testclient.TestClient",
+    "state"
   ],
-  "reconstructed_from_contract": [],
+  "margin": 1.0,
+  "reconstructed_from_brief": [],
+  "reconstructed_from_contract": [
+    "app",
+    "getattr()",
+    "hasattr()",
+    "import:fastapi.testclient.TestClient",
+    "import:starlette.testclient.TestClient",
+    "state"
+  ],
   "target_signals": [
     "Depends()",
     "JSONResponse()",

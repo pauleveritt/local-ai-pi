@@ -1,0 +1,17 @@
+{
+  "autowire": {
+    "attempts": 0,
+    "leaked": [],
+    "status": "reused-existing"
+  },
+  "fastapi-get-registry": {
+    "attempts": 3,
+    "leaked": [],
+    "status": "cleaned-after-N"
+  },
+  "flask-extensions": {
+    "attempts": 0,
+    "leaked": [],
+    "status": "reused-existing"
+  }
+}

@@ -214,6 +214,30 @@ result and differs from this file's own 29,684-byte figure for a different
 task's staged copy; both are cited as read, neither is asserted as *the*
 canonical file size, since the base commit differs per task.
 
+## Stage 4 result, and a probe-reliability caveat worth carrying forward
+
+All 3 admitted: `flask-extensions` and `autowire` re-probed clean without
+re-authoring (their `.md` bytes are unchanged from the original sweep --
+confirmed for `flask-extensions` by mtime; `autowire`'s mtime moved only
+because `_promote()` writes the draft back even when source and
+destination are the same file, a harmless but needless self-overwrite).
+`fastapi-get-registry` needed all 3 retry attempts before cleaning up, and
+its final draft was read directly -- a real, well-formed locating contract.
+
+**Worth stating plainly: both re-probed-clean tasks had leaked signals on
+the very first (pre-hash-binding) probe run of the same bytes** --
+`flask-extensions` leaked 1, `autowire` leaked 7. Nothing about the draft
+changed between runs. The leak probe samples 3 times per condition with a
+2-of-3 agreement threshold specifically because "a single sample is a coin
+flip on a small model" (`harness/reconstruction.py`'s own docstring) -- but
+a full leaked-to-clean flip on identical input is a larger swing than that
+design note anticipates being reported as a settled verdict. This was not
+investigated further tonight (re-running costs real model time without
+resolving what is likely inherent sampling variance), but any report
+citing these two tasks as "clean" should carry this caveat, and a higher
+sample count is worth considering before the probe is trusted as a hard
+gate rather than a screen.
+
 ## Completion
 
 **Complete. 24/24 attempts, 0 accepted, run exited cleanly (no infra-abort,

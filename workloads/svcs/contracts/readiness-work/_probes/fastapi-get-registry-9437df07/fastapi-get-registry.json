@@ -1,14 +1,22 @@
 {
-  "ceiling": 0.0,
-  "contract_sha256": "9a0943ece478f6566628f48fd40fc3a980fe9ae437f2d51b9e6f0a042e5ccc69",
+  "ceiling": 0.125,
+  "contract_sha256": "9437df07273771f914c6e3ba4a495bce2728e419fee6a6ccc4b2e80e4d82b080",
   "floor": 0.062,
-  "leaked": [],
+  "leaked": [
+    "getattr()",
+    "registry"
+  ],
   "margin": 0.938,
   "reconstructed_from_brief": [
     "app",
     "hasattr()"
   ],
-  "reconstructed_from_contract": [],
+  "reconstructed_from_contract": [
+    "app",
+    "getattr()",
+    "hasattr()",
+    "registry"
+  ],
   "target_signals": [
     "Depends()",
     "JSONResponse()",
