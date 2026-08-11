@@ -29,6 +29,7 @@ def _args(**overrides) -> argparse.Namespace:
         contract_draft_dir=None,
         probe_dir=None,
         probe=False,
+        proposal_limit=False,
         guards=False,
         cell=Path("workloads/svcs/cells/gemma12b-envelope.toml"),
     )

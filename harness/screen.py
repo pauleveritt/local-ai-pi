@@ -843,7 +843,7 @@ def screen_task(
     timeout: float = 900.0,
     suite_timeout: float = 300.0,
     executor_env_source: Path | None = None,
-    extensions: tuple[Path, ...] = (ENVELOPE_EXTENSION, PROPOSAL_LIMIT_EXTENSION),
+    extensions: tuple[Path, ...] = (ENVELOPE_EXTENSION,),
     test_paths: tuple[str, ...] = (),
     reference_patch: str | None = None,
     appended_prompt: str = "",

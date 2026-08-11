@@ -48,6 +48,8 @@ def _command(args: argparse.Namespace, task: str, out: Path) -> list[str]:
         command += ["--probe-dir", str(args.probe_dir)]
     if args.guards:
         command += ["--guards"]
+    if args.proposal_limit:
+        command += ["--proposal-limit"]
     if args.cell is not None:
         command += ["--cell", str(args.cell)]
     return command
@@ -77,6 +79,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         ),
     )
     parser.add_argument("--guards", action="store_true")
+    parser.add_argument("--proposal-limit", action="store_true")
     parser.add_argument("--cell", type=Path, default=None)
     parser.add_argument(
         "--max-consecutive-failures",

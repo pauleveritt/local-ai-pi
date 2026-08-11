@@ -140,6 +140,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--proposal-limit",
+        action="store_true",
+        help=(
+            "load the 32KB write-size refusal alongside the envelope cap. "
+            "Opt-in, not default: stage 2 and stage 5 ran without it, and "
+            "auto-including it would silently stop `gemma12b-envelope.toml` "
+            "from reproducing the arm those results were recorded under. "
+            "Use `gemma12b-envelope-v2.toml` for this"
+        ),
+    )
+    parser.add_argument(
         "--cell",
         type=Path,
         default=None,
@@ -197,11 +208,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             "every attempt from such a run must be audited before it is believed."
         )
 
-    extensions = (
-        (screen.PROBE_EXTENSION,)
-        if args.probe
-        else (screen.ENVELOPE_EXTENSION, screen.PROPOSAL_LIMIT_EXTENSION)
-    )
+    extensions = (screen.PROBE_EXTENSION,) if args.probe else (screen.ENVELOPE_EXTENSION,)
+    if args.proposal_limit:
+        extensions += (screen.PROPOSAL_LIMIT_EXTENSION,)
     if args.guards:
         extensions += (screen.GUARD_EXTENSION,)
     if args.cell is not None:

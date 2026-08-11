@@ -1,0 +1,23 @@
+# NOT the cell stage 2 or stage 5 ran under. Adds proposal-limit.ts
+# (32KB write-size refusal, mirroring the real product's
+# MAX_PROPOSAL_BYTES) after those runs completed. An external review
+# caught that `gemma12b-envelope.toml` had been mutated in place to add
+# this extension -- rerunning that name today would silently no longer
+# reproduce the 0/24 and 0/9 results filed under it. `gemma12b-envelope.toml`
+# is restored to exactly what it was; this is the separately-named cell
+# for anything that wants the write-size refusal going forward.
+name = "gemma12b-envelope-v2"
+description = """
+gemma12b-envelope plus proposal-limit.ts. No results have been recorded
+under this cell yet.
+"""
+
+[pinned]
+model = "omlx/gemma-4-12B-it-MLX-8bit"
+tools = "read,write"
+extensions = "envelope-cap.ts,proposal-limit.ts"
+extensions_sha256 = "62a97f970e3c5b81b521087e60a873791c858f11b9a3f3f32e7d58d9ba27cb9b"
+wall_clock_seconds = "900.0"
+max_tokens = "8192"
+context_window = "80000"
+base_url = "http://127.0.0.1:8001/v1"
