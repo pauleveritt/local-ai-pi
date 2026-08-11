@@ -75,7 +75,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--validation",
         help="shell-quoted command run inside the candidate worktree; "
-        "required unless --contract-task supplies it (the task's oracle command)",
+        "required unless --contract-task supplies it (the task's preservation "
+        "command -- the same one the child's contract names as what the "
+        "parent will run). The task's oracle command, if any, is exposed "
+        "only informationally in the receipt: running it here would require "
+        "overlaying hidden target test files this tool has no access to, and "
+        "reporting an unoverlaid run as an oracle result would be misleading.",
     )
     parser.add_argument(
         "--writable", action="append", default=None,
@@ -157,7 +162,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         handoff = build_typed_handoff(args.contract_task, args.repo)
         prompt = _render_contract_prompt(handoff.contract)
         if args.validation is None:
-            args.validation = shlex.join(handoff.oracle_command)
+            # The same command the contract itself tells the child the
+            # parent will run (handoff.contract["validation"]), not
+            # handoff.oracle_command: the oracle test files are hidden
+            # target-revision content this tool has no clone to overlay,
+            # so running the oracle command against the plain worktree
+            # would exercise whatever pre-target version of that file
+            # happens to already be there -- silently weaker than an
+            # actual oracle check, and worse, indistinguishable from one
+            # in the receipt.
+            args.validation = str(handoff.contract["validation"])
         if args.writable is None:
             args.writable = list(handoff.writable_glob)
     else:
@@ -232,6 +246,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 2
 
     payload = receipt.payload()
+    if handoff is not None:
+        # Informational only -- not what gated `outcome` above. See
+        # --validation's help text for why this tool does not run it
+        # itself: no clone to overlay the hidden target test files onto.
+        payload["task_oracle_command_unverified"] = list(handoff.oracle_command)
     if args.receipt:
         args.receipt.parent.mkdir(parents=True, exist_ok=True)
         args.receipt.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
@@ -241,6 +260,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"ref:       {receipt.candidate_ref}")
         print(f"commit:    {receipt.candidate_commit}")
         print(f"changed:   {', '.join(receipt.changed_paths)}")
+        if handoff is not None:
+            print(
+                f"note:      validated against the preservation suite only; "
+                f"the task's own oracle command ({' '.join(handoff.oracle_command)}) "
+                "was not run -- this tool has no overlay for its hidden target test files"
+            )
         print(f"\n  git show {receipt.candidate_ref}")
         print(f"  git cherry-pick {receipt.candidate_commit}")
         print(f"  git update-ref -d {receipt.candidate_ref}   # discard")

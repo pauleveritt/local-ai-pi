@@ -75,7 +75,14 @@ function applyEdits(content: string, edits: readonly EditOp[], relative: string)
 		if (count > 1) {
 			throw new MutationRefusal(`An edit's oldText matches ${count} locations; it must be unique.`, { path: relative, oldText, count });
 		}
-		result = result.replace(oldText, newText);
+		// Not `result.replace(oldText, newText)`: `String.replace` treats
+		// `$&`, `$1`, `` $` ``, `$'` in the *replacement* string as
+		// substitution patterns, not literal text. A `newText` containing an
+		// ordinary `$` sequence -- an f-string, a shell variable, a regex
+		// literal, a price in a docstring -- would silently corrupt the
+		// write. `split`/`join` is a literal single substitution, safe here
+		// because `count === 1` was just verified above.
+		result = result.split(oldText).join(newText);
 	}
 	return result;
 }
@@ -197,9 +204,30 @@ export class MutationEngine {
 		this.#removable = new Set(removableSymbols);
 	}
 
-	/** Put every symbol in a written revision on the invocation's ledger. */
+	/** Put every symbol in a freshly created file on the invocation's ledger. */
 	#recordGains(content: string): void {
 		for (const symbol of symbolsIn(content)) this.#gained.add(symbolKey(symbol));
+	}
+
+	/**
+	 * Put only the symbols a reconcile *added* on the ledger -- not every
+	 * symbol the resulting file happens to contain.
+	 *
+	 * Recording the whole post-edit file (what this replaces) let one
+	 * successful, harmless edit disarm the destructive-overwrite check for
+	 * every symbol already in that file for the rest of the invocation: a
+	 * small edit that never touches `home`/`contact` would still mark them
+	 * "gained" because they were present in `next`, and a later fragment
+	 * write dropping them would be excused as if this invocation had put
+	 * them there. That is precisely the failure this engine exists to
+	 * refuse, and precisely the sequence a model that speaks diffs (a
+	 * small `edit`, then a `write`) can produce naturally.
+	 */
+	#recordGainedDiff(before: string, after: string): void {
+		const existing = new Set(symbolsIn(before).map(symbolKey));
+		for (const symbol of symbolsIn(after)) {
+			if (!existing.has(symbolKey(symbol))) this.#gained.add(symbolKey(symbol));
+		}
 	}
 
 	readReceipt(candidate: string): { path: string; sha256: string } {
@@ -319,7 +347,7 @@ export class MutationEngine {
 				{ path: relative, removed: named },
 			);
 		}
-		this.#recordGains(next);
+		this.#recordGainedDiff(before, next);
 		this.#atomicWrite(absolute, next, baseline.mode ?? (stat.mode & 0o777));
 		return { operation: "reconcile", path: relative, sha256: sha256(next), changedLines: changedLines(before, next), patch: patch(relative, before, next) };
 	}

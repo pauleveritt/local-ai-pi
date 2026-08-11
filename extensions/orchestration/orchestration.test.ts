@@ -394,4 +394,51 @@ describe("proposeEdits: diff-shaped mutation", () => {
 		expect(() => engine.proposeEdits("hugepayload.py", receipt.sha256, [{ oldText: "x = 1", newText: huge }]))
 			.toThrow(/proposal limit/);
 	});
+
+	test("a newText containing a dollar substitution pattern is written literally", () => {
+		// String.prototype.replace treats $&, $1, $`, $' in its *replacement*
+		// argument as substitution patterns, not literal text. A naive
+		// `content.replace(oldText, newText)` would silently mangle any
+		// newText containing an ordinary `$` sequence -- an f-string, a
+		// shell variable, a regex literal, a price in a docstring.
+		fs.writeFileSync(path.join(cwd, "dollar.py"), 'x = 1\n');
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["dollar.py"]));
+		const receipt = engine.readReceipt("dollar.py");
+		engine.proposeEdits("dollar.py", receipt.sha256, [
+			{ oldText: "x = 1", newText: 'x = f"{cost}$"  # regex: $&, $1, $`, $\'' },
+		]);
+		expect(fs.readFileSync(path.join(cwd, "dollar.py"), "utf8"))
+			.toBe('x = f"{cost}$"  # regex: $&, $1, $`, $\'\n');
+	});
+
+	test("a harmless successful edit does not disarm the destructive-overwrite check for symbols already in the file", () => {
+		// The bug this guards against: #recordGains used to record every
+		// symbol in the *post-edit file*, not just symbols the edit added.
+		// One successful edit that never touches `home`/`contact` would
+		// still mark them "gained" (present in `next`), and a later
+		// fragment write dropping them would be excused as if this
+		// invocation had put them there -- exactly the failure this engine
+		// exists to refuse, and exactly the sequence a model that speaks
+		// diffs (a small edit, then a fragment write) produces naturally.
+		fs.writeFileSync(
+			path.join(cwd, "guard.py"),
+			'def home():\n    return "home"\n\ndef about():\n    return "about"\n\ndef contact():\n    return "contact"\n',
+		);
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["guard.py"]));
+
+		// A harmless edit: touches only `about`'s body, adds no symbol.
+		const first = engine.readReceipt("guard.py");
+		engine.proposeEdits("guard.py", first.sha256, [
+			{ oldText: 'return "about"', newText: 'return "about page"' },
+		]);
+
+		// A fragment write dropping `home` and `contact`, neither declared
+		// removable, must still be refused -- the earlier edit must not
+		// have put them on the gained ledger.
+		const second = engine.readReceipt("guard.py");
+		expect(() => engine.propose("guard.py", second.sha256, 'def about():\n    return "about page"\n'))
+			.toThrow(MutationRefusal);
+		expect(fs.readFileSync(path.join(cwd, "guard.py"), "utf8")).toContain("def home");
+		expect(fs.readFileSync(path.join(cwd, "guard.py"), "utf8")).toContain("def contact");
+	});
 });
