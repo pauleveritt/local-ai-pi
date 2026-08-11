@@ -16,49 +16,57 @@ over-designed, over-engineered, or too large to absorb.
 
 ## Status
 
-**Phases 1–5 are complete.** The engine runs a small local model against a
-real task and decides hermetically whether it succeeded; it has survived
-deliberate attacks on its own grading, generalizes to a second workload, and
-can now express *"this run had something applied to it"* and measure it.
+**Usable now: a bounded implementer that turns a task into a reviewable
+git ref, and a loop-breaker extension you can install standalone.** Neither
+is a general coding agent — see "What remains experimental" below.
 
-**Phase 5's headline is not the one it set out to prove, which is the point
-of measuring.** Two sentences of prompt — *the workspace is empty* and *the
-stack is FastAPI and Jinja2* — take the user-story suite from 0/16 to 15/16.
-An orchestrator delegating to a specialist scored 13/16 on the same suite, so
-its contribution is indistinguishable from zero here. The most transferable
-finding is about what prompt text can do at all: across five interventions,
-**the three that supplied a fact the model lacked worked, and the two that
-supplied a rule of conduct did not** — including one true, checkable,
-one-clause sentence that changed nothing.
+The current product path: a task manifest plus either a brief or a
+locating contract becomes a typed handoff; a Pi child restricted to
+`read`/`write`/`edit` implements it under a revision-checked mutation
+engine that refuses undeclared destructive edits; the result is validated
+against the task's own preservation command and either committed to a
+`refs/satyrn/candidates/<task>` ref or discarded with a receipt. Full trace
+of every stage: [`docs/architecture.md`](docs/architecture.md).
 
-Two published figures were retracted during that phase, both recorded with
-banners rather than edited away. See [the roadmap](ROADMAP.md) for what's
-planned, what's parked, and why.
+**Evidence.** A pre-registered, 64-attempt confirmatory comparison
+(2026-08-11) found that a complete, human-authored locating contract beats
+a concise behavior-only brief on one of four tasks (`stringified-
+annotations`, 8/8 vs. 3/8 oracle-passed), with the other three tied between
+arms — two at ceiling, one at floor. Full result, intervals, and what it
+does and does not establish:
+[`docs/superpowers/research/2026-08-11-phase7-cycle7-confirmatory-result.md`](docs/superpowers/research/2026-08-11-phase7-cycle7-confirmatory-result.md).
+Every claim's evidence category (pre-registration, pilot, confirmatory,
+correction, raw archive) is indexed at
+[`docs/evidence-index.md`](docs/evidence-index.md).
 
-**There is something installable.** The
-[loop breaker](docs/loop-breaker.md) is a small Pi extension that refuses a
-tool call the model has already made, unchanged, several times in a row. It
-came out of a recorded run of 261 turns, 245 of them the identical `ls -R`
-against an empty workspace. Live in a 16-run batch it refused 12 calls across
-two runs, and both of those runs still passed. One file, copied into place —
-and useful outside this project. (An earlier replay-based false-positive
-figure is [withdrawn](docs/loop-breaker.md); the live result is what stands.)
+**What remains experimental.** The typed-contract bridge
+(`harness/typed_contract.py`) is scoped to exactly four svcs tasks on
+purpose, and refuses anything else at the command line rather than
+guessing — this is a smoke-tested bridge, not general contract authoring
+or a planner. `autowire` sits at a genuine 0/8 capability ceiling in the
+confirmatory batch regardless of arm; that's a real limitation, not a
+harness defect (traced to the model's own import-structure and signature-
+handling choices, not a validation-gate bug).
+
+**Also installable standalone: the [loop breaker](docs/loop-breaker.md).**
+A small Pi extension that refuses a tool call the model has already made,
+unchanged, several times in a row. It came out of a recorded run of 261
+turns, 245 of them the identical `ls -R` against an empty workspace. One
+file, copied into place, useful outside this project entirely.
 
 ## Start here
 
 | If you want to… | Read |
 |---|---|
-| Understand why this project exists | [`BRIEF.md`](BRIEF.md) — the whole context, in one file |
-| Use the Pi extension in your own work | [below](#using-the-extension-in-your-own-python-work), then [`docs/loop-breaker.md`](docs/loop-breaker.md) |
-| Run an eval yourself | [below](#running-an-eval) |
+| See the supported path end to end | [`docs/architecture.md`](docs/architecture.md) |
 | Get your machine set up | [`docs/setup.md`](docs/setup.md) |
-| Understand how we work | [`docs/sdd.md`](docs/sdd.md) |
-| See what's planned | [`ROADMAP.md`](ROADMAP.md) |
-| Read the design record | [`docs/superpowers/index.md`](docs/superpowers/index.md) |
-
-`BRIEF.md` is the single most valuable thing to read first. It is
-deliberately short, it states the values this project is run by, and it
-names the trap we are avoiding.
+| Contribute — test commands, starter tasks | [`docs/contributing.md`](docs/contributing.md) |
+| Check what evidence backs a claim | [`docs/evidence-index.md`](docs/evidence-index.md) |
+| Use the loop-breaker extension standalone | [below](#using-the-loop-breaker-extension-in-your-own-python-work) |
+| Run one attempt against your own repository | [below](#running-one-attempt-against-your-own-repository) |
+| Understand the original project bootstrap (historical) | [`BRIEF.md`](BRIEF.md) |
+| See phase/cycle planning and the concept budget (historical, in-progress) | [`ROADMAP.md`](ROADMAP.md) |
+| Read the full cycle-by-cycle design record | [`docs/superpowers/index.md`](docs/superpowers/index.md) |
 
 ## Quick start
 
@@ -68,10 +76,10 @@ uv run pytest
 ```
 
 Most tests are hermetic and need nothing but Python. One live-model test is
-explicitly opt-in, so a green run on a fresh machine is expected. Full setup,
-including the model server, is in [`docs/setup.md`](docs/setup.md).
+explicitly opt-in, so a green run on a fresh machine is expected. Full
+setup, including the model server, is in [`docs/setup.md`](docs/setup.md).
 
-## Using the extension in your own Python work
+## Using the loop-breaker extension in your own Python work
 
 **This half needs nothing from this repository except one file.** No harness,
 no eval, no Python environment — the loop breaker is a Pi extension, and Pi
@@ -127,7 +135,9 @@ uv run python -m tools.deliver_candidate --repo . --task add-iter --prompt-file 
 
 Three things must be true first, and only the third announces itself:
 
-1. **Pi is installed** — `pi --version` answers.
+1. **Pi is installed** — `pi --version` answers (this repository pins
+   0.84.1; a different version is not refused for your own repository, only
+   for reproducing this project's own measured runs).
 2. **`--model` names a model your Pi can resolve.** It reads *your*
    `~/.pi/agent`, not this repo's pinned one; pass `--agent-dir` to override.
 3. **The server behind that model is up.** A dead server does not make Pi
@@ -147,82 +157,13 @@ Success prints the ref, and inspecting or discarding it is ordinary git:
 git show refs/satyrn/candidates/add-iter
 ```
 
-## Running an eval
-
-This is the other half — measuring whether a technique actually helped,
-rather than arguing about it. It needs the full setup: `uv sync`, Pi
-0.83.0, and a local model server on `127.0.0.1:8001`. Work through
-[`docs/setup.md`](docs/setup.md) first and confirm the liveness check
-passes.
-
-**One run**, to see the machinery work end to end:
-
-```bash
-uv run python -c "
-from harness.runner import run_suite, AGENTCLINIC_PHASE_1_USER_STORY
-result = run_suite(AGENTCLINIC_PHASE_1_USER_STORY)
-print('accepted:', result.grade.accepted)
-"
-```
-
-**A batch**, which is how every number this project publishes was produced.
-`run_batch` appends one JSON record per completed run and **resumes by
-counting valid lines**, so an interrupted batch continues where it stopped:
-
-```bash
-uv run python -c "
-import pathlib
-from harness.runner import run_batch, AGENTCLINIC_PHASE_1_USER_STORY
-results = run_batch(
-    pathlib.Path.home() / 'evidence' / 'my-first-batch.jsonl',
-    suite=AGENTCLINIC_PHASE_1_USER_STORY,
-    target=16,
-)
-print(f'{sum(r.accepted for r in results)}/{len(results)} accepted')
-"
-```
-
-Three suites ship: `AGENTCLINIC_PHASE_1` (detailed roadmap — saturated, so
-only cost moves), `AGENTCLINIC_PHASE_1_USER_STORY` (where benefit is
-visible), and `DURATION`.
-
-**To measure an improvement**, pass one. An `Improvement` is a named,
-digested bundle of prompt, seeded files and extensions, and the harness
-records which one a run used:
-
-```python
-from harness.runner import run_batch, AGENTCLINIC_PHASE_1_USER_STORY, tech_stack_only
-
-run_batch(path, suite=AGENTCLINIC_PHASE_1_USER_STORY,
-          target=16, improvement=tech_stack_only())
-```
-
-Then run the same suite *without* it for your baseline, and compare by hand.
-Comparison is deliberately not automated.
-
-### Three things that will bite you
-
-**Batches are single-threaded and slow.** Measured on a 12B model, a 16-run
-batch took 26 minutes without delegation and 49 minutes with it. Nothing
-about this is interactive.
-
-**A commit aborts a running batch.** `harness_revision` is part of
-`RunConditions`, so committing mid-batch makes the next run's conditions
-differ and `run_batch` raises `run conditions changed during batch`.
-Completed runs are already in the checkpoint and are not lost — the batch
-resumes once conditions match again, which in practice means finishing it
-before you commit. **Editing files mid-batch is fine**; only committing
-moves the revision.
-
-**Wall-clock numbers are not currently trustworthy.** Arms run as contiguous
-blocks, so any drift in machine load lands entirely on one arm and looks
-like an arm effect — we withdrew a published finding over exactly this.
-Counts (turns, `context_processed`, tool calls) are unaffected. Don't run
-anything else heavy on the machine during a batch.
-
-To read what a batch produced, see
-[`docs/superpowers/research/`](docs/superpowers/research/) — each cycle's
-record names its checkpoint and the script that recomputes its figures.
+**This is the bare-envelope form** — your own prompt, your own validation
+command, no typed contract. For the bounded-implementer path this project
+actually has evidence for (`--contract-task`, `--cell`, the mutation engine,
+the four-task typed bridge), see
+[`docs/architecture.md`](docs/architecture.md); `tools/run_cycle7_confirmatory_batch.py`
+is a checked-in, runnable example driving it end to end against a pinned
+cell.
 
 ## How this project is built
 
@@ -230,37 +171,19 @@ Every feature goes through **spec-driven development**: brainstorm with the
 owner, write a design spec, write an implementation plan, then implement it
 test-first. The specs and plans are committed, not thrown away, so you can
 read *why* code looks the way it does — see
-[`docs/sdd.md`](docs/sdd.md).
-
-Four disciplines are worth knowing before you contribute, because they
-shape review:
-
-**Concept budget.** Every piece of jargon is a cost against a volunteer's
-ability to hold the design in mind. `ROADMAP.md` keeps a table of every term
-the project spends, checked at the end of each cycle. If a doc needs a term
-a 5-hour-a-week contributor can't absorb, the term goes — not the
-contributor.
-
-**No machinery ahead of the contract it serves.** Build the engine as needs
-in the suites arise. Several genuinely good ideas sit in the Backlog
-specifically because nothing needs them yet.
-
-**Non-vacuity.** A test that passes without testing what it claims is this
-project's recurring hazard, and most of the grading code exists to defeat
-it. Ask of any new test: *what else could make this pass?*
-
-**Verify, don't assert.** Claims get demonstrated, not argued. When a
-review round claimed a security fix worked, we wrote the exploit and ran
-it — it didn't, and the design changed. That norm has caught real bugs
-more than once.
+[`docs/sdd.md`](docs/sdd.md). More on repository conventions and starter
+tasks: [`docs/contributing.md`](docs/contributing.md).
 
 ## Layout
 
 ```
-BRIEF.md            the whole context — read this first
-ROADMAP.md          phases, feature cycles, concept budget, backlog
-harness/            the eval harness
-tests/              its tests, mostly hermetic
-examples/           AgentClinic fixtures and the task spec
-docs/               setup, SDD explainer, and the design record
+BRIEF.md             historical — the original project bootstrap
+ROADMAP.md            historical, still in-progress — phases, cycles, concept budget, backlog
+harness/              the eval harness and the typed-contract bridge
+extensions/           the bounded implementer, mutation engine, and guards (Pi extensions)
+tools/                CLI entry points: deliver_candidate, screen_workload, author_contract, and others
+tests/                Python tests, mostly hermetic
+examples/              AgentClinic fixtures and the task spec
+workloads/             the svcs task cohort, manifests, and (large, evidence-only) mechanism-screen output
+docs/                  architecture, setup, contributing, evidence index, and the design record
 ```

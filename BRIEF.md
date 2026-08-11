@@ -1,6 +1,16 @@
 # Brief: bootstrapping Satyrn Engine
 
-*Read this first. It is the whole context. Nothing else needs importing.*
+> **Historical record, not the current front door.** This is the bootstrap
+> brief from before the bounded-implementer path
+> (`extensions/orchestration/`, the typed-contract bridge, the Cycle 7
+> comparison) existed. It is kept unedited for provenance — the values and
+> the trap it names are still the ones this project runs by. For what's
+> current, start at [`README.md`](README.md),
+> [`docs/architecture.md`](docs/architecture.md), and
+> [`docs/evidence-index.md`](docs/evidence-index.md) instead.
+
+*Read this first if you want the original bootstrap context. Nothing else
+from that period needs importing.*
 
 ## What we're building
 

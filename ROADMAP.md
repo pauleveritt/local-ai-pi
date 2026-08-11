@@ -1,5 +1,12 @@
 # Roadmap
 
+> **Historical and in-progress planning record, not the current front
+> door.** 1,888 lines spanning Phases 1–7; still where phase/cycle planning
+> and the concept budget actually live, but not where a new contributor
+> should start. For what's usable now, start at [`README.md`](README.md);
+> for the supported architecture, [`docs/architecture.md`](docs/architecture.md);
+> for starter tasks, [`docs/contributing.md`](docs/contributing.md).
+
 *Phases group feature cycles. One direction at a time. Tangents go to the
 Backlog, not into the current phase.*
 
