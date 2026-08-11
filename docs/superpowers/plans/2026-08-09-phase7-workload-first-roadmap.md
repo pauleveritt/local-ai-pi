@@ -745,17 +745,28 @@ contract:"). `screen_workload.py` appends draft bytes raw; the
 composition path should strip or refuse leading narration rather than
 pass it into the executor's prompt untouched.
 
-**Cheapest possible check, before step 1's port:** re-run
-`stringified-annotations` and `local-pings` exactly as tonight, adding
-only the one coaching sentence from `implementer.ts`'s prompt ("call
-write with complete desired content") — no edit tool, no engine, two
-runs, minutes. If the fragment write disappears, Confound C is confirmed
-as the mechanism rather than the best explanation at n=2, and the port
-in steps 1-2 is de-risked before any of it is written. `local-pings` is
-the cleaner of the two for this — its contract quotes only a signature,
-where `stringified-annotations`'s contract legitimately quotes the
-existing line being modified (permitted under the authoring prompt),
-giving it a residual transcription pull independent of coaching.
+**Cheapest possible check, run before step 1's port — result: negative.**
+`stringified-annotations` and `local-pings`, exactly as the mechanism
+screen, with only the one coaching sentence from `implementer.ts`'s
+prompt added via `--append-system-prompt` (`screen_task` gained a
+`system_prompt` parameter for this). No edit tool, no engine, default
+8192 `maxTokens`. **The coaching sentence alone did not stop the
+destruction.** Both tasks still overwrote nearly the whole file
+(`local-pings` to 30 effective lines, `stringified-annotations` to 3;
+base file line count independently verified at 942 to rule out a
+base-content discrepancy), `stopReason: stop` at 198 and 177 output
+tokens — both made *multiple* `write` calls this time (3 each) rather
+than one, and still never assembled the complete file.
+
+So Confound C is a real contributing cause — nothing else changed
+between the mechanism screen and this run — but it is not sufficient on
+its own. **This sharpens rather than weakens the synthesis below**: the
+mutation engine's revision-and-symbol check is not an optional nicety
+alongside better prompting, it is the load-bearing safeguard. Steps 1-2
+proceed as planned; the coaching sentence still belongs in the ported
+`implementer.ts` prompt (cheap, and it may reduce how often the engine's
+refusal path fires), but nothing in this plan should assume prompting
+alone will ever be sufficient.
 
 ### The synthesis: edit is the headroom, the mutation engine is the safety
 
