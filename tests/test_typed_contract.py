@@ -82,6 +82,52 @@ def test_refuses_a_task_with_no_locating_contract(tmp_path, monkeypatch):
         build_typed_handoff("flask-extensions", tmp_path)
 
 
+@pytest.mark.parametrize(
+    "task_id",
+    [
+        "async-cm-enter",
+        "fastapi-get-registry",
+        "magicmock-factory",
+        "registry-iter",
+        "register-value-enter",
+        "suppress-context-exit",
+    ],
+)
+def test_refuses_a_qualified_task_outside_the_four_task_bridge(task_id, tmp_path):
+    """The real risk this guard closes, not a hypothetical one.
+
+    Each of these six is a genuinely qualified svcs task -- real manifest,
+    real brief.md, an exact (non-glob) candidate_output -- confirmed by
+    reading every one of their manifest.toml files before writing this
+    test. Before SUPPORTED_TASKS existed, `task_source="brief"` for any of
+    them (no locating contract needed, so nothing was there to be missing)
+    would have built a fully working handoff silently, exceeding the
+    four-task cohort this bridge is explicitly scoped to with no signal
+    at all. The locating-contract arm already failed loudly for these
+    (no `contracts/locating/<task>.md`); the brief arm is the actual gap.
+    """
+    with pytest.raises(TypedContractError, match=task_id):
+        build_typed_handoff(task_id, tmp_path, task_source="brief")
+
+
+def test_the_cli_refuses_an_unsupported_task_cleanly_not_with_a_traceback(tmp_path):
+    """`tools/deliver_candidate.py --contract-task` must not let this
+    surface as an uncaught exception -- a collaborator hitting the
+    four-task limit for the first time needs a clear refusal, not a
+    Python traceback that reads like an internal bug.
+    """
+    import tools.deliver_candidate as deliver_candidate
+
+    with pytest.raises(SystemExit):
+        deliver_candidate.main([
+            "--repo", str(tmp_path),
+            "--task", "registry-iter",
+            "--contract-task", "registry-iter",
+            "--task-source", "brief",
+            "--model", "does-not-matter",
+        ])
+
+
 def test_flask_extensions_validation_deselects_the_two_nodes_its_own_target_diff_flips(tmp_path):
     # A real bug this closes: the preservation suite runs unmodified at
     # base, and flask-extensions' base test_flask.py directly asserts the

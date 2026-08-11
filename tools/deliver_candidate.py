@@ -34,7 +34,7 @@ from harness.candidate import DeliveryRefused, deliver
 from harness.liveness import ModelServerDown, check_model_server_alive
 from harness.processes import ProcessResult, run_process
 from harness.pi_invocation import pi_command, pi_env
-from harness.typed_contract import TypedHandoff, build_typed_handoff
+from harness.typed_contract import TypedContractError, TypedHandoff, build_typed_handoff
 
 # The 2026-08-11 re-plan's step 4 executor extension: `read`/`write`/`edit`
 # mediated by the mutation engine, not raw Pi tools. Not in `harness/screen.py`
@@ -191,7 +191,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         # prompt hash `deliver()` records) be fixed before the worktree
         # exists, rather than tangled in a build-the-prompt-from-inside-the-
         # callback ordering problem.
-        handoff = build_typed_handoff(args.contract_task, args.repo, task_source=args.task_source)
+        try:
+            handoff = build_typed_handoff(args.contract_task, args.repo, task_source=args.task_source)
+        except TypedContractError as error:
+            # A clean CLI refusal, not a traceback: the four-task restriction
+            # (SUPPORTED_TASKS in harness/typed_contract.py) is a deliberate
+            # scope limit a collaborator can hit on the first try with an
+            # otherwise-qualified task name, not an internal bug.
+            parser.error(str(error))
         prompt = _render_contract_prompt(handoff.contract)
         if args.validation is None:
             # The same command the contract itself tells the child the

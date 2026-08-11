@@ -42,6 +42,24 @@ LOCATING_CONTRACTS_DIR = (
     Path(__file__).resolve().parents[1] / "workloads" / "svcs" / "contracts" / "locating"
 )
 
+# See the module docstring: this bridge is narrow on purpose, not merely
+# untested past four tasks. Six other qualified svcs tasks (async-cm-enter,
+# fastapi-get-registry, magicmock-factory, registry-iter,
+# register-value-enter, suppress-context-exit) each already have an exact
+# (non-glob) candidate_output and a brief.md -- confirmed by reading their
+# manifests, not assumed -- so without this guard, build_typed_handoff would
+# silently succeed for any of them under task_source="brief" (no locating
+# contract to be missing, which is the only thing that currently makes an
+# unsupported task fail loudly, and only in the locating-contract arm). A
+# collaborator adding a fifth task needs an explicit decision to extend this
+# tuple, not an accidental pass-through the first time they try one.
+SUPPORTED_TASKS: tuple[str, ...] = (
+    "flask-extensions",
+    "stringified-annotations",
+    "local-pings",
+    "autowire",
+)
+
 # See the module docstring. Only consulted when a manifest's
 # `candidate_output` contains no exact (non-glob) path.
 AUTOWIRE_TARGET = "src/svcs/_autowire.py"
@@ -165,6 +183,14 @@ def build_typed_handoff(
     the comparison this exists for is about what the model is told, not
     about loosening what it's allowed to touch.
     """
+    if task_id not in SUPPORTED_TASKS:
+        raise TypedContractError(
+            f"{task_id!r} is not one of this bridge's four supported tasks "
+            f"{SUPPORTED_TASKS!r}. This is a deliberate scope limit (see this "
+            "module's docstring), not an oversight -- extending it requires "
+            "a decision about the manifest-to-handoff boundary (roadmap "
+            "Cycle 6), not just adding a name here."
+        )
     manifest = load_manifest(TASKS_DIR / task_id)
     task_text = _task_text(task_id, manifest, task_source)
 
