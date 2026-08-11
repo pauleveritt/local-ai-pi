@@ -150,6 +150,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         "prompt file. See harness/typed_contract.py -- this is a smoke-test "
         "bridge, not general contract authoring.",
     )
+    parser.add_argument(
+        "--task-source", choices=["locating-contract", "brief"], default="locating-contract",
+        help="with --contract-task, which document supplies contract.task: "
+        "the complete locating contract (default), or the manifest's own "
+        "concise brief.md. The pre-registered comparison's two arms --  see "
+        "docs/superpowers/specs/2026-08-11-phase7-cycle7-preregistration-design.md.",
+    )
     parser.add_argument("--timeout", type=float, default=1800.0)
     parser.add_argument("--validation-timeout", type=float, default=900.0)
     parser.add_argument("--receipt", type=Path, default=None)
@@ -163,6 +170,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error("--prompt-file is required unless --contract-task is given")
     if args.contract_task is not None and args.prompt_file:
         parser.error("--contract-task supplies the prompt; do not also pass --prompt-file")
+    if args.contract_task is None and args.task_source != "locating-contract":
+        parser.error("--task-source has no effect without --contract-task")
 
     declared_cell = None
     if args.cell is not None:
@@ -182,7 +191,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         # prompt hash `deliver()` records) be fixed before the worktree
         # exists, rather than tangled in a build-the-prompt-from-inside-the-
         # callback ordering problem.
-        handoff = build_typed_handoff(args.contract_task, args.repo)
+        handoff = build_typed_handoff(args.contract_task, args.repo, task_source=args.task_source)
         prompt = _render_contract_prompt(handoff.contract)
         if args.validation is None:
             # The same command the contract itself tells the child the
@@ -280,6 +289,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         # --validation's help text for why this tool does not run it
         # itself: no clone to overlay the hidden target test files onto.
         payload["task_oracle_command_unverified"] = list(handoff.oracle_command)
+        # Which arm this attempt belongs to -- load-bearing for the
+        # pre-registered comparison, which pools receipts across many
+        # separate invocations and needs to tell them apart afterward.
+        payload["task_source"] = args.task_source
     if args.receipt:
         args.receipt.parent.mkdir(parents=True, exist_ok=True)
         args.receipt.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")

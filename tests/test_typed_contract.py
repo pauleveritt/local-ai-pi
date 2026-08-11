@@ -105,3 +105,50 @@ def test_deselecting_a_node_absent_at_base_is_a_harmless_no_op(tmp_path):
     # an error, so applying the same deselect logic to every task is safe.
     handoff = build_typed_handoff("stringified-annotations", tmp_path)
     assert "--deselect" in handoff.contract["validation"]
+
+
+@pytest.mark.parametrize(
+    "task_id", ["flask-extensions", "stringified-annotations", "local-pings", "autowire"]
+)
+def test_task_source_brief_uses_the_concise_brief_not_the_locating_contract(tmp_path, task_id):
+    from harness.workload import load_manifest
+
+    manifest = load_manifest(typed_contract.TASKS_DIR / task_id)
+    brief_text = manifest.brief_path.read_text().strip()
+
+    locating = build_typed_handoff(task_id, tmp_path, task_source="locating-contract")
+    brief = build_typed_handoff(task_id, tmp_path, task_source="brief")
+
+    assert brief.contract["task"] == brief_text
+    assert locating.contract["task"] != brief.contract["task"]
+    # The brief is the shorter, behavior-only document in every case --
+    # not a hard requirement of the type, but true of this cohort's
+    # actual files and a cheap sanity check that the two are really
+    # different documents, not the same file read twice.
+    assert len(brief.contract["task"]) < len(locating.contract["task"])
+
+
+@pytest.mark.parametrize(
+    "task_id", ["flask-extensions", "stringified-annotations", "local-pings", "autowire"]
+)
+def test_task_source_only_changes_contract_task_not_the_executor_bounds(tmp_path, task_id):
+    # The comparison this exists for is about what the model is told, not
+    # about loosening what it's allowed to touch -- writableFiles,
+    # baselines and validation must be identical across both arms.
+    locating = build_typed_handoff(task_id, tmp_path, task_source="locating-contract")
+    brief = build_typed_handoff(task_id, tmp_path, task_source="brief")
+
+    assert locating.contract["writableFiles"] == brief.contract["writableFiles"]
+    assert locating.contract["validation"] == brief.contract["validation"]
+    assert locating.baselines == brief.baselines
+    assert locating.writable_glob == brief.writable_glob
+    assert locating.oracle_command == brief.oracle_command
+
+
+def test_task_source_defaults_to_locating_contract_unchanged(tmp_path):
+    # Backward compatibility for every existing caller (deliver_candidate.py's
+    # default, and every test above this one in the file) that predates
+    # task_source and calls build_typed_handoff positionally.
+    default = build_typed_handoff("flask-extensions", tmp_path)
+    explicit = build_typed_handoff("flask-extensions", tmp_path, task_source="locating-contract")
+    assert default.contract == explicit.contract

@@ -208,3 +208,68 @@ def test_cell_records_the_full_closure_not_just_the_entry_point():
     names = declared.pinned["extensions"].split(",")
     assert names == [p.name for p in deliver_candidate.IMPLEMENTER_EXTENSION_CLOSURE]
     assert len(names) > 1, "a single-file digest is exactly the bug this closes"
+
+
+def test_task_source_flag_reaches_the_contract_and_the_receipt(monkeypatch, tmp_path):
+    # The pre-registered comparison's two arms need to be tellable apart
+    # after the fact, pooled across many separate CLI invocations -- the
+    # receipt is where that has to land.
+    captured = {}
+
+    def fake_deliver(repo, task_id, prompt, run_model, validation, **kwargs):
+        captured["prompt"] = prompt
+        return _StubReceipt()
+
+    monkeypatch.setattr(deliver_candidate, "deliver", fake_deliver)
+
+    receipt_path = tmp_path / "receipt.json"
+    rc = deliver_candidate.main([
+        "--repo", str(tmp_path),
+        "--task", "flask-extensions",
+        "--contract-task", "flask-extensions",
+        "--task-source", "brief",
+        "--model", "omlx/gemma-4-12B-it-MLX-8bit",
+        "--skip-server-check",
+        "--receipt", str(receipt_path),
+    ])
+
+    assert rc == 0
+    manifest = load_manifest(TASKS_DIR / "flask-extensions")
+    assert manifest.brief_path.read_text().strip() in captured["prompt"]
+    payload = json.loads(receipt_path.read_text())
+    assert payload["task_source"] == "brief"
+
+
+def test_task_source_defaults_to_locating_contract(monkeypatch, tmp_path):
+    receipt_path = tmp_path / "receipt.json"
+
+    def fake_deliver(repo, task_id, prompt, run_model, validation, **kwargs):
+        return _StubReceipt()
+
+    monkeypatch.setattr(deliver_candidate, "deliver", fake_deliver)
+
+    deliver_candidate.main([
+        "--repo", str(tmp_path),
+        "--task", "flask-extensions",
+        "--contract-task", "flask-extensions",
+        "--model", "omlx/gemma-4-12B-it-MLX-8bit",
+        "--skip-server-check",
+        "--receipt", str(receipt_path),
+    ])
+
+    assert json.loads(receipt_path.read_text())["task_source"] == "locating-contract"
+
+
+def test_task_source_without_contract_task_is_refused(tmp_path):
+    prompt_file = tmp_path / "brief.md"
+    prompt_file.write_text("do the thing")
+    with pytest.raises(SystemExit):
+        deliver_candidate.main([
+            "--repo", str(tmp_path),
+            "--task", "flask-extensions",
+            "--prompt-file", str(prompt_file),
+            "--validation", "echo ok",
+            "--model", "omlx/gemma-4-12B-it-MLX-8bit",
+            "--skip-server-check",
+            "--task-source", "brief",
+        ])

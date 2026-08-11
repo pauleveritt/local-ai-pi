@@ -4,9 +4,15 @@ Deliberately narrow, and not a general contract-authoring bridge -- the
 roadmap's "bridge contracts to the typed handoff" (extending
 `tools/author_contract.py` to emit `HandoffContract` JSON from the
 manifest, with `inspectContract` as an admission gate) is separate,
-tracked work and stays undone here. This module exists only to drive the
+tracked work and stays undone here. This module exists to drive the
 2026-08-11 step-5 smoke set (`flask-extensions`, `stringified-annotations`,
-`local-pings`, `autowire`) through the real ported engine end to end.
+`local-pings`, `autowire`) through the real ported engine end to end, and
+now also the two arms of the pre-registered comparison in
+docs/superpowers/specs/2026-08-11-phase7-cycle7-preregistration-design.md: the same
+four tasks, executor and writable scope, differing only in whether
+`contract.task` carries the concise brief (`task_source="brief"`) or the
+complete locating contract (`task_source="locating-contract"`, the
+default and everything this module ran before the pre-registration).
 
 The gap this papers over: `HandoffContract.writableFiles` (see
 `extensions/orchestration/handoff-contract.ts`) requires exact,
@@ -25,8 +31,11 @@ import hashlib
 import shlex
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 from harness.workload import Manifest, load_manifest
+
+TaskSource = Literal["locating-contract", "brief"]
 
 TASKS_DIR = Path(__file__).resolve().parents[1] / "workloads" / "svcs" / "tasks"
 LOCATING_CONTRACTS_DIR = (
@@ -66,6 +75,23 @@ def strip_authoring_narration(text: str) -> str:
     marker = "\n---\n"
     index = text.find(marker)
     return text[index + len(marker):].strip() if index != -1 else text.strip()
+
+
+def _task_text(task_id: str, manifest: Manifest, task_source: TaskSource) -> str:
+    """The child's `contract.task` field, sourced per the requested arm.
+
+    `brief`: the manifest's own concise, behavior-only brief.md -- names
+    no file, no line, no mechanism. `locating-contract`: the complete
+    human-authored contract this module has driven all along. Both are
+    real, already-committed documents; this function picks between them,
+    it does not author either.
+    """
+    if task_source == "brief":
+        return manifest.brief_path.read_text().strip()
+    locating_path = LOCATING_CONTRACTS_DIR / f"{task_id}.md"
+    if not locating_path.is_file():
+        raise TypedContractError(f"no locating contract at {locating_path}")
+    return strip_authoring_narration(locating_path.read_text())
 
 
 def _exact_candidate_paths(manifest: Manifest) -> tuple[str, ...]:
@@ -121,18 +147,26 @@ class TypedHandoff:
     oracle_command: tuple[str, ...]
 
 
-def build_typed_handoff(task_id: str, worktree: Path) -> TypedHandoff:
+def build_typed_handoff(
+    task_id: str,
+    worktree: Path,
+    *,
+    task_source: TaskSource = "locating-contract",
+) -> TypedHandoff:
     """Assemble the contract and file baselines for one task, against one worktree.
 
     `worktree` must already exist at the task's base revision -- baselines
     are read from disk, not derived from the manifest, because a baseline
     is a claim about the file the child is actually about to see.
+
+    `task_source` selects the arm (see the module docstring); it changes
+    only `contract["task"]`. writableFiles, baselines and validation are
+    the executor's own bounds, sourced from the manifest either way --
+    the comparison this exists for is about what the model is told, not
+    about loosening what it's allowed to touch.
     """
     manifest = load_manifest(TASKS_DIR / task_id)
-    locating_path = LOCATING_CONTRACTS_DIR / f"{task_id}.md"
-    if not locating_path.is_file():
-        raise TypedContractError(f"no locating contract at {locating_path}")
-    task_text = strip_authoring_narration(locating_path.read_text())
+    task_text = _task_text(task_id, manifest, task_source)
 
     writable_paths = _exact_candidate_paths(manifest)
     baselines: list[dict[str, object]] = []
