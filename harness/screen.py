@@ -59,6 +59,17 @@ ENVELOPE_TOOLS = "read,write"
 ENVELOPE_EXTENSION = (
     Path(__file__).resolve().parents[1] / "extensions" / "envelope-cap.ts"
 )
+PROPOSAL_LIMIT_EXTENSION = (
+    Path(__file__).resolve().parents[1] / "extensions" / "proposal-limit.ts"
+)
+"""Refuses a `write` over 32KB cleanly instead of letting generation
+truncate mid-file. Mirrors the real implementer child's own
+`MAX_PROPOSAL_BYTES` check (`mutation-engine.ts` on
+`phase6-orchestrator-spike`) -- two envelope attempts hit exactly this
+ceiling by silent token-budget truncation before this existed. Scoped to
+the envelope arm only, not probe-budget cells: changing an already-measured
+arm's extension set after seeing its results is exactly the tuning rule 8
+forbids."""
 AUTHOR_EXTENSION = Path(__file__).resolve().parents[1] / "extensions" / "author-cap.ts"
 """Budgets for a read-only contract author, which is not an executor.
 
@@ -832,7 +843,7 @@ def screen_task(
     timeout: float = 900.0,
     suite_timeout: float = 300.0,
     executor_env_source: Path | None = None,
-    extensions: tuple[Path, ...] = (ENVELOPE_EXTENSION,),
+    extensions: tuple[Path, ...] = (ENVELOPE_EXTENSION, PROPOSAL_LIMIT_EXTENSION),
     test_paths: tuple[str, ...] = (),
     reference_patch: str | None = None,
     appended_prompt: str = "",

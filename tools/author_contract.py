@@ -133,6 +133,29 @@ def extract_contract(text: str) -> str:
     return "\n".join(lines[fences[0] + 1 : fences[-1]]).strip()
 
 
+def compose_prompt(instruction: str, writable: tuple[str, ...], brief: str) -> str:
+    """The full authoring prompt: shared instruction, this task's real
+    writable scope, then the brief.
+
+    The scope line is not a guess. Without it a contract can pass the leak
+    probe and the fenced-statement gate while still asking for a change
+    outside what the executor is allowed to make -- `flask-extensions`'s
+    contract told the executor to update a docs file the manifest's own
+    writable policy (`src/svcs/**`) excludes, and a letter-perfect code fix
+    was rejected out-of-scope for it. Not oracle information: the
+    instruction already asks the author to name the file, so this only
+    removes the one way a contract can fail at a boundary it was never
+    being tested on.
+    """
+    scope = (
+        f"\n\nThe executor may only change files matching: {', '.join(writable)}\n"
+        "Do not describe or require a change to any file outside that list "
+        "-- not documentation, not tests, nothing else, even if updating it "
+        "would be good practice."
+    )
+    return f"{instruction.strip()}{scope}\n\n---\n\n{brief.strip()}\n"
+
+
 def author_one(task: str, args: argparse.Namespace) -> int:
     packet = args.packets / task
     repo, brief = packet / "repo", packet / "brief.md"
@@ -141,7 +164,11 @@ def author_one(task: str, args: argparse.Namespace) -> int:
             raise SystemExit(f"missing {path}")
 
     instruction = args.prompt.read_text().strip()
-    prompt = f"{instruction}\n\n---\n\n{brief.read_text().strip()}\n"
+    import harness.workload as workload
+
+    cohort = workload.load_cohort(args.cohort, require_accounting=True)
+    manifest = workload.load_manifest(cohort.task_dir(task))
+    prompt = compose_prompt(instruction, manifest.writable, brief.read_text())
 
     # read only: no bash, no edit, no write. The author cannot go looking
     # and cannot modify the tree it is describing.
@@ -278,9 +305,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="repeatable; omit with --cohort to author every included task",
     )
     parser.add_argument(
-        "--cohort", type=Path, default=None,
-        help="author the whole cohort, sequentially, resuming over drafts "
-        "already on disk",
+        "--cohort", type=Path, default=Path("workloads/svcs/cohort.toml"),
+        help="omit --task to author every included task; always used to "
+        "look up each task's writable scope for the prompt",
     )
     parser.add_argument("--model", required=True)
     parser.add_argument("--server", default="http://127.0.0.1:8001")
@@ -302,8 +329,6 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     tasks = list(args.task or ())
     if not tasks:
-        if args.cohort is None:
-            raise SystemExit("give --task, or --cohort to author the whole set")
         import harness.workload as workload
 
         tasks = list(workload.load_cohort(args.cohort, require_accounting=True).included)

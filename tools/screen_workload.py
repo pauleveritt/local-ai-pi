@@ -197,7 +197,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             "every attempt from such a run must be audited before it is believed."
         )
 
-    extensions = (screen.PROBE_EXTENSION if args.probe else screen.ENVELOPE_EXTENSION,)
+    extensions = (
+        (screen.PROBE_EXTENSION,)
+        if args.probe
+        else (screen.ENVELOPE_EXTENSION, screen.PROPOSAL_LIMIT_EXTENSION)
+    )
     if args.guards:
         extensions += (screen.GUARD_EXTENSION,)
     if args.cell is not None:

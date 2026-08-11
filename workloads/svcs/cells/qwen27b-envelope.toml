@@ -13,8 +13,8 @@ for this model.
 [pinned]
 model = "omlx/Qwen3.6-27B-8bit"
 tools = "read,write"
-extensions = "envelope-cap.ts"
-extensions_sha256 = "b7455133f3be8c2661b0716f8624e86d4b6def84dec4eb2b74217fc55467f4f3"
+extensions = "envelope-cap.ts,proposal-limit.ts"
+extensions_sha256 = "62a97f970e3c5b81b521087e60a873791c858f11b9a3f3f32e7d58d9ba27cb9b"
 wall_clock_seconds = "900.0"
 max_tokens = "32768"
 context_window = "80000"
