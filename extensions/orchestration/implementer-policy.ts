@@ -25,7 +25,6 @@ export class ImplementerPolicy {
 	readonly #root: string;
 	readonly #writable = new Set<string>();
 	readonly #readable: Set<string>;
-	readonly #read = new Set<string>();
 	readonly #maxTools: number;
 	#tools = 0;
 
@@ -102,7 +101,6 @@ export class ImplementerPolicy {
 					data: { tool: toolName, target },
 				};
 			}
-			this.#read.add(target);
 			return undefined;
 		}
 
