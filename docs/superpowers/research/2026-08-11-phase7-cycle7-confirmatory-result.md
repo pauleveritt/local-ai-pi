@@ -83,10 +83,43 @@ No abort condition was met. The batch ran to its full pre-registered n without e
 - Worktree clean at batch completion (aside from unrelated, separately committed work).
 - All 64 attempts' receipts and per-attempt records are accounted for in `all_results.json`; no denominator in the tables above silently includes a void.
 
+## Evidence archive
+
+Bundled and checksum-verified at
+`/Users/pauleveritt/projects/pauleveritt/local-ai-pi-evidence-archive/2026-08-11-phase7-cycle7-confirmatory/`
+(external to this repository, per the distribution brief's "record the bundle's
+location and checksum in the repository, but do not require a collaborator to
+download it" — no test or product path reads from this location):
+
+- `receipts/*.json` — all 65 attempt receipts (64 pre-registered + 1 void
+  replacement), `deliver_candidate.py`'s own `--receipt` output.
+- `all_results.json` — the batch driver's aggregated per-attempt records.
+- `batch-run.log` — the batch's full stdout.
+- `MANIFEST.md` — provenance, result summary, and an explicit account of what
+  is *not* in the bundle (see below).
+- `CHECKSUMS.sha256` — SHA-256 of every file above; verify with
+  `shasum -a 256 -c CHECKSUMS.sha256` from that directory.
+
+Bundle checksum-of-checksums (detects tampering with `CHECKSUMS.sha256`
+itself without re-hashing every file):
+`SHA256(CHECKSUMS.sha256) = ab9b59e66b93e01f3661d92f63cf6f9b4d5992338516978ff28178c889713610`.
+
+**What the bundle does not contain, and why:** no raw Pi/model transcripts —
+`harness/processes.run_process()` captures the model child's stdout/stderr
+only in memory, never to disk, for every attempt in this batch, not a
+bundling gap; no candidate patches/diffs — each attempt's candidate commit
+lived inside a `disposable_dir()` (`harness/workspace.py`) that is
+`shutil.rmtree`'d unconditionally on exit, so only `changed_paths` (filenames)
+survive, not content; no `confirmatory_batch.py` driver — written as a
+one-time execution of the frozen pre-registration, not committed product
+infrastructure. A future batch needing replayable transcripts or diffs
+requires extending `run_process()` and `deliver()` to persist them before
+cleanup, which does not exist today — this is now a documented harness gap,
+not a silent one.
+
 ## What this does not establish
 
 - **Not evidence for a fifth task or a general planner.** This remains the same four-task cohort the pre-registration scoped to; `harness/typed_contract.py` is still a narrow bridge, not general contract authoring.
 - **Not a claim that locating contracts help universally.** They discriminated on exactly one of four tasks in this batch (stringified-annotations); two tasks were already ceiling-tied and one is floor-tied on the primary metric regardless of arm.
-- **Not yet archived per the distribution brief's evidence-archive requirement.** The raw per-attempt records (`all_results.json` and 64 individual attempt JSON files) currently live only in this session's scratchpad directory, not in a committed or externally hashed evidence bundle. This is an open item from [`2026-08-11-phase7-cleanup-and-distribution-brief.md`](2026-08-11-phase7-cleanup-and-distribution-brief.md)'s recommended order (step 4, "produce and verify the external evidence archive"), not yet done as of this document.
-- **Batch driver script is not in the repository.** `confirmatory_batch.py` was written and run as a one-time execution of the frozen pre-registration (its own header says so explicitly) and is not committed product infrastructure. The distribution brief's step 4 ("give the running comparison a discoverable checked-in driver") also remains open.
+- **Batch driver script is not in the repository.** `confirmatory_batch.py` was written and run as a one-time execution of the frozen pre-registration (its own header says so explicitly) and is not committed product infrastructure. The distribution brief's step 4 ("give the running comparison a discoverable checked-in driver") remains open — the evidence archive above preserves this batch's *results*, not a rerunnable driver.
 - **Pilot data is not re-cited as confirmatory evidence here**, consistent with governing rule 8 and the pre-registration's own framing; every rate above is this batch's own attempts, not pooled with any earlier pilot round.
