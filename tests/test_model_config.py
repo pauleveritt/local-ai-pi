@@ -45,9 +45,8 @@ def test_restores_the_exact_original_bytes_not_a_reformatted_equivalent(models_j
 
 
 def test_restores_even_when_the_caller_raises(models_json):
-    with pytest.raises(RuntimeError):
-        with bumped_max_tokens("gemma-4-12B-it-MLX-8bit", 32768, models_json):
-            raise RuntimeError("boom")
+    with pytest.raises(RuntimeError), bumped_max_tokens("gemma-4-12B-it-MLX-8bit", 32768, models_json):
+        raise RuntimeError("boom")
 
     restored = json.loads(models_json.read_text())
     assert restored["providers"]["omlx"]["models"][0]["maxTokens"] == 8192
@@ -63,9 +62,8 @@ def test_a_no_op_bump_does_not_touch_the_file(models_json):
 
 
 def test_refuses_an_unknown_model(models_json):
-    with pytest.raises(ModelConfigError):
-        with bumped_max_tokens("does-not-exist", 32768, models_json):
-            pass
+    with pytest.raises(ModelConfigError), bumped_max_tokens("does-not-exist", 32768, models_json):
+        pass
 
 
 def test_nested_bumps_of_different_models_both_restore(models_json):

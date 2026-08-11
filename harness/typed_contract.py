@@ -79,10 +79,6 @@ def _exact_candidate_paths(manifest: Manifest) -> tuple[str, ...]:
     )
 
 
-def _sha256_of(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def _effective_preservation_command(manifest: Manifest) -> tuple[str, ...]:
     """The preservation command, minus nodes that can never pass here.
 
