@@ -92,7 +92,7 @@ function lostSymbols(before: string, after: string): FoundSymbol[] {
 	return symbolsIn(before).filter((symbol) => !remaining.has(`${symbol.kind}:${symbol.name}`));
 }
 
-export function symbolKey(symbol: FoundSymbol): string {
+function symbolKey(symbol: FoundSymbol): string {
 	return `${symbol.kind}:${symbol.name}`;
 }
 
@@ -148,22 +148,6 @@ export function captureFileBaselines(cwd: string, paths: readonly string[]): Fil
 		if (!stat.isFile()) throw new MutationRefusal("Declared writable path is not a regular file.", { path: relative });
 		const content = fs.readFileSync(absolute, "utf8");
 		return { path: relative, state: "present", sha256: sha256(content), mode: stat.mode & 0o777, lineEnding: lineEnding(content) };
-	});
-}
-
-export function repairFileBaselines(cwd: string, baselines: readonly FileBaseline[]): FileBaseline[] {
-	return baselines.map((baseline) => {
-		const { absolute } = safePath(cwd, baseline.path);
-		if (baseline.state !== "absent" || !fs.existsSync(absolute)) return baseline;
-		const stat = fs.statSync(absolute);
-		const content = fs.readFileSync(absolute, "utf8");
-		return {
-			path: baseline.path,
-			state: "engine-created",
-			sha256: sha256(content),
-			mode: stat.mode & 0o777,
-			lineEnding: lineEnding(content),
-		};
 	});
 }
 

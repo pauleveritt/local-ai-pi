@@ -132,6 +132,33 @@ describe("child tool telemetry", () => {
 	});
 });
 
+describe("implementer guard wiring", () => {
+	// createPreserveSymbols() itself is pinned by extensions/guards/guards.test.ts;
+	// what's new here is that implementer.ts actually calls it. No live Pi
+	// harness runs in a unit test, so this follows the same source-reading
+	// convention the rest of this describe block already uses for wiring
+	// that can't be exercised any other way here.
+	const source = fs.readFileSync(new URL("./implementer.ts", import.meta.url), "utf8");
+
+	test("imports and instantiates the preserve-symbols guard", () => {
+		expect(source).toContain('import { createPreserveSymbols } from "../guards/preserve-symbols"');
+		expect(source).toContain("const preserveSymbols = createPreserveSymbols()");
+	});
+
+	test("the tool_call handler consults it and blocks on a hit", () => {
+		const handlerStart = source.indexOf('pi.on("tool_call"');
+		expect(handlerStart).toBeGreaterThan(-1);
+		const inspectIndex = source.indexOf("preserveSymbols.inspect(call)", handlerStart);
+		expect(inspectIndex).toBeGreaterThan(handlerStart);
+		// Its own block: true must reach the model, not just be computed and
+		// discarded -- checked structurally, the same way this file's other
+		// wiring tests avoid a single substring match that could be
+		// satisfied by unrelated code elsewhere in the handler.
+		const afterInspect = source.slice(inspectIndex, inspectIndex + 300);
+		expect(afterInspect).toContain("block: true");
+	});
+});
+
 describe("implementer tool policy", () => {
 	const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "satyrn-policy-"));
 	fs.mkdirSync(path.join(cwd, "src"));

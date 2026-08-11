@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { createLoopBreaker } from "../guards/loop-breaker";
+import { createPreserveSymbols } from "../guards/preserve-symbols";
 import type { ToolCall } from "../guards/types";
 import type { HandoffContract } from "./handoff-contract";
 import { ImplementerPolicy } from "./implementer-policy";
@@ -147,6 +148,17 @@ export default function implementer(pi: ExtensionAPI) {
 		baseline.sha256 ?? "<absent>",
 	]));
 	const loopBreaker = createLoopBreaker();
+	// Pre-execution defense in depth for `edit`, ported but never wired in
+	// until now. Complementary to, not redundant with, the mutation
+	// engine's own lostSymbols() check: this fires on the proposed edit's
+	// oldText/newText alone, comparing them directly against each other,
+	// before the engine ever reads the real file, checks the revision, or
+	// applies anything -- a cheaper, shallower, same-call-only check
+	// (union of this call's newTexts against this call's oldTexts; no
+	// memory across separate tool calls). The engine's check is still the
+	// authoritative one: it alone tracks symbols gained elsewhere in the
+	// invocation, so a genuine cross-file move only the engine can admit.
+	const preserveSymbols = createPreserveSymbols();
 	const failedMutationCalls = new Set<string>();
 
 	pi.on("before_agent_start", async (event) => ({
@@ -177,6 +189,13 @@ export default function implementer(pi: ExtensionAPI) {
 				input: event.input,
 				target: targetOf(event.input),
 			};
+
+			const destructive = preserveSymbols.inspect(call);
+			if (destructive) {
+				pi.appendEntry(destructive.entry.kind, destructive.entry.data);
+				return { block: true, reason: destructive.reason };
+			}
+
 			const repeated = loopBreaker.inspect(call);
 			if (!repeated) return undefined;
 			pi.appendEntry(repeated.entry.kind, repeated.entry.data);
