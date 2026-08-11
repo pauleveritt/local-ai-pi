@@ -916,25 +916,28 @@ def test_the_arm_refuses_a_draft_set_that_carries_the_fix() -> None:
 
     The authoring gate runs when a draft is written. Nothing re-checked it
     at the point of use, so any directory could be handed to
-    `--contract-draft-dir` -- including the eight void drafts still on
-    disk as evidence, and the duplicate copy of `registry-iter` under
-    `contracts/draft-qwen/`. An arm built on those measures transcription.
+    `--contract-draft-dir` -- including a void draft still on disk as
+    evidence. `registry-iter.md` was banked in two real places with
+    byte-identical content (`workloads/svcs/overnight/drafts/` and the
+    duplicate under `contracts/draft-qwen/`); an arm built on either
+    measures transcription.
 
-    Asserted against the real banked drafts rather than a fixture: the
-    point is that *these bytes*, which are still present and still
-    reachable by a command line, are refused.
+    Asserted against a byte-identical fixture copy of the real banked
+    draft (`tests/fixtures/author_contract_drafts/`, provenance and hash
+    in that directory's `PROVENANCE.md`), not the live research paths --
+    decoupling the default suite from `workloads/svcs/overnight/`
+    (2026-08-11 distribution brief, step 3). The point survives the
+    decoupling: *these exact bytes*, still present at the original paths
+    too, are refused.
     """
     from tools.author_contract import MAX_SOLUTION_STATEMENTS, solution_statements
 
-    for path in (
-        Path("workloads/svcs/overnight/drafts/registry-iter.md"),
-        Path("workloads/svcs/contracts/draft-qwen/registry-iter.md"),
-    ):
-        assert path.is_file(), f"{path} is the artifact under test"
-        assert len(solution_statements(path.read_text())) > MAX_SOLUTION_STATEMENTS, (
-            f"{path} must still trip the gate; if it stopped doing so the "
-            "guard in screen_workload no longer protects anything"
-        )
+    path = Path("tests/fixtures/author_contract_drafts/registry-iter.md")
+    assert path.is_file(), f"{path} is the artifact under test"
+    assert len(solution_statements(path.read_text())) > MAX_SOLUTION_STATEMENTS, (
+        f"{path} must still trip the gate; if it stopped doing so the "
+        "guard in screen_workload no longer protects anything"
+    )
 
 
 def test_extraction_leaves_a_plainly_written_contract_alone() -> None:
@@ -1014,15 +1017,18 @@ def test_no_existing_draft_survives_the_decision() -> None:
     and a contract's provenance is part of the arm. That distinction is
     recorded rather than smoothed over: the gate and the decision are not
     the same bar.
+
+    Asserted against byte-identical fixture copies of the eight real
+    drafts (`tests/fixtures/author_contract_drafts/`, provenance and
+    hashes in that directory's `PROVENANCE.md`), decoupling the default
+    suite from `workloads/svcs/overnight/drafts/` -- 7.9 MiB, mostly raw
+    authoring transcripts irrelevant to this assertion (2026-08-11
+    distribution brief, step 3).
     """
     from tools.author_contract import MAX_SOLUTION_STATEMENTS, solution_statements
 
-    drafts = [
-        d
-        for d in sorted(Path("workloads/svcs/overnight/drafts").glob("*.md"))
-        if not d.name.endswith(".raw.md")
-    ]
-    assert drafts, "expected the committed drafts to still be present"
+    drafts = sorted(Path("tests/fixtures/author_contract_drafts").glob("*.md"))
+    assert drafts, "expected the fixture drafts to still be present"
 
     gated = [
         d.stem

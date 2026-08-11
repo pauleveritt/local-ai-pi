@@ -1,0 +1,30 @@
+# Provenance: author_contract draft fixtures
+
+Byte-identical copies of the real overnight-authoring drafts these tests were
+originally read from (`.md` only -- not `.raw.md`, `.jsonl`, or
+`.provenance.json`), captured so `tests/test_screen.py` no longer needs
+`workloads/svcs/overnight/drafts/` (7.9 MiB, mostly raw authoring transcripts
+irrelevant to these assertions) as a runtime dependency of the default suite.
+Per the 2026-08-11 distribution brief's step 3: minimized named fixtures that
+preserve the failure shapes, historical bytes' hashes kept here rather than
+requiring the historical path.
+
+| Fixture | Source | SHA-256 |
+|---|---|---|
+| `async-cm-enter.md` | `workloads/svcs/overnight/drafts/async-cm-enter.md` | `f523e5d970f3f559f6694943bf56f5eeed8bc2c4bed1ea4473ccdfd88a1b9923` |
+| `autowire.md` | `workloads/svcs/overnight/drafts/autowire.md` | `56b5f2eb9ecf0c5314e8d5b270b4ad77556a2010dfed3525b70e67ce04b7e404` |
+| `fastapi-get-registry.md` | `workloads/svcs/overnight/drafts/fastapi-get-registry.md` | `2f104a8edd1f00c6be1b1686a7f6dba4de802d60e0da8a88e2c3c5a7e9b7cc98` |
+| `flask-extensions.md` | `workloads/svcs/overnight/drafts/flask-extensions.md` | `2398dac1f0e03fb3f457fb785362b3b919c8bf0a531422b378c6af0f00b90811` |
+| `local-pings.md` | `workloads/svcs/overnight/drafts/local-pings.md` | `079f3b8da15505f246ed3649b3ccf30bbd26405015abd514f02ddc038bf5b621` |
+| `magicmock-factory.md` | `workloads/svcs/overnight/drafts/magicmock-factory.md` | `85fec1ae39bf4fa1cc56da078fbd07cd16cab62f375941974fbc6792f677f5d3` |
+| `registry-iter.md` | `workloads/svcs/overnight/drafts/registry-iter.md` (byte-identical to the former duplicate at `workloads/svcs/contracts/draft-qwen/registry-iter.md`) | `d1caa9ece356a3e5c1dbaee25d950c261a5f2f3628b18fe1097ea3dea825ba11` |
+| `stringified-annotations.md` | `workloads/svcs/overnight/drafts/stringified-annotations.md` | `fdd2e110e23651b49083bed9c89b9b0a634f3de79f6cd8835c0cdc14c50c490f` |
+
+Verify against the still-tracked originals at any time with
+`shasum -a 256 <fixture>` and compare against the table above, or
+`diff <fixture> workloads/svcs/overnight/drafts/<name>.md` directly.
+
+`workloads/svcs/overnight/drafts/` itself is untouched by this change -- these
+are additional copies, not a relocation. It remains available for anyone who
+needs the full authoring transcripts (`.jsonl`) or provenance JSON alongside
+the drafts.
