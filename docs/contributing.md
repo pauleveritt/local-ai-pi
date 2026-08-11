@@ -10,8 +10,15 @@ finish without reading the research history.
 
 ```bash
 uv run pytest        # Python: harness, tools, guards' Python-side wiring
-bun test              # TypeScript: extensions/orchestration, extensions/guards
+bun install && bun test   # TypeScript: extensions/orchestration, extensions/guards
 ```
+
+`bun install` is only needed once (or after `package.json` changes) — it
+pulls the one runtime dependency (`typebox`) into a gitignored
+`node_modules/`. Skip it on a fresh clone and `orchestration.test.ts`
+fails immediately with `Cannot find package "typebox"` — confirmed by
+actually removing `node_modules` and running `bun test` before writing
+this sentence, not assumed.
 
 Both are the default, hermetic suites — no model server required. One
 Python test is explicitly opt-in behind an environment variable
