@@ -80,3 +80,28 @@ def test_refuses_a_task_with_no_locating_contract(tmp_path, monkeypatch):
     monkeypatch.setattr(typed_contract, "LOCATING_CONTRACTS_DIR", tmp_path / "empty")
     with pytest.raises(TypedContractError):
         build_typed_handoff("flask-extensions", tmp_path)
+
+
+def test_flask_extensions_validation_deselects_the_two_nodes_its_own_target_diff_flips(tmp_path):
+    # A real bug this closes: the preservation suite runs unmodified at
+    # base, and flask-extensions' base test_flask.py directly asserts the
+    # *old* behavior (app.config) in these two tests -- so a genuinely
+    # correct fix (confirmed against the model's actual diff: all six
+    # locations changed exactly as specified) was guaranteed to fail them,
+    # every time, regardless of correctness. Verified live: 0/6 across two
+    # pilot rounds, all six locations correct, both failures always these
+    # same two node IDs -- which are exactly manifest.rejection_failing_nodes.
+    handoff = build_typed_handoff("flask-extensions", tmp_path)
+    validation = handoff.contract["validation"]
+    assert "--deselect tests/integrations/test_flask.py::TestInitApp::test_implicit_registry" in validation
+    assert "--deselect tests/integrations/test_flask.py::TestInitApp::test_explicit_registry" in validation
+
+
+def test_deselecting_a_node_absent_at_base_is_a_harmless_no_op(tmp_path):
+    # stringified-annotations and local-pings' rejection_failing_nodes name
+    # parametrized/added tests that don't exist in the base tree at all
+    # (their target diffs add coverage rather than flip an assertion) --
+    # pytest's --deselect on an uncollected node id is a silent no-op, not
+    # an error, so applying the same deselect logic to every task is safe.
+    handoff = build_typed_handoff("stringified-annotations", tmp_path)
+    assert "--deselect" in handoff.contract["validation"]

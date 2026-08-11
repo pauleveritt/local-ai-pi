@@ -18,6 +18,7 @@ import pytest
 
 import harness.candidate as candidate_mod
 import tools.deliver_candidate as deliver_candidate
+from harness.typed_contract import _effective_preservation_command
 from harness.workload import load_manifest
 
 TASKS_DIR = Path(__file__).resolve().parents[1] / "workloads" / "svcs" / "tasks"
@@ -65,7 +66,7 @@ def test_contract_task_defaults_validation_to_the_preservation_command_not_the_o
 
     assert rc == 0
     manifest = load_manifest(TASKS_DIR / "flask-extensions")
-    assert captured["validation"] == manifest.preservation_command
+    assert captured["validation"] == _effective_preservation_command(manifest)
     assert captured["validation"] != manifest.oracle_command
 
 

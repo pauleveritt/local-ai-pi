@@ -83,6 +83,38 @@ def _sha256_of(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _effective_preservation_command(manifest: Manifest) -> tuple[str, ...]:
+    """The preservation command, minus nodes that can never pass here.
+
+    `manifest.deselects` is qualification's own list (harness.workload.qualify
+    applies the identical pattern) -- always honored.
+
+    `manifest.rejection_failing_nodes` is a second, distinct reason to
+    deselect, specific to this delivery path. Qualification always pairs
+    source and tests from the *same* revision (base+base or target+target),
+    so a node that legitimately differs in behavior between revisions never
+    causes a conflict there. This delivery flow does not have that luxury:
+    the model may only write production code, so the worktree's test files
+    stay frozen at base while the source it produces implements target
+    behavior -- and for a task whose target diff *changes* an existing
+    assertion rather than adding a new one (flask-extensions: the base
+    tests assert app.config, matching old behavior; a correct fix makes
+    them false), the base test's own assertion is guaranteed to fail
+    against any correct fix. `rejection_failing_nodes` is precisely the
+    manifest's own list of such nodes -- confirmed for flask-extensions by
+    reading the model's actual diff (all six locations changed exactly as
+    specified) against the two tests that still failed. Harmless everywhere
+    else: a node from this list that was never collected at base (true for
+    stringified-annotations and local-pings, whose target diffs add new
+    tests rather than changing existing ones) is a silent no-op for
+    pytest's --deselect.
+    """
+    deselect = tuple(manifest.deselects) + tuple(manifest.rejection_failing_nodes)
+    return tuple(manifest.preservation_command) + tuple(
+        argument for node in deselect for argument in ("--deselect", node)
+    )
+
+
 @dataclass(frozen=True)
 class TypedHandoff:
     contract: dict[str, object]
@@ -140,7 +172,7 @@ def build_typed_handoff(task_id: str, worktree: Path) -> TypedHandoff:
         # deliver(), and a future preservation command with a quoted or
         # spaced argument would round-trip wrong under plain whitespace
         # joining.
-        "validation": shlex.join(manifest.preservation_command),
+        "validation": shlex.join(_effective_preservation_command(manifest)),
     }
     return TypedHandoff(
         contract=contract,
