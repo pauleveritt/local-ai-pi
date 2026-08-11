@@ -1,0 +1,140 @@
+diff --git a/src/svcs/__init__.py b/src/svcs/__init__.py
+index 46dc62c..3dd60d9 100644
+--- a/src/svcs/__init__.py
++++ b/src/svcs/__init__.py
+@@ -11,6 +11,7 @@ from ._core import (
+     Registry,
+     ServicePing,
+ )
++from ._autowire import autowire, aautowire
+ 
+ 
+ __all__ = [
+@@ -19,6 +20,8 @@ __all__ = [
+     "Registry",
+     "ServicePing",
+     "exceptions",
++    "autowire",
++    "aautowire",
+ ]
+ 
+ try:
+diff --git a/src/svcs/_autowire.py b/src/svcs/_autowire.py
+new file mode 100644
+index 0000000..a449d4f
+--- /dev/null
++++ b/src/svcs/_autowire.py
+@@ -0,0 +1,113 @@
++# SPDX-FileCopyrightText: 2023 Hynek Schlawack <hs@ox.cx>
++#
++# SPDX-License-Identifier: MIT
++
++import inspect
++from typing import Any, Callable, Awaitable, get_origin, get_args
++
++from ._core import Container
++from .exceptions import ServiceNotFoundError
++
++
++def _unwrap_init_var(annotation: Any) -> Any:
++    """
++    Unwrap dataclasses.InitVar annotations to the type they wrap.
++    """
++    origin = get_origin(annotation)
++    if origin is not None and hasattr(origin, "__name__") and "InitVar" in origin.__name__:
++        return get_args(annotation)[0]
++    return annotation
++
++
++def autowire(fn_or_cls: Callable) -> Callable[[Container], Any]:
++    """
++    Returns a factory that resolves each of `fn_or_cls`'s annotated parameters
++    from a `svcs.Container` and calls `fn_or_cls` with the resolved services.
++    """
++    if inspect.isgeneratorfunction(fn_or_cls):
++        raise TypeError("autowire: bare generator functions are not supported")
++
++    sig = inspect.signature(fn_or_cls, locals={"Container": Container}, eval_str=True)
++    if sig is None:
++        sig = inspect.signature(fn_or_cls)
++
++    def factory(container: Container) -> Any:
++        args = []
++        for name, param in sig.parameters.items():
++            if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
++                continue
++
++            if param.annotation is param.empty and param.default is param.empty:
++                raise TypeError(f"Parameter {name!r} is required but has no annotation or default")
++
++            if param.annotation is param.empty:
++                args.append(param.default)
++                continue
++
++            # Unwrap InitVar
++            annotation = _unwrap_init_var(param.annotation)
++
++            if annotation is Container:
++                args.append(container)
++                continue
++
++            try:
++                args.append(container.get(annotation))
++            except ServiceNotFoundError:
++                if param.default is not param.empty:
++                    args.append(param.default)
++                else:
++                    raise
++
++        return fn_or_cls(*args, **{})
++
++    return factory
++
++
++async def aautowire(fn_or_cls: Callable) -> Callable[[Container], Awaitable[Any]]:
++    """
++    Asynchronous counterpart to `autowire`. Resolves services through the
++    container's asynchronous lookup and awaits the result of `fn_or_cls`
++    if it is awaitable.
++    """
++    if inspect.isasyncgenfunction(fn_or_cls):
++        raise TypeError("aautowire: bare async generator functions are not supported")
++
++    sig = inspect.signature(fn_or_cls, locals={"Container": Container}, eval_str=True)
++    if sig is None:
++        sig = inspect.signature(fn_or_cls)
++
++    async def factory(container: Container) -> Any:
++        args = []
++        for name, param in sig.parameters.items():
++            if param.kind in (param.VAR_POSITIONAL, param.VAR_KEYWORD):
++                continue
++
++            if param.annotation is param.empty and param.default is param.empty:
++                raise TypeError(f"Parameter {name!r} is required but has no annotation or default")
++
++            if param.annotation is param.empty:
++                args.append(param.default)
++                continue
++
++            # Unwrap InitVar
++            annotation = _unwrap_init_var(param.annotation)
++
++            if annotation is Container:
++                args.append(container)
++                continue
++
++            try:
++                args.append(await container.aget(annotation))
++            except ServiceNotFoundError:
++                if param.default is not param.empty:
++                    args.append(param.default)
++                else:
++                    raise
++
++        result = fn_or_cls(*args, **{})
++        if inspect.isawaitable(result):
++            return await result
++        return result
++
++    return factory

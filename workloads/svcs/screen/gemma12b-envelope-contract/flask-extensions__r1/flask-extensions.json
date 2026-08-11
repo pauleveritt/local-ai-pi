@@ -1,0 +1,79 @@
+{
+  "accepted": false,
+  "argv": [
+    "pi",
+    "--print",
+    "--mode",
+    "json",
+    "--no-session",
+    "--model",
+    "omlx/gemma-4-12B-it-MLX-8bit",
+    "--no-extensions",
+    "--extension",
+    "/Users/pauleveritt/projects/pauleveritt/local-ai-pi/.worktrees/phase7-workload/extensions/envelope-cap.ts",
+    "--no-skills",
+    "--no-prompt-templates",
+    "--no-themes",
+    "--no-context-files",
+    "--approve",
+    "--tools",
+    "read,write",
+    "# Store the Flask registry where extensions belong\n\nThe Flask integration keeps its `Registry` on the application's `config`\nmapping. Flask provides `app.extensions` for exactly this purpose: state that\nbelongs to an extension rather than user configuration, which should not appear\nalongside a user's own settings or be dumped with them.\n\nMove the registry to `app.extensions`, under the same key. After\n`svcs.flask.init_app(app)`, the registry must be reachable at\n`app.extensions[\"svcs_registry\"]`, and an explicitly supplied registry must be\nthe object stored there.\n\nEvery other part of the Flask integration \u2014 request-scoped containers, teardown,\nand registry closing \u2014 must keep working.\n\nI've read the necessary files. Here is the contract.\n\n---\n\n# Contract: Move Flask Registry from `app.config` to `app.extensions`\n\n## Repository\n\n`svcs` \u2014 a flexible service locator. The relevant source file is:\n\n- **`src/svcs/flask.py`** \u2014 the Flask integration module.\n\nThe constant `_KEY_REGISTRY` is imported from `svcs._core` and has the value `\"svcs_registry\"`.\n\n## Required Behaviour\n\nAfter `svcs.flask.init_app(app)` returns, the `Registry` instance must be stored in `app.extensions[\"svcs_registry\"]` rather than `app.config[\"svcs_registry\"]`.\n\nIf the caller supplies an explicit `registry` argument to `init_app`, that exact object must be the one stored in `app.extensions[\"svcs_registry\"]`.\n\nAll public functions that read the registry from the Flask app must source it from `app.extensions` instead of `app.config`. The functions that write or remove it must target `app.extensions` as well.\n\nA verification checklist:\n\n1. `app.extensions[\"svcs_registry\"]` is a `Registry` after `init_app(app)`.\n2. `app.config` does **not** contain a key `\"svcs_registry\"` after `init_app(app)`.\n3. Calling `svcs.flask.get_registry(app)` returns the `Registry` from `app.extensions`.\n4. Calling `svcs.flask.close_registry(app)` removes the key from `app.extensions` and calls `.close()` on the registry.\n5. Request-scoped containers created via `svcs.flask.svcs_from()` still wrap the correct registry.\n6. The `teardown` function continues to close request-scoped containers (it operates on `g`, not `app.config`/`app.extensions`, so its body is unaffected).\n7. The `registry` and `container` `LocalProxy` objects continue to resolve correctly.\n\n## Affected Functions and Exact Locations\n\nAll changes are in **`src/svcs/flask.py`**. The file currently accesses `app.config[_KEY_REGISTRY]` in six locations. Each must be changed to `app.extensions[_KEY_REGISTRY]`.\n\n### 1. `svcs_from(g)` \u2014 line ~27\n\n**Current access:** `current_app.config[_KEY_REGISTRY]`\n\nThis function creates a `Container` from the registry. The registry source must change from `current_app.config` to `current_app.extensions`.\n\n**Signature (unchanged):**\n```python\ndef svcs_from(g: _AppCtxGlobals = g) -> Container:\n```\n\n### 2. `get_registry(app)` \u2014 line ~42\n\n**Current access:** `app.config[_KEY_REGISTRY]`\n\nThis function returns the registry. The return value must come from `app.extensions` instead of `app.config`.\n\n**Signature (unchanged):**\n```python\ndef get_registry(app: Flask | None = None) -> Registry:\n```\n\n### 3. `init_app(app, *, registry=None)` \u2014 line ~60\n\n**Current access:** `app.config[_KEY_REGISTRY] = registry or Registry()`\n\nThe assignment target must change from `app.config` to `app.extensions`.\n\n**Signature (unchanged):**\n```python\ndef init_app(app: FlaskAppT, *, registry: Registry | None = None) -> FlaskAppT:\n```\n\n### 4. `register_factory(app, svc_type, factory, ...)` \u2014 line ~80\n\n**Current access:** `app.config[_KEY_REGISTRY].register_factory(...)`\n\nThe registry lookup must change from `app.config` to `app.extensions`.\n\n**Signature (unchanged):**\n```python\ndef register_factory(\n    app: Flask,\n    svc_type: type,\n    factory: Callable,\n    *,\n    enter: bool = True,\n    ping: Callable | None = None,\n    on_registry_close: Callable | None = None,\n) -> None:\n```\n\n### 5. `register_value(app, svc_type, value, ...)` \u2014 line ~98\n\n**Current access:** `app.config[_KEY_REGISTRY].register_value(...)`\n\nThe registry lookup must change from `app.config` to `app.extensions`.\n\n**Signature (unchanged):**\n```python\ndef register_value(\n    app: Flask,\n    svc_type: type,\n    value: object,\n    *,\n    enter: bool = False,\n    ping: Callable | None = None,\n    on_registry_close: Callable | None = None,\n) -> None:\n```\n\n### 6. `close_registry(app)` \u2014 line ~157\n\n**Current access:** `app.config.pop(_KEY_REGISTRY, None)`\n\nThe `pop` call must target `app.extensions` instead of `app.config`.\n\n**Signature (unchanged):**\n```python\ndef close_registry(app: Flask) -> None:\n```\n\n## Invariants That Must Not Change\n\n1. **`_KEY_REGISTRY` value:** The key string `\"svcs_registry\"` is unchanged. It is imported from `svcs._core` and must remain the lookup key.\n\n2. **`teardown` function:** The teardown handler (line ~150) operates on `g` (`_KEY_CONTAINER`), not on `app.config` or `app.extensions`. Its body must not be modified.\n\n3. **`LocalProxy` objects:** `registry` and `container` are `LocalProxy` instances backed by `get_registry` and `svcs_from` respectively. Their creation expressions must not change; only the internal functions they delegate to are affected.\n\n4. **`overwrite_factory` and `overwrite_value`:** These functions obtain the container via `svcs_from()` and then access `container.registry`. They do not directly access `app.config` or `app.extensions`. Their bodies must not be modified.\n\n5. **`get`, `get_abstract`, `get_pings`:** These functions operate on the container from `g` via `svcs_from()`. They do not directly access `app.config` or `app.extensions`. Their bodies must not be modified.\n\n6. **`init_app` teardown registration:** The call to `app.teardown_appcontext(teardown)` in `init_app` must remain unchanged.\n\n7. **Return type of `init_app`:** Must still return the same `FlaskAppT` instance.\n\n## Documentation Note\n\nThe file `docs/integrations/flask.md` contains the sentence:\n\n> *svcs*'s Flask integration uses the {attr}`flask.Flask.config` object to store the {class}`svcs.Registry`\n\nThis sentence must be updated to reference {attr}`flask.Flask.extensions` instead of {attr}`flask.Flask.config`.\n\n## How a Reader Knows the Work Is Done\n\n1. A grep for `app\\.config\\[` or `current_app\\.config\\[` in `src/svcs/flask.py` returns zero hits.\n2. A grep for `app\\.extensions\\[` or `current_app\\.extensions\\[` in `src/svcs/flask.py` finds six matches (one per function listed above).\n3. The `docs/integrations/flask.md` first paragraph references `Flask.extensions`, not `Flask.config`.\n4. No other file in the repository is modified.\n"
+  ],
+  "base_passed": 17,
+  "budget_exhausted": "none",
+  "cell": {
+    "base_url": "http://127.0.0.1:8001/v1",
+    "context_window": "80000",
+    "extensions": "envelope-cap.ts",
+    "extensions_sha256": "b7455133f3be8c2661b0716f8624e86d4b6def84dec4eb2b74217fc55467f4f3",
+    "max_tokens": "8192",
+    "model": "omlx/gemma-4-12B-it-MLX-8bit",
+    "models_json_sha256": "9913c0faa1847f5c1cfc860c976a89fa182dbc37707f23d929ef402764671515",
+    "pi_version": "0.84.1",
+    "tools": "read,write",
+    "wall_clock_seconds": "900.0"
+  },
+  "changed_paths": [
+    "docs/integrations/flask.md",
+    "src/svcs/flask.py"
+  ],
+  "executor_env_lock_sha256": "6d0058e19259c2d68b597096b17e33e7816c00f2cf49f6772af769e30a1d37c3",
+  "gap_closed": 1.0,
+  "manifest_sha256": "c96285e34433f8b34986a2b08b952dda0e394464a0faf9285998c7f3bd06ea62",
+  "missing_nodes": [],
+  "model_seconds": 196.83,
+  "model_timed_out": false,
+  "model_timeout_seconds": 900.0,
+  "oracle": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 19,
+    "reason_class": "pass",
+    "tests_passed": 19,
+    "wall_seconds": 0.388
+  },
+  "oracle_delta": 2,
+  "oracle_shortfall": [],
+  "out_of_scope": [
+    "docs/integrations/flask.md"
+  ],
+  "outcome": "out-of-scope",
+  "preservation": {
+    "collection_errors": {},
+    "failures": {},
+    "node_count": 109,
+    "reason_class": "pass",
+    "tests_passed": 109,
+    "wall_seconds": 0.817
+  },
+  "prompt_sha256": "9cbddddcb948beb32926d54b3d4a3ab221d9f31d23ab22b8ee7f75611db2fb56",
+  "reference_overlap": 0.6,
+  "rule_version": 8,
+  "target_total": 19,
+  "task_id": "flask-extensions",
+  "tools": "read,write",
+  "validity": "valid",
+  "validity_evidence": [],
+  "wrote_tests": []
+}

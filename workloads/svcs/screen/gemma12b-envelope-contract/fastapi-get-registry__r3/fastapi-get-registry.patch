@@ -1,0 +1,119 @@
+diff --git a/src/svcs/fastapi.py b/src/svcs/fastapi.py
+index 3ab361d..7ffb0d9 100644
+--- a/src/svcs/fastapi.py
++++ b/src/svcs/fastapi.py
+@@ -8,11 +8,12 @@ import contextlib
+ import inspect
+ 
+ from collections.abc import AsyncGenerator, Callable
+-from typing import Annotated, TypeAlias, cast
++from typing import Annotated, TypeAlias, cast, Union
+ 
+ import attrs
+ 
+ from fastapi import Depends, FastAPI, Request
++from fastapi.testclient import TestClient
+ 
+ import svcs
+ 
+@@ -67,6 +68,27 @@ class lifespan:  # noqa: N801
+             yield self._state
+ 
+ 
++def get_registry(app_or_client: FastAPI | TestClient) -> svcs.Registry:
++    """
++    Retrieve the svcs registry from a FastAPI application or a TestClient.
++
++    Raises:
++        RuntimeError: If the application does not have a svcs-aware lifespan attached,
++            or if the application has already shut down.
++    """
++    app = app_or_client.app if isinstance(app_or_client, TestClient) else app_or_client
++
++    lifespan_instance = getattr(app.router, "lifespan_context", None)
++
++    if not isinstance(lifespan_instance, lifespan):
++        raise RuntimeError("Application does not have a svcs-aware lifespan attached.")
++
++    if lifespan_instance.registry.is_closed:
++        raise RuntimeError("The application has shut down.")
++
++    return lifespan_instance.registry
++
++
+ async def container(request: Request) -> AsyncGenerator[svcs.Container, None]:
+     """
+     A FastAPI `dependency
+diff --git a/src/svcs/starlette.py b/src/svcs/starlette.py
+index db1dd24..beb6bce 100644
+--- a/src/svcs/starlette.py
++++ b/src/svcs/starlette.py
+@@ -8,13 +8,14 @@ import contextlib
+ import inspect
+ 
+ from collections.abc import AsyncGenerator, Callable
+-from typing import Any, overload
++from typing import Any, overload, Union
+ 
+ import attrs
+ 
+ from starlette.applications import Starlette
+ from starlette.requests import Request
+ from starlette.types import ASGIApp, Receive, Scope, Send
++from starlette.testclient import TestClient
+ 
+ import svcs
+ 
+@@ -67,9 +68,7 @@ class lifespan:  # noqa: N801
+             [Starlette, svcs.Registry],
+             contextlib.AbstractAsyncContextManager[None],
+         ]
+-        | Callable[
+-            [Starlette, svcs.Registry], AsyncGenerator[dict[str, object], None]
+-        ]
++        | Callable[[Starlette, svcs.Registry], AsyncGenerator[dict[str, object], None]]
+         | Callable[[Starlette, svcs.Registry], AsyncGenerator[None, None]]
+     )
+     _state: dict[str, object] = attrs.field(factory=dict)
+@@ -262,3 +261,41 @@ async def aget(request: Request, *svc_types: _ServiceType) -> object:
+     Same as :meth:`svcs.Container.aget`, but uses the container from *request*.
+     """
+     return await svcs_from(request).aget(*svc_types)
++
++
++def get_registry(app_or_client: Starlette | TestClient) -> svcs.Registry:
++    """
++    Retrieve the svcs registry from a Starlette application or a TestClient.
++
++    Raises:
++        RuntimeError: If the application does not have a svcs lifespan attached,
++            or if the application has already shut down.
++    """
++    app = app_or_client.app if isinstance(app_or_client, TestClient) else app_or_client
++
++    # Starlette stores lifespan on app._lifespan.
++    # However, it might be wrapped by starlette's own lifespan handling.
++    # We need to find the svcs.starlette.lifespan instance.
++    lifespan_instance = getattr(app, "_lifespan", None)
++
++    # If it's wrapped, we might need to dig.
++    # In starlette, the wrapper is usually an instance of starlette.applications.Lifespan.
++    # But wait, the requirement says "navigate this wrapping".
++    # Let's see how starlette wraps it.
++    # Actually, we can just check if the attribute exists and if it's our class.
++    # If it's not, we check if it's a wrapper that contains our class.
++    # But the most common case is that the user passed svcs.starlette.lifespan(app).
++    # And Starlette might have stored that directly.
++
++    # If it's a Starlette-wrapped lifespan, it will have a 'lifespan' attribute
++    # which is our actual lifespan instance.
++    if not isinstance(lifespan_instance, lifespan):
++        if hasattr(lifespan_instance, "lifespan"):
++            lifespan_instance = lifespan_instance.lifespan
++        else:
++            raise RuntimeError("Application does not have a svcs-aware lifespan attached.")
++
++    if lifespan_instance.registry.is_closed:
++        raise RuntimeError("The application has shut down.")
++
++    return lifespan_instance.registry

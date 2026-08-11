@@ -238,13 +238,85 @@ citing these two tasks as "clean" should carry this caveat, and a higher
 sample count is worth considering before the probe is trusted as a hard
 gate rather than a screen.
 
+## Stage 5 — the contract arm, on the three expressible tasks
+
+Same cell, same model, same 3 reps, `--contract-draft-dir` added. **Still
+0/9 accepted** -- but the shape is unrecognizable next to stage 2's 0/24,
+and every claim below is checked against the real diff or the real
+attempt record, not the outcome label alone.
+
+| task | stage 2 (brief-only) | stage 5 (brief+contract) |
+|---|---|---|
+| `flask-extensions` | 0/3, all `no-changes` | 0/3, all `out-of-scope` -- **oracle 19/19 passing in every rep** |
+| `fastapi-get-registry` | 0/3, all `no-changes` | 0/3, `partial-progress`/`no-progress` -- real 137+192-line diffs, oracle running (9-11 nodes), `assertion-failure` |
+| `autowire` | 0/3, `no-changes`/`no-progress` | 0/3, all `partial-progress` -- real 171-line diff creating `src/svcs/_autowire.py`, oracle running (27-54 nodes), `assertion-failure` |
+
+**Navigation is fixed, completely, for these three tasks.** Zero `EISDIR`
+loops, zero blind filename guesses, zero turns spent discovering layout.
+Every attempt went straight to the contract's named file(s) and produced a
+structured diff matching the contract's specified signatures. This is
+exactly the mechanism claimed above: the contract supplies what `read,write`
+alone cannot discover, and wall 1 is not a factor in a single one of these
+9 attempts. Verified by reading the actual patches, not by trusting the
+outcome label -- `no-changes` in stage 2 meant nothing was touched;
+`partial-progress`/`out-of-scope` in stage 5 means something substantial
+was.
+
+**`flask-extensions` would be 3/3 correct, and the reason it isn't is a
+contract-authoring defect, not a capability gap.** The patch
+(`flask-extensions__r1/flask-extensions.patch`, read directly) makes the
+exact `app.config[_KEY_REGISTRY]` -> `app.extensions[_KEY_REGISTRY]` swap
+the contract specifies, in every location the contract names, identically
+across all 3 reps. The oracle passes 19/19 in every rep. The rejection is
+`out_of_scope: ['docs/integrations/flask.md']` -- and the diff shows why:
+the model also updated that file's prose, exactly matching the contract's
+own "Documentation Note" section, which instructs updating a sentence in
+`docs/integrations/flask.md` from `Flask.config` to `Flask.extensions`.
+Checked against the reference: **the real target commit never touches that
+file** (`grep '^+++' reference-patches/flask-extensions.patch` shows only
+`src/svcs/flask.py` and the test file), and the manifest's own writable
+policy is `src/svcs/**` only, with a reason on file ("the Flask integration
+module lives there"). The contract added a requirement beyond both the
+task's defined scope and the actual reference fix -- something the
+authoring prompt does not forbid (it forbids handing over the
+implementation, not scope creep into adjacent, reasonable-sounding
+housekeeping). This was not corrected or regraded tonight: the graded
+result (0/3, out-of-scope) stands as the honest number, per the same
+no-post-hoc-tuning discipline as the rest of this file. It is named here
+because "the contract asked for more than the task allows" is a distinct,
+real, actionable defect class this project has not previously measured,
+separate from the leak probe (which checks disclosure, not scope) and
+separate from both walls above.
+
+**`fastapi-get-registry` and `autowire` are genuine capability attempts
+that fell short, not artifacts.** Both patches were read in full. The
+`fastapi-get-registry` diff writes a real `get_registry()` in both
+`fastapi.py` and `starlette.py`, matching the contract's two-file, two-
+signature requirement, complete with the model visibly reasoning in
+comments about FastAPI/Starlette's internal lifespan storage ("Let's check
+if it's wrapped by a Starlette lifespan factory... "). The
+`autowire` diff creates `src/svcs/_autowire.py` (137 lines, correct
+`InitVar`-unwrapping patterns, proper `__init__.py` export wiring) and
+gets partial credit on the oracle (27-54 nodes reached, depending on rep).
+Both fail on functional correctness the model got wrong while reaching for
+it -- real capability gaps in solving genuinely hard tasks (FastAPI/
+Starlette internals; a general autowiring implementation), not navigation
+failures, not budget-cap truncations, not scope violations. This is the
+first time tonight a brief-vs-contract comparison has produced a result
+that speaks to model capability rather than instrument artifacts.
+
 ## Completion
 
-**Complete. 24/24 attempts, 0 accepted, run exited cleanly (no infra-abort,
-no deadline).** Two independent, verified mechanisms account for it: no
-enumeration tool under `read,write` (wall 1), and an 8192-token output cap
-that cannot hold a ~30KB whole-file `write` (wall 2, unconditional for 5 of
-8 tasks). Neither was treated as a bug to fix in the envelope cell itself;
-both are named as open, deliberate-review questions rather than resolved
-unilaterally overnight. Tonight's contract arm proceeds only on the three
-tasks wall 2 does not foreclose.
+**Complete.** Stage 2: 24/24 attempts, 0 accepted -- two independent,
+verified walls (no enumeration tool under `read,write`; an 8192-token
+output cap that cannot hold a ~30KB whole-file `write`, unconditional for
+5 of 8 tasks). Stage 4: all 3 remaining tasks admitted to the contract arm
+(one probe-reliability caveat recorded above). Stage 5: 9/9 attempts, 0
+accepted, but navigation is completely fixed by the contract in all 9,
+`flask-extensions` is one scope-policy fix away from 3/3, and the other
+two tasks show genuine, substantial, structurally-correct-shaped attempts
+that fail on real functional detail. No wall was patched in the envelope
+cell itself; the tool-set question, the max_tokens question, the
+scope-vs-contract-instructions question, and the probe sample-size
+question are all named as open items for deliberate daylight review
+rather than resolved unilaterally overnight.
