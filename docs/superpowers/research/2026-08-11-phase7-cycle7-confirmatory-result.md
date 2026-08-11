@@ -85,6 +85,8 @@ No abort condition was met. The batch ran to its full pre-registered n without e
 
 ## Evidence archive
 
+Indexed alongside this repository's other archived evidence in
+[`2026-08-11-evidence-archive-index.md`](2026-08-11-evidence-archive-index.md).
 Bundled and checksum-verified at
 `/Users/pauleveritt/projects/pauleveritt/local-ai-pi-evidence-archive/2026-08-11-phase7-cycle7-confirmatory/`
 (external to this repository, per the distribution brief's "record the bundle's
