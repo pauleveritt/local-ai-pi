@@ -1,0 +1,11 @@
+{
+	"name": "local-ai-pi-extensions",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"test": "bun test extensions/"
+	},
+	"dependencies": {
+		"typebox": "^1.3.12"
+	}
+}
