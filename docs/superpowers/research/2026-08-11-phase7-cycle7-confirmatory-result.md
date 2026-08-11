@@ -112,16 +112,15 @@ only in memory, never to disk, for every attempt in this batch, not a
 bundling gap; no candidate patches/diffs — each attempt's candidate commit
 lived inside a `disposable_dir()` (`harness/workspace.py`) that is
 `shutil.rmtree`'d unconditionally on exit, so only `changed_paths` (filenames)
-survive, not content; no `confirmatory_batch.py` driver — written as a
-one-time execution of the frozen pre-registration, not committed product
-infrastructure. A future batch needing replayable transcripts or diffs
+survive, not content. A future batch needing replayable transcripts or diffs
 requires extending `run_process()` and `deliver()` to persist them before
 cleanup, which does not exist today — this is now a documented harness gap,
-not a silent one.
+not a silent one. The `confirmatory_batch.py` driver itself is no longer
+one of these gaps — see below.
 
 ## What this does not establish
 
-- **Not evidence for a fifth task or a general planner.** This remains the same four-task cohort the pre-registration scoped to; `harness/typed_contract.py` is still a narrow bridge, not general contract authoring.
+- **Not evidence for a fifth task or a general planner.** This remains the same four-task cohort the pre-registration scoped to; `harness/typed_contract.py` is still a narrow bridge, not general contract authoring — and, as of this batch's follow-up work, enforced at the CLI: `build_typed_handoff` now refuses any task outside `SUPPORTED_TASKS` with a clear error, rather than silently succeeding for an otherwise-qualified task under the brief arm.
 - **Not a claim that locating contracts help universally.** They discriminated on exactly one of four tasks in this batch (stringified-annotations); two tasks were already ceiling-tied and one is floor-tied on the primary metric regardless of arm.
-- **Batch driver script is not in the repository.** `confirmatory_batch.py` was written and run as a one-time execution of the frozen pre-registration (its own header says so explicitly) and is not committed product infrastructure. The distribution brief's step 4 ("give the running comparison a discoverable checked-in driver") remains open — the evidence archive above preserves this batch's *results*, not a rerunnable driver.
+- **This batch's own driver run was uncommitted; a checked-in driver now exists.** The one-time script that produced this batch (`confirmatory_batch.py`, `bf01r14bi`, header quoted above) was never in the repository. `tools/run_cycle7_confirmatory_batch.py` is its checked-in successor — same behavior, no hardcoded absolute worktree path, an explicit `--out-dir` instead of a scratchpad directory (distribution brief step 4). It reproduces the experiment; a fresh run of it is a new, separate batch, not additional evidence for the result recorded here.
 - **Pilot data is not re-cited as confirmatory evidence here**, consistent with governing rule 8 and the pre-registration's own framing; every rate above is this batch's own attempts, not pooled with any earlier pilot round.
