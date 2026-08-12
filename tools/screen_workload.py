@@ -84,11 +84,16 @@ def contract_admission(
 
 
 def reference_for(task_id: str, root: Path = Path("workloads/svcs/reference-patches")):
-    """The ceiling replay's saved patch for this task, when it exists.
+    """The saved target patch for this task, when it exists.
 
-    Read from disk rather than recomputed: the same bytes the ceiling
-    replay graded, so the overlap number and the winnability check are
-    talking about one artifact.
+    Read from disk rather than recomputed, so the overlap number is
+    computed against a fixed artifact rather than a re-derived one.
+
+    These patches were produced by `tools/ceiling_replay.py`, deleted
+    2026-08-12 as unreferenced. The patches it wrote are still committed
+    under `workloads/svcs/reference-patches/` and are still read here;
+    only the generator is gone. Regenerating them would mean restoring
+    that tool from git history.
     """
     path = root / f"{task_id}.patch"
     return path.read_text() if path.is_file() else None
