@@ -70,7 +70,20 @@ class Budget:
 @dataclass(frozen=True)
 class AuthorResult:
     produced_draft: bool
+    """The gate accepted the draft -- a verdict about quality."""
     draft_path: Path | None
+    produced_output: bool = True
+    """The child answered at all -- an infrastructure signal, not a verdict.
+
+    Separate from `produced_draft` because `Budget.record` wants exactly
+    this distinction and the two diverge: a draft the gate rejects for
+    being too short still proves the server is up. Conflating them made
+    three consecutive *correct* rejections abort the whole sweep with
+    "Server is likely down" -- the code did compute the right signal and
+    then threw it away at the constructor. Defaults to True so the only
+    callers that must think about it are the ones that can observe a
+    silent child.
+    """
 
 
 @dataclass(frozen=True)
@@ -156,7 +169,9 @@ def ready_task(
             return TaskOutcome(task_id, "deadline", attempt - 1, last_leaked)
         attempt_dir = work_dir / task_id / f"attempt{attempt}"
         result_a = author(attempt_dir)
-        budget.record(result_a.produced_draft)
+        # produced_output, not produced_draft: a gate-rejected draft is a
+        # verdict, not a dead server. See AuthorResult.produced_output.
+        budget.record(result_a.produced_output)
         if budget.infra_aborted:
             return TaskOutcome(task_id, "infra-aborted", attempt, last_leaked)
         if not result_a.produced_draft:
@@ -196,8 +211,10 @@ def _subprocess_author(
         raw = attempt_dir / f"{task_id}.raw.md"
         produced_anything = raw.is_file() and raw.stat().st_size > 0
         return AuthorResult(
-            produced_draft=(code == 0 and draft.is_file()), draft_path=draft if code == 0 else None
-        ) if produced_anything else AuthorResult(False, None)
+            produced_draft=(code == 0 and draft.is_file()),
+            draft_path=draft if code == 0 else None,
+            produced_output=produced_anything,
+        )
 
     return run
 

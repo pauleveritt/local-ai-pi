@@ -190,7 +190,13 @@ def test_a_failed_authoring_attempt_still_counts_toward_max_attempts(tmp_path: P
     drafts, probes, work, out = (tmp_path / n for n in ("d", "p", "w", "o"))
     _write(drafts / "t.md", "bad")
     _write(probes / "t.json", json.dumps({"leaked": ["x"], "contract_sha256": contract_hash("bad")}))
-    budget = Budget(max_seconds=999, max_consecutive_infra_failures=99)
+    # Threshold 3, not 99. At 99 this test passed for the wrong reason:
+    # `ready_task` recorded `produced_draft` into the infra budget, so
+    # three correctly-rejected drafts looked like three dead-server
+    # attempts and aborted the sweep -- the exact conflation the comment
+    # below claims is not happening. Only a threshold the run can
+    # actually reach tests that claim.
+    budget = Budget(max_seconds=999, max_consecutive_infra_failures=3)
     calls = {"n": 0}
 
     def author(attempt_dir):
@@ -233,7 +239,12 @@ def test_consecutive_infra_failures_abort_the_task(tmp_path: Path) -> None:
 
     def author(_):
         calls["n"] += 1
-        return AuthorResult(False, None)  # simulates a dead server: no reply at all
+        # produced_output=False is what makes this a dead server rather
+        # than a rejected draft. Spelled out because the bare
+        # `AuthorResult(False, None)` this used to be reads identically
+        # to the gate-rejection case two tests below -- which is exactly
+        # how the two got conflated in `ready_task` in the first place.
+        return AuthorResult(produced_draft=False, draft_path=None, produced_output=False)
 
     def probe(_): raise AssertionError
 
@@ -249,3 +260,50 @@ def test_a_successful_attempt_resets_the_infra_streak() -> None:
     budget.record(True)  # a real reply -- even if the draft later fails the probe
     budget.record(False)
     assert not budget.infra_aborted, "the streak must reset on any produced output"
+
+
+def test_a_gate_rejected_draft_is_not_an_infrastructure_failure(tmp_path: Path) -> None:
+    """The distinction `Budget.record` exists to make.
+
+    `_subprocess_author` computes `produced_anything` from the raw
+    transcript -- the server answered -- and its comment says the two
+    signals "are deliberately checked separately". The constructor then
+    discarded it: a gate-rejected draft returned
+    `AuthorResult(False, None)`, `ready_task` recorded *that* as the
+    infra signal, and three correct rejections in a row aborted the
+    entire multi-task sweep printing "Server is likely down."
+    """
+    drafts, probes, work, out = (tmp_path / n for n in ("d", "p", "w", "o"))
+    _write(drafts / "t.md", "bad")
+    _write(probes / "t.json", json.dumps({"leaked": ["x"], "contract_sha256": contract_hash("bad")}))
+    budget = Budget(max_seconds=999, max_consecutive_infra_failures=2)
+
+    def author(attempt_dir):
+        # The shape _subprocess_author produces when the child answered
+        # but the gate refused the draft.
+        return AuthorResult(produced_draft=False, draft_path=None, produced_output=True)
+
+    def probe(_): raise AssertionError("nothing to probe when authoring produced no draft")
+
+    outcome = ready_task("t", drafts, probes, work, out, author, probe, budget, max_attempts=3)
+    assert outcome.status == "still-leaking", "a rejected draft is a verdict, not a dead server"
+    assert not budget.infra_aborted
+
+
+def test_a_silent_child_still_trips_the_infrastructure_abort(tmp_path: Path) -> None:
+    """The other side of the same distinction, so the fix cannot be
+    'record True always'. A child that writes nothing at all, repeatedly,
+    is the dead-server shape and must still abort."""
+    drafts, probes, work, out = (tmp_path / n for n in ("d", "p", "w", "o"))
+    _write(drafts / "t.md", "bad")
+    _write(probes / "t.json", json.dumps({"leaked": ["x"], "contract_sha256": contract_hash("bad")}))
+    budget = Budget(max_seconds=999, max_consecutive_infra_failures=2)
+
+    def author(attempt_dir):
+        return AuthorResult(produced_draft=False, draft_path=None, produced_output=False)
+
+    def probe(_): raise AssertionError("nothing to probe")
+
+    outcome = ready_task("t", drafts, probes, work, out, author, probe, budget, max_attempts=5)
+    assert outcome.status == "infra-aborted"
+    assert budget.infra_aborted

@@ -12,6 +12,7 @@ shapes that would silently regress it back.
 import argparse
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from tools.replicate import _command, main
@@ -86,12 +87,11 @@ def _fake_run(returncode: int, writes_record: bool):
                 json.dumps({"outcome": "accepted", "gap_closed": 1.0})
             )
 
-        class Result:
-            pass
-
-        result = Result()
-        result.returncode = returncode
-        return result
+        # SimpleNamespace rather than an ad-hoc empty class with an
+        # attribute bolted on afterwards: the latter is untypeable
+        # (`Result` has no `returncode` until runtime) and was the last
+        # type error left once `tools/` came under pyrefly.
+        return SimpleNamespace(returncode=returncode)
 
     return run
 

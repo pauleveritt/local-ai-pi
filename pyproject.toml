@@ -65,4 +65,4 @@ select = [
 ignore = ["E501"]
 
 [tool.pyrefly]
-project-includes = ["harness", "tests"]
+project-includes = ["harness", "tests", "tools"]

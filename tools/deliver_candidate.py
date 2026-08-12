@@ -34,7 +34,12 @@ from harness.cell_resolution import PROBE_EXTENSION, resolve_cell
 from harness.liveness import ModelServerDown, check_model_server_alive
 from harness.pi_invocation import pi_command, pi_env
 from harness.processes import ProcessResult, run_process
-from harness.typed_contract import TypedContractError, TypedHandoff, build_typed_handoff
+from harness.typed_contract import (
+    HandoffContract,
+    TypedContractError,
+    TypedHandoff,
+    build_typed_handoff,
+)
 
 # The 2026-08-11 re-plan's step 4 executor extension: `read`/`write`/`edit`
 # mediated by the mutation engine, not raw Pi tools. Not in `harness/screen.py`
@@ -71,7 +76,7 @@ CONTRACT_ENV = "SATYRN_HANDOFF_CONTRACT"
 BASELINES_ENV = "SATYRN_FILE_BASELINES"
 
 
-def _render_contract_prompt(contract: dict[str, object]) -> str:
+def _render_contract_prompt(contract: HandoffContract) -> str:
     """A minimal, faithful-enough echo of `handoff-contract.ts`'s `renderContract`.
 
     The system prompt `implementer.ts` injects (`promptFor`) states the

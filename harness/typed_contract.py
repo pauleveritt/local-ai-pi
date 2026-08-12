@@ -31,11 +31,52 @@ import hashlib
 import shlex
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Literal, NotRequired, TypedDict
 
 from harness.workload import Manifest, load_manifest
 
-TaskSource = Literal["locating-contract", "brief"]
+type TaskSource = Literal["locating-contract", "brief"]
+
+
+class WritableFile(TypedDict):
+    """Mirrors `WritableFile` in extensions/orchestration/handoff-contract.ts."""
+
+    path: str
+
+
+class HandoffContract(TypedDict):
+    """The contract handed to the bounded implementer, as JSON.
+
+    A structural mirror of the `HandoffContract` interface in
+    `extensions/orchestration/handoff-contract.ts` -- this dict is
+    serialized into `SATYRN_HANDOFF_CONTRACT` and parsed back by
+    `implementer.ts`'s `isContract()`, so the two definitions are one
+    wire format with two declarations. Typed rather than left as
+    `dict[str, object]` because that erasure was the direct cause of
+    nine of the ten type errors in this repository: every reader had to
+    re-narrow `object` before it could call `.startswith` or `len()` on
+    a field whose type was never actually in doubt.
+
+    Keep in sync with the TypeScript by hand. There is no generator, and
+    a drift here surfaces as the child rejecting the contract at
+    `isContract()` rather than as a type error on this side.
+    """
+
+    task: str
+    writableFiles: list[WritableFile]
+    readableFiles: list[str]
+    acceptanceStrings: list[str]
+    preservedBehavior: list[str]
+    knownFacts: list[str]
+    validation: str
+    removableSymbols: NotRequired[list[str]]
+    """Public symbols the writer may remove outright.
+
+    A move needs no declaration -- the engine sees the symbol arrive in
+    its destination. A rename has no compensating file, so declaring it
+    is the only way to tell it from the destructive edit the engine
+    exists to refuse.
+    """
 
 TASKS_DIR = Path(__file__).resolve().parents[1] / "workloads" / "svcs" / "tasks"
 LOCATING_CONTRACTS_DIR = (
@@ -157,7 +198,7 @@ def _effective_preservation_command(manifest: Manifest) -> tuple[str, ...]:
 
 @dataclass(frozen=True)
 class TypedHandoff:
-    contract: dict[str, object]
+    contract: HandoffContract
     baselines: list[dict[str, object]]
     writable_glob: tuple[str, ...]
     """`deliver()`'s outer scope check, the manifest's own glob policy --
@@ -212,7 +253,7 @@ def build_typed_handoff(
         else:
             baselines.append({"path": relative, "state": "absent"})
 
-    contract = {
+    contract: HandoffContract = {
         "task": task_text,
         "writableFiles": [{"path": p} for p in writable_paths],
         "readableFiles": [],
