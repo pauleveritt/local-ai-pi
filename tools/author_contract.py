@@ -26,8 +26,8 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from harness.liveness import check_model_server_alive
-from harness.processes import run_process
 from harness.pi_invocation import pi_command, pi_env
+from harness.processes import run_process
 from harness.screen import AUTHOR_EXTENSION
 
 # A contract locates and bounds; it does not implement. These are the

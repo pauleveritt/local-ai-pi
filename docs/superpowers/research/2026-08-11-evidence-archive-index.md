@@ -18,14 +18,21 @@ accidental commit).
 
 | Bundle | Path | Status | Checksum-of-checksums |
 |---|---|---|---|
-| Cycle 7 confirmatory batch | `2026-08-11-phase7-cycle7-confirmatory/` | valid, confirmatory | `ab9b59e66b93e01f3661d92f63cf6f9b4d5992338516978ff28178c889713610` |
-| `workloads/svcs/screen/` raw corpus | `screen-corpus/` | durability copy of a still-tracked path; per-batch validity labels mostly not yet assigned (see its own `MANIFEST.md`) | `1c319bbd9b45716663bff5a05dc838d515f1e299a6a8b93d9d1525ca84b79adb` |
+| Cycle 7 confirmatory batch | `2026-08-11-phase7-cycle7-confirmatory/` | valid, confirmatory | `9a9efa711eb92b20302bbd709db0ca440e7c9efedda58a122b6672e8965194ff` |
+| `workloads/svcs/screen/` raw corpus | `screen-corpus/` | durability copy of a still-tracked path; all 25 batches labeled 2026-08-12 in its own `MANIFEST.md` | `589b19418c3b75c970daf0526f083c7a1c17055013fc5bb2d2648abfda2d1def` |
 
 Each bundle carries its own `MANIFEST.md` (provenance, contents, what is and
 is not included, verification instructions) and `CHECKSUMS.sha256`. Verify any
-bundle from its own directory with `shasum -a 256 -c CHECKSUMS.sha256`; verify
-the manifest itself hasn't been tampered with by re-hashing `CHECKSUMS.sha256`
-and comparing against the table above.
+bundle from its own directory with `shasum -a 256 -c CHECKSUMS.sha256`, then
+re-hash `CHECKSUMS.sha256` itself and compare against the table above.
+
+**Corrected 2026-08-12.** This section previously claimed the second step
+proved `MANIFEST.md` was unaltered. It did not: neither bundle's
+`CHECKSUMS.sha256` listed its own `MANIFEST.md`, so a manifest could be
+edited — including the per-batch validity labels added that day — without
+any check failing. Both bundles were regenerated to include `MANIFEST.md`,
+and the hashes in the table above are the new ones. The two-step
+verification above is now true as written.
 
 ## What this index does not yet do
 

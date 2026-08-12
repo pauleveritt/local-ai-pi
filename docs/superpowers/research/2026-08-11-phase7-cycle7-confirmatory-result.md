@@ -104,7 +104,10 @@ download it" — no test or product path reads from this location):
 
 Bundle checksum-of-checksums (detects tampering with `CHECKSUMS.sha256`
 itself without re-hashing every file):
-`SHA256(CHECKSUMS.sha256) = ab9b59e66b93e01f3661d92f63cf6f9b4d5992338516978ff28178c889713610`.
+`SHA256(CHECKSUMS.sha256) = 9a9efa711eb92b20302bbd709db0ca440e7c9efedda58a122b6672e8965194ff`
+(regenerated 2026-08-12 to bring `MANIFEST.md` itself under checksum
+coverage; it had been omitted, so the manifest was editable without any
+check failing).
 
 **What the bundle does not contain, and why:** no raw Pi/model transcripts —
 `harness/processes.run_process()` captures the model child's stdout/stderr

@@ -32,8 +32,8 @@ import harness.cell as cell_module
 import harness.screen as screen
 from harness.candidate import DeliveryRefused, deliver
 from harness.liveness import ModelServerDown, check_model_server_alive
-from harness.processes import ProcessResult, run_process
 from harness.pi_invocation import pi_command, pi_env
+from harness.processes import ProcessResult, run_process
 from harness.typed_contract import TypedContractError, TypedHandoff, build_typed_handoff
 
 # The 2026-08-11 re-plan's step 4 executor extension: `read`/`write`/`edit`
@@ -170,6 +170,30 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error("--prompt-file is required unless --contract-task is given")
     if args.contract_task is not None and args.prompt_file:
         parser.error("--contract-task supplies the prompt; do not also pass --prompt-file")
+    if args.contract_task is not None and args.validation:
+        # The contract tells the child, in its own text, which command the
+        # parent will run. An override makes that statement false, and the
+        # failure is silent -- the child is judged against a gate it was
+        # never shown. This is not hypothetical: a driver script that
+        # hardcoded --validation alongside --contract-task silently
+        # shadowed the corrected default and produced a false 0/4 on
+        # flask-extensions (2026-08-11), costing a full re-run to diagnose.
+        parser.error(
+            "--contract-task supplies the validation command (the task's own "
+            "preservation command, which the contract also names to the child); "
+            "do not also pass --validation"
+        )
+    if args.contract_task is not None and args.writable:
+        # Same rule, weaker case: the outer glob does not appear in the
+        # contract's text, so an override is not a false statement to the
+        # child -- but it does silently move the enforcement boundary away
+        # from the manifest the run is reported against. Nothing passes
+        # both today; refusing keeps one source of truth rather than
+        # preserving an unused escape hatch.
+        parser.error(
+            "--contract-task supplies the writable scope from the task's manifest; "
+            "do not also pass --writable"
+        )
     if args.contract_task is None and args.task_source != "locating-contract":
         parser.error("--task-source has no effect without --contract-task")
 

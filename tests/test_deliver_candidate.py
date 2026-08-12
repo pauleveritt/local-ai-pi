@@ -97,26 +97,53 @@ def test_the_oracle_command_reaches_the_receipt_only_as_an_unverified_note(
     assert payload["outcome"] == "candidate-created"
 
 
-def test_an_explicit_validation_still_overrides_the_contract_task_default(monkeypatch, tmp_path):
-    captured = {}
+def test_an_explicit_validation_is_refused_alongside_contract_task(monkeypatch, tmp_path):
+    """The override used to be allowed, and it was a live footgun.
 
-    def fake_deliver(repo, task_id, prompt, run_model, validation, **kwargs):
-        captured["validation"] = validation
-        return _StubReceipt()
+    A contract states, in the text handed to the child, which command the
+    parent will run. `--validation` made that statement false with no
+    signal -- the child is then judged against a gate it was never shown.
+    It cost a real diagnosis once: a driver hardcoding `--validation`
+    alongside `--contract-task` shadowed the corrected default and
+    produced a false 0/4 on flask-extensions (2026-08-11).
 
-    monkeypatch.setattr(deliver_candidate, "deliver", fake_deliver)
+    This test replaces one that asserted the opposite
+    (`test_an_explicit_validation_still_overrides_the_contract_task_default`).
+    The old behavior was deliberate, so the reversal is deliberate too:
+    one contract, one source of truth.
+    """
+    def unreachable(*args, **kwargs):
+        raise AssertionError("deliver() must not run; the CLI should refuse first")
 
-    rc = deliver_candidate.main([
-        "--repo", str(tmp_path),
-        "--task", "flask-extensions",
-        "--contract-task", "flask-extensions",
-        "--model", "omlx/gemma-4-12B-it-MLX-8bit",
-        "--skip-server-check",
-        "--validation", "echo explicit",
-    ])
+    monkeypatch.setattr(deliver_candidate, "deliver", unreachable)
 
-    assert rc == 0
-    assert captured["validation"] == ("echo", "explicit")
+    with pytest.raises(SystemExit):
+        deliver_candidate.main([
+            "--repo", str(tmp_path),
+            "--task", "flask-extensions",
+            "--contract-task", "flask-extensions",
+            "--model", "omlx/gemma-4-12B-it-MLX-8bit",
+            "--skip-server-check",
+            "--validation", "echo explicit",
+        ])
+
+
+def test_an_explicit_writable_is_refused_alongside_contract_task(monkeypatch, tmp_path):
+    """Same one-source-of-truth rule for the outer scope glob."""
+    def unreachable(*args, **kwargs):
+        raise AssertionError("deliver() must not run; the CLI should refuse first")
+
+    monkeypatch.setattr(deliver_candidate, "deliver", unreachable)
+
+    with pytest.raises(SystemExit):
+        deliver_candidate.main([
+            "--repo", str(tmp_path),
+            "--task", "flask-extensions",
+            "--contract-task", "flask-extensions",
+            "--model", "omlx/gemma-4-12B-it-MLX-8bit",
+            "--skip-server-check",
+            "--writable", "src/**",
+        ])
 
 
 def test_cell_refuses_an_explicit_timeout_alongside_it(tmp_path, monkeypatch):

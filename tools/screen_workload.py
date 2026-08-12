@@ -21,8 +21,8 @@ import harness.screen as screen
 import harness.workload as workload
 import harness.workspace as workspace
 from harness.liveness import check_model_server_alive
-from harness.reconstruction import contract_hash
 from harness.pi_invocation import DEFAULT_MODEL
+from harness.reconstruction import contract_hash
 
 
 def contract_admission(

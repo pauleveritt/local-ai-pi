@@ -12,8 +12,6 @@ drafts, a rejected retry deleting a previously-accepted one, and
 import json
 from pathlib import Path
 
-import pytest
-
 from harness.reconstruction import Reconstruction, contract_hash
 from tools.reauthor_until_clean import (
     AuthorResult,

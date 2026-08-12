@@ -31,8 +31,8 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from harness.processes import run_process
 from harness.pi_invocation import pi_command, pi_env
+from harness.processes import run_process
 from harness.similarity import overlap
 from harness.validity import VALID, assess
 from harness.workload import (

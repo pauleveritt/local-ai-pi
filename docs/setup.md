@@ -76,16 +76,29 @@ Node toolchain); confirm with:
 pi --version    # 0.84.1
 ```
 
-The harness pins this version: `EXPECTED_PI_VERSION` in `harness/runner.py`.
-`run_batch` refuses to run on any other version, so batches from different
-contributors stay comparable. A single run does not check the version, so
-exploring the harness on a different Pi is never blocked.
+**Which paths actually enforce this, and which only record it** — worth
+being precise, because the two halves of this repository differ:
 
-The test suite *does* check it. `test_the_pinned_version_is_the_installed_version`
-in `tests/test_runner.py` skips when `pi` is not on your PATH — you have done
-nothing wrong by not installing it — and **fails** when your Pi is a
-different version. That failure is deliberate: it is what turns a silent
-upgrade into a red suite, which is the whole point of the pin.
+- **The legacy duration-suite harness enforces it.** `EXPECTED_PI_VERSION`
+  in `harness/runner.py`; `run_batch` refuses to run on any other version,
+  so batches from different contributors stay comparable. A single
+  `run_suite` does not check, so exploring is never blocked.
+- **The bounded-implementer path does not.** `harness/cell.py` says so
+  outright — a cell "carries the conditions that define an arm and nothing
+  else: not the grading rule …, not the Pi version or `models.json` digest
+  (which move for legitimate reasons and are recorded per attempt
+  instead)." So `deliver_candidate.py` will run under any Pi your system
+  has; the version it used is written into the receipt, not checked
+  against a pin.
+
+Do not read the first bullet as covering the second. A candidate produced
+under a different Pi is not refused; it is recorded.
+
+The test suite checks the pin for the path that has one.
+`test_the_pinned_version_is_the_installed_version` in `tests/test_runner.py`
+skips when `pi` is not on your PATH — you have done nothing wrong by not
+installing it — and **fails** when your Pi is a different version. That
+failure is deliberate: it turns a silent upgrade into a red suite.
 
 So if yours differs, either install Pi `0.84.1`, or bump
 `EXPECTED_PI_VERSION` and re-check the documentation that cites Pi — this

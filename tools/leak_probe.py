@@ -36,9 +36,14 @@ from pathlib import Path
 
 import harness.workload as workload
 from harness.liveness import check_model_server_alive
-from harness.processes import run_process
-from harness.reconstruction import Reconstruction, added_source_lines, contract_hash, signals
 from harness.pi_invocation import pi_command, pi_env
+from harness.processes import run_process
+from harness.reconstruction import (
+    Reconstruction,
+    added_source_lines,
+    contract_hash,
+    signals,
+)
 
 INSTRUCTION = """\
 You cannot read any files. You have no tools. Answer only from the document below.

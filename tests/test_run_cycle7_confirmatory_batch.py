@@ -47,10 +47,40 @@ def test_task_restricts_to_one_known_task(tmp_path, monkeypatch):
         return []
 
     monkeypatch.setattr(batch, "run_batch", fake_run_batch)
+    # Not optional politeness. main() calls bootstrap_cache(), which clones
+    # the cohort upstream over the network and runs `uv sync --locked`. Left
+    # unstubbed this test does real network I/O on a fresh machine and adds
+    # a `uv sync` to every run on a provisioned one. Stubbed with a raiser
+    # rather than a no-op so that if the call ever moves somewhere this
+    # patch does not cover, the test fails loudly instead of silently going
+    # back online.
+    monkeypatch.setattr(batch, "bootstrap_cache", lambda: None)
     batch.main(["--out-dir", str(tmp_path), "--task", "autowire", "--n", "2"])
 
     assert captured["tasks"] == (("autowire", "816403b5c1d3b9fff22bd9141fe836221dfe9d9c"),)
     assert captured["n_per_arm"] == 2
+
+
+def test_bootstrap_cache_is_the_only_network_path_and_main_calls_it_once(tmp_path, monkeypatch):
+    """Pin the property the test above depends on.
+
+    That test stubs `bootstrap_cache`; if `main()` ever grew a second
+    provisioning call, or reached `ensure_clone` directly, the stub would
+    silently stop covering it and the suite would go back to cloning over
+    the network. This fails in that case instead.
+    """
+    calls = []
+    monkeypatch.setattr(batch, "run_batch", lambda *a, **k: [])
+    monkeypatch.setattr(batch, "bootstrap_cache", lambda: calls.append("bootstrap"))
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("main() reached a provisioning helper outside bootstrap_cache()")
+
+    monkeypatch.setattr(batch, "ensure_clone", forbidden)
+    monkeypatch.setattr(batch, "ensure_cohort_env", forbidden)
+
+    batch.main(["--out-dir", str(tmp_path), "--task", "autowire", "--n", "1"])
+    assert calls == ["bootstrap"]
 
 
 def test_an_unknown_task_is_refused_at_the_cli(tmp_path):

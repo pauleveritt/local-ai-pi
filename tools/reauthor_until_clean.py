@@ -26,7 +26,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 from harness.reconstruction import Reconstruction, contract_hash
