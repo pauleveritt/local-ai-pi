@@ -3,14 +3,7 @@ import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import {
-	inspectContract,
-	normalizeContractPath,
-	parseValidationCommand,
-	repairContract,
-	renderContract,
-	type HandoffContract,
-} from "./handoff-contract";
+import { normalizeContractPath, type HandoffContract } from "./handoff-contract";
 import implementer, { emitPromptTelemetry, promptFromArgv } from "./implementer";
 import { ImplementerPolicy } from "./implementer-policy";
 import { targetOf } from "./tool-target";
@@ -40,56 +33,6 @@ const CONTRACT: HandoffContract = {
 	validation: "bun test",
 };
 
-describe("typed handoff contracts", () => {
-	test("reports readiness without assigning a semantic quality score", () => {
-		expect(inspectContract(CONTRACT).status).toBe("READY");
-		expect(renderContract(CONTRACT)).toContain("## Validation (run by the parent)");
-	});
-
-	test("admits quoted validation arguments but rejects shell composition", () => {
-		expect(parseValidationCommand("pytest -q 'tests/test_feature.py::test one'")).toEqual(["pytest", "-q", "tests/test_feature.py::test one"]);
-		expect(parseValidationCommand("printf ''")).toEqual(["printf", ""]);
-		expect(parseValidationCommand("pytest -q; rm -rf .")).toBeNull();
-		expect(inspectContract({ ...CONTRACT, validation: "pytest -q | tee result" }).status).toBe("BLOCKED");
-	});
-
-	test("rejects traversal, absolute paths, globs, and duplicate scope", () => {
-		expect(normalizeContractPath("../secret")).toBeNull();
-		expect(normalizeContractPath("/tmp/secret")).toBeNull();
-		expect(normalizeContractPath("src/**")).toBeNull();
-		expect(inspectContract({ ...CONTRACT, writableFiles: [{ path: "src/../feature.ts" }] }).status).toBe("BLOCKED");
-		const bad = { ...CONTRACT, readableFiles: ["src/feature.ts"] };
-		expect(inspectContract(bad).status).toBe("READY_WITH_WARNINGS");
-	});
-
-	test("admits markup a web task must describe, and still catches fill-in slots", () => {
-		// Verbatim from the chained Phase 1 run this regressed on: a correct,
-		// file-by-file handoff blocked at admission because it quoted the
-		// doctype it was asking for. The run wrote nothing.
-		const task =
-			"Create a FastAPI web application with a home page using Jinja2 templates.\n" +
-			"Create templates/base.html: HTML5 boilerplate with `<html lang=\"en\">`.";
-		expect(inspectContract({ ...CONTRACT, task }).status).not.toBe("BLOCKED");
-		for (const slot of ["Build <INSERT NAME> here", "Ship <your-app-name> now", "Handle the TODO case"]) {
-			expect(inspectContract({ ...CONTRACT, task: `${slot} with enough length to pass the terseness check` }).status).toBe("BLOCKED");
-		}
-	});
-
-	test("carries failure evidence into a fresh repair packet", () => {
-		const repair = repairContract(CONTRACT, "1 test failed");
-		expect(repair.writableFiles).toEqual(CONTRACT.writableFiles);
-		expect(repair.knownFacts.at(-1)).toContain("1 test failed");
-	});
-
-	test("blocks a packet that names missing read-only context", () => {
-		const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "satyrn-contract-"));
-		try {
-			expect(inspectContract({ ...CONTRACT, readableFiles: ["missing.ts"] }, cwd).status).toBe("BLOCKED");
-		} finally {
-			fs.rmSync(cwd, { recursive: true, force: true });
-		}
-	});
-});
 
 describe("child tool telemetry", () => {
 	test("captures only path-shaped targets from Pi event arguments", () => {

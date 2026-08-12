@@ -59,7 +59,7 @@ governing rule 8.
 model = "omlx/gemma-4-12B-it-MLX-8bit"
 tools = "read,write,edit"
 extensions = "types.ts,loop-breaker.ts,preserve-symbols.ts,handoff-contract.ts,tool-target.ts,implementer-policy.ts,mutation-engine.ts,implementer.ts"
-extensions_sha256 = "5a7af06722a8899d89f09ad442540ebfd0cf2d8c55862c3e17e158bef8bc91ed"
+extensions_sha256 = "2aa5921ab2a2b749a700f22db7bbf665479562590bf2cee88d64f5bf44d602c3"
 wall_clock_seconds = "900.0"
 max_tokens = "32768"
 context_window = "80000"
