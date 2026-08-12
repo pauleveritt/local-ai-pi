@@ -17,8 +17,8 @@ from pathlib import Path
 import pytest
 
 import harness.candidate as candidate_mod
-import harness.screen as screen
 import tools.deliver_candidate as deliver_candidate
+from harness.cell_resolution import resolve_cell
 from harness.typed_contract import _effective_preservation_command
 from harness.workload import load_manifest
 
@@ -203,7 +203,7 @@ def test_cell_digest_changes_if_a_dependency_file_changes(tmp_path, monkeypatch)
     # of the closure with one dependency file's content changed, and
     # asserting the resolved digest differs from the real one.
     real_extensions = deliver_candidate.IMPLEMENTER_EXTENSION_CLOSURE
-    unmodified = screen.resolve_cell(
+    unmodified = resolve_cell(
         "omlx/gemma-4-12B-it-MLX-8bit", "read,write,edit", real_extensions, 900.0
     )["extensions_sha256"]
 
@@ -221,7 +221,7 @@ def test_cell_digest_changes_if_a_dependency_file_changes(tmp_path, monkeypatch)
     dependency = shadow_root / "orchestration" / "mutation-engine.ts"
     dependency.write_text(dependency.read_text() + "\n// a change nobody asked for\n")
 
-    modified = screen.resolve_cell(
+    modified = resolve_cell(
         "omlx/gemma-4-12B-it-MLX-8bit", "read,write,edit", tuple(shadowed), 900.0
     )["extensions_sha256"]
 

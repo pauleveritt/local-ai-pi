@@ -29,8 +29,8 @@ from collections.abc import Sequence
 from pathlib import Path
 
 import harness.cell as cell_module
-import harness.screen as screen
 from harness.candidate import DeliveryRefused, deliver
+from harness.cell_resolution import PROBE_EXTENSION, resolve_cell
 from harness.liveness import ModelServerDown, check_model_server_alive
 from harness.pi_invocation import pi_command, pi_env
 from harness.processes import ProcessResult, run_process
@@ -43,7 +43,7 @@ from harness.typed_contract import TypedContractError, TypedHandoff, build_typed
 _EXTENSIONS_ROOT = Path(__file__).resolve().parents[1] / "extensions"
 IMPLEMENTER_EXTENSION = _EXTENSIONS_ROOT / "orchestration" / "implementer.ts"
 
-# `screen.resolve_cell`'s extensions_sha256 hashes exactly the Path tuple
+# `resolve_cell`'s extensions_sha256 hashes exactly the Path tuple
 # it's given, in order -- it does not follow imports. Passed only
 # implementer.ts, that digest is blind to its own dependencies: an edit to
 # mutation-engine.ts changes this arm's real behavior without changing the
@@ -54,7 +54,7 @@ IMPLEMENTER_EXTENSION = _EXTENSIONS_ROOT / "orchestration" / "implementer.ts"
 # to version here), confirmed by reading every `import` line in the chain,
 # not guessed. Order is fixed and must not change independently of the
 # cell file's own recorded extensions_sha256 (re-run
-# `screen.resolve_cell(model, tools, IMPLEMENTER_EXTENSION_CLOSURE,
+# `resolve_cell(model, tools, IMPLEMENTER_EXTENSION_CLOSURE,
 # timeout)` and update the cell whenever this tuple's membership changes).
 IMPLEMENTER_EXTENSION_CLOSURE = (
     _EXTENSIONS_ROOT / "guards" / "types.ts",
@@ -245,14 +245,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     # must cover (that entry point's whole same-repo import closure, so an
     # edit to a dependency isn't invisible to verify()) are different sets
     # on purpose -- see IMPLEMENTER_EXTENSION_CLOSURE's comment.
-    extensions = (IMPLEMENTER_EXTENSION,) if args.contract_task is not None else (screen.PROBE_EXTENSION,)
-    digest_extensions = IMPLEMENTER_EXTENSION_CLOSURE if args.contract_task is not None else (screen.PROBE_EXTENSION,)
+    extensions = (IMPLEMENTER_EXTENSION,) if args.contract_task is not None else (PROBE_EXTENSION,)
+    digest_extensions = IMPLEMENTER_EXTENSION_CLOSURE if args.contract_task is not None else (PROBE_EXTENSION,)
 
     if declared_cell is not None:
         # Before liveness and before the first call: a mismatch here means
         # this run is not the arm it claims to be, and every receipt it
         # produces would be mislabelled.
-        declared_cell.verify(screen.resolve_cell(args.model, args.tools, digest_extensions, args.timeout))
+        declared_cell.verify(resolve_cell(args.model, args.tools, digest_extensions, args.timeout))
         print(f"cell {declared_cell.name}: live configuration verified", flush=True)
 
     # Before the worktree, before the call. A dead server is the one
@@ -304,7 +304,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             run_model,
             tuple(shlex.split(args.validation)),
             writable=tuple(args.writable or ()),
-            cell=screen.resolve_cell(args.model, args.tools, digest_extensions, args.timeout),
+            cell=resolve_cell(args.model, args.tools, digest_extensions, args.timeout),
             validation_timeout=args.validation_timeout,
         )
     except DeliveryRefused as refusal:
