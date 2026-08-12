@@ -1,10 +1,17 @@
 # Contributing
 
-Start with [`docs/setup.md`](setup.md) to get a green test run on a fresh
-machine — most of this project needs nothing but Python. This page is what
-comes after that: the test commands you'll actually use, the model-optional
-boundary, repository conventions, and three starter tasks small enough to
-finish without reading the research history.
+Welcome. The most useful thing to know up front: **you can contribute
+here without a GPU, a model server, or any of the research history.**
+Most of this is ordinary Python with hermetic tests.
+
+Start with [setup.md](setup.md) for a green test run, then come back.
+If a term stops you, try the [glossary](glossary.md) — it's short.
+
+A rough order for a first hour:
+
+1. `uv run pytest` — see it green (2 minutes)
+2. Skim [architecture.md](architecture.md) — one page, one path
+3. Pick a [starter task](#three-starter-tasks) below
 
 ## Test commands
 
@@ -37,15 +44,17 @@ bun test extensions/orchestration/orchestration.test.ts
 You can read code, run the full default test suite, and make most changes
 without ever starting a model server. You need one only when:
 
-- exercising the bounded implementer end to end (`tools/deliver_candidate.py
-  --contract-task ...` against a real model), or
+- exercising the [bounded implementer](glossary.md#bounded-implementer)
+  end to end (`tools/deliver_candidate.py --contract-task ...` against a
+  real model), or
 - running anything gated behind `SATYRN_LIVE=1`.
 
 [`docs/setup.md`](setup.md)'s Part 2 covers getting a local server running.
-If you're working on typed-contract construction, guard logic, the mutation
-engine's TypeScript, or harness plumbing, you almost certainly don't need
-Part 2 at all — the hermetic test suites are the actual contract these
-pieces are built against.
+If you're working on [handoff contract](glossary.md#handoff-contract)
+construction, [guard](glossary.md#guard) logic, the
+[mutation engine](glossary.md#mutation-engine)'s TypeScript, or harness
+plumbing, you almost certainly don't need Part 2 at all — the hermetic
+test suites are the actual contract these pieces are built against.
 
 ## Repository conventions
 
@@ -65,19 +74,23 @@ pieces are built against.
 - **Concept budget.** New jargon is a real cost. If a change needs a term a
   contributor doing this a few hours a week can't quickly absorb, prefer
   cutting the term over keeping it — see `ROADMAP.md`'s own concept-budget
-  table for the standard this is held to.
+  table for the standard this is held to. A term worth keeping is worth
+  adding to the [glossary](glossary.md); a term no document uses should
+  come back out of it.
 
 ## Three starter tasks
 
 Each is real, currently true, and self-contained — no need to read
 `ROADMAP.md` or the wider research record first.
 
-1. **Add CLI argument-parsing tests for `tools/leak_probe.py`.** It has no
-   dedicated test file today. `tests/test_typed_contract.py`'s
+1. **Add CLI argument-parsing tests for `tools/leak_probe.py`.** Its
+   decision function `_majority` is covered (`tests/test_tool_decisions.py`),
+   but `main()`'s argument handling is not — and that is where a
+   mis-specified `--threshold` or a missing `--contract-dir` would surface.
+   `tests/test_typed_contract.py`'s
    `test_the_cli_refuses_an_unsupported_task_cleanly_not_with_a_traceback`
-   and `tests/test_run_cycle7_confirmatory_batch.py` show the pattern this
-   project uses for that: exercise `main()`'s `argparse` validation and
-   error paths without a live model call.
+   and `tests/test_run_cycle7_confirmatory_batch.py` show the pattern:
+   exercise `argparse` validation and error paths with no live model call.
 
 2. **Persist model transcripts and candidate diffs for a batch.** A known,
    documented harness gap: `harness/processes.py`'s `run_process()` captures

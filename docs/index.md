@@ -84,8 +84,24 @@ verify-don't-assert — are what review will hold you to.
 :caption: Getting started
 
 setup
-sdd
+contributing
+glossary
 loop-breaker
+```
+
+```{toctree}
+:maxdepth: 1
+:caption: The bounded-implementer path
+
+architecture
+evidence-index
+```
+
+```{toctree}
+:maxdepth: 1
+:caption: How we work
+
+sdd
 ```
 
 ```{toctree}
@@ -93,4 +109,5 @@ loop-breaker
 :caption: Development record
 
 superpowers/index
+superpowers/phase-history
 ```

@@ -1,189 +1,152 @@
 # Agent Engine
 
-**A Pi extension plus an eval harness, for keeping small local models on
-track during real Python development.** Working name of the effort: "AI
-Our Way."
+**Can a small local model do real Python work — and how would you know?**
 
-Small local models are not the "godbox" experience. You don't type a vague
-prompt and let a huge model reason its way to a conclusion. Agentic coding
-with a 12B model is small, routine, and much more like engineering — which
-means the interesting question is *how do you know whether a technique
-actually helped?*
+A 12B model running on your own machine is not the "godbox" experience.
+You don't hand it a vague prompt and let it reason its way out. The work
+is small, routine, and much more like engineering — which makes the
+interesting question not *is it magic* but *did that technique actually
+help?*
 
-This project's answer is to measure. **North star: evidence first** — a
-trustworthy, convenient, repeatable way to collect it. Explicitly not
-over-designed, over-engineered, or too large to absorb.
+This project's answer is to measure, carefully, and to write down what
+the measurement does **not** show.
 
-## Status
+## What you can use today
 
-**Usable now: a bounded implementer that turns a task into a reviewable
-git ref, and a loop-breaker extension you can install standalone.** Neither
-is a general coding agent — see "What remains experimental" below.
+Two things, and they're independent — you can take either without the other.
 
-The current product path: a task manifest plus either a brief or a
-locating contract becomes a typed handoff; a Pi child restricted to
-`read`/`write`/`edit` implements it under a revision-checked mutation
-engine that refuses undeclared destructive edits; the result is validated
-against the task's own preservation command and either committed to a
-`refs/satyrn/candidates/<task>` ref or discarded with a receipt. Full trace
-of every stage: [`docs/architecture.md`](docs/architecture.md).
+**A loop breaker for your own Pi sessions.** One file, copied into place.
+It refuses a tool call the model has already made, unchanged, several
+times in a row. It came out of a recorded run of 261 turns, 245 of them
+the identical `ls -R` against an empty directory.
+→ [Install it](#install-the-loop-breaker) (2 minutes, needs nothing else here)
 
-**Evidence.** A pre-registered, 64-attempt confirmatory comparison
-(2026-08-11) found that a complete, human-authored locating contract beats
-a concise behavior-only brief on one of four tasks (`stringified-
-annotations`, 8/8 vs. 3/8 oracle-passed), with the other three tied between
-arms — two at ceiling, one at floor. Full result, intervals, and what it
-does and does not establish:
-[`docs/superpowers/research/2026-08-11-phase7-cycle7-confirmatory-result.md`](docs/superpowers/research/2026-08-11-phase7-cycle7-confirmatory-result.md).
-Every claim's evidence category (pre-registration, pilot, confirmatory,
-correction, raw archive) is indexed at
-[`docs/evidence-index.md`](docs/evidence-index.md).
+**A bounded executor for your own repository.** It runs a model once
+against your repo in a throwaway git worktree, checks the result with a
+command *you* declare, and leaves either a git ref you can review or a
+receipt explaining why not. Your working tree is never written to.
+Nothing is merged. Nothing is promoted.
+→ [Try it](#try-one-attempt-on-your-own-repository)
 
-**What remains experimental.** The typed-contract bridge
-(`harness/typed_contract.py`) is scoped to exactly four svcs tasks on
-purpose, and refuses anything else at the command line rather than
-guessing — this is a smoke-tested bridge, not general contract authoring
-or a planner. `autowire` sits at a genuine 0/8 capability ceiling in the
-confirmatory batch regardless of arm; that's a real limitation, not a
-harness defect (traced to the model's own import-structure and signature-
-handling choices, not a validation-gate bug).
+New to the vocabulary? The [glossary](docs/glossary.md) is short and
+defines only words this project uses in a particular way.
 
-**Also installable standalone: the [loop breaker](docs/loop-breaker.md).**
-A small Pi extension that refuses a tool call the model has already made,
-unchanged, several times in a row. It came out of a recorded run of 261
-turns, 245 of them the identical `ls -R` against an empty workspace. One
-file, copied into place, useful outside this project entirely.
+## Install the loop breaker
 
-## Start here
-
-| If you want to… | Read |
-|---|---|
-| See the supported path end to end | [`docs/architecture.md`](docs/architecture.md) |
-| Get your machine set up | [`docs/setup.md`](docs/setup.md) |
-| Contribute — test commands, starter tasks | [`docs/contributing.md`](docs/contributing.md) |
-| Check what evidence backs a claim | [`docs/evidence-index.md`](docs/evidence-index.md) |
-| Use the loop-breaker extension standalone | [below](#using-the-loop-breaker-extension-in-your-own-python-work) |
-| Run one attempt against your own repository | [below](#running-one-attempt-against-your-own-repository) |
-| Understand the original project bootstrap (historical) | [`BRIEF.md`](BRIEF.md) |
-| See phase/cycle planning and the concept budget (historical, in-progress) | [`ROADMAP.md`](ROADMAP.md) |
-| Read the full cycle-by-cycle design record | [`docs/superpowers/index.md`](docs/superpowers/index.md) |
-
-## Quick start
-
-```bash
-uv sync
-uv run pytest
-```
-
-Most tests are hermetic and need nothing but Python. One live-model test is
-explicitly opt-in, so a green run on a fresh machine is expected. Full
-setup, including the model server, is in [`docs/setup.md`](docs/setup.md).
-
-## Using the loop-breaker extension in your own Python work
-
-**This half needs nothing from this repository except one file.** No harness,
-no eval, no Python environment — the loop breaker is a Pi extension, and Pi
-is what runs it.
-
-Copy [`loop-breaker.ts`](.pi/extensions/loop-breaker.ts) into your user-scope
-extensions directory:
+Nothing from this repository is required except one file:
 
 ```bash
 mkdir -p ~/.pi/agent/extensions
 cp .pi/extensions/loop-breaker.ts ~/.pi/agent/extensions/
 ```
 
-That is the whole install. Pi loads user-scope extensions unconditionally,
-so your next `pi` session in any project has it.
+That's the whole install — Pi loads user-scope extensions
+unconditionally, so your next session anywhere has it. When the model
+makes the same call with the same arguments 5 times inside a 20-call
+window, the next one is refused and the model is told to do something
+else. It is not a turn cap; varied work is untouched. Both numbers are
+constants at the top of the file.
 
-**This assumes Pi already has a model to talk to.** The extension is
-provider-agnostic — it never names a model, an endpoint, or an API key — but
-a genuinely unconfigured Pi fails before the extension ever gets a chance to
-run, with `No API key found for the selected model`. That's Pi's own default
-provider, nothing this project sets up. If `pi` isn't already working for you
-outside this repository, get that working first — `/login` or
-`~/.pi/agent/models.json`, per Pi's own docs — then the two commands above
-are genuinely the whole install.
+**Use the user-scope directory, not a project's `.pi/extensions/`**, if
+you delegate to subagents at all — a delegated child loads user-scope
+extensions but not project ones, and on a small model the child is
+usually where the runaway happens. We spent a whole cycle learning that.
 
-**Use the user-scope directory, not your project's `.pi/extensions/`, if you
-delegate to subagents at all.** A delegated child does not load project
-extensions — it loads user-scope ones — so a project-scope install guards the
-parent and leaves the child unguarded, and on a small model the child is
-usually where the runaway is. This project spent a whole cycle discovering
-that.
+This assumes `pi` already works for you. If it doesn't, fix that first
+(`/login`, or `~/.pi/agent/models.json`) — an unconfigured Pi fails
+before any extension loads.
 
-What you get: when the model makes the same tool call, with the same
-arguments, 5 times within a window of 20 calls, the next one is refused
-before it executes and the model is told to do something else. It is not a
-turn cap — a model doing varied work for a long time is untouched. Both
-constants are at the top of the file.
+More, including what to tune: [loop-breaker.md](docs/loop-breaker.md).
 
-Full page, including what to tune and the evidence behind it:
-[`docs/loop-breaker.md`](docs/loop-breaker.md).
-
-## Running one attempt against your own repository
-
-The other installable piece. It runs a model once against your repo in a
-throwaway git worktree, checks the result against a command *you* declare,
-and leaves either a durable ref you can read or a receipt saying why not.
-Your working tree is never written to, nothing is merged, and nothing is
-promoted.
+## Try one attempt on your own repository
 
 ```bash
-uv run python -m tools.deliver_candidate --repo . --task add-iter --prompt-file docs/example-brief.md --validation "pytest -q" --writable "src/**" --model your-provider/your-model
+uv sync
+uv run python -m tools.deliver_candidate \
+  --repo . --task add-iter \
+  --prompt-file docs/example-brief.md \
+  --validation "pytest -q" --writable "src/**" \
+  --model your-provider/your-model
 ```
 
-Three things must be true first, and only the third announces itself:
+Three things must be true first, and only the third tells you when it
+isn't: `pi --version` answers; `--model` names a model your Pi resolves;
+and the server behind it is up. A dead server doesn't make Pi fail — it
+exits 0 having written nothing — so the tool checks before spending a
+call.
 
-1. **Pi is installed** — `pi --version` answers (this repository pins
-   0.84.1; a different version is not refused for your own repository, only
-   for reproducing this project's own measured runs).
-2. **`--model` names a model your Pi can resolve.** It reads *your*
-   `~/.pi/agent`, not this repo's pinned one; pass `--agent-dir` to override.
-3. **The server behind that model is up.** A dead server does not make Pi
-   fail — it exits 0 having written nothing. The tool checks
-   `--server` (default `http://127.0.0.1:8001`) before spending a call;
-   `--skip-server-check` if your model is hosted elsewhere.
-
-Exit codes are the answer, and three of them are distinct on purpose: **0**
-a candidate exists, **1** a candidate was judged and discarded, **2** the
-run was refused before it started (dirty repo, dead server), **3** nothing
-was judged because the setup is broken. If you see 3, the problem is your
-configuration, not the model.
-
-Success prints the ref, and inspecting or discarding it is ordinary git:
+The exit code is the answer: **0** a candidate exists, **1** it was
+judged and discarded, **2** refused before starting (dirty repo, dead
+server), **3** your setup is broken. Success prints a ref, and reviewing
+it is ordinary git:
 
 ```bash
 git show refs/satyrn/candidates/add-iter
 ```
 
-**This is the bare-envelope form** — your own prompt, your own validation
-command, no typed contract. For the bounded-implementer path this project
-actually has evidence for (`--contract-task`, `--cell`, the mutation engine,
-the four-task typed bridge), see
-[`docs/architecture.md`](docs/architecture.md); `tools/run_cycle7_confirmatory_batch.py`
-is a checked-in, runnable example driving it end to end against a pinned
-cell.
+That's the bare form — your prompt, your validation command. The
+evidenced path underneath it is more bounded than this; see
+[architecture.md](docs/architecture.md) when you want it.
 
-## How this project is built
+## What the evidence actually says
 
-Every feature goes through **spec-driven development**: brainstorm with the
-owner, write a design spec, write an implementation plan, then implement it
-test-first. The specs and plans are committed, not thrown away, so you can
-read *why* code looks the way it does — see
-[`docs/sdd.md`](docs/sdd.md). More on repository conventions and starter
-tasks: [`docs/contributing.md`](docs/contributing.md).
+One pre-registered comparison, 64 attempts, run 2026-08-11: does giving
+the model a complete [locating contract](docs/glossary.md#locating-contract)
+beat a short [brief](docs/glossary.md#brief)?
+
+**On one task of four, clearly yes** (8/8 versus 3/8). On two, both arms
+were already at ceiling. On the fourth, both were at the floor — the
+contract got the model to a *safe* answer every time and a *correct* one
+never.
+
+That last one is the honest headline: locating information solves
+locating problems. It does not make a model capable of something it
+can't do.
+
+Full numbers, intervals, and what they don't establish:
+[the result](docs/superpowers/research/2026-08-11-phase7-cycle7-confirmatory-result.md).
+Every claim's evidence category — [pilot](docs/glossary.md#pilot) versus
+[confirmatory](docs/glossary.md#confirmatory) — is indexed in
+[evidence-index.md](docs/evidence-index.md).
+
+## What's still experimental
+
+The typed-contract path is scoped to exactly four tasks and refuses the
+rest at the command line rather than guessing. It's a tested bridge, not
+a planner.
+
+And the fourth task above sits at a genuine capability ceiling. That's a
+real limit, not a harness bug — we checked, because a similar-looking
+result once turned out to be our own validation gate rejecting correct
+answers.
+
+## Where to go next
+
+| You want to… | Read |
+|---|---|
+| Understand the one supported path, end to end | [architecture.md](docs/architecture.md) |
+| Get set up properly | [setup.md](docs/setup.md) |
+| Contribute — commands, conventions, starter tasks | [contributing.md](docs/contributing.md) |
+| Look up a term | [glossary.md](docs/glossary.md) |
+| Check what backs a claim | [evidence-index.md](docs/evidence-index.md) |
+| Read the full research history | [ROADMAP.md](ROADMAP.md), [BRIEF.md](BRIEF.md), [the design record](docs/superpowers/index.md) — all historical |
+
+## How this project works
+
+Every feature gets a committed design spec and implementation plan
+before the code, so you can read *why* something looks the way it does —
+see [sdd.md](docs/sdd.md). Four habits shape review, and
+[contributing.md](docs/contributing.md) covers them; the shortest
+version is **verify, don't assert**: claims here get demonstrated, not
+argued.
 
 ## Layout
 
 ```
-BRIEF.md             historical — the original project bootstrap
-ROADMAP.md            historical, still in-progress — phases, cycles, concept budget, backlog
-harness/              the eval harness and the typed-contract bridge
-extensions/           the bounded implementer, mutation engine, and guards (Pi extensions)
-tools/                CLI entry points: deliver_candidate, screen_workload, author_contract, and others
-tests/                Python tests, mostly hermetic
-examples/              AgentClinic fixtures and the task spec
-workloads/             the svcs task cohort, manifests, and (large, evidence-only) mechanism-screen output
-docs/                  architecture, setup, contributing, evidence index, and the design record
+harness/       the typed-contract bridge, candidate lifecycle, cell verification
+extensions/    the bounded implementer, mutation engine, and guards (Pi extensions)
+tools/         CLI entry points — deliver_candidate is the one to start with
+tests/         Python tests, hermetic unless explicitly opted in
+workloads/     the task cohort, manifests, cells, and recorded evidence
+docs/          architecture, setup, contributing, glossary, evidence
 ```
