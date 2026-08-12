@@ -130,7 +130,7 @@ Your working tree is never written to, nothing is merged, and nothing is
 promoted.
 
 ```bash
-uv run python -m tools.deliver_candidate --repo . --task add-iter --prompt-file brief.md --validation "pytest -q" --writable "src/**" --model your-provider/your-model
+uv run python -m tools.deliver_candidate --repo . --task add-iter --prompt-file docs/example-brief.md --validation "pytest -q" --writable "src/**" --model your-provider/your-model
 ```
 
 Three things must be true first, and only the third announces itself:
