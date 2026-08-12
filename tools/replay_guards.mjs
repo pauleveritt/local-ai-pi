@@ -7,6 +7,13 @@
  * loop-breaker algorithm into Python. The replay therefore tests the artifact
  * that contributors install, with no model or network involved.
  *
+ * It imports `.pi/extensions/loop-breaker.ts` directly — the exact file
+ * README's `cp` puts in `~/.pi/agent/extensions/`. An earlier version went
+ * through a re-export at `extensions/guards/index.ts`; that indirection was
+ * removed, because the one property worth pinning is that this harness
+ * loads the installed file and not the parallel `Guard` in
+ * `extensions/guards/loop-breaker.ts`. `guards.test.ts` pins it.
+ *
  * **Fixtures must contain only calls that reach `beforeToolCall`.** Pi
  * validates tool arguments at `agent-loop.js:404` and invokes the hook on the
  * next line, inside the same `try` — so a call that fails schema validation
@@ -24,7 +31,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const extensionPath = resolve(root, "extensions/guards/index.ts");
+const extensionPath = resolve(root, ".pi/extensions/loop-breaker.ts");
 const { default: guards } = await import(pathToFileURL(extensionPath));
 
 function loadFixture(path) {

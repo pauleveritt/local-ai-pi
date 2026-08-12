@@ -20,6 +20,20 @@ uv run pytest        # Python: harness, tools, guards' Python-side wiring
 bun install && bun test   # TypeScript: extensions/orchestration, extensions/guards
 ```
 
+There is a third, smaller one. It replays recorded tool calls from real
+runs through the loop breaker you would actually install:
+
+```bash
+node --experimental-strip-types tools/replay_guards.mjs tests/fixtures/guards/*.json
+```
+
+It needs no model, no server, and no `bun install` — the fixtures are
+committed. `bun test` covers `extensions/guards/loop-breaker.ts`, the
+`Guard` the bounded implementer uses; this covers
+`.pi/extensions/loop-breaker.ts`, the standalone file README's `cp`
+installs. Same policy, two artifacts, deliberately
+([architecture.md](architecture.md#guards-still-in-the-extension-closure)).
+
 `bun install` is only needed once (or after `package.json` changes) — it
 pulls the one runtime dependency (`typebox`) into a gitignored
 `node_modules/`. Skip it on a fresh clone and `orchestration.test.ts`

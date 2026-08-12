@@ -4,9 +4,9 @@
 # Transplanted from the pre-restructure project by deliberate decision --
 # infrastructure, not content. See BRIEF.md, "Candidates for transplant."
 
-project = "Satyrn Engine"
-copyright = "2026, Satyrn Engine contributors"
-author = "Satyrn Engine contributors"
+project = "Agent Engine"
+copyright = "2026, Agent Engine contributors"
+author = "Agent Engine contributors"
 
 extensions = [
     "myst_parser",  # MyST Markdown support

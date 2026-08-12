@@ -158,7 +158,10 @@ describe("the two loop-breaker artifacts", () => {
 	// with the rationale "one artifact, tested where it lives". That fix
 	// cannot extend to this pair -- collapsing them would cost the
 	// copy-one-file install. What it was really protecting against is the
-	// two drifting apart, so this pins that directly instead.
+	// two drifting apart, so this pins that directly instead. index.ts
+	// itself was deleted when the branches merged: it re-exported the
+	// standalone for one caller (tools/replay_guards.mjs), which now
+	// imports the standalone itself.
 	const standalone = fs.readFileSync(
 		new URL("../../.pi/extensions/loop-breaker.ts", import.meta.url), "utf8",
 	);
@@ -185,5 +188,17 @@ describe("the two loop-breaker artifacts", () => {
 			.split("\n")
 			.filter((line) => /^import\s/.test(line) && /["']\.{1,2}\//.test(line));
 		expect(localImports).toEqual([]);
+	});
+
+	test("the replay harness loads the standalone, not the Guard", () => {
+		// Both files export a working loop breaker, so pointing the replay
+		// at the wrong one still passes every fixture -- it would just be
+		// measuring a file nobody installs. That is exactly the drift
+		// index.ts existed to prevent, and this is what survives it.
+		const replay = fs.readFileSync(
+			new URL("../../tools/replay_guards.mjs", import.meta.url), "utf8",
+		);
+		expect(replay).toContain('".pi/extensions/loop-breaker.ts"');
+		expect(replay).not.toContain("extensions/guards/loop-breaker.ts\"");
 	});
 });

@@ -119,6 +119,15 @@ constraint exists):
   uses. Two deliberate artifacts implementing one policy; `guards.test.ts`
   pins their `WINDOW`/`THRESHOLD` to agree and pins the standalone copy to
   stay import-free, so the pair cannot drift silently.
+
+  They are also tested by different runners, which is the point.
+  `bun test` exercises the `Guard` directly. `tools/replay_guards.mjs`
+  replays recorded tool calls from real runs — six committed fixtures, no
+  model or network — through the *standalone* file, the one a contributor
+  actually installs. A third pin in `guards.test.ts` keeps the replay
+  pointed at that file: both artifacts pass every fixture, so aiming the
+  replay at the wrong one would stay green while measuring something
+  nobody installs.
 - **`preserve-symbols.ts`** — no longer wired into the implementer's
   `tool_call` handler (see "Mutation engine" above), but the module and its
   `symbolsIn()` helper remain, both because `mutation-engine.ts` imports

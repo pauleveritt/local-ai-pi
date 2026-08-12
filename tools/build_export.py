@@ -93,6 +93,13 @@ EXTENSION_PATHS = (
     ".pi/extensions/loop-breaker.ts",
 )
 
+# The guard replay harness. No import graph reaches it -- it is JavaScript,
+# and its fixtures are named on argv by a shell command rather than by any
+# module. It comes along because it is the cheapest evidence in the project
+# to reproduce: no model, no server, no network, one command.
+REPLAY_HARNESS = ("tools/replay_guards.mjs",)
+REPLAY_FIXTURE_DIR = "tests/fixtures/guards"
+
 DOC_PATHS = (
     "docs/architecture.md",
     "docs/contributing.md",
@@ -370,7 +377,15 @@ def build(out: Path) -> None:
     code = closure(ENTRY_POINTS)
 
     data: set[str] = (
-        set(DATA_PATHS) | set(EXTENSION_PATHS) | set(DOC_PATHS) | set(ROOT_FILES)
+        set(DATA_PATHS)
+        | set(EXTENSION_PATHS)
+        | set(DOC_PATHS)
+        | set(ROOT_FILES)
+        | set(REPLAY_HARNESS)
+        | {
+            str(f.relative_to(REPO))
+            for f in sorted((REPO / REPLAY_FIXTURE_DIR).glob("*.json"))
+        }
     )
     for task in SUPPORTED_TASKS:
         for name in ("manifest.toml", "brief.md", "qualification.json"):
@@ -387,13 +402,33 @@ def build(out: Path) -> None:
     # passes: decide the tests without fixtures available, then add back
     # only what those tests name.
     tests, rejected = keepable_tests(code, data)
+    # A fixture comes along when a kept test names it: by file name (those
+    # are distinctive), or under a directory the test names as a path.
+    #
+    # The earlier rule also matched the fixture's *bare parent directory
+    # name* anywhere in a test's source. That is far too loose: merging
+    # `main` added `tests/fixtures/guards/`, and the word "guards" appears
+    # in unrelated test sources, so six JSON files shipped into the export
+    # with nothing in it that reads them. Directory matches now require a
+    # real path.
+    named: set[str] = set()
+    for t in sorted(tests):
+        named |= path_literals(REPO / t)
+    sources = {t: (REPO / t).read_text() for t in tests}
+
+    def under_named_dir(rel: str) -> bool:
+        return any(
+            rel == literal or rel.startswith(literal.rstrip("/") + "/")
+            for literal in named
+        )
+
     fixtures = {
         str(f.relative_to(REPO))
         for f in sorted((REPO / "tests" / "fixtures").rglob("*"))
         if f.is_file()
-        and any(
-            f.name in (REPO / t).read_text() or f.parent.name in (REPO / t).read_text()
-            for t in tests
+        and (
+            any(f.name in source for source in sources.values())
+            or under_named_dir(str(f.relative_to(REPO)))
         )
     }
     paths: set[str] = set(code) | tests | data | fixtures
