@@ -159,9 +159,7 @@ git show refs/satyrn/candidates/add-iter
 command, no typed contract. For the bounded-implementer path this project
 actually has evidence for (`--contract-task`, `--cell`, the mutation engine,
 the four-task typed bridge), see
-[`docs/architecture.md`](docs/architecture.md); `tools/run_cycle7_confirmatory_batch.py`
-is a checked-in, runnable example driving it end to end against a pinned
-cell.
+[`docs/architecture.md`](docs/architecture.md).
 
 ## How this project is built
 
@@ -177,7 +175,7 @@ tasks: [`docs/contributing.md`](docs/contributing.md).
 ```
 harness/              the typed-contract bridge, mutation lifecycle, and cell verification
 extensions/           the bounded implementer, mutation engine, and guards (Pi extensions)
-tools/                CLI entry points: deliver_candidate, run_cycle7_confirmatory_batch, qualify_workload
+tools/         deliver_candidate — the one entry point
 tests/                Python tests, all hermetic
 workloads/svcs/       the four supported tasks, their manifests and contracts, and the pinned cell
 docs/                  architecture, setup, contributing, evidence index, and the evidence itself

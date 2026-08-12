@@ -36,7 +36,17 @@ REPO = Path(__file__).resolve().parents[1]
 # import is kept; nothing else is.
 ENTRY_POINTS = (
     "tools/deliver_candidate.py",
-    "tools/run_cycle7_confirmatory_batch.py",
+    # tools/run_cycle7_confirmatory_batch.py is deliberately NOT here. It
+    # reproduces one pre-registered batch that has already run and whose
+    # result is committed; a collaborator does not need to re-run it to
+    # use or understand the engine, and re-running it is a new experiment
+    # rather than a check on this one. Dropping it also drops
+    # harness/intervals.py and harness/model_config.py, which nothing
+    # else imports -- 823 lines of reproduction machinery in total.
+    #
+    # It stays in the research repository, where the confirmatory result
+    # cites it by name. The export's own copy of that result says where
+    # to find it.
     # tools/qualify_workload.py is deliberately NOT here any more. It was,
     # for one bad reason: tests/test_workload.py imported it, so excluding
     # it dropped all 73 of that file's tests -- 70 of which cover
@@ -118,6 +128,32 @@ ROOT_FILES = (
     "pi-agent-dir/models.json",
     "pi-agent-dir/settings.json",
 )
+
+
+EVIDENCE_README = """# Evidence
+
+The documents in this directory are **reproduced verbatim** from the
+research repository. They are the record of what was pre-registered and
+what was found, and they are not edited to match this export.
+
+That means they name things you will not find here:
+
+- `tools/run_cycle7_confirmatory_batch.py` -- the driver that produced
+  the confirmatory batch.
+- `harness/intervals.py` -- the tested Wilson/Newcombe helper the result
+  quotes its intervals from.
+- `harness/model_config.py` -- the scoped `models.json` bump the batch
+  ran under.
+
+All three live in the research repository. They are reproduction
+machinery: needed to run *that* batch again, not to use or understand
+the engine this export ships. Re-running the driver produces a new,
+separate batch -- it is not a check on the result recorded here, which
+is why the export does not carry it.
+
+The engine those documents evaluate *is* here, and
+[`../architecture.md`](../architecture.md) traces it.
+"""
 
 
 def first_party_imports(path: Path) -> set[str]:
@@ -383,6 +419,11 @@ def build(out: Path) -> None:
     (out / "docs" / "evidence").mkdir(parents=True, exist_ok=True)
     for rel in EVIDENCE_DOCS:
         shutil.copy2(REPO / rel, out / "docs" / "evidence" / Path(rel).name)
+    # These are frozen records: they describe what actually produced a
+    # result, including machinery the export does not carry. Editing them
+    # to match the export would falsify the record, so the boundary is
+    # explained beside them instead.
+    (out / "docs" / "evidence" / "README.md").write_text(EVIDENCE_README)
 
     _rewrite_links(out)
 
