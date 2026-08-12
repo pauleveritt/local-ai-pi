@@ -1,5 +1,17 @@
 # Test fixtures
 
+## `author_contract_drafts/`
+
+Eight byte-identical copies of the real overnight-authoring drafts, added
+2026-08-11 so `tests/test_screen.py` no longer needs
+`workloads/svcs/overnight/drafts/` (7.9 MiB, mostly raw authoring
+transcripts irrelevant to the assertions) as a runtime dependency of the
+default suite.
+
+Per-file source paths and SHA-256s are in that directory's own
+`PROVENANCE.txt`, which also records that the originals remain tracked and
+untouched — these are additional copies, not a relocation.
+
 ## `pi-run-0.82.0.jsonl`
 
 One real `pi --mode json` stdout stream, 179 KB, 123 lines, captured from a
