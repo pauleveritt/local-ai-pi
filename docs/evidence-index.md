@@ -16,7 +16,7 @@ index for that, and it predates this page.
 | [`2026-08-11-phase7-cycle7-confirmatory-result.md`](superpowers/research/2026-08-11-phase7-cycle7-confirmatory-result.md) | **Confirmatory result** | The 64-attempt batch's per-task and pooled `oracle-passed` rates, Wilson/Newcombe intervals, floor/ceiling flags, void handling, abort-condition checks — the current evidence for "does a locating contract help." | One task discriminated (`stringified-annotations`); three did not. Not evidence for a fifth task or a general planner. |
 | `harness/typed_contract.py`'s `_effective_preservation_command()` docstring | **Correction** | A validation-gate defect (the `flask-extensions` preservation suite rejecting a demonstrably correct fix, traced by reading the model's actual diff against the failing assertions) found and fixed before the confirmatory batch ran. | Recorded in code, not a separate research document — findable by reading the function, not by browsing `docs/superpowers/research/`. |
 | `docs/superpowers/research/2026-08-11-phase7-cleanup-and-distribution-brief.md`'s "One correctness gate before distribution" section | **Correction** | The `preserveSymbols`/`removableSymbols` guard contradiction: a contract-blind pre-edit guard could refuse a contract-authorized rename before the mutation engine ever ran. Resolved by removing the redundant guard (`extensions/orchestration/implementer.ts`), not by making it contract-aware. | Confirmed inert for the Cycle 7 batch itself (no task in that cohort declares `removableSymbols`), so the confirmatory result above did not need re-running. |
-| `local-ai-pi-evidence-archive/screen-corpus/` (external, sibling directory, not tracked in this repository) | **Raw archive** | A durability copy of `workloads/svcs/screen/`'s 570 files / 106 MiB of mechanism-screen output, checksum-verified, indexed in [`2026-08-11-evidence-archive-index.md`](superpowers/research/2026-08-11-evidence-archive-index.md). | Per-batch validity labels exist for only 1 of 25 subdirectories (`superseded-buggy-grading/`) — see [`docs/contributing.md`](contributing.md)'s starter tasks. |
+| `local-ai-pi-evidence-archive/screen-corpus/` (external, sibling directory, not tracked in this repository) | **Raw archive** | A durability copy of `workloads/svcs/screen/`'s 570 files / 106 MiB of mechanism-screen output, checksum-verified, indexed in [`2026-08-11-evidence-archive-index.md`](superpowers/research/2026-08-11-evidence-archive-index.md). | All 25 subdirectories were labeled 2026-08-12 (valid / superseded / pilot-only / withdrawn) in that bundle's own `MANIFEST.md`: 2 withdrawn, 8 superseded, 10 pilot-only, 4 valid, 1 empty. Note rule 8 blankets the corpus — "valid" there means the finding still stands uncorrected, never "confirmatory." |
 | `local-ai-pi-evidence-archive/2026-08-11-phase7-cycle7-confirmatory/` (external, not tracked) | **Raw archive** | All 65 attempt receipts, `all_results.json`, and the batch's run log for the confirmatory result above, checksum-verified. | Does not include raw model transcripts or candidate diffs — neither was ever captured to disk for this batch (see that bundle's own `MANIFEST.md` for why). |
 | `local-ai-pi-evidence-archive/screen-corpus/superseded-buggy-grading/` | **Superseded** | Self-labeled by its own directory name; not cited as current evidence anywhere in this index or the confirmatory result. | Not otherwise documented here — read the batch's own contents if you need to know what was superseded and why. |
 
@@ -25,8 +25,10 @@ index for that, and it predates this page.
 - The Phase 1–6 duration-suite record (`ROADMAP.md`, `BRIEF.md`,
   `docs/superpowers/index.md`) — a different, earlier measurement program,
   not re-classified here.
-- 24 of the 25 `screen-corpus` batch directories' individual validity —
-  flagged above as an open starter task, not silently assumed.
+- Re-adjudication of the `screen-corpus` findings themselves. The
+  2026-08-12 labels record what the existing record says about each batch;
+  they do not re-run or re-grade anything, and three of them are judgment
+  calls the bundle's `MANIFEST.md` names explicitly.
 - The pilot round's full per-attempt detail — only the cell file's summary
   counts survive; the attempts themselves were not archived before this
   index existed.

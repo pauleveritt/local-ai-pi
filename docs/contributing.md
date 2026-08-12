@@ -79,14 +79,16 @@ Each is real, currently true, and self-contained — no need to read
    project uses for that: exercise `main()`'s `argparse` validation and
    error paths without a live model call.
 
-2. **Label the remaining `screen-corpus` evidence batches.** The externally
-   archived copy of `workloads/svcs/screen/`
-   (`local-ai-pi-evidence-archive/screen-corpus/MANIFEST.md`, sibling
-   directory to this repository) lists 25 batch subdirectories; only one is
-   self-labeled with a validity status. Read each batch's own summary
-   against `docs/superpowers/research/` and add a
-   valid/superseded/pilot-only/withdrawn label for the other 24. Touches
-   only the external archive, not this repository.
+2. **Persist model transcripts and candidate diffs for a batch.** A known,
+   documented harness gap: `harness/processes.py`'s `run_process()` captures
+   the child's stdout/stderr only in memory, and `harness/workspace.py`'s
+   `disposable_dir()` deletes each attempt's worktree unconditionally — so
+   for the Cycle 7 batch, no raw transcript or candidate diff survives, only
+   receipts. See the "What the bundle does not contain, and why" section of
+   [`docs/superpowers/research/2026-08-11-phase7-cycle7-confirmatory-result.md`](superpowers/research/2026-08-11-phase7-cycle7-confirmatory-result.md).
+   Making persistence opt-in (a flag on `deliver()`, writing under a
+   caller-supplied directory before cleanup) would make future batches
+   replayable.
 
 3. **Add a repository policy check against newly-tracked oversized
    artifacts.** `workloads/svcs/screen/` is 106 MiB, tracked deliberately;

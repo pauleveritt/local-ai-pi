@@ -34,8 +34,8 @@ and comparing against the table above.
   artifact — the distribution brief's step 5 item 5 asks for that across the
   whole `docs/superpowers/` tree, not just archived bundles. This index only
   covers the two bundles above.
-- Does not yet carry per-batch status labels for the 24 unlabeled directories
-  inside the `screen-corpus/` bundle.
+- ~~Per-batch status labels for the `screen-corpus/` bundle.~~ Done
+  2026-08-12; all 25 are labeled in that bundle's own `MANIFEST.md`.
 - Does not include `workloads/svcs/overnight/` (7.9 MiB) — that path is still
   read directly by `tests/test_screen.py`, so it is a live test dependency,
   not yet a pure evidence artifact; decoupling it (distribution brief step 3)
