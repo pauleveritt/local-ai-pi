@@ -13,7 +13,8 @@
  */
 
 import { describe, expect, test } from "bun:test";
-import { callKey, createLoopBreaker } from "./loop-breaker";
+import * as fs from "node:fs";
+import { callKey, createLoopBreaker, THRESHOLD, WINDOW } from "./loop-breaker";
 import { createPreserveSymbols, symbolsIn } from "./preserve-symbols";
 import type { ToolCall } from "./types";
 
@@ -139,5 +140,50 @@ describe("preserve-symbols", () => {
 		// silently return different results on the second call.
 		const text = "def a():\n    pass\n";
 		expect(symbolsIn(text)).toEqual(symbolsIn(text));
+	});
+});
+
+describe("the two loop-breaker artifacts", () => {
+	// There are deliberately two implementations of one policy:
+	//
+	//   .pi/extensions/loop-breaker.ts   a self-contained Pi extension.
+	//       Imports nothing local -- README's install is `cp` of this one
+	//       file into ~/.pi/agent/extensions/, so a local import would
+	//       break it. This is the standalone artifact.
+	//
+	//   extensions/guards/loop-breaker.ts  a pure Guard factory, imported
+	//       by the bounded implementer and covered by the tests above.
+	//
+	// `main` added extensions/guards/index.ts to end an earlier duplication,
+	// with the rationale "one artifact, tested where it lives". That fix
+	// cannot extend to this pair -- collapsing them would cost the
+	// copy-one-file install. What it was really protecting against is the
+	// two drifting apart, so this pins that directly instead.
+	const standalone = fs.readFileSync(
+		new URL("../../.pi/extensions/loop-breaker.ts", import.meta.url), "utf8",
+	);
+
+	function constantIn(source: string, name: string): number {
+		const match = source.match(new RegExp(`${name}\\s*=\\s*(\\d+)`));
+		if (!match) throw new Error(`${name} not found`);
+		return Number(match[1]);
+	}
+
+	test("the standalone extension and the Guard agree on WINDOW and THRESHOLD", () => {
+		// If these diverge, a contributor's installed copy refuses at a
+		// different point than the measured one -- and every number this
+		// project published about the loop breaker describes the other file.
+		expect(constantIn(standalone, "WINDOW")).toBe(WINDOW);
+		expect(constantIn(standalone, "THRESHOLD")).toBe(THRESHOLD);
+	});
+
+	test("the standalone extension stays free of local imports", () => {
+		// The property that makes `cp` a complete install. A relative
+		// import here would break the README's two-command instructions
+		// without breaking any other test.
+		const localImports = standalone
+			.split("\n")
+			.filter((line) => /^import\s/.test(line) && /["']\.{1,2}\//.test(line));
+		expect(localImports).toEqual([]);
 	});
 });

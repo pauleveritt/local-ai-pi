@@ -111,8 +111,15 @@ by design (see `extensions/guards/`'s own module docstrings for why that
 constraint exists):
 
 - **`loop-breaker.ts`** — refuses an identical tool call repeated past a
-  threshold within a window. General-purpose; also installable standalone
-  outside this repository, see the README.
+  threshold within a window.
+
+  Note which file this is. The one *installed* standalone (README's `cp`)
+  is `.pi/extensions/loop-breaker.ts`, a separate, self-contained Pi
+  extension — it imports nothing local, because a `cp` of one file has to
+  be a complete install. This one is the pure `Guard` the implementer
+  uses. Two deliberate artifacts implementing one policy; `guards.test.ts`
+  pins their `WINDOW`/`THRESHOLD` to agree and pins the standalone copy to
+  stay import-free, so the pair cannot drift silently.
 - **`preserve-symbols.ts`** — no longer wired into the implementer's
   `tool_call` handler (see "Mutation engine" above), but the module and its
   `symbolsIn()` helper remain, both because `mutation-engine.ts` imports
