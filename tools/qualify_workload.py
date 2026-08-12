@@ -13,6 +13,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+import harness.qualification as qualification
 import harness.workload as workload
 
 
@@ -88,7 +89,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         task_dir = cohort.task_dir(task_id)
         try:
             manifest = workload.load_manifest(task_dir)
-            report = workload.qualify(
+            report = qualification.qualify(
                 manifest,
                 clone,
                 env,

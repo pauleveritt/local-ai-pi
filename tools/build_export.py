@@ -37,14 +37,14 @@ REPO = Path(__file__).resolve().parents[1]
 ENTRY_POINTS = (
     "tools/deliver_candidate.py",
     "tools/run_cycle7_confirmatory_batch.py",
-    # Not strictly product path, kept on evidence rather than taste: it
-    # is a 124-line leaf importing only `harness.workload`, it is how a
-    # collaborator qualifies a new task, and `tests/test_workload.py`
-    # imports it -- so excluding it drops all 73 of that file's tests,
-    # 70 of which cover `harness/workload.py`, which *is* product path.
-    # Shipping a core module with no test coverage to save 124 lines is
-    # the wrong trade.
-    "tools/qualify_workload.py",
+    # tools/qualify_workload.py is deliberately NOT here any more. It was,
+    # for one bad reason: tests/test_workload.py imported it, so excluding
+    # it dropped all 73 of that file's tests -- 70 of which cover
+    # harness/workload.py, which *is* product path. A review named that
+    # exactly: tests should not determine the product boundary. Splitting
+    # harness/qualification.py and tests/test_qualification.py out
+    # (2026-08-12) removed the coupling, so the export can now decline
+    # qualification and keep full coverage of the module it does ship.
 )
 
 # Data the import graph cannot see. Kept deliberately short so it can be

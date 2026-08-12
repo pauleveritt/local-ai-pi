@@ -20,6 +20,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.qualification import qualify
 from harness.screen import ENVELOPE_TOOLS, apply_candidate, grade_candidate
 from harness.workload import (
     CohortEnv,
@@ -185,7 +186,6 @@ adaptations = "none"
     # inventory from the task's own qualification record, so the fixture
     # produces a real one. It is deterministic and takes milliseconds on
     # this repository.
-    from harness.workload import qualify
 
     report = qualify(load_manifest(task_dir), clone, _fake_env())
     assert report["status"] == "qualified", report
