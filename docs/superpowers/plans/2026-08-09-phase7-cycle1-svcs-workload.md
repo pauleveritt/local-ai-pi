@@ -2525,7 +2525,7 @@ print('numstat:', diff.stdout.strip() or '0\t0')
 
 Add to that task's `manifest.toml`:
 
-```toml
+```text
 [task]
 # ... existing fields ...
 contract = "contract.md"

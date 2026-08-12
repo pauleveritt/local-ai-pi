@@ -64,7 +64,7 @@ action at all rather than attempting the guess-and-check strategy
 ## Why this is the mechanism, not a bug to fix
 
 The authoring prompt written earlier tonight
-([`../../../workloads/svcs/authoring-prompt.md`](../../../workloads/svcs/authoring-prompt.md))
+(`workloads/svcs/authoring-prompt.md`)
 instructs every contract to name "which file or files must change, and the
 exact place in them." That is precisely the information this baseline has
 just been shown to lack any tool-based way of discovering on its own. The

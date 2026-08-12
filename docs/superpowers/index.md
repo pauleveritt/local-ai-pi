@@ -207,82 +207,18 @@ cycle's argument.
 :hidden:
 :maxdepth: 1
 :caption: Specs
+:glob:
 
-specs/2026-07-30-phase1-cycle1-fixture-pair-design
-specs/2026-07-30-phase1-cycle2-workspace-provisioning-design
-specs/2026-07-30-phase1-cycle3-verdict-file-design
-specs/2026-07-30-phase1-cycle4-subversion-fixtures-design
-specs/2026-07-30-phase1-cycle5-config-refusal-design
-specs/2026-07-30-phase1-cycle6-task-spec-design
-specs/2026-07-31-phase1-cycle7-liveness-check-design
-specs/2026-07-31-phase1-cycle8-first-real-run-design
-specs/2026-07-31-phase1-cycle9-source-allowlist-design
-specs/2026-07-31-phase1-cycle10-checkpoint-recording-design
-specs/2026-08-01-phase1-cycle11-corrective-hardening-design
-specs/2026-08-01-phase1-cycle12-hang-tolerance-design
-specs/2026-08-01-phase1-cycle13-batch-contract-design
-specs/2026-08-01-phase1-cycle14-n16-batch-design
-specs/2026-08-01-phase1-cycle14-live-server-execution-design
-specs/2026-08-01-post-phase1-pi-exit-veto-design
-specs/2026-08-01-post-phase1-batch-evidence-record-design
-specs/2026-08-01-post-phase1-local-workspace-hygiene-design
-specs/2026-08-01-post-phase1-pages-publication-design
-specs/2026-08-02-phase2-cycle1-telemetry-reader-design
-specs/2026-08-02-phase2-cycle2-precision-baseline-design
-specs/2026-08-02-phase2-cycle3-honest-environment-design
-specs/2026-08-02-phase2-cycle4-claim-discipline-design
-specs/2026-08-02-phase3-cycle1-observable-extension-design
-specs/2026-08-03-phase3-cycle2-specialized-subagent-design
-specs/2026-08-03-phase3-cycle2-extension-mechanics-design
-specs/2026-08-03-pi-version-pin-design
-specs/2026-08-04-phase4-cycle1-second-suite-design
-specs/2026-08-04-phase5-cycle1-improvement-mechanism-design
-specs/2026-08-04-phase5-cycle2-cost-answer-design
-specs/2026-08-04-phase5-cycle3-child-telemetry-design
-specs/2026-08-04-phase5-cycle4-user-story-suite-design
-specs/2026-08-04-phase5-cycle5-orchestrator-corrections-design
-specs/2026-08-04-phase5-cycle6-loop-breaker-design
-specs/2026-08-04-phase5-cycle7-tech-stack-design
-specs/2026-08-04-phase5-cycle8-child-runaway-design
-specs/2026-08-04-phase5-cycle9-hermetic-child-design
-specs/2026-08-05-enforcement-over-persuasion-design
+specs/*
 ```
 
 ```{toctree}
 :hidden:
 :maxdepth: 1
 :caption: Plans
+:glob:
 
-plans/2026-07-30-phase1-cycle1-fixture-pair
-plans/2026-07-30-phase1-cycle2-workspace-provisioning
-plans/2026-07-30-phase1-cycle3-verdict-file
-plans/2026-07-30-phase1-cycle4-subversion-fixtures
-plans/2026-07-30-phase1-cycle5-config-refusal
-plans/2026-07-30-phase1-cycle6-task-spec
-plans/2026-07-31-phase1-cycle7-liveness-check
-plans/2026-07-31-phase1-cycle8-first-real-run
-plans/2026-07-31-phase1-cycle9-source-allowlist
-plans/2026-07-31-phase1-cycle10-checkpoint-recording
-plans/2026-08-01-phase1-cycle11-corrective-hardening
-plans/2026-08-01-phase1-cycle12-hang-tolerance
-plans/2026-08-01-phase1-cycle13-batch-contract
-plans/2026-08-01-phase1-cycle14-n16-batch
-plans/2026-08-01-post-phase1-pi-exit-veto
-plans/2026-08-01-post-phase1-batch-evidence-record
-plans/2026-08-01-post-phase1-local-workspace-hygiene
-plans/2026-08-01-post-phase1-pages-publication
-plans/2026-08-02-phase2-cycle1-telemetry-reader
-plans/2026-08-02-phase2-cycle2-precision-baseline
-plans/2026-08-02-phase2-cycle3-honest-environment
-plans/2026-08-02-phase2-cycle4-claim-discipline
-plans/2026-08-02-phase3-cycle1-observable-extension
-plans/2026-08-03-phase3-cycle2-specialized-subagent
-plans/2026-08-03-phase3-cycle2-extension-mechanics
-plans/2026-08-03-pi-version-pin
-plans/2026-08-04-phase4-cycle1-second-suite
-plans/2026-08-04-phase5-cycle1-improvement-mechanism
-plans/2026-08-04-phase5-cycle2-cost-answer
-plans/2026-08-04-phase5-cycle3-child-telemetry
+plans/*
 ```
 
 ```{toctree}
@@ -298,22 +234,7 @@ chapters/pi-extension-mechanics
 :hidden:
 :maxdepth: 1
 :caption: Research
+:glob:
 
-research/2026-07-30-phase1-cycle1-fixture-results
-research/2026-08-01-phase1-n16-batch-evidence
-research/2026-08-02-phase2-cycle2-precision-baseline
-research/2026-08-02-phase2-cycle3-clean-baseline
-research/2026-08-02-phase2-remaining-plan
-research/2026-08-02-phase3-cycle1-event-vocabulary
-research/2026-08-03-phase3-cycle2-pi-gotchas
-research/2026-08-04-phase4-cycle1-what-the-second-suite-cost
-research/2026-08-04-phase5-cycle1-delegation-spike
-research/2026-08-04-phase5-cycle2-cost-answer
-research/2026-08-04-phase5-cycle4-user-story-arms
-research/2026-08-04-phase5-cycle5-orchestrator-corrections
-research/2026-08-04-phase5-cycle6-loop-breaker
-research/2026-08-04-phase5-cycle7-tech-stack
-research/2026-08-04-phase5-cycle8-child-runaway
-research/2026-08-04-phase5-cycle9-hermetic-child
-research/2026-08-04-phase5-cycle10-publishable-arm
+research/*
 ```

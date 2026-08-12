@@ -1,3 +1,7 @@
+---
+orphan: true
+---
+
 # Example brief: `add-iter`
 
 Add an `__iter__` method to `Registry` so callers can write `list(registry)`

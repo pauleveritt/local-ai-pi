@@ -7,7 +7,7 @@
 **Precedent:**
 [`2026-08-09-phase7-cycle2-overnight-spike.md`](2026-08-09-phase7-cycle2-overnight-spike.md),
 `reviews/2026-08-09-phase7-cycle2-review-brief.md` on the `phase6-orchestrator-spike` branch,
-[`2026-08-08-phase6-bounded-executor-pivot.md`](2026-08-08-phase6-bounded-executor-pivot.md)
+`2026-08-08-phase6-bounded-executor-pivot.md` on the `phase6-orchestrator-spike` branch
 
 ---
 

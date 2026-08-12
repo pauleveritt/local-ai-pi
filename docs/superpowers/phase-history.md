@@ -7,9 +7,9 @@ retracted figures, and corrections this project records with a banner rather
 than an edit. Those are the most instructive part of the record and are
 reproduced verbatim below.
 
-For what the project does *now*, see [`../../README.md`](../../README.md) and
+For what the project does *now*, see `README.md` at the repository root and
 [`../architecture.md`](../architecture.md). For current planning, the concept
-budget, and the backlog, see [`../../ROADMAP.md`](../../ROADMAP.md).
+budget, and the backlog, see `ROADMAP.md` at the repository root.
 
 ## Phase narratives
 

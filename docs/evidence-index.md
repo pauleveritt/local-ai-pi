@@ -1,6 +1,6 @@
 # Evidence index: the bounded-implementer path
 
-What backs the claims in [`README.md`](../README.md) and
+What backs the claims in `README.md` at the repository root and
 [`docs/architecture.md`](architecture.md), classified by what kind of
 evidence each item is. **Scope:** the Phase 7 typed-contract / bounded-
 implementer product line only (`harness/typed_contract.py`,

@@ -139,7 +139,7 @@ AgentClinic-style suite), not part of this path. It is still real,
 still tested, and `harness/pi_invocation.py`'s `pi_command`/`pi_env` are
 shared between both — but a change to the bounded-implementer path above
 does not need to touch it, and vice versa. See
-[`BRIEF.md`](../BRIEF.md) and [`ROADMAP.md`](../ROADMAP.md) (both marked
+`BRIEF.md` and `ROADMAP.md` at the repository root (both marked
 historical) for that earlier program's full record, and
 [`docs/superpowers/index.md`](superpowers/index.md) for the cycle-by-cycle
 design record spanning both.
