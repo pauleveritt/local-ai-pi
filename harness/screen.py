@@ -84,7 +84,6 @@ one. See `extensions/author-cap.ts`.
 """
 
 
-
 @dataclass(frozen=True)
 class Attempt:
     """One model attempt against one task, with its grading.
@@ -248,7 +247,9 @@ class Attempt:
         }
 
 
-GUARD_EXTENSION = Path(__file__).resolve().parents[1] / ".pi" / "extensions" / "loop-breaker.ts"
+GUARD_EXTENSION = (
+    Path(__file__).resolve().parents[1] / ".pi" / "extensions" / "loop-breaker.ts"
+)
 """The shipped loop breaker, the one contributors install.
 
 Adding it changes the extension set, which makes a guarded run a

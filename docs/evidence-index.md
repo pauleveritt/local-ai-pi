@@ -22,9 +22,8 @@ index for that, and it predates this page.
 
 ## What this index does not cover
 
-- The Phase 1–6 duration-suite record (`ROADMAP.md`, `BRIEF.md`,
-  `docs/superpowers/index.md`) — a different, earlier measurement program,
-  not re-classified here.
+- The Phase 1–6 duration-suite record — a different, earlier measurement
+  program, kept in the research repository and not re-classified here.
 - Re-adjudication of the `screen-corpus` findings themselves. The
   2026-08-12 labels record what the existing record says about each batch;
   they do not re-run or re-grade anything, and three of them are judgment

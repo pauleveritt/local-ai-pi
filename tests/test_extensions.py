@@ -34,11 +34,21 @@ def test_the_teaching_extension_exists():
 )
 def test_the_word_count_extension_registers_its_tool():
     command = [
-        "pi", "--print", "--mode", "json", "--no-session",
-        "--model", "omlx/gemma-4-12B-it-MLX-8bit",
-        "--no-extensions", "--extension", str(WORD_COUNT),
-        "--no-skills", "--no-prompt-templates", "--no-themes",
-        "--no-context-files", "--approve",
+        "pi",
+        "--print",
+        "--mode",
+        "json",
+        "--no-session",
+        "--model",
+        "omlx/gemma-4-12B-it-MLX-8bit",
+        "--no-extensions",
+        "--extension",
+        str(WORD_COUNT),
+        "--no-skills",
+        "--no-prompt-templates",
+        "--no-themes",
+        "--no-context-files",
+        "--approve",
         "Use the word_count tool on the text 'one two three'. "
         "Reply with only the number.",
     ]

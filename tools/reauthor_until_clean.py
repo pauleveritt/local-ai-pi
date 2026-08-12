@@ -116,7 +116,9 @@ def classify(task_id: str, drafts_dir: Path, probe_dir: Path) -> str:
     return "clean"
 
 
-def _promote(task_id: str, draft: Path, result: Reconstruction, out_dir: Path, probe_out: Path) -> None:
+def _promote(
+    task_id: str, draft: Path, result: Reconstruction, out_dir: Path, probe_out: Path
+) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     probe_out.mkdir(parents=True, exist_ok=True)
     (out_dir / f"{task_id}.md").write_text(draft.read_text())
@@ -196,12 +198,24 @@ def _subprocess_author(
         attempt_dir.mkdir(parents=True, exist_ok=True)
         code = subprocess.run(
             [
-                sys.executable, "-m", "tools.author_contract",
-                "--task", task_id, "--model", model, "--server", server,
-                "--prompt", str(prompt), "--out", str(attempt_dir),
-                "--timeout", str(timeout),
+                sys.executable,
+                "-m",
+                "tools.author_contract",
+                "--task",
+                task_id,
+                "--model",
+                model,
+                "--server",
+                server,
+                "--prompt",
+                str(prompt),
+                "--out",
+                str(attempt_dir),
+                "--timeout",
+                str(timeout),
             ],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         ).returncode
         draft = attempt_dir / f"{task_id}.md"
         # `code == 0` is the gate's opinion (length/timeout/budget); a raw
@@ -220,18 +234,37 @@ def _subprocess_author(
 
 
 def _subprocess_probe(
-    task_id: str, model: str, server: str, references: Path, cohort: Path, probe_scratch: Path
+    task_id: str,
+    model: str,
+    server: str,
+    references: Path,
+    cohort: Path,
+    probe_scratch: Path,
 ) -> Callable[[Path], Reconstruction]:
     def run(draft: Path) -> Reconstruction:
         scratch = probe_scratch / f"{task_id}-{contract_hash(draft.read_text())[:8]}"
         subprocess.run(
             [
-                sys.executable, "-m", "tools.leak_probe",
-                "--cohort", str(cohort), "--model", model, "--server", server,
-                "--contract-dir", str(draft.parent), "--references", str(references),
-                "--task", task_id, "--out", str(scratch),
+                sys.executable,
+                "-m",
+                "tools.leak_probe",
+                "--cohort",
+                str(cohort),
+                "--model",
+                model,
+                "--server",
+                server,
+                "--contract-dir",
+                str(draft.parent),
+                "--references",
+                str(references),
+                "--task",
+                task_id,
+                "--out",
+                str(scratch),
             ],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         payload = json.loads((scratch / f"{task_id}.json").read_text())
         return Reconstruction(
@@ -251,7 +284,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--author-model", required=True)
     parser.add_argument("--probe-model", required=True)
     parser.add_argument("--server", default="http://127.0.0.1:8001")
-    parser.add_argument("--cohort", type=Path, default=Path("workloads/svcs/cohort.toml"))
+    parser.add_argument(
+        "--cohort", type=Path, default=Path("workloads/svcs/cohort.toml")
+    )
     parser.add_argument(
         "--prompt", type=Path, default=Path("workloads/svcs/authoring-prompt.md")
     )
@@ -280,10 +315,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             args.work_dir,
             args.out,
             _subprocess_author(
-                task_id, args.author_model, args.server, args.prompt, args.author_timeout
+                task_id,
+                args.author_model,
+                args.server,
+                args.prompt,
+                args.author_timeout,
             ),
             _subprocess_probe(
-                task_id, args.probe_model, args.server, args.references, args.cohort,
+                task_id,
+                args.probe_model,
+                args.server,
+                args.references,
+                args.cohort,
                 args.work_dir / "_probes",
             ),
             budget,
@@ -314,7 +357,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     (args.work_dir / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n"
     )
-    clean = sum(1 for m in manifest.values() if m["status"] in ("already-clean", "reused-existing", "cleaned-after-N"))
+    clean = sum(
+        1
+        for m in manifest.values()
+        if m["status"] in ("already-clean", "reused-existing", "cleaned-after-N")
+    )
     print(f"\n{clean}/{len(manifest)} tasks admitted (of {len(args.task)} requested)")
     return 0
 

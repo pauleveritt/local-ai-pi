@@ -23,8 +23,8 @@ at runtime. A user who writes:
 from __future__ import annotations
 from svcs import Container
 
-def factory(con: Container):
-    ...
+
+def factory(con: Container): ...
 ```
 
 gets the annotation `"Container"` (the bare name), not `"svcs.Container"` and

@@ -23,6 +23,7 @@ This writes a tree. It does not touch git; committing the result to the
 
 import argparse
 import ast
+import re
 import shutil
 import subprocess
 import sys
@@ -88,6 +89,7 @@ DOC_PATHS = (
     "docs/evidence-index.md",
     "docs/setup.md",
     "docs/loop-breaker.md",
+    "docs/glossary.md",
     "docs/sdd.md",
     "docs/example-brief.md",
 )
@@ -103,7 +105,12 @@ EVIDENCE_DOCS = (
 ROOT_FILES = (
     "LICENSE",
     ".gitignore",
-    "uv.lock",
+    # uv.lock is NOT taken from the source repo -- export-overlay/ supplies
+    # its own. The source lock resolves the source pyproject (fastapi,
+    # turbohtml, sphinx); overlaying the lean pyproject on top of it left
+    # `uv lock --check` dirty and made `uv sync --frozen` install the old
+    # 48-package tree. Regenerate the overlay lock with `uv lock` inside a
+    # built export whenever the overlay pyproject changes.
     "package.json",
     "bun.lockb",
     "conftest.py",
@@ -266,6 +273,63 @@ def keepable_tests(
     return kept, rejected
 
 
+def _rewrite_links(out: Path) -> None:
+    """Repoint links that the flattening invalidated.
+
+    `docs/superpowers/` does not come along, and the three evidence
+    documents that do are flattened into `docs/evidence/`. Every link to
+    them -- and every link *between* them, written when they were three
+    directories apart -- is wrong in the export. The first derived export
+    shipped 14 such links.
+
+    Anything pointing at material the export deliberately excludes is
+    de-linked to inline code rather than repaired: the target genuinely
+    is not here, and a link that resolves to nothing is worse than prose
+    naming the file.
+    """
+    flattened = {Path(d).name for d in EVIDENCE_DOCS}
+    for md in sorted(out.rglob("*.md")):
+        text = original = md.read_text()
+        for name in flattened:
+            depth = (
+                "../" * len(md.relative_to(out / "docs").parts[:-1])
+                if md.is_relative_to(out / "docs")
+                else ""
+            )
+            for stale in (
+                f"superpowers/specs/{name}",
+                f"superpowers/research/{name}",
+                f"../specs/{name}",
+                f"../research/{name}",
+                f"../plans/{name}",
+            ):
+                text = text.replace(f"]({stale})", f"]({depth}evidence/{name})")
+            # Siblings inside docs/evidence/ reference each other by bare name.
+            if md.parent.name == "evidence":
+                text = text.replace(f"]({depth}evidence/{name})", f"]({name})")
+        # Documents excluded from the export by name -- same treatment as
+        # the pattern below, but they sit as bare siblings inside
+        # docs/evidence/ so no directory prefix identifies them.
+        for excluded in (
+            "2026-08-11-phase7-cleanup-and-distribution-brief.md",
+            "2026-08-11-phase7-clean-machine-rehearsal.md",
+            "2026-08-11-morning-summary.md",
+        ):
+            text = re.sub(
+                r"\[`?([^\]`]+)`?\]\((?:\.\./)*" + re.escape(excluded) + r"\)",
+                r"`\1`",
+                text,
+            )
+        # Targets the export does not carry: keep the words, drop the link.
+        text = re.sub(
+            r"\[`?([^\]`]+)`?\]\((?:\.\./)*(?:superpowers|workloads|plans|research|specs)/[^)]*\)",
+            r"`\1`",
+            text,
+        )
+        if text != original:
+            md.write_text(text)
+
+
 def build(out: Path) -> None:
     code = closure(ENTRY_POINTS)
 
@@ -276,12 +340,27 @@ def build(out: Path) -> None:
         for name in ("manifest.toml", "brief.md", "qualification.json"):
             data.add(f"workloads/svcs/tasks/{task}/{name}")
         data.add(f"workloads/svcs/contracts/locating/{task}.md")
-    for fixture in sorted((REPO / "tests" / "fixtures").rglob("*")):
-        if fixture.is_file():
-            data.add(str(fixture.relative_to(REPO)))
+    # Deliberately NOT a blanket copy of tests/fixtures/. The first
+    # version carried all of it -- ~1,270 lines of old drafts and
+    # telemetry -- for tests that were then rejected anyway, and shipped
+    # tests/fixtures/README.md describing four files it had not carried.
+    # Only fixtures a kept test actually names come along; the loop below
+    # runs after `tests` is known, so it is applied there.
 
+    # Fixtures are resolved against the *kept* tests, so this runs in two
+    # passes: decide the tests without fixtures available, then add back
+    # only what those tests name.
     tests, rejected = keepable_tests(code, data)
-    paths: set[str] = set(code) | tests | data
+    fixtures = {
+        str(f.relative_to(REPO))
+        for f in sorted((REPO / "tests" / "fixtures").rglob("*"))
+        if f.is_file()
+        and any(
+            f.name in (REPO / t).read_text() or f.parent.name in (REPO / t).read_text()
+            for t in tests
+        )
+    }
+    paths: set[str] = set(code) | tests | data | fixtures
 
     tracked = set(
         subprocess.run(
@@ -305,13 +384,22 @@ def build(out: Path) -> None:
     for rel in EVIDENCE_DOCS:
         shutil.copy2(REPO / rel, out / "docs" / "evidence" / Path(rel).name)
 
+    _rewrite_links(out)
+
     overlay = REPO / "export-overlay"
     applied = []
     if overlay.is_dir():
-        for source in sorted(overlay.rglob("*")):
+        # git ls-files, not rglob: an unrestricted walk copied an
+        # untracked .ruff_cache/ into the export, because ruff runs over
+        # this directory like any other. Only tracked overlay files ship.
+        overlay_tracked = subprocess.run(
+            ["git", "ls-files"], cwd=overlay, capture_output=True, text=True, check=True
+        ).stdout.split()
+        for rel_name in sorted(overlay_tracked):
+            source = overlay / rel_name
             if not source.is_file():
                 continue
-            rel = source.relative_to(overlay)
+            rel = Path(rel_name)
             (out / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, out / rel)
             applied.append(str(rel))

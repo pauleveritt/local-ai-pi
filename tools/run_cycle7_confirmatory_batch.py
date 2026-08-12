@@ -108,7 +108,10 @@ def bootstrap_cache() -> None:
         print(f"provisioning {CLONE} from {cohort.upstream} (one time)...", flush=True)
     ensure_clone(cohort.upstream, CACHE)
     if not COHORT_PYTHON_BIN.is_dir():
-        print(f"provisioning the cohort environment under {CACHE / 'env'} (one time)...", flush=True)
+        print(
+            f"provisioning the cohort environment under {CACHE / 'env'} (one time)...",
+            flush=True,
+        )
     ensure_cohort_env(cohort.env_dir, CACHE)
 
 
@@ -127,7 +130,13 @@ def cohort_env(pythonpath: Path) -> dict[str, str]:
 def oracle_check(git_dir: Path, candidate_commit: str, manifest) -> dict:
     with disposable_dir("confirmatory-oraclecheck-") as grading:
         result = subprocess.run(
-            ["git", f"--git-dir={git_dir}", "archive", "--format=tar", candidate_commit],
+            [
+                "git",
+                f"--git-dir={git_dir}",
+                "archive",
+                "--format=tar",
+                candidate_commit,
+            ],
             capture_output=True,
         )
         if result.returncode != 0:
@@ -143,7 +152,11 @@ def oracle_check(git_dir: Path, candidate_commit: str, manifest) -> dict:
             text=True,
             timeout=120,
         )
-        return {"ran": True, "returncode": proc.returncode, "tail": (proc.stdout + proc.stderr)[-1500:]}
+        return {
+            "ran": True,
+            "returncode": proc.returncode,
+            "tail": (proc.stdout + proc.stderr)[-1500:],
+        }
 
 
 def run_one(task_id: str, base_sha: str, arm: str, label: str, out_dir: Path) -> dict:
@@ -164,35 +177,68 @@ def run_one(task_id: str, base_sha: str, arm: str, label: str, out_dir: Path) ->
         candidate_mod.deliver = patched_deliver
         deliver_candidate.deliver = patched_deliver
         try:
-            rc = deliver_candidate.main([
-                "--repo", str(workspace),
-                "--task", task_id,
-                "--contract-task", task_id,
-                "--task-source", arm,
-                "--cell", str(CELL),
-                "--agent-dir", str(AGENT_DIR),
-                "--receipt", str(receipt_path),
-            ])
+            rc = deliver_candidate.main(
+                [
+                    "--repo",
+                    str(workspace),
+                    "--task",
+                    task_id,
+                    "--contract-task",
+                    task_id,
+                    "--task-source",
+                    arm,
+                    "--cell",
+                    str(CELL),
+                    "--agent-dir",
+                    str(AGENT_DIR),
+                    "--receipt",
+                    str(receipt_path),
+                ]
+            )
         except Exception as exc:  # noqa: BLE001 -- void classification below
-            return {"label": label, "task": task_id, "arm": arm, "void": True, "void_reason": f"exception: {exc}"}
+            return {
+                "label": label,
+                "task": task_id,
+                "arm": arm,
+                "void": True,
+                "void_reason": f"exception: {exc}",
+            }
         finally:
             candidate_mod.deliver = _real_deliver
             deliver_candidate.deliver = _real_deliver
 
         if not receipt_path.is_file():
-            return {"label": label, "task": task_id, "arm": arm, "void": True, "void_reason": f"no receipt, rc={rc}"}
+            return {
+                "label": label,
+                "task": task_id,
+                "arm": arm,
+                "void": True,
+                "void_reason": f"no receipt, rc={rc}",
+            }
 
         payload = json.loads(receipt_path.read_text())
         if payload["outcome"] == "infrastructure-failure":
-            return {"label": label, "task": task_id, "arm": arm, "void": True, "void_reason": payload.get("refusal", "infrastructure-failure")}
+            return {
+                "label": label,
+                "task": task_id,
+                "arm": arm,
+                "void": True,
+                "void_reason": payload.get("refusal", "infrastructure-failure"),
+            }
 
         oracle = None
         if payload.get("outcome") == "candidate-created":
-            oracle = oracle_check(workspace / ".git", payload["candidate_commit"], manifest)
+            oracle = oracle_check(
+                workspace / ".git", payload["candidate_commit"], manifest
+            )
 
         return {
-            "label": label, "task": task_id, "arm": arm, "void": False,
-            "outcome": payload["outcome"], "oracle": oracle,
+            "label": label,
+            "task": task_id,
+            "arm": arm,
+            "void": False,
+            "outcome": payload["outcome"],
+            "oracle": oracle,
             "oracle_passed": bool(oracle and oracle.get("returncode") == 0),
         }
 
@@ -210,7 +256,9 @@ def run_slot(task_id: str, base_sha: str, arm: str, rep: int, out_dir: Path) -> 
     return result
 
 
-def run_batch(tasks: tuple[tuple[str, str], ...], n_per_arm: int, out_dir: Path) -> list[dict]:
+def run_batch(
+    tasks: tuple[tuple[str, str], ...], n_per_arm: int, out_dir: Path
+) -> list[dict]:
     results = []
     with bumped_max_tokens(BUMPED_MODEL, BUMPED_MAX_TOKENS):
         for task_id, base_sha in tasks:
@@ -226,7 +274,9 @@ def run_batch(tasks: tuple[tuple[str, str], ...], n_per_arm: int, out_dir: Path)
     return results
 
 
-def report(tasks: tuple[tuple[str, str], ...], results: list[dict], out_dir: Path) -> None:
+def report(
+    tasks: tuple[tuple[str, str], ...], results: list[dict], out_dir: Path
+) -> None:
     print("\n\n==================== REPORT ====================")
     void_count = sum(1 for r in results if r.get("void_exhausted"))
     print(f"attempts: {len(results)}  unresolved-void: {void_count}\n")
@@ -247,35 +297,49 @@ def report(tasks: tuple[tuple[str, str], ...], results: list[dict], out_dir: Pat
             n = len(rs)
             rates[arm] = (passed, n)
             interval = wilson_interval(passed, n)
-            print(f"  {arm:18s} n={n} created={created} oracle_passed={passed}  [{interval.low:.2f},{interval.high:.2f}]")
+            print(
+                f"  {arm:18s} n={n} created={created} oracle_passed={passed}  [{interval.low:.2f},{interval.high:.2f}]"
+            )
         (pb, nb) = rates.get("locating-contract", (0, 0))
         (pa, na) = rates.get("brief", (0, 0))
         if na and nb:
             diff = newcombe_interval(pb, nb, pa, na)
             verdict = (
-                "SUPERIORITY (contract > brief)" if diff.excludes_zero_above()
-                else "reverse separation (brief > contract)" if diff.excludes_zero_below()
+                "SUPERIORITY (contract > brief)"
+                if diff.excludes_zero_above()
+                else "reverse separation (brief > contract)"
+                if diff.excludes_zero_below()
                 else "INCONCLUSIVE"
             )
-            print(f"  difference (contract - brief): [{diff.low:.2f},{diff.high:.2f}]  {verdict}")
+            print(
+                f"  difference (contract - brief): [{diff.low:.2f},{diff.high:.2f}]  {verdict}"
+            )
         print()
 
     print(f"full results: {out_dir / 'all_results.json'}")
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument(
-        "--out-dir", type=Path, required=True,
+        "--out-dir",
+        type=Path,
+        required=True,
         help="directory for per-attempt receipts and all_results.json; created if absent",
     )
     parser.add_argument(
-        "--n", type=int, default=8,
+        "--n",
+        type=int,
+        default=8,
         help="repetitions per arm per task (pre-registration default: 8; "
         "use a smaller value only for a rehearsal, never to present as the confirmatory result)",
     )
     parser.add_argument(
-        "--task", choices=[t for t, _ in TASKS], default=None,
+        "--task",
+        choices=[t for t, _ in TASKS],
+        default=None,
         help="restrict to one task (for a rehearsal); omit to run the full four-task cohort",
     )
     args = parser.parse_args(argv)
@@ -285,7 +349,9 @@ def main(argv: list[str] | None = None) -> int:
     bootstrap_cache()
 
     results = run_batch(tasks, args.n, args.out_dir)
-    (args.out_dir / "all_results.json").write_text(json.dumps(results, indent=2, sort_keys=True))
+    (args.out_dir / "all_results.json").write_text(
+        json.dumps(results, indent=2, sort_keys=True)
+    )
     report(tasks, results, args.out_dir)
     return 0
 

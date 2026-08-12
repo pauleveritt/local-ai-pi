@@ -180,7 +180,9 @@ def test_a_clean_real_run_reports_zero_tool_errors():
     assert read_telemetry(_real_run()).tool_errors == 0
 
 
-ENTRY_FIXTURE = Path(__file__).parent / "fixtures" / "pi-run-0.82.0-entry-appended.jsonl"
+ENTRY_FIXTURE = (
+    Path(__file__).parent / "fixtures" / "pi-run-0.82.0-entry-appended.jsonl"
+)
 
 
 def test_reads_custom_entry_types_from_a_real_run():
@@ -195,7 +197,9 @@ def test_the_pre_cycle1_fixture_has_no_custom_entries():
 
 def test_reads_custom_entry_types_in_stdout_order():
     stream = "\n".join(
-        json.dumps({"type": "entry_appended", "entry": {"type": "custom", "customType": name}})
+        json.dumps(
+            {"type": "entry_appended", "entry": {"type": "custom", "customType": name}}
+        )
         for name in ("first", "second")
     )
 
@@ -235,9 +239,7 @@ def _delegation_end(call_id: str, **usage) -> str:
             "toolName": "subagent",
             "result": {
                 "details": {
-                    "results": [
-                        {"agent": "implementer", "exitCode": 0, "usage": usage}
-                    ]
+                    "results": [{"agent": "implementer", "exitCode": 0, "usage": usage}]
                 }
             },
         }
@@ -287,7 +289,9 @@ def test_child_context_processed_includes_both_cache_fields():
     173,056 cached tokens against 23,955 fresh input -- so dropping it
     would understate the cost by most of it."""
     telemetry = read_telemetry(
-        _delegation_end("c1", input=100, output=10, cacheRead=1000, cacheWrite=7, turns=3)
+        _delegation_end(
+            "c1", input=100, output=10, cacheRead=1000, cacheWrite=7, turns=3
+        )
     )
 
     assert telemetry.child_context_processed == 1107

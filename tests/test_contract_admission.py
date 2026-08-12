@@ -89,4 +89,6 @@ def test_mixed_tasks_report_every_problem_not_just_the_first(tmp_path: Path) -> 
     assert len(paragraphs) == 2, "exactly leaking + unmeasured, no stale section"
     assert any("disclose the fix" in p and "leaking" in p for p in paragraphs)
     assert any("no leak-probe result" in p and "unmeasured" in p for p in paragraphs)
-    assert not any("admitted" in p for p in paragraphs), "the clean task must not appear as a problem"
+    assert not any("admitted" in p for p in paragraphs), (
+        "the clean task must not appear as a problem"
+    )

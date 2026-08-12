@@ -23,11 +23,15 @@ def test_strips_leading_authoring_narration_up_to_the_first_separator():
 
 
 def test_leaves_text_alone_when_there_is_no_separator():
-    assert strip_authoring_narration("# Contract: Title\n\nBody.") == "# Contract: Title\n\nBody."
+    assert (
+        strip_authoring_narration("# Contract: Title\n\nBody.")
+        == "# Contract: Title\n\nBody."
+    )
 
 
 @pytest.mark.parametrize(
-    "task_id", ["flask-extensions", "stringified-annotations", "local-pings", "autowire"]
+    "task_id",
+    ["flask-extensions", "stringified-annotations", "local-pings", "autowire"],
 )
 def test_builds_a_valid_handoff_for_every_smoke_task(tmp_path, task_id):
     # A bare worktree stand-in: the exact writable target absent, which is
@@ -35,7 +39,9 @@ def test_builds_a_valid_handoff_for_every_smoke_task(tmp_path, task_id):
     handoff = build_typed_handoff(task_id, tmp_path)
 
     assert handoff.contract["task"].startswith("#"), "narration must be stripped"
-    assert handoff.contract["writableFiles"], "every smoke task must resolve to an exact path"
+    assert handoff.contract["writableFiles"], (
+        "every smoke task must resolve to an exact path"
+    )
     for entry in handoff.contract["writableFiles"]:
         assert "*" not in entry["path"]
     assert handoff.contract["validation"]
@@ -64,7 +70,9 @@ def test_an_absent_writable_target_is_a_legitimate_absent_baseline(tmp_path):
     assert handoff.baselines == [{"path": "src/svcs/_core.py", "state": "absent"}]
 
 
-def test_autowire_falls_back_to_its_named_override_since_its_manifest_is_a_glob(tmp_path):
+def test_autowire_falls_back_to_its_named_override_since_its_manifest_is_a_glob(
+    tmp_path,
+):
     handoff = build_typed_handoff("autowire", tmp_path)
     # Two paths, not one: the real target diff also touches __init__.py
     # (a 3-line export addition) -- without it the oracle's own
@@ -119,16 +127,25 @@ def test_the_cli_refuses_an_unsupported_task_cleanly_not_with_a_traceback(tmp_pa
     import tools.deliver_candidate as deliver_candidate
 
     with pytest.raises(SystemExit):
-        deliver_candidate.main([
-            "--repo", str(tmp_path),
-            "--task", "registry-iter",
-            "--contract-task", "registry-iter",
-            "--task-source", "brief",
-            "--model", "does-not-matter",
-        ])
+        deliver_candidate.main(
+            [
+                "--repo",
+                str(tmp_path),
+                "--task",
+                "registry-iter",
+                "--contract-task",
+                "registry-iter",
+                "--task-source",
+                "brief",
+                "--model",
+                "does-not-matter",
+            ]
+        )
 
 
-def test_flask_extensions_validation_deselects_the_two_nodes_its_own_target_diff_flips(tmp_path):
+def test_flask_extensions_validation_deselects_the_two_nodes_its_own_target_diff_flips(
+    tmp_path,
+):
     # A real bug this closes: the preservation suite runs unmodified at
     # base, and flask-extensions' base test_flask.py directly asserts the
     # *old* behavior (app.config) in these two tests -- so a genuinely
@@ -139,8 +156,14 @@ def test_flask_extensions_validation_deselects_the_two_nodes_its_own_target_diff
     # same two node IDs -- which are exactly manifest.rejection_failing_nodes.
     handoff = build_typed_handoff("flask-extensions", tmp_path)
     validation = handoff.contract["validation"]
-    assert "--deselect tests/integrations/test_flask.py::TestInitApp::test_implicit_registry" in validation
-    assert "--deselect tests/integrations/test_flask.py::TestInitApp::test_explicit_registry" in validation
+    assert (
+        "--deselect tests/integrations/test_flask.py::TestInitApp::test_implicit_registry"
+        in validation
+    )
+    assert (
+        "--deselect tests/integrations/test_flask.py::TestInitApp::test_explicit_registry"
+        in validation
+    )
 
 
 def test_deselecting_a_node_absent_at_base_is_a_harmless_no_op(tmp_path):
@@ -154,9 +177,12 @@ def test_deselecting_a_node_absent_at_base_is_a_harmless_no_op(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "task_id", ["flask-extensions", "stringified-annotations", "local-pings", "autowire"]
+    "task_id",
+    ["flask-extensions", "stringified-annotations", "local-pings", "autowire"],
 )
-def test_task_source_brief_uses_the_concise_brief_not_the_locating_contract(tmp_path, task_id):
+def test_task_source_brief_uses_the_concise_brief_not_the_locating_contract(
+    tmp_path, task_id
+):
     from harness.workload import load_manifest
 
     manifest = load_manifest(typed_contract.TASKS_DIR / task_id)
@@ -175,9 +201,12 @@ def test_task_source_brief_uses_the_concise_brief_not_the_locating_contract(tmp_
 
 
 @pytest.mark.parametrize(
-    "task_id", ["flask-extensions", "stringified-annotations", "local-pings", "autowire"]
+    "task_id",
+    ["flask-extensions", "stringified-annotations", "local-pings", "autowire"],
 )
-def test_task_source_only_changes_contract_task_not_the_executor_bounds(tmp_path, task_id):
+def test_task_source_only_changes_contract_task_not_the_executor_bounds(
+    tmp_path, task_id
+):
     # The comparison this exists for is about what the model is told, not
     # about loosening what it's allowed to touch -- writableFiles,
     # baselines and validation must be identical across both arms.
@@ -196,5 +225,7 @@ def test_task_source_defaults_to_locating_contract_unchanged(tmp_path):
     # default, and every test above this one in the file) that predates
     # task_source and calls build_typed_handoff positionally.
     default = build_typed_handoff("flask-extensions", tmp_path)
-    explicit = build_typed_handoff("flask-extensions", tmp_path, task_source="locating-contract")
+    explicit = build_typed_handoff(
+        "flask-extensions", tmp_path, task_source="locating-contract"
+    )
     assert default.contract == explicit.contract

@@ -28,9 +28,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cohort", required=True, type=Path)
     parser.add_argument("--cache", type=Path, default=Path(".workloads"))
-    parser.add_argument(
-        "--root", type=Path, default=Path.home() / ".satyrn-authoring"
-    )
+    parser.add_argument("--root", type=Path, default=Path.home() / ".satyrn-authoring")
     args = parser.parse_args(argv)
 
     cohort = workload.load_cohort(args.cohort, require_accounting=True)

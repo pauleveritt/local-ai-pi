@@ -235,7 +235,9 @@ def test_a_correct_relocation_is_accepted(relocating_task: Task) -> None:
     """
     attempt = _grade(
         relocating_task,
-        {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"},
+        {
+            "src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"
+        },
     )
     assert attempt.accepted, attempt.outcome
     assert attempt.outcome == "accepted"
@@ -323,7 +325,9 @@ def test_a_candidate_that_writes_nothing(relocating_task: Task) -> None:
 
 def test_grading_the_same_candidate_twice_agrees(relocating_task: Task) -> None:
     """Replay must be deterministic, or re-scoring proves nothing."""
-    files = {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"}
+    files = {
+        "src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"
+    }
     first, second = _grade(relocating_task, files), _grade(relocating_task, files)
     assert first.outcome == second.outcome
     assert first.accepted == second.accepted
@@ -364,7 +368,9 @@ def test_the_exact_target_patch_closes_the_whole_gap(relocating_task: Task) -> N
     """The positive control: the real answer must score a full gap closure."""
     attempt = _grade(
         relocating_task,
-        {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"},
+        {
+            "src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"
+        },
     )
     assert attempt.accepted
     assert attempt.gap_closed == 1.0
@@ -482,9 +488,9 @@ def test_a_named_node_still_vanishes_by_name() -> None:
     expected_stable, expected_counts = _node_census(
         ["tests/test_core.py::test_one", "tests/test_core.py::test_two"]
     )
-    assert _vanished(expected_stable, expected_counts, ["tests/test_core.py::test_one"]) == (
-        "tests/test_core.py::test_two",
-    )
+    assert _vanished(
+        expected_stable, expected_counts, ["tests/test_core.py::test_one"]
+    ) == ("tests/test_core.py::test_two",)
 
 
 def test_the_executor_venv_never_reaches_the_candidate_patch(
@@ -506,7 +512,9 @@ def test_the_executor_venv_never_reaches_the_candidate_patch(
         '[project]\nname = "probe-env"\nversion = "0"\n'
         'requires-python = ">=3.10"\ndependencies = []\n'
     )
-    subprocess.run(["uv", "lock", "-q"], cwd=env_source, check=True, capture_output=True)
+    subprocess.run(
+        ["uv", "lock", "-q"], cwd=env_source, check=True, capture_output=True
+    )
 
     with materialize(relocating_task.clone, relocating_task.base_sha) as workspace:
         lock_hash = provision_executor_env(workspace, env_source)
@@ -629,7 +637,9 @@ def test_the_audit_reads_a_reached_foreign_workspace_as_taint() -> None:
                     "type": "tool_execution_start",
                     "toolCallId": "1",
                     "toolName": "bash",
-                    "args": {"command": "cd /tmp/satyrn-workload-other && cat src/x.py"},
+                    "args": {
+                        "command": "cd /tmp/satyrn-workload-other && cat src/x.py"
+                    },
                 }
             ),
             json.dumps(
@@ -719,7 +729,9 @@ def test_a_void_attempt_can_never_be_accepted(relocating_task: Task) -> None:
     manifest = load_manifest(relocating_task.manifest_dir)
     patch = _candidate(
         relocating_task,
-        {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"},
+        {
+            "src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"
+        },
     )
     clean = grade_candidate(manifest, relocating_task.clone, _fake_env(), patch)
     assert clean.accepted and clean.outcome == "accepted"
@@ -747,7 +759,10 @@ def test_a_missing_transcript_is_void_not_valid() -> None:
 
     assert assess("")[0] == "void:no-transcript"
     assert assess('{"type":"turn_start"}')[0] == "void:no-workspace"
-    assert assess(json.dumps({"type": "session", "cwd": "/tmp/satyrn-workload-a"}))[0] == "valid"
+    assert (
+        assess(json.dumps({"type": "session", "cwd": "/tmp/satyrn-workload-a"}))[0]
+        == "valid"
+    )
 
 
 def test_overlap_flags_a_verbatim_copy_and_ignores_independent_work() -> None:
@@ -763,8 +778,7 @@ def test_overlap_flags_a_verbatim_copy_and_ignores_independent_work() -> None:
     from harness.similarity import overlap
 
     reference = (
-        "diff --git a/src/pkg/a.py b/src/pkg/a.py\n"
-        "+def solve():\n+    return 42\n"
+        "diff --git a/src/pkg/a.py b/src/pkg/a.py\n+def solve():\n+    return 42\n"
     )
     copied = reference
     independent = (
@@ -828,7 +842,9 @@ def test_the_reference_answer_has_no_oracle_shortfall(relocating_task: Task) -> 
     """
     attempt = _grade(
         relocating_task,
-        {"src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"},
+        {
+            "src/pkg/__init__.py": "LOCATION = 'extensions'\nCASES = [1, 2, 3]\nFLAG = 'on'\n"
+        },
     )
     assert attempt.accepted
     assert attempt.oracle_shortfall == ()
@@ -886,7 +902,9 @@ def test_an_unknown_pinned_key_is_rejected(tmp_path: Path) -> None:
         cell.load_cell(path)
 
 
-def test_the_solution_detector_separates_locating_prose_from_a_handed_over_fix() -> None:
+def test_the_solution_detector_separates_locating_prose_from_a_handed_over_fix() -> (
+    None
+):
     """A contract locates and bounds; it must not contain the fix.
 
     The first authoring prompt never said so, and the author helpfully
@@ -1014,7 +1032,9 @@ def test_the_gate_reads_the_raw_text_too() -> None:
     mangled = "return iter(self._services.values())\n```\n\nprelude\n"
     assert len(solution_statements(mangled)) == 0, "the mangled form hides it"
     assert len(solution_statements(raw)) == 1
-    assert len(max(solution_statements(mangled), solution_statements(raw), key=len)) == 1
+    assert (
+        len(max(solution_statements(mangled), solution_statements(raw), key=len)) == 1
+    )
 
 
 def test_no_existing_draft_survives_the_decision() -> None:

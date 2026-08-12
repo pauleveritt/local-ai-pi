@@ -1,5 +1,6 @@
 """Refusal of model-written config: the grader declining to certify a run
 at all, as distinct from rejecting a solution that failed the suite."""
+
 from pathlib import Path
 
 from harness.grading import _refused_config, grade
@@ -57,14 +58,24 @@ def test_refused_config_is_empty_for_a_clean_workspace(tmp_path):
 
 def test_refused_config_finds_every_root_level_name(tmp_path):
     for name in (
-        "pyproject.toml", "pytest.ini", ".pytest.ini", "tox.ini",
-        "setup.cfg", "conftest.py", "sitecustomize.py",
+        "pyproject.toml",
+        "pytest.ini",
+        ".pytest.ini",
+        "tox.ini",
+        "setup.cfg",
+        "conftest.py",
+        "sitecustomize.py",
     ):
         (tmp_path / name).write_text("")
 
     assert _refused_config(tmp_path) == (
-        ".pytest.ini", "conftest.py", "pyproject.toml", "pytest.ini",
-        "setup.cfg", "sitecustomize.py", "tox.ini",
+        ".pytest.ini",
+        "conftest.py",
+        "pyproject.toml",
+        "pytest.ini",
+        "setup.cfg",
+        "sitecustomize.py",
+        "tox.ini",
     )
 
 

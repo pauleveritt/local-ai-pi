@@ -25,7 +25,6 @@ AGENT_DIR_FILES: tuple[str, ...] = (
 EXPECTED_PI_VERSION = "0.84.1"
 
 
-
 @dataclass(frozen=True)
 class Suite:
     """One workload the harness can run: the prompt a model is given, the

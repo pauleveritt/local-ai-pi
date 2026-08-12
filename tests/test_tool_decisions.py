@@ -99,7 +99,9 @@ def test_budget_markers_are_collected(custom):
 
 
 def test_an_unrelated_entry_is_not_a_budget():
-    stdout = _line({"type": "entry_appended", "entry": {"customType": "satyrn-child-prompt"}})
+    stdout = _line(
+        {"type": "entry_appended", "entry": {"customType": "satyrn-child-prompt"}}
+    )
     _, _, budgets = _parse_transcript(stdout)
     assert budgets == []
 
@@ -115,12 +117,23 @@ def test_malformed_lines_are_skipped_not_fatal():
 def test_one_pass_returns_all_three_facts_together():
     # The regression the consolidation exists to prevent: three separate
     # walks could disagree about which run they were describing.
-    stdout = "\n".join([
-        _line({"type": "entry_appended", "entry": {"customType": "turn_budget_exhausted"}}),
-        _assistant("partial draft", stop="aborted"),
-    ])
+    stdout = "\n".join(
+        [
+            _line(
+                {
+                    "type": "entry_appended",
+                    "entry": {"customType": "turn_budget_exhausted"},
+                }
+            ),
+            _assistant("partial draft", stop="aborted"),
+        ]
+    )
     text, stop_reason, budgets = _parse_transcript(stdout)
-    assert (text, stop_reason, budgets) == ("partial draft", "aborted", ["turn_budget_exhausted"])
+    assert (text, stop_reason, budgets) == (
+        "partial draft",
+        "aborted",
+        ["turn_budget_exhausted"],
+    )
 
 
 # ---- report_screen: void attempts leave the denominator ---------------
@@ -131,11 +144,15 @@ def test_one_pass_returns_all_three_facts_together():
 # excludes void records from *all* rates. Nothing pinned that.
 
 
-def _attempt(task_id: str, *, accepted: bool, gap: float, validity: str = "valid") -> dict:
+def _attempt(
+    task_id: str, *, accepted: bool, gap: float, validity: str = "valid"
+) -> dict:
     return {
         "task_id": task_id,
         "validity": validity,
-        "validity_evidence": ["read the target implementation"] if validity != "valid" else [],
+        "validity_evidence": ["read the target implementation"]
+        if validity != "valid"
+        else [],
         "accepted": accepted,
         "gap_closed": gap,
         "oracle_delta": 1 if accepted else 0,
@@ -156,11 +173,14 @@ def _run_report(tmp_path, records):
 
 
 def test_a_void_attempt_leaves_every_denominator(tmp_path, capsys):
-    _run_report(tmp_path, [
-        _attempt("a", accepted=True, gap=1.0),
-        _attempt("b", accepted=False, gap=0.0),
-        _attempt("c", accepted=False, gap=0.0, validity="void:read-the-target"),
-    ])
+    _run_report(
+        tmp_path,
+        [
+            _attempt("a", accepted=True, gap=1.0),
+            _attempt("b", accepted=False, gap=0.0),
+            _attempt("c", accepted=False, gap=0.0, validity="void:read-the-target"),
+        ],
+    )
     out = capsys.readouterr().out
     # Two real attempts, not three. The defect this pins would print /3.
     assert "accepted         1/2" in out
@@ -171,13 +191,20 @@ def test_a_void_attempt_leaves_every_denominator(tmp_path, capsys):
 def test_a_void_attempt_is_still_reported_not_hidden(tmp_path, capsys):
     # Excluded from the rates, but never silently dropped -- otherwise
     # the run looks like it had fewer attempts than it was charged for.
-    _run_report(tmp_path, [
-        _attempt("a", accepted=True, gap=1.0),
-        _attempt("voided", accepted=False, gap=0.0, validity="void:read-the-target"),
-    ])
+    _run_report(
+        tmp_path,
+        [
+            _attempt("a", accepted=True, gap=1.0),
+            _attempt(
+                "voided", accepted=False, gap=0.0, validity="void:read-the-target"
+            ),
+        ],
+    )
     out = capsys.readouterr().out
     assert "VOID" in out and "voided" in out
-    assert "read the target implementation" in out, "the evidence must be shown, not just the verdict"
+    assert "read the target implementation" in out, (
+        "the evidence must be shown, not just the verdict"
+    )
 
 
 def test_records_without_a_validity_field_count_as_valid(tmp_path, capsys):

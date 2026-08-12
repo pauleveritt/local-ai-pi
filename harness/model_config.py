@@ -37,7 +37,9 @@ def _find_model(data: dict, model_id: str) -> dict:
 
 
 @contextmanager
-def bumped_max_tokens(model_id: str, max_tokens: int, path: Path = MODELS_JSON) -> Iterator[None]:
+def bumped_max_tokens(
+    model_id: str, max_tokens: int, path: Path = MODELS_JSON
+) -> Iterator[None]:
     """Set `model_id`'s maxTokens to `max_tokens` for the block, then restore the original value.
 
     Restores by value, not by re-reading git -- so this is safe to nest

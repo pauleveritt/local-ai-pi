@@ -78,9 +78,14 @@ class HandoffContract(TypedDict):
     exists to refuse.
     """
 
+
 TASKS_DIR = Path(__file__).resolve().parents[1] / "workloads" / "svcs" / "tasks"
 LOCATING_CONTRACTS_DIR = (
-    Path(__file__).resolve().parents[1] / "workloads" / "svcs" / "contracts" / "locating"
+    Path(__file__).resolve().parents[1]
+    / "workloads"
+    / "svcs"
+    / "contracts"
+    / "locating"
 )
 
 # See the module docstring: this bridge is narrow on purpose, not merely
@@ -133,7 +138,7 @@ def strip_authoring_narration(text: str) -> str:
     """
     marker = "\n---\n"
     index = text.find(marker)
-    return text[index + len(marker):].strip() if index != -1 else text.strip()
+    return text[index + len(marker) :].strip() if index != -1 else text.strip()
 
 
 def _task_text(task_id: str, manifest: Manifest, task_source: TaskSource) -> str:
@@ -241,13 +246,15 @@ def build_typed_handoff(
         absolute = worktree / relative
         if absolute.is_file():
             content = absolute.read_bytes()
-            baselines.append({
-                "path": relative,
-                "state": "present",
-                "sha256": hashlib.sha256(content).hexdigest(),
-                "mode": absolute.stat().st_mode & 0o777,
-                "lineEnding": "CRLF" if b"\r\n" in content else "LF",
-            })
+            baselines.append(
+                {
+                    "path": relative,
+                    "state": "present",
+                    "sha256": hashlib.sha256(content).hexdigest(),
+                    "mode": absolute.stat().st_mode & 0o777,
+                    "lineEnding": "CRLF" if b"\r\n" in content else "LF",
+                }
+            )
         elif absolute.exists():
             raise TypedContractError(f"{relative} exists but is not a regular file")
         else:

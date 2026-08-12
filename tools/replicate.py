@@ -34,11 +34,23 @@ def _command(args: argparse.Namespace, task: str, out: Path) -> list[str]:
     showing up in one run out of many.
     """
     command = [
-        sys.executable, "-m", "tools.screen_workload",
-        "--cohort", str(args.cohort), "--model", args.model,
-        "--server", args.server, "--tools", args.tools,
-        "--timeout", args.timeout,
-        "--task", task, "--out", str(out),
+        sys.executable,
+        "-m",
+        "tools.screen_workload",
+        "--cohort",
+        str(args.cohort),
+        "--model",
+        args.model,
+        "--server",
+        args.server,
+        "--tools",
+        args.tools,
+        "--timeout",
+        args.timeout,
+        "--task",
+        task,
+        "--out",
+        str(out),
     ]
     if args.probe:
         command.append("--probe")

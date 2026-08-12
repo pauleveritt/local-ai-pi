@@ -57,11 +57,15 @@ def test_task_restricts_to_one_known_task(tmp_path, monkeypatch):
     monkeypatch.setattr(batch, "bootstrap_cache", lambda: None)
     batch.main(["--out-dir", str(tmp_path), "--task", "autowire", "--n", "2"])
 
-    assert captured["tasks"] == (("autowire", "816403b5c1d3b9fff22bd9141fe836221dfe9d9c"),)
+    assert captured["tasks"] == (
+        ("autowire", "816403b5c1d3b9fff22bd9141fe836221dfe9d9c"),
+    )
     assert captured["n_per_arm"] == 2
 
 
-def test_bootstrap_cache_is_the_only_network_path_and_main_calls_it_once(tmp_path, monkeypatch):
+def test_bootstrap_cache_is_the_only_network_path_and_main_calls_it_once(
+    tmp_path, monkeypatch
+):
     """Pin the property the test above depends on.
 
     That test stubs `bootstrap_cache`; if `main()` ever grew a second
@@ -74,7 +78,9 @@ def test_bootstrap_cache_is_the_only_network_path_and_main_calls_it_once(tmp_pat
     monkeypatch.setattr(batch, "bootstrap_cache", lambda: calls.append("bootstrap"))
 
     def forbidden(*args, **kwargs):
-        raise AssertionError("main() reached a provisioning helper outside bootstrap_cache()")
+        raise AssertionError(
+            "main() reached a provisioning helper outside bootstrap_cache()"
+        )
 
     monkeypatch.setattr(batch, "ensure_clone", forbidden)
     monkeypatch.setattr(batch, "ensure_cohort_env", forbidden)
@@ -94,12 +100,22 @@ def test_report_flags_the_pooled_verdict_for_a_synthetic_separation(capsys, tmp_
     # tests/test_intervals.py), not a claim about any real batch.
     tasks = (("flask-extensions", "deadbeef"),)
     results = [
-        {"task": "flask-extensions", "arm": "brief", "void": False,
-         "outcome": "candidate-created", "oracle_passed": i < 2}
+        {
+            "task": "flask-extensions",
+            "arm": "brief",
+            "void": False,
+            "outcome": "candidate-created",
+            "oracle_passed": i < 2,
+        }
         for i in range(8)
     ] + [
-        {"task": "flask-extensions", "arm": "locating-contract", "void": False,
-         "outcome": "candidate-created", "oracle_passed": True}
+        {
+            "task": "flask-extensions",
+            "arm": "locating-contract",
+            "void": False,
+            "outcome": "candidate-created",
+            "oracle_passed": True,
+        }
         for _ in range(8)
     ]
     batch.report(tasks, results, tmp_path)

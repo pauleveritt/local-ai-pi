@@ -115,8 +115,12 @@ def test_minimum_n_for_turn_count_precision_at_n48():
 
 def test_minimum_n_for_context_processed_precision_at_n48():
     _, context_processed = _real_samples()
-    assert minimum_n_for_precision(context_processed, target_halfwidth=1500, seed=0) == 64
-    assert minimum_n_for_precision(context_processed, target_halfwidth=1000, seed=0) == 144
+    assert (
+        minimum_n_for_precision(context_processed, target_halfwidth=1500, seed=0) == 64
+    )
+    assert (
+        minimum_n_for_precision(context_processed, target_halfwidth=1000, seed=0) == 144
+    )
 
 
 def test_minimum_n_for_context_processed_precision_reaches_max_n_range():

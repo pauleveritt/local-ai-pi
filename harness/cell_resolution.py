@@ -18,7 +18,7 @@ import json
 import subprocess
 from pathlib import Path
 
-from harness.pi_invocation import pi_env
+from harness.pi_invocation import AGENT_DIR, pi_env
 from harness.workload import sha256_file
 
 PROBE_EXTENSION = Path(__file__).resolve().parents[1] / "extensions" / "probe-cap.ts"
@@ -36,7 +36,11 @@ to rule out.
 
 
 def resolve_cell(
-    model: str, tools: str, extensions: tuple[Path, ...], timeout: float
+    model: str,
+    tools: str,
+    extensions: tuple[Path, ...],
+    timeout: float,
+    agent_dir: Path | None = AGENT_DIR,
 ) -> dict[str, str]:
     """Everything about this attempt that a later reader must not have to infer.
 
@@ -46,13 +50,20 @@ def resolve_cell(
     convention; a hash of the file disagrees loudly when someone edits
     it mid-sweep, which is exactly what happened when an output cap was
     swapped for one stage and restored afterwards.
+
+    `agent_dir` must be the one the run will actually use. It defaults to
+    this repository's own, which is right for measured runs -- but
+    `deliver_candidate --agent-dir` exists precisely so a contributor can
+    point Pi at their own `~/.pi/agent`, and this function used to hash
+    the repository default regardless. The receipt then recorded a
+    `models_json_sha256`, `max_tokens` and `base_url` from a file the run
+    never read: provenance describing the wrong machine, which is worse
+    than none, because `Cell.verify()` compares against it.
     """
     # Order-sensitive on purpose: extensions load in sequence, and two
     # sets with the same members in a different order are not the same
     # arm.
-    digests = ":".join(
-        sha256_file(e) if e.is_file() else "absent" for e in extensions
-    )
+    digests = ":".join(sha256_file(e) if e.is_file() else "absent" for e in extensions)
     cell: dict[str, str] = {
         "model": model,
         "tools": tools,
@@ -68,7 +79,8 @@ def resolve_cell(
     except Exception:
         cell["pi_version"] = "unknown"
 
-    models_json = Path(pi_env(inherit_venv=True).get("PI_CODING_AGENT_DIR", "")) / "models.json"
+    resolved = pi_env(inherit_venv=True, agent_dir=agent_dir)
+    models_json = Path(resolved.get("PI_CODING_AGENT_DIR", "")) / "models.json"
     cell["models_json_sha256"] = (
         sha256_file(models_json) if models_json.is_file() else "absent"
     )

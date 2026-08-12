@@ -64,7 +64,9 @@ def contract_admission(
     if leaking:
         report.append(
             f"{len(leaking)} contract(s) disclose the fix:\n"
-            + "\n".join(f"  {t}: {', '.join(sig[:4])}" for t, sig in sorted(leaking.items()))
+            + "\n".join(
+                f"  {t}: {', '.join(sig[:4])}" for t, sig in sorted(leaking.items())
+            )
         )
     if stale:
         report.append(

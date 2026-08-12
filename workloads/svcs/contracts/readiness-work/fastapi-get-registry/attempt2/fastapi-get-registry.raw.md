@@ -24,9 +24,7 @@ No other source files should be modified.
 ### Signature (FastAPI)
 
 ```python
-def get_registry(
-    app_or_client: FastAPI | TestClient
-) -> svcs.Registry: ...
+def get_registry(app_or_client: FastAPI | TestClient) -> svcs.Registry: ...
 ```
 
 Where `TestClient` is `fastapi.testclient.TestClient`.
@@ -34,9 +32,7 @@ Where `TestClient` is `fastapi.testclient.TestClient`.
 ### Signature (Starlette)
 
 ```python
-def get_registry(
-    app_or_client: Starlette | TestClient
-) -> svcs.Registry: ...
+def get_registry(app_or_client: Starlette | TestClient) -> svcs.Registry: ...
 ```
 
 Where `TestClient` is `starlette.testclient.TestClient`.

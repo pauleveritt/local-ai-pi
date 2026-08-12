@@ -45,7 +45,9 @@ def repo(tmp_path: Path) -> Path:
         "from app import VALUE\nsys.exit(0 if VALUE == 2 else 1)\n"
     )
     _git(root, "add", "-A")
-    _git(root, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "base")
+    _git(
+        root, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "base"
+    )
     return root
 
 
@@ -71,7 +73,11 @@ VALIDATION = (sys.executable, "check.py")
 def test_success_leaves_a_durable_ref_and_a_clean_live_tree(repo: Path) -> None:
     before = _git(repo, "rev-parse", "HEAD")
     receipt = deliver(
-        repo, "raise-value", "make VALUE 2", _writer("VALUE = 2\n"), VALIDATION,
+        repo,
+        "raise-value",
+        "make VALUE 2",
+        _writer("VALUE = 2\n"),
+        VALIDATION,
         writable=("src/**",),
     )
     assert receipt.outcome == "candidate-created"
@@ -91,7 +97,11 @@ def test_success_leaves_a_durable_ref_and_a_clean_live_tree(repo: Path) -> None:
 def test_failed_validation_discards_and_leaves_nothing(repo: Path) -> None:
     before = _git(repo, "rev-parse", "HEAD")
     receipt = deliver(
-        repo, "wrong", "make VALUE 2", _writer("VALUE = 99\n"), VALIDATION,
+        repo,
+        "wrong",
+        "make VALUE 2",
+        _writer("VALUE = 99\n"),
+        VALIDATION,
         writable=("src/**",),
     )
     assert receipt.outcome == "discarded"
@@ -113,7 +123,11 @@ def test_out_of_scope_is_discarded_before_validation(repo: Path) -> None:
     already refused.
     """
     receipt = deliver(
-        repo, "stray", "edit", _writer("x = 1\n", path="elsewhere.py"), VALIDATION,
+        repo,
+        "stray",
+        "edit",
+        _writer("x = 1\n", path="elsewhere.py"),
+        VALIDATION,
         writable=("src/**",),
     )
     assert receipt.outcome == "discarded"
@@ -123,7 +137,9 @@ def test_out_of_scope_is_discarded_before_validation(repo: Path) -> None:
 
 
 def test_a_candidate_that_changed_nothing_is_discarded(repo: Path) -> None:
-    receipt = deliver(repo, "empty", "do nothing", _noop, VALIDATION, writable=("src/**",))
+    receipt = deliver(
+        repo, "empty", "do nothing", _noop, VALIDATION, writable=("src/**",)
+    )
     assert receipt.outcome == "discarded"
     assert receipt.refusal == "candidate changed nothing"
     assert receipt.validation_exit is None
@@ -139,6 +155,7 @@ def test_a_failed_model_call_that_wrote_nothing_is_not_blamed_on_the_model(
     that reads as a model which declined to act, and the reader goes
     looking at their prompt instead of their setup.
     """
+
     def failed(worktree: Path) -> ProcessResult:
         return ProcessResult(1, "", "model 'nope' not found", timed_out=False)
 
@@ -170,11 +187,14 @@ def test_a_failed_child_that_wrote_something_is_still_judged(repo: Path) -> None
     may still have written a correct change. Discarding it unread throws
     away a candidate the declared validation could have judged.
     """
+
     def failed_but_wrote(worktree: Path) -> ProcessResult:
         (worktree / "src" / "app.py").write_text("VALUE = 2\n")
         return ProcessResult(1, "", "cut off", timed_out=True)
 
-    receipt = deliver(repo, "partial", "p", failed_but_wrote, VALIDATION, writable=("src/**",))
+    receipt = deliver(
+        repo, "partial", "p", failed_but_wrote, VALIDATION, writable=("src/**",)
+    )
     assert receipt.outcome == "candidate-created"
     assert receipt.child_exit == 1
     assert receipt.child_timed_out is True
@@ -184,12 +204,18 @@ def test_a_failed_child_that_wrote_something_is_still_judged(repo: Path) -> None
 def test_the_receipt_carries_the_child_exit_on_every_path(repo: Path) -> None:
     """A field recorded on only some branches is one a reader cannot trust."""
     outcomes = {
-        "ok": deliver(repo, "a", "p", _writer("VALUE = 2\n"), VALIDATION, writable=("src/**",)),
+        "ok": deliver(
+            repo, "a", "p", _writer("VALUE = 2\n"), VALIDATION, writable=("src/**",)
+        ),
         "bad-validation": deliver(
             repo, "b", "p", _writer("VALUE = 9\n"), VALIDATION, writable=("src/**",)
         ),
         "out-of-scope": deliver(
-            repo, "c", "p", _writer("x = 1\n", path="stray.py"), VALIDATION,
+            repo,
+            "c",
+            "p",
+            _writer("x = 1\n", path="stray.py"),
+            VALIDATION,
             writable=("src/**",),
         ),
     }
@@ -205,7 +231,9 @@ def test_a_dirty_repository_is_refused_not_stashed(repo: Path) -> None:
     """
     (repo / "src" / "app.py").write_text("VALUE = 7\n")
     with pytest.raises(DeliveryRefused, match="dirty repository"):
-        deliver(repo, "x", "p", _writer("VALUE = 2\n"), VALIDATION, writable=("src/**",))
+        deliver(
+            repo, "x", "p", _writer("VALUE = 2\n"), VALIDATION, writable=("src/**",)
+        )
     # The refusal did not touch the user's uncommitted work.
     assert (repo / "src" / "app.py").read_text() == "VALUE = 7\n"
 
@@ -217,6 +245,7 @@ def test_preflight_refuses_a_non_repository(tmp_path: Path) -> None:
 
 def test_a_crashing_model_call_still_cleans_up(repo: Path) -> None:
     """Infrastructure failure must not leave a worktree or branch behind."""
+
     def explode(worktree: Path) -> ProcessResult:
         raise RuntimeError("model process died")
 
@@ -234,15 +263,24 @@ def test_delivery_is_repeatable_after_a_failure(repo: Path) -> None:
     The first delivery leaves nothing, but this asserts the recovery path
     directly rather than trusting the previous test's cleanup.
     """
-    deliver(repo, "same", "p", _writer("VALUE = 99\n"), VALIDATION, writable=("src/**",))
-    second = deliver(repo, "same", "p", _writer("VALUE = 2\n"), VALIDATION, writable=("src/**",))
+    deliver(
+        repo, "same", "p", _writer("VALUE = 99\n"), VALIDATION, writable=("src/**",)
+    )
+    second = deliver(
+        repo, "same", "p", _writer("VALUE = 2\n"), VALIDATION, writable=("src/**",)
+    )
     assert second.outcome == "candidate-created"
 
 
 def test_the_receipt_records_the_conditions(repo: Path) -> None:
     receipt = deliver(
-        repo, "recorded", "make VALUE 2", _writer("VALUE = 2\n"), VALIDATION,
-        writable=("src/**",), cell={"model": "test/model", "tools": "read,write"},
+        repo,
+        "recorded",
+        "make VALUE 2",
+        _writer("VALUE = 2\n"),
+        VALIDATION,
+        writable=("src/**",),
+        cell={"model": "test/model", "tools": "read,write"},
     )
     payload = receipt.payload()
     assert payload["cell"] == {"model": "test/model", "tools": "read,write"}

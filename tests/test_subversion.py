@@ -4,6 +4,7 @@ cycle 3's verdict survives them.
 These are not case content -- no model is meant to receive them -- so they
 are built in tmp_path at test time rather than added under examples/.
 """
+
 import shutil
 from pathlib import Path
 

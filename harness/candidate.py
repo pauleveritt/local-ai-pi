@@ -144,7 +144,9 @@ def preflight(repo: Path) -> str:
     return _git(repo, "rev-parse", "HEAD")
 
 
-def _out_of_scope(changed: tuple[str, ...], writable: tuple[str, ...]) -> tuple[str, ...]:
+def _out_of_scope(
+    changed: tuple[str, ...], writable: tuple[str, ...]
+) -> tuple[str, ...]:
     import fnmatch
 
     if not writable:
@@ -272,7 +274,7 @@ def deliver(
         common = dict(
             changed_paths=changed,
             child_exit=child.returncode,
-                child_timed_out=child.timed_out,
+            child_timed_out=child.timed_out,
             child_seconds=child_seconds,
             validation_seconds=validation_seconds,
             validation_exit=checked.returncode,
@@ -291,10 +293,16 @@ def deliver(
         commit_started = time.monotonic()
         _git(worktree, "add", "-A")
         _git(
-            worktree, "-c", "user.name=satyrn-engine",
-            "-c", "user.email=satyrn-engine@localhost",
-            "commit", "-q", "--no-gpg-sign",
-            "-m", f"candidate: {task_id}\n\nbase: {base_sha}\nprompt: {prompt_hash}",
+            worktree,
+            "-c",
+            "user.name=satyrn-engine",
+            "-c",
+            "user.email=satyrn-engine@localhost",
+            "commit",
+            "-q",
+            "--no-gpg-sign",
+            "-m",
+            f"candidate: {task_id}\n\nbase: {base_sha}\nprompt: {prompt_hash}",
         )
         candidate_commit = _git(worktree, "rev-parse", "HEAD")
         ref = f"{CANDIDATE_NAMESPACE}/{task_id}"

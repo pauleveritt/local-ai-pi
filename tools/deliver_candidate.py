@@ -84,7 +84,9 @@ def _render_contract_prompt(contract: HandoffContract) -> str:
     reach the child through the ordinary user prompt, the same as any
     other `deliver_candidate` invocation.
     """
-    writable = "\n".join(f"- `{f['path']}`" for f in contract["writableFiles"]) or "None"
+    writable = (
+        "\n".join(f"- `{f['path']}`" for f in contract["writableFiles"]) or "None"
+    )
     return (
         f"## Task\n\n{contract['task']}\n\n"
         f"## Writable Files\n\n{writable}\n\n"
@@ -97,7 +99,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--repo", required=True, type=Path)
     parser.add_argument("--task", required=True)
     parser.add_argument(
-        "--prompt-file", type=Path,
+        "--prompt-file",
+        type=Path,
         help="required unless --contract-task supplies the prompt",
     )
     parser.add_argument(
@@ -111,7 +114,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         "reporting an unoverlaid run as an oracle result would be misleading.",
     )
     parser.add_argument(
-        "--writable", action="append", default=None,
+        "--writable",
+        action="append",
+        default=None,
         help="glob a candidate may write; repeatable. Omit to allow anything "
         "(or, with --contract-task, to take the task's own manifest policy)",
     )
@@ -119,7 +124,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     # laptop's local model, so anyone else's first run failed inside Pi
     # rather than at the command line, where the fix is legible.
     parser.add_argument(
-        "--model", help="a model name your Pi can resolve; required unless --cell supplies one"
+        "--model",
+        help="a model name your Pi can resolve; required unless --cell supplies one",
     )
     parser.add_argument(
         "--server",
@@ -141,14 +147,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--tools", default="read,bash,edit,write")
     parser.add_argument(
-        "--cell", type=Path, default=None,
+        "--cell",
+        type=Path,
+        default=None,
         help="a workloads/svcs/cells/*.toml file; supplies and verifies "
         "model/tools/timeout against the live configuration before any call. "
         "Explicit --model/--tools/--timeout are refused alongside it, so "
         "there is exactly one source of truth for the arm.",
     )
     parser.add_argument(
-        "--contract-task", default=None,
+        "--contract-task",
+        default=None,
         help="a workloads/svcs/tasks/<id> task id; builds the typed "
         "HandoffContract and file baselines from its manifest and locating "
         "contract, and drives the implementer extension instead of a bare "
@@ -156,7 +165,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         "bridge, not general contract authoring.",
     )
     parser.add_argument(
-        "--task-source", choices=["locating-contract", "brief"], default="locating-contract",
+        "--task-source",
+        choices=["locating-contract", "brief"],
+        default="locating-contract",
         help="with --contract-task, which document supplies contract.task: "
         "the complete locating contract (default), or the manifest's own "
         "concise brief.md. The pre-registered comparison's two arms --  see "
@@ -167,14 +178,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--receipt", type=Path, default=None)
     args = parser.parse_args(argv)
 
-    if args.cell is not None and (args.model or args.tools != "read,bash,edit,write" or args.timeout != 1800.0):
-        parser.error("--cell supplies --model/--tools/--timeout; do not also pass them explicitly")
+    if args.cell is not None and (
+        args.model or args.tools != "read,bash,edit,write" or args.timeout != 1800.0
+    ):
+        parser.error(
+            "--cell supplies --model/--tools/--timeout; do not also pass them explicitly"
+        )
     if args.cell is None and not args.model:
         parser.error("--model is required unless --cell is given")
     if args.contract_task is None and not args.prompt_file:
         parser.error("--prompt-file is required unless --contract-task is given")
     if args.contract_task is not None and args.prompt_file:
-        parser.error("--contract-task supplies the prompt; do not also pass --prompt-file")
+        parser.error(
+            "--contract-task supplies the prompt; do not also pass --prompt-file"
+        )
     if args.contract_task is not None and args.validation:
         # The contract tells the child, in its own text, which command the
         # parent will run. An override makes that statement false, and the
@@ -221,7 +238,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         # exists, rather than tangled in a build-the-prompt-from-inside-the-
         # callback ordering problem.
         try:
-            handoff = build_typed_handoff(args.contract_task, args.repo, task_source=args.task_source)
+            handoff = build_typed_handoff(
+                args.contract_task, args.repo, task_source=args.task_source
+            )
         except TypedContractError as error:
             # A clean CLI refusal, not a traceback: the four-task restriction
             # (SUPPORTED_TASKS in harness/typed_contract.py) is a deliberate
@@ -250,14 +269,26 @@ def main(argv: Sequence[str] | None = None) -> int:
     # must cover (that entry point's whole same-repo import closure, so an
     # edit to a dependency isn't invisible to verify()) are different sets
     # on purpose -- see IMPLEMENTER_EXTENSION_CLOSURE's comment.
-    extensions = (IMPLEMENTER_EXTENSION,) if args.contract_task is not None else (PROBE_EXTENSION,)
-    digest_extensions = IMPLEMENTER_EXTENSION_CLOSURE if args.contract_task is not None else (PROBE_EXTENSION,)
+    extensions = (
+        (IMPLEMENTER_EXTENSION,)
+        if args.contract_task is not None
+        else (PROBE_EXTENSION,)
+    )
+    digest_extensions = (
+        IMPLEMENTER_EXTENSION_CLOSURE
+        if args.contract_task is not None
+        else (PROBE_EXTENSION,)
+    )
 
     if declared_cell is not None:
         # Before liveness and before the first call: a mismatch here means
         # this run is not the arm it claims to be, and every receipt it
         # produces would be mislabelled.
-        declared_cell.verify(resolve_cell(args.model, args.tools, digest_extensions, args.timeout))
+        declared_cell.verify(
+            resolve_cell(
+                args.model, args.tools, digest_extensions, args.timeout, args.agent_dir
+            )
+        )
         print(f"cell {declared_cell.name}: live configuration verified", flush=True)
 
     # Before the worktree, before the call. A dead server is the one
@@ -309,7 +340,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             run_model,
             tuple(shlex.split(args.validation)),
             writable=tuple(args.writable or ()),
-            cell=resolve_cell(args.model, args.tools, digest_extensions, args.timeout),
+            cell=resolve_cell(
+                args.model, args.tools, digest_extensions, args.timeout, args.agent_dir
+            ),
             validation_timeout=args.validation_timeout,
         )
     except DeliveryRefused as refusal:

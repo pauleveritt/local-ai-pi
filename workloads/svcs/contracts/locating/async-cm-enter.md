@@ -109,7 +109,8 @@ The change is complete when:
    ```python
    async def factory():
        return some_async_context_manager()  # returns AbstractAsyncContextManager
-   
+
+
    registry.register_factory(MyService, factory)
    async with Container(registry) as con:
        svc = await con.aget(MyService)

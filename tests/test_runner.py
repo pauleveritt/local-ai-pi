@@ -89,12 +89,15 @@ def test_conditions_differ_between_the_two_suites(monkeypatch):
     # Were a fourth to start varying, this assertion fails and the claim
     # in the docstring above gets rewritten rather than quietly rotting --
     # which is exactly what happened in phase 5 cycle 1.
-    assert dataclasses.replace(
-        agentclinic,
-        task_spec_sha256=duration.task_spec_sha256,
-        acceptance_sha256=duration.acceptance_sha256,
-        source_allowlist=duration.source_allowlist,
-    ) == duration
+    assert (
+        dataclasses.replace(
+            agentclinic,
+            task_spec_sha256=duration.task_spec_sha256,
+            acceptance_sha256=duration.acceptance_sha256,
+            source_allowlist=duration.source_allowlist,
+        )
+        == duration
+    )
 
 
 def test_every_suites_task_spec_digest_is_pairwise_distinct():
@@ -161,7 +164,9 @@ def test_run_batch_refuses_a_checkpoint_recorded_under_another_suite(
     )
     append_checkpoint(
         checkpoint,
-        RunResult("diff", _grade_result(), "", "", 0, conditions=agentclinic_conditions),
+        RunResult(
+            "diff", _grade_result(), "", "", 0, conditions=agentclinic_conditions
+        ),
     )
 
     monkeypatch.setattr(runner, "_conditions", lambda *args: duration_conditions)
@@ -226,7 +231,9 @@ def test_run_suite_calls_pi_and_returns_its_result(suite, tmp_path, monkeypatch)
     monkeypatch.setattr(
         runner,
         "_conditions",
-        lambda passed_suite, model, command, timeout, extensions, improvement=None: None,
+        lambda passed_suite, model, command, timeout, extensions, improvement=None: (
+            None
+        ),
     )
 
     result = run_suite(suite)
@@ -279,8 +286,14 @@ def test_pi_command_contains_trusted_session_and_isolation_flags():
     command = _pi_command("model-name", "task text")
 
     assert command[:8] == [
-        "pi", "--print", "--mode", "json", "--no-session", "--model",
-        "model-name", "--no-extensions",
+        "pi",
+        "--print",
+        "--mode",
+        "json",
+        "--no-session",
+        "--model",
+        "model-name",
+        "--no-extensions",
     ]
     assert command[-1] == "task text"
     # Extension-flag presence/absence is covered by
@@ -291,7 +304,9 @@ def test_pi_command_contains_trusted_session_and_isolation_flags():
 
 def test_preflight_requires_real_assistant_content(monkeypatch):
     events = []
-    monkeypatch.setattr(runner, "check_model_server_alive", lambda: events.append("liveness"))
+    monkeypatch.setattr(
+        runner, "check_model_server_alive", lambda: events.append("liveness")
+    )
     monkeypatch.setattr(
         runner,
         "run_process",
@@ -332,7 +347,9 @@ def test_preflight_rejects_empty_assistant_content(monkeypatch):
     monkeypatch.setattr(
         runner,
         "run_process",
-        lambda command, **kwargs: ProcessResult(0, '{"message": {"content": ""}}\n', "", False),
+        lambda command, **kwargs: ProcessResult(
+            0, '{"message": {"content": ""}}\n', "", False
+        ),
     )
 
     with pytest.raises(RuntimeError):
@@ -365,7 +382,9 @@ def test_run_batch_runs_remaining_attempts_and_appends_each(tmp_path, monkeypatc
     calls = []
 
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
-    monkeypatch.setattr(runner, "preflight_model", lambda model: calls.append("preflight"))
+    monkeypatch.setattr(
+        runner, "preflight_model", lambda model: calls.append("preflight")
+    )
 
     def fake_run(suite, *, model, improvement=None, timeout=600):
         calls.append("run")
@@ -373,7 +392,9 @@ def test_run_batch_runs_remaining_attempts_and_appends_each(tmp_path, monkeypatc
 
     monkeypatch.setattr(runner, "run_suite", fake_run)
 
-    records = runner.run_batch(checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1)
+    records = runner.run_batch(
+        checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1
+    )
 
     assert len(records) == 2
     assert calls == ["preflight", "run", "run"]
@@ -398,7 +419,9 @@ def test_run_batch_forwards_the_given_suite_throughout(tmp_path, monkeypatch):
     conditions_suites_seen = []
     run_suite_suites_seen = []
 
-    def fake_pi_command(model, prompt, extensions=runner.EXTENSIONS, system_prompt=None):
+    def fake_pi_command(
+        model, prompt, extensions=runner.EXTENSIONS, system_prompt=None
+    ):
         prompts_seen.append(prompt)
         return ["pi", "stub"]
 
@@ -435,16 +458,21 @@ def test_run_batch_resumes_after_existing_records(tmp_path, monkeypatch):
     calls = []
 
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
-    monkeypatch.setattr(runner, "preflight_model", lambda model: calls.append("preflight"))
+    monkeypatch.setattr(
+        runner, "preflight_model", lambda model: calls.append("preflight")
+    )
     monkeypatch.setattr(
         runner,
         "run_suite",
-        lambda suite, *, model, improvement=None, timeout=600: (calls.append("run") or RunResult(
-            "second", _grade_result(), "out", "", 0, conditions=conditions
-        )),
+        lambda suite, *, model, improvement=None, timeout=600: (
+            calls.append("run")
+            or RunResult("second", _grade_result(), "out", "", 0, conditions=conditions)
+        ),
     )
 
-    records = runner.run_batch(checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1)
+    records = runner.run_batch(
+        checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1
+    )
 
     assert [record.diff for record in records] == ["first", "second"]
     assert calls == ["preflight", "run"]
@@ -457,15 +485,25 @@ def test_run_batch_refuses_a_record_without_matching_conditions(tmp_path, monkey
         runner,
         "_conditions",
         lambda *args: make_conditions(
-        pi_version=runner.EXPECTED_PI_VERSION,
-        task_spec_sha256="sha",
-    ),
+            pi_version=runner.EXPECTED_PI_VERSION,
+            task_spec_sha256="sha",
+        ),
     )
-    monkeypatch.setattr(runner, "preflight_model", lambda model: pytest.fail("preflight called"))
-    monkeypatch.setattr(runner, "run_suite", lambda suite, *, model, improvement=None, timeout=600: pytest.fail("run called"))
+    monkeypatch.setattr(
+        runner, "preflight_model", lambda model: pytest.fail("preflight called")
+    )
+    monkeypatch.setattr(
+        runner,
+        "run_suite",
+        lambda suite, *, model, improvement=None, timeout=600: pytest.fail(
+            "run called"
+        ),
+    )
 
     with pytest.raises(ValueError, match="conditions"):
-        runner.run_batch(checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1)
+        runner.run_batch(
+            checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1
+        )
 
 
 def test_run_batch_preflight_failure_leaves_checkpoint_unchanged(tmp_path, monkeypatch):
@@ -480,15 +518,25 @@ def test_run_batch_preflight_failure_leaves_checkpoint_unchanged(tmp_path, monke
 
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
     monkeypatch.setattr(runner, "preflight_model", fail_preflight)
-    monkeypatch.setattr(runner, "run_suite", lambda suite, *, model, improvement=None, timeout=600: pytest.fail("run called"))
+    monkeypatch.setattr(
+        runner,
+        "run_suite",
+        lambda suite, *, model, improvement=None, timeout=600: pytest.fail(
+            "run called"
+        ),
+    )
 
     with pytest.raises(RuntimeError, match="down"):
-        runner.run_batch(checkpoint, target=1, model="model", suite=runner.AGENTCLINIC_PHASE_1)
+        runner.run_batch(
+            checkpoint, target=1, model="model", suite=runner.AGENTCLINIC_PHASE_1
+        )
 
     assert not checkpoint.exists()
 
 
-def test_run_batch_does_not_preflight_when_target_is_already_reached(tmp_path, monkeypatch):
+def test_run_batch_does_not_preflight_when_target_is_already_reached(
+    tmp_path, monkeypatch
+):
     checkpoint = tmp_path / "runs.jsonl"
     conditions = make_conditions(
         pi_version=runner.EXPECTED_PI_VERSION,
@@ -500,10 +548,25 @@ def test_run_batch_does_not_preflight_when_target_is_already_reached(tmp_path, m
             RunResult("diff", _grade_result(), "", "", 0, conditions=conditions),
         )
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
-    monkeypatch.setattr(runner, "preflight_model", lambda model: pytest.fail("preflight called"))
-    monkeypatch.setattr(runner, "run_suite", lambda suite, *, model, improvement=None, timeout=600: pytest.fail("run called"))
+    monkeypatch.setattr(
+        runner, "preflight_model", lambda model: pytest.fail("preflight called")
+    )
+    monkeypatch.setattr(
+        runner,
+        "run_suite",
+        lambda suite, *, model, improvement=None, timeout=600: pytest.fail(
+            "run called"
+        ),
+    )
 
-    assert len(runner.run_batch(checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1)) == 2
+    assert (
+        len(
+            runner.run_batch(
+                checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1
+            )
+        )
+        == 2
+    )
 
 
 def test_run_batch_appends_rejected_attempt_before_continuing(tmp_path, monkeypatch):
@@ -520,14 +583,23 @@ def test_run_batch_appends_rejected_attempt_before_continuing(tmp_path, monkeypa
         calls.append(len(load_checkpoint(checkpoint)))
         if len(calls) == 1:
             return RunResult(
-                "timed out", _grade_result(), "partial", "", None,
-                pi_timed_out=True, conditions=conditions,
+                "timed out",
+                _grade_result(),
+                "partial",
+                "",
+                None,
+                pi_timed_out=True,
+                conditions=conditions,
             )
-        return RunResult("accepted", _grade_result(), "out", "", 0, conditions=conditions)
+        return RunResult(
+            "accepted", _grade_result(), "out", "", 0, conditions=conditions
+        )
 
     monkeypatch.setattr(runner, "run_suite", fake_run)
 
-    records = runner.run_batch(checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1)
+    records = runner.run_batch(
+        checkpoint, target=2, model="model", suite=runner.AGENTCLINIC_PHASE_1
+    )
 
     assert calls == [0, 1]
     assert records[0].accepted is False
@@ -620,8 +692,7 @@ def test_the_extension_emits_an_evidence_entry_into_captured_stdout():
 
     assert appended, "no entry_appended event reached stdout"
     assert any(
-        event.get("entry", {}).get("customType") == "evidence"
-        for event in appended
+        event.get("entry", {}).get("customType") == "evidence" for event in appended
     )
 
 
@@ -668,11 +739,11 @@ def test_conditions_record_a_digest_per_extension(monkeypatch, tmp_path):
         lambda *args, **kwargs: SimpleNamespace(stdout="stubbed\n"),
     )
 
-    conditions = runner._conditions(runner.AGENTCLINIC_PHASE_1, "model", ["pi"], 600, (extension,))
-
-    assert conditions.extension_digests == (
-        hashlib.sha256(b"contents").hexdigest(),
+    conditions = runner._conditions(
+        runner.AGENTCLINIC_PHASE_1, "model", ["pi"], 600, (extension,)
     )
+
+    assert conditions.extension_digests == (hashlib.sha256(b"contents").hexdigest(),)
 
 
 def test_conditions_digests_the_extension_set_it_is_given_not_the_default(
@@ -692,7 +763,9 @@ def test_conditions_digests_the_extension_set_it_is_given_not_the_default(
         lambda *args, **kwargs: SimpleNamespace(stdout="stubbed\n"),
     )
 
-    conditions = runner._conditions(runner.AGENTCLINIC_PHASE_1, "model", ["pi"], 600, (first, second))
+    conditions = runner._conditions(
+        runner.AGENTCLINIC_PHASE_1, "model", ["pi"], 600, (first, second)
+    )
 
     assert conditions.extension_digests == (
         hashlib.sha256(b"first contents").hexdigest(),
@@ -725,7 +798,9 @@ def test_run_batch_refuses_a_record_recorded_under_a_different_extension(
     )
 
     with pytest.raises(ValueError, match="checkpoint conditions do not match"):
-        runner.run_batch(checkpoint, target=1, model="model", suite=runner.AGENTCLINIC_PHASE_1)
+        runner.run_batch(
+            checkpoint, target=1, model="model", suite=runner.AGENTCLINIC_PHASE_1
+        )
 
 
 def test_run_batch_refuses_a_pi_version_other_than_the_pinned_one(
@@ -742,7 +817,12 @@ def test_run_batch_refuses_a_pi_version_other_than_the_pinned_one(
     monkeypatch.setattr(runner, "preflight_model", lambda *args, **kwargs: None)
 
     with pytest.raises(RuntimeError, match="0.1.0-not-pinned"):
-        runner.run_batch(tmp_path / "checkpoint.jsonl", target=1, model="model", suite=runner.AGENTCLINIC_PHASE_1)
+        runner.run_batch(
+            tmp_path / "checkpoint.jsonl",
+            target=1,
+            model="model",
+            suite=runner.AGENTCLINIC_PHASE_1,
+        )
 
 
 def test_the_refusal_names_the_version_it_expected(tmp_path, monkeypatch):
@@ -751,7 +831,12 @@ def test_the_refusal_names_the_version_it_expected(tmp_path, monkeypatch):
     monkeypatch.setattr(runner, "preflight_model", lambda *args, **kwargs: None)
 
     with pytest.raises(RuntimeError, match=runner.EXPECTED_PI_VERSION):
-        runner.run_batch(tmp_path / "checkpoint.jsonl", target=1, model="model", suite=runner.AGENTCLINIC_PHASE_1)
+        runner.run_batch(
+            tmp_path / "checkpoint.jsonl",
+            target=1,
+            model="model",
+            suite=runner.AGENTCLINIC_PHASE_1,
+        )
 
 
 def test_the_version_refusal_precedes_the_checkpoint_conditions_check(
@@ -783,7 +868,9 @@ def test_the_version_refusal_precedes_the_checkpoint_conditions_check(
     # ValueError is not a RuntimeError, so this fails rather than passes if
     # the checkpoint comparison gets there first.
     with pytest.raises(RuntimeError, match="0.1.0-not-pinned"):
-        runner.run_batch(checkpoint, target=1, model="model", suite=runner.AGENTCLINIC_PHASE_1)
+        runner.run_batch(
+            checkpoint, target=1, model="model", suite=runner.AGENTCLINIC_PHASE_1
+        )
 
 
 def test_run_batch_proceeds_on_the_pinned_version(tmp_path, monkeypatch):
@@ -795,7 +882,9 @@ def test_run_batch_proceeds_on_the_pinned_version(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(runner, "_conditions", lambda *args: conditions)
 
-    records = runner.run_batch(tmp_path / "checkpoint.jsonl", target=0, suite=runner.AGENTCLINIC_PHASE_1)
+    records = runner.run_batch(
+        tmp_path / "checkpoint.jsonl", target=0, suite=runner.AGENTCLINIC_PHASE_1
+    )
 
     assert records == []
 

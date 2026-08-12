@@ -37,7 +37,9 @@ def test_run_process_kills_a_timed_out_child_group(tmp_path):
     assert not marker.exists()
 
 
-def test_run_process_escalates_when_the_child_ignores_termination(tmp_path, monkeypatch):
+def test_run_process_escalates_when_the_child_ignores_termination(
+    tmp_path, monkeypatch
+):
     monkeypatch.setattr(processes, "_DRAIN_TIMEOUT", 0.1)
     program = "import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(30)"
 

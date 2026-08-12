@@ -44,7 +44,20 @@ markers = ["integration: needs the real clone cache or network; excluded from th
 # deliberately broken or hostile, or reference solutions with imports
 # that only resolve inside a grading workspace -- they are data for the
 # grader, not project source, and must not be linted as if they were.
-extend-exclude = ["examples/agentclinic", "examples/duration", "improvements"]
+# docs/ is the research record, not project source. Its markdown embeds
+# Python quoted as it was *proposed* in a plan or *recorded* in a result;
+# `ruff format` rewrites those code blocks, which silently edits history
+# this project deliberately preserves (withdrawn framings and retracted
+# figures are kept with a banner, never edited away). The two committed
+# analysis scripts under docs/superpowers/research/ are archive for the
+# same reason -- they recompute published figures and must keep matching
+# what was published.
+extend-exclude = [
+    "examples/agentclinic",
+    "examples/duration",
+    "improvements",
+    "docs",
+]
 
 [tool.ruff.lint]
 # Proportionate, not maximalist: correctness and clarity rules a

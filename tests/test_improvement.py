@@ -190,13 +190,19 @@ def test_seeded_files_do_not_appear_in_the_run_diff(tmp_path):
     with prepare_workspace(_seed_with_implementer(tmp_path / "seed")) as workspace:
         assert (workspace / ".pi" / "agents" / "implementer.md").is_file()
         head = sp.run(
-            ["git", "rev-parse", "HEAD"], cwd=workspace,
-            check=True, capture_output=True, text=True,
+            ["git", "rev-parse", "HEAD"],
+            cwd=workspace,
+            check=True,
+            capture_output=True,
+            text=True,
         ).stdout.strip()
         sp.run(["git", "add", "-A"], cwd=workspace, check=True, capture_output=True)
         diff = sp.run(
-            ["git", "diff", "--cached", head], cwd=workspace,
-            check=True, capture_output=True, text=True,
+            ["git", "diff", "--cached", head],
+            cwd=workspace,
+            check=True,
+            capture_output=True,
+            text=True,
         ).stdout
 
     assert "implementer.md" not in diff
@@ -221,10 +227,12 @@ def test_run_suite_seeds_the_workspace_from_the_improvement(tmp_path, monkeypatc
     monkeypatch.setattr(
         runner,
         "run_process",
-        lambda command, **kwargs: seen.update(
-            agent=(kwargs["cwd"] / ".pi" / "agents" / "implementer.md").is_file()
-        )
-        or ProcessResult(0, "", "", False),
+        lambda command, **kwargs: (
+            seen.update(
+                agent=(kwargs["cwd"] / ".pi" / "agents" / "implementer.md").is_file()
+            )
+            or ProcessResult(0, "", "", False)
+        ),
     )
     monkeypatch.setattr(
         runner,
@@ -284,7 +292,9 @@ def test_run_batch_refuses_a_pre_phase5_checkpoint(tmp_path, monkeypatch):
         RunResult(
             "diff",
             GradeResult(True, 1, 1, 0, "1 passed", "", ()),
-            "", "", 0,
+            "",
+            "",
+            0,
             conditions=make_conditions(
                 pi_version=runner.EXPECTED_PI_VERSION,
                 improvement_name=PRE_PHASE5,
@@ -471,7 +481,9 @@ def test_a_model_created_nested_repo_does_not_abort_the_run(tmp_path, monkeypatc
         (workspace / "app.py").write_text("app = object()\n")
         nested = workspace / "scaffold"
         nested.mkdir()
-        subprocess.run(["git", "init", "-q"], cwd=nested, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "init", "-q"], cwd=nested, check=True, capture_output=True
+        )
         (nested / "note.txt").write_text("scaffolded\n")
         return ProcessResult(0, "", "", False)
 
@@ -481,8 +493,10 @@ def test_a_model_created_nested_repo_does_not_abort_the_run(tmp_path, monkeypatc
     monkeypatch.setattr(
         runner,
         "grade",
-        lambda *args, **kwargs: graded.setdefault("ran", True)
-        and GradeResult(True, 1, 1, 0, "1 passed", "", ()),
+        lambda *args, **kwargs: (
+            graded.setdefault("ran", True)
+            and GradeResult(True, 1, 1, 0, "1 passed", "", ())
+        ),
     )
 
     result = runner.run_suite(runner.DURATION)
@@ -500,10 +514,11 @@ def _subagent_schema_keys() -> set[str]:
     check of names nobody uses any more.
     """
     source = (
-        runner.pi_package_root()
-        / "examples" / "extensions" / "subagent" / "index.ts"
+        runner.pi_package_root() / "examples" / "extensions" / "subagent" / "index.ts"
     ).read_text()
-    block = source.split("const SubagentParams = Type.Object({", 1)[1].split("});", 1)[0]
+    block = source.split("const SubagentParams = Type.Object({", 1)[1].split("});", 1)[
+        0
+    ]
     return {
         line.split(":", 1)[0].strip()
         for line in block.splitlines()
@@ -529,7 +544,9 @@ def test_the_orchestrator_prompt_names_the_tools_real_parameters():
 
     for parameter in ("agent", "task", "agentScope"):
         assert parameter in declared, f"{parameter!r} is no longer in Pi's schema"
-        assert f"`{parameter}`" in text, f"prompt does not name the {parameter!r} parameter"
+        assert f"`{parameter}`" in text, (
+            f"prompt does not name the {parameter!r} parameter"
+        )
     assert '"implementer"' in text
 
 
@@ -580,7 +597,9 @@ def test_run_batch_records_and_uses_the_timeout_it_was_given(tmp_path, monkeypat
 
     seen = {}
 
-    def fake_conditions(suite, model, command, timeout, extensions=None, improvement=None):
+    def fake_conditions(
+        suite, model, command, timeout, extensions=None, improvement=None
+    ):
         seen.setdefault("conditions_timeout", timeout)
         return make_conditions(
             pi_version=runner.EXPECTED_PI_VERSION, run_timeout=timeout
@@ -650,7 +669,9 @@ def test_the_loop_breaker_trips_on_successful_repeats():
 
     assert 'pi.on("tool_call"' in source
     assert "block: true" in source
-    assert "isError" not in source, "the hook fires before execution; success is unknowable"
+    assert "isError" not in source, (
+        "the hook fires before execution; success is unknowable"
+    )
     assert 'pi.appendEntry("loop_broken"' in source
 
 
@@ -698,7 +719,7 @@ def test_the_implementer_is_told_to_stop_repeating_a_failing_command():
     when it fails, and the child obeyed that literally and forever.
 
     The loop-breaker cannot help: it runs in the parent, and a
-    child-style invocation does not load project-local extensions -- 
+    child-style invocation does not load project-local extensions --
     verified with a probe, `--approve` included.
     """
     seed = runner.sdd_orchestrator().seed_dir
@@ -785,7 +806,10 @@ def test_both_stack_prompts_forbid_installing():
     attempt. The verbatim-section drift test already pins them together;
     this one fails with a message about *why* if the section is ever split.
     """
-    for improvement in (runner.tech_stack_only(), runner.sdd_orchestrator_guarded_stack()):
+    for improvement in (
+        runner.tech_stack_only(),
+        runner.sdd_orchestrator_guarded_stack(),
+    ):
         prompt = improvement.system_prompt
         assert prompt is not None
         text = prompt.read_text()

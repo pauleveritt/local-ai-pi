@@ -92,6 +92,7 @@ resolved — if they also lack a default, that is an error.
 ```python
 import dataclasses
 
+
 def _unwrap_init_var(annotation):
     """Unwrap InitVar[X] to X."""
     if (

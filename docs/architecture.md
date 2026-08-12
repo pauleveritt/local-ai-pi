@@ -5,10 +5,9 @@ execution actually happens, naming the real module and function at each
 stage rather than describing the idea of one. If a claim here and the code
 disagree, the code is right — file an issue or send a PR against this page.
 
-This is the product path (distinguish it from the older, still-present
-duration-suite harness `harness/runner.py` builds on — that machinery
-answers a different, earlier question and is not part of this route; see
-[history](#history) below).
+This is the product path. An older duration-suite harness answers a
+different, earlier question and is not part of this route — it lives in
+the research repository, not here; see [history](#history) below.
 
 ## The path
 
@@ -139,14 +138,14 @@ constraint exists):
 
 ## History
 
-`harness/runner.py`'s `Suite`/`Improvement`/`run_batch` machinery is the
-Phase 1–5 duration-suite harness — a different, earlier measurement
-question (does a technique change turn count / acceptance on a fixed
-AgentClinic-style suite), not part of this path. It is still real,
-still tested, and `harness/pi_invocation.py`'s `pi_command`/`pi_env` are
-shared between both — but a change to the bounded-implementer path above
-does not need to touch it, and vice versa. See
-`BRIEF.md` and `ROADMAP.md` at the repository root (both marked
-historical) for that earlier program's full record, and
-[`docs/superpowers/index.md`](superpowers/index.md) for the cycle-by-cycle
-design record spanning both.
+Phases 1–5 built a duration-suite harness around `Suite`/`Improvement`/
+`run_batch` — a different, earlier measurement question (does a technique
+change turn count or acceptance on a fixed AgentClinic-style suite). It
+is still real and still tested, and the two share
+`harness/pi_invocation.py`'s `pi_command`/`pi_env`, but a change to the
+bounded-implementer path above does not touch it or vice versa.
+
+That machinery, the phase-by-phase roadmap, and the full cycle-by-cycle
+design record live in the **research repository** this one is exported
+from. Ask whoever pointed you here if you need them; nothing on the path
+above depends on them.

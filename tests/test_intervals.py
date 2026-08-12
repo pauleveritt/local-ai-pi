@@ -30,7 +30,10 @@ def _quadratic_wilson(successes: int, n: int, z: float = 1.96) -> tuple[float, f
     return (max(0.0, low), min(1.0, high))
 
 
-@pytest.mark.parametrize("successes,n", [(0, 4), (1, 4), (2, 4), (3, 4), (4, 4), (3, 8), (6, 8), (0, 8), (8, 8), (3, 10)])
+@pytest.mark.parametrize(
+    "successes,n",
+    [(0, 4), (1, 4), (2, 4), (3, 4), (4, 4), (3, 8), (6, 8), (0, 8), (8, 8), (3, 10)],
+)
 def test_wilson_matches_the_quadratic_root_derivation(successes, n):
     got = wilson_interval(successes, n)
     want_low, want_high = _quadratic_wilson(successes, n)

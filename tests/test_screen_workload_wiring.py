@@ -18,7 +18,9 @@ from harness.cell_resolution import PROBE_EXTENSION
 def test_the_probe_extension_name_this_module_uses_actually_resolves():
     # The specific failure: reading the constant, not importing the module.
     assert PROBE_EXTENSION.name == "probe-cap.ts"
-    assert PROBE_EXTENSION.is_file(), "the extension file the probe arm loads must exist"
+    assert PROBE_EXTENSION.is_file(), (
+        "the extension file the probe arm loads must exist"
+    )
 
 
 def test_the_envelope_extension_is_still_read_from_harness_screen():

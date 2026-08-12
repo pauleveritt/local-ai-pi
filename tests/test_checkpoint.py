@@ -226,15 +226,21 @@ def test_a_checkpoint_predating_extension_digests_still_loads(tmp_path):
     # at all. The sentinel keeps them readable while guaranteeing
     # run_batch refuses to resume them: no SHA-256 equals it.
     path = tmp_path / "checkpoint.jsonl"
-    record = json.loads(json.dumps(asdict(replace(
-        _sample_result(),
-        conditions=make_conditions(
-            pi_version="0.82.0",
-            task_spec_sha256="abc",
-            harness_revision="def",
-            extension_digests=("unused",),
-        ),
-    ))))
+    record = json.loads(
+        json.dumps(
+            asdict(
+                replace(
+                    _sample_result(),
+                    conditions=make_conditions(
+                        pi_version="0.82.0",
+                        task_spec_sha256="abc",
+                        harness_revision="def",
+                        extension_digests=("unused",),
+                    ),
+                )
+            )
+        )
+    )
     del record["conditions"]["extension_digests"]
     path.write_text(json.dumps(record) + "\n")
 

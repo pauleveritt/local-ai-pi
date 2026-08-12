@@ -40,7 +40,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"no attempt records in {args.dir}")
         return 1
 
-
     void = [r for r in records if r.get("validity", "valid") != "valid"]
     records = [r for r in records if r.get("validity", "valid") == "valid"]
     for record in void:

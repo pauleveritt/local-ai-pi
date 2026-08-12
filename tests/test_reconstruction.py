@@ -42,7 +42,7 @@ def test_caller_side_setup_discloses_nothing() -> None:
     or it reproduces the fenced gate's error in a more expensive form.
     """
     target = signals("return iter(self._services.values())")
-    caller = signals('reg = svcs.Registry()\nservices = list(reg)')
+    caller = signals("reg = svcs.Registry()\nservices = list(reg)")
 
     assert not (caller & target), f"caller-side code disclosed {caller & target}"
 
@@ -96,7 +96,9 @@ def test_only_prefixes_excludes_content_outside_writable_scope() -> None:
     assert "app.state.svcs_registry" in scoped or "state.svcs_registry" in scoped
     assert "TestClient()" not in scoped
     assert "assert_type()" not in scoped
-    assert "TestClient()" in unscoped, "sanity: the unscoped version must have picked it up"
+    assert "TestClient()" in unscoped, (
+        "sanity: the unscoped version must have picked it up"
+    )
 
 
 def test_docstrings_in_the_reference_are_not_the_answer() -> None:

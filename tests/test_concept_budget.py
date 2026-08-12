@@ -28,7 +28,7 @@ def _budget_rows() -> list[list[str]]:
     start = text.find("## Concept budget")
     assert start != -1, "ROADMAP.md has no concept budget"
     end = text.find("\n## ", start + 10)
-    section = text[start:end if end != -1 else len(text)]
+    section = text[start : end if end != -1 else len(text)]
 
     rows = []
     for line in section.splitlines():

@@ -107,9 +107,7 @@ def compare_record_to_output(record_text: str, output_text: str) -> list[str]:
         problems.append(f"run {run} is in the output but not the record")
     for run in sorted(set(record) & set(output)):
         if record[run] != output[run]:
-            problems.append(
-                f"run {run}: record {record[run]} != output {output[run]}"
-            )
+            problems.append(f"run {run}: record {record[run]} != output {output[run]}")
     return problems
 
 

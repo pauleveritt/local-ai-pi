@@ -57,13 +57,19 @@ def test_contract_task_defaults_validation_to_the_preservation_command_not_the_o
 
     # A repo path is required by argparse but never touched -- deliver()
     # is stubbed above, so preflight() never runs against it.
-    rc = deliver_candidate.main([
-        "--repo", str(tmp_path),
-        "--task", "flask-extensions",
-        "--contract-task", "flask-extensions",
-        "--model", "omlx/gemma-4-12B-it-MLX-8bit",
-        "--skip-server-check",
-    ])
+    rc = deliver_candidate.main(
+        [
+            "--repo",
+            str(tmp_path),
+            "--task",
+            "flask-extensions",
+            "--contract-task",
+            "flask-extensions",
+            "--model",
+            "omlx/gemma-4-12B-it-MLX-8bit",
+            "--skip-server-check",
+        ]
+    )
 
     assert rc == 0
     manifest = load_manifest(TASKS_DIR / "flask-extensions")
@@ -80,14 +86,21 @@ def test_the_oracle_command_reaches_the_receipt_only_as_an_unverified_note(
     monkeypatch.setattr(deliver_candidate, "deliver", fake_deliver)
 
     receipt_path = tmp_path / "receipt.json"
-    rc = deliver_candidate.main([
-        "--repo", str(tmp_path),
-        "--task", "flask-extensions",
-        "--contract-task", "flask-extensions",
-        "--model", "omlx/gemma-4-12B-it-MLX-8bit",
-        "--skip-server-check",
-        "--receipt", str(receipt_path),
-    ])
+    rc = deliver_candidate.main(
+        [
+            "--repo",
+            str(tmp_path),
+            "--task",
+            "flask-extensions",
+            "--contract-task",
+            "flask-extensions",
+            "--model",
+            "omlx/gemma-4-12B-it-MLX-8bit",
+            "--skip-server-check",
+            "--receipt",
+            str(receipt_path),
+        ]
+    )
 
     assert rc == 0
     payload = json.loads(receipt_path.read_text())
@@ -97,7 +110,9 @@ def test_the_oracle_command_reaches_the_receipt_only_as_an_unverified_note(
     assert payload["outcome"] == "candidate-created"
 
 
-def test_an_explicit_validation_is_refused_alongside_contract_task(monkeypatch, tmp_path):
+def test_an_explicit_validation_is_refused_alongside_contract_task(
+    monkeypatch, tmp_path
+):
     """The override used to be allowed, and it was a live footgun.
 
     A contract states, in the text handed to the child, which command the
@@ -112,38 +127,54 @@ def test_an_explicit_validation_is_refused_alongside_contract_task(monkeypatch, 
     The old behavior was deliberate, so the reversal is deliberate too:
     one contract, one source of truth.
     """
+
     def unreachable(*args, **kwargs):
         raise AssertionError("deliver() must not run; the CLI should refuse first")
 
     monkeypatch.setattr(deliver_candidate, "deliver", unreachable)
 
     with pytest.raises(SystemExit):
-        deliver_candidate.main([
-            "--repo", str(tmp_path),
-            "--task", "flask-extensions",
-            "--contract-task", "flask-extensions",
-            "--model", "omlx/gemma-4-12B-it-MLX-8bit",
-            "--skip-server-check",
-            "--validation", "echo explicit",
-        ])
+        deliver_candidate.main(
+            [
+                "--repo",
+                str(tmp_path),
+                "--task",
+                "flask-extensions",
+                "--contract-task",
+                "flask-extensions",
+                "--model",
+                "omlx/gemma-4-12B-it-MLX-8bit",
+                "--skip-server-check",
+                "--validation",
+                "echo explicit",
+            ]
+        )
 
 
 def test_an_explicit_writable_is_refused_alongside_contract_task(monkeypatch, tmp_path):
     """Same one-source-of-truth rule for the outer scope glob."""
+
     def unreachable(*args, **kwargs):
         raise AssertionError("deliver() must not run; the CLI should refuse first")
 
     monkeypatch.setattr(deliver_candidate, "deliver", unreachable)
 
     with pytest.raises(SystemExit):
-        deliver_candidate.main([
-            "--repo", str(tmp_path),
-            "--task", "flask-extensions",
-            "--contract-task", "flask-extensions",
-            "--model", "omlx/gemma-4-12B-it-MLX-8bit",
-            "--skip-server-check",
-            "--writable", "src/**",
-        ])
+        deliver_candidate.main(
+            [
+                "--repo",
+                str(tmp_path),
+                "--task",
+                "flask-extensions",
+                "--contract-task",
+                "flask-extensions",
+                "--model",
+                "omlx/gemma-4-12B-it-MLX-8bit",
+                "--skip-server-check",
+                "--writable",
+                "src/**",
+            ]
+        )
 
 
 def test_cell_refuses_an_explicit_timeout_alongside_it(tmp_path, monkeypatch):
@@ -160,14 +191,21 @@ def test_cell_refuses_an_explicit_timeout_alongside_it(tmp_path, monkeypatch):
     monkeypatch.setattr(deliver_candidate.cell_module, "load_cell", fail_if_reached)
 
     with pytest.raises(SystemExit):
-        deliver_candidate.main([
-            "--repo", str(tmp_path),
-            "--task", "flask-extensions",
-            "--contract-task", "flask-extensions",
-            "--cell", "workloads/svcs/cells/gemma12b-implementer-v1.toml",
-            "--skip-server-check",
-            "--timeout", "60",
-        ])
+        deliver_candidate.main(
+            [
+                "--repo",
+                str(tmp_path),
+                "--task",
+                "flask-extensions",
+                "--contract-task",
+                "flask-extensions",
+                "--cell",
+                "workloads/svcs/cells/gemma12b-implementer-v1.toml",
+                "--skip-server-check",
+                "--timeout",
+                "60",
+            ]
+        )
 
 
 def test_implementer_extension_closure_lists_every_same_repo_import():
@@ -250,15 +288,23 @@ def test_task_source_flag_reaches_the_contract_and_the_receipt(monkeypatch, tmp_
     monkeypatch.setattr(deliver_candidate, "deliver", fake_deliver)
 
     receipt_path = tmp_path / "receipt.json"
-    rc = deliver_candidate.main([
-        "--repo", str(tmp_path),
-        "--task", "flask-extensions",
-        "--contract-task", "flask-extensions",
-        "--task-source", "brief",
-        "--model", "omlx/gemma-4-12B-it-MLX-8bit",
-        "--skip-server-check",
-        "--receipt", str(receipt_path),
-    ])
+    rc = deliver_candidate.main(
+        [
+            "--repo",
+            str(tmp_path),
+            "--task",
+            "flask-extensions",
+            "--contract-task",
+            "flask-extensions",
+            "--task-source",
+            "brief",
+            "--model",
+            "omlx/gemma-4-12B-it-MLX-8bit",
+            "--skip-server-check",
+            "--receipt",
+            str(receipt_path),
+        ]
+    )
 
     assert rc == 0
     manifest = load_manifest(TASKS_DIR / "flask-extensions")
@@ -275,14 +321,21 @@ def test_task_source_defaults_to_locating_contract(monkeypatch, tmp_path):
 
     monkeypatch.setattr(deliver_candidate, "deliver", fake_deliver)
 
-    deliver_candidate.main([
-        "--repo", str(tmp_path),
-        "--task", "flask-extensions",
-        "--contract-task", "flask-extensions",
-        "--model", "omlx/gemma-4-12B-it-MLX-8bit",
-        "--skip-server-check",
-        "--receipt", str(receipt_path),
-    ])
+    deliver_candidate.main(
+        [
+            "--repo",
+            str(tmp_path),
+            "--task",
+            "flask-extensions",
+            "--contract-task",
+            "flask-extensions",
+            "--model",
+            "omlx/gemma-4-12B-it-MLX-8bit",
+            "--skip-server-check",
+            "--receipt",
+            str(receipt_path),
+        ]
+    )
 
     assert json.loads(receipt_path.read_text())["task_source"] == "locating-contract"
 
@@ -291,12 +344,20 @@ def test_task_source_without_contract_task_is_refused(tmp_path):
     prompt_file = tmp_path / "brief.md"
     prompt_file.write_text("do the thing")
     with pytest.raises(SystemExit):
-        deliver_candidate.main([
-            "--repo", str(tmp_path),
-            "--task", "flask-extensions",
-            "--prompt-file", str(prompt_file),
-            "--validation", "echo ok",
-            "--model", "omlx/gemma-4-12B-it-MLX-8bit",
-            "--skip-server-check",
-            "--task-source", "brief",
-        ])
+        deliver_candidate.main(
+            [
+                "--repo",
+                str(tmp_path),
+                "--task",
+                "flask-extensions",
+                "--prompt-file",
+                str(prompt_file),
+                "--validation",
+                "echo ok",
+                "--model",
+                "omlx/gemma-4-12B-it-MLX-8bit",
+                "--skip-server-check",
+                "--task-source",
+                "brief",
+            ]
+        )

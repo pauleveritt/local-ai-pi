@@ -156,7 +156,6 @@ def compose_prompt(instruction: str, writable: tuple[str, ...], brief: str) -> s
     return f"{instruction.strip()}{scope}\n\n---\n\n{brief.strip()}\n"
 
 
-
 def _parse_transcript(stdout: str) -> tuple[str, str, list[str]]:
     """The three facts this tool reads out of one Pi transcript.
 
@@ -191,7 +190,9 @@ def _parse_transcript(stdout: str) -> tuple[str, str, list[str]]:
             if message.get("role") != "assistant":
                 continue
             body = "".join(
-                c.get("text", "") for c in message.get("content", []) if c.get("type") == "text"
+                c.get("text", "")
+                for c in message.get("content", [])
+                if c.get("type") == "text"
             )
             if body.strip():
                 text = body
@@ -243,7 +244,9 @@ def author_one(task: str, args: argparse.Namespace) -> int:
                 "model": args.model,
                 "tools": "read",
                 "prompt_sha256": hashlib.sha256(prompt.encode()).hexdigest(),
-                "authoring_prompt_sha256": hashlib.sha256(instruction.encode()).hexdigest(),
+                "authoring_prompt_sha256": hashlib.sha256(
+                    instruction.encode()
+                ).hexdigest(),
                 "packet": str(packet),
                 "elapsed_seconds": round(elapsed, 1),
                 "timed_out": child.timed_out,
@@ -274,15 +277,15 @@ def author_one(task: str, args: argparse.Namespace) -> int:
     if any(b.endswith("_exhausted") or b == "author_would_not_stop" for b in budgets):
         # Named separately from stopReason so the record says *why* the run
         # ended, not just that it did.
-        problems.append("+".join(sorted(set(b for b in budgets if b != "read_budget_reached"))))
+        problems.append(
+            "+".join(sorted(set(b for b in budgets if b != "read_budget_reached")))
+        )
     # Gated on the raw text as well as the extracted body, whichever finds
     # more. Extraction is a heuristic over model prose, and a version of it
     # that mangled fence parity made the gate report zero on a draft whose
     # fences held the answer. The gate must not inherit extraction's
     # mistakes: a statement anywhere in either form rejects the draft.
-    handed_over = max(
-        solution_statements(contract), solution_statements(text), key=len
-    )
+    handed_over = max(solution_statements(contract), solution_statements(text), key=len)
 
     # Counted and reported, no longer fatal. Zero tolerance was demonstrated
     # to reject good contracts -- a draft quoting the file's existing import
@@ -306,18 +309,26 @@ def author_one(task: str, args: argparse.Namespace) -> int:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--task", action="append", default=None,
+        "--task",
+        action="append",
+        default=None,
         help="repeatable; omit with --cohort to author every included task",
     )
     parser.add_argument(
-        "--cohort", type=Path, default=Path("workloads/svcs/cohort.toml"),
+        "--cohort",
+        type=Path,
+        default=Path("workloads/svcs/cohort.toml"),
         help="omit --task to author every included task; always used to "
         "look up each task's writable scope for the prompt",
     )
     parser.add_argument("--model", required=True)
     parser.add_argument("--server", default="http://127.0.0.1:8001")
-    parser.add_argument("--packets", type=Path, default=Path.home() / ".satyrn-authoring")
-    parser.add_argument("--prompt", type=Path, default=Path("workloads/svcs/authoring-prompt.md"))
+    parser.add_argument(
+        "--packets", type=Path, default=Path.home() / ".satyrn-authoring"
+    )
+    parser.add_argument(
+        "--prompt", type=Path, default=Path("workloads/svcs/authoring-prompt.md")
+    )
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--timeout", type=float, default=1800.0)
     parser.add_argument(
@@ -327,7 +338,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="shortest draft accepted as a contract (stubs ran 29-80 chars)",
     )
     parser.add_argument(
-        "--force", action="store_true",
+        "--force",
+        action="store_true",
         help="re-author tasks whose draft is already on disk",
     )
     args = parser.parse_args(argv)
@@ -336,7 +348,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not tasks:
         import harness.workload as workload
 
-        tasks = list(workload.load_cohort(args.cohort, require_accounting=True).included)
+        tasks = list(
+            workload.load_cohort(args.cohort, require_accounting=True).included
+        )
 
     # Before the first call, not between the third and fourth. An
     # unattended sweep that discovers a dead server an hour in has spent

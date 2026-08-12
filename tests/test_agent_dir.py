@@ -195,9 +195,7 @@ def test_pi_runtime_state_in_the_agent_dir_is_not_committed():
         check=True,
     ).stdout.split()
 
-    assert set(tracked) == {
-        f"pi-agent-dir/{name}" for name in runner.AGENT_DIR_FILES
-    }
+    assert set(tracked) == {f"pi-agent-dir/{name}" for name in runner.AGENT_DIR_FILES}
 
 
 def test_the_declared_agent_dir_files_are_exactly_what_is_on_disk():

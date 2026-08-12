@@ -108,12 +108,18 @@ def test_consecutive_infrastructure_failures_abort_the_run(tmp_path) -> None:
     ):
         code = main(
             [
-                "--cohort", "workloads/svcs/cohort.toml",
-                "--model", "omlx/gemma-4-12B-it-MLX-8bit",
-                "--task", "registry-iter",
-                "--replicates", "6",
-                "--out", str(tmp_path),
-                "--max-consecutive-failures", "3",
+                "--cohort",
+                "workloads/svcs/cohort.toml",
+                "--model",
+                "omlx/gemma-4-12B-it-MLX-8bit",
+                "--task",
+                "registry-iter",
+                "--replicates",
+                "6",
+                "--out",
+                str(tmp_path),
+                "--max-consecutive-failures",
+                "3",
             ]
         )
     assert code == 2
@@ -133,12 +139,18 @@ def test_a_real_rejection_does_not_count_as_infrastructure_failure(tmp_path) -> 
     ):
         code = main(
             [
-                "--cohort", "workloads/svcs/cohort.toml",
-                "--model", "omlx/gemma-4-12B-it-MLX-8bit",
-                "--task", "registry-iter",
-                "--replicates", "3",
-                "--out", str(tmp_path),
-                "--max-consecutive-failures", "3",
+                "--cohort",
+                "workloads/svcs/cohort.toml",
+                "--model",
+                "omlx/gemma-4-12B-it-MLX-8bit",
+                "--task",
+                "registry-iter",
+                "--replicates",
+                "3",
+                "--out",
+                str(tmp_path),
+                "--max-consecutive-failures",
+                "3",
             ]
         )
     assert code == 0
@@ -163,12 +175,18 @@ def test_a_recovery_resets_the_consecutive_counter(tmp_path) -> None:
     with patch("tools.replicate.subprocess.run", side_effect=run):
         code = main(
             [
-                "--cohort", "workloads/svcs/cohort.toml",
-                "--model", "omlx/gemma-4-12B-it-MLX-8bit",
-                "--task", "registry-iter",
-                "--replicates", "5",
-                "--out", str(tmp_path),
-                "--max-consecutive-failures", "3",
+                "--cohort",
+                "workloads/svcs/cohort.toml",
+                "--model",
+                "omlx/gemma-4-12B-it-MLX-8bit",
+                "--task",
+                "registry-iter",
+                "--replicates",
+                "5",
+                "--out",
+                str(tmp_path),
+                "--max-consecutive-failures",
+                "3",
             ]
         )
     assert code == 0
@@ -187,11 +205,16 @@ def test_an_existing_record_is_skipped_and_resets_the_streak(tmp_path) -> None:
     ) as mock_run:
         code = main(
             [
-                "--cohort", "workloads/svcs/cohort.toml",
-                "--model", "omlx/gemma-4-12B-it-MLX-8bit",
-                "--task", "registry-iter",
-                "--replicates", "2",
-                "--out", str(tmp_path),
+                "--cohort",
+                "workloads/svcs/cohort.toml",
+                "--model",
+                "omlx/gemma-4-12B-it-MLX-8bit",
+                "--task",
+                "registry-iter",
+                "--replicates",
+                "2",
+                "--out",
+                str(tmp_path),
             ]
         )
     assert code == 0

@@ -4,6 +4,7 @@ From `BRIEF.md`: "A grader's verdict isn't evidence until it has accepted a
 known-good solution and rejected a known-broken one." These are that proof
 for this suite. They need no model and no Pi.
 """
+
 from pathlib import Path
 
 from harness.grading import grade

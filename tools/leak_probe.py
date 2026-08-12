@@ -115,7 +115,11 @@ def probe_task(
     writable_prefixes: tuple[str, ...] = (),
 ) -> Reconstruction:
     target = tuple(
-        sorted(signals(added_source_lines(reference, only_prefixes=writable_prefixes or None)))
+        sorted(
+            signals(
+                added_source_lines(reference, only_prefixes=writable_prefixes or None)
+            )
+        )
     )
     conditions = {
         "brief": f"{INSTRUCTION}\n---\n\n{brief.strip()}\n",
