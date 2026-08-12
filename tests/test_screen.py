@@ -886,13 +886,23 @@ def test_an_unknown_pinned_key_is_rejected(tmp_path: Path) -> None:
         cell.load_cell(path)
 
 
-def test_the_authoring_gate_rejects_a_handed_over_solution() -> None:
+def test_the_solution_detector_separates_locating_prose_from_a_handed_over_fix() -> None:
     """A contract locates and bounds; it must not contain the fix.
 
     The first authoring prompt never said so, and the author helpfully
     wrote the complete `__iter__` method into the contract -- which is
     why Experiment A measured a 12B transcribing a 27B's answer rather
     than a contract helping anything.
+
+    **Renamed 2026-08-12: this tests the detector, not a gate.**
+    `MAX_SOLUTION_STATEMENTS` stopped being fatal in `author_one` --
+    zero tolerance demonstrably rejected good contracts (a draft quoting
+    an existing import line and two caller-side usages scored 3 and
+    contained none of the fix), and deleting a draft before the leak
+    probe can adjudicate it destroys the artifact the probe exists to
+    judge. `solution_statements` is still the live detector and its
+    output is still recorded; admission is the probe's call. The old
+    name promised a gate that no longer exists.
     """
     from tools.author_contract import MAX_SOLUTION_STATEMENTS, solution_statements
 

@@ -156,6 +156,56 @@ def compose_prompt(instruction: str, writable: tuple[str, ...], brief: str) -> s
     return f"{instruction.strip()}{scope}\n\n---\n\n{brief.strip()}\n"
 
 
+
+def _parse_transcript(stdout: str) -> tuple[str, str, list[str]]:
+    """The three facts this tool reads out of one Pi transcript.
+
+    One pass, not three. Each of these was added separately and each
+    re-walked the whole stream; they are gathered here because they are
+    answers about the same events and drifting apart would let a run
+    report a stop reason from one reading and a budget from another.
+
+    - **text**: the last non-empty assistant message. The draft.
+    - **stop_reason**: whether the author actually finished. Three of the
+      first eight drafts were 29-80 byte preambles -- "Now I'll write the
+      contract:" and nothing after it -- from runs that ended before
+      producing anything. All three were recorded as authored, appended
+      to briefs as if they were contracts, and confounded the arm they
+      were measured in.
+    - **budgets**: which budget, if any, ended the run. Without it a
+      short draft is indistinguishable from an author that had nothing to
+      say -- exactly the reading those three aborted runs got when they
+      were filed as "empty stubs".
+    """
+    text = ""
+    stop_reason = "unknown"
+    budgets: list[str] = []
+    for line in stdout.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        kind = event.get("type")
+        if kind == "message_end":
+            message = event.get("message", {})
+            if message.get("role") != "assistant":
+                continue
+            body = "".join(
+                c.get("text", "") for c in message.get("content", []) if c.get("type") == "text"
+            )
+            if body.strip():
+                text = body
+            stop_reason = message.get("stopReason") or stop_reason
+        elif kind == "entry_appended":
+            custom = event.get("entry", {}).get("customType", "")
+            if custom.endswith("_exhausted") or custom in (
+                "read_budget_reached",
+                "author_would_not_stop",
+            ):
+                budgets.append(custom)
+    return text, stop_reason, budgets
+
+
 def author_one(task: str, args: argparse.Namespace) -> int:
     packet = args.packets / task
     repo, brief = packet / "repo", packet / "brief.md"
@@ -179,52 +229,7 @@ def author_one(task: str, args: argparse.Namespace) -> int:
     child = run_process(argv_pi, cwd=repo, timeout=args.timeout, env=pi_env())
     elapsed = time.monotonic() - started
 
-    text = ""
-    for line in child.stdout.splitlines():
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if event.get("type") == "message_end":
-            message = event.get("message", {})
-            if message.get("role") == "assistant":
-                body = "".join(
-                    c.get("text", "") for c in message.get("content", []) if c.get("type") == "text"
-                )
-                if body.strip():
-                    text = body
-
-    # The stop reason, and whether the author actually finished. Three of
-    # the first eight drafts were 29-80 byte preambles -- "Now I'll write
-    # the contract:" and nothing after it -- from runs that ended before
-    # producing anything. All three were recorded as authored, appended
-    # to briefs as if they were contracts, and confounded the arm they
-    # were measured in.
-    stop_reason = "unknown"
-    for line in child.stdout.splitlines():
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if event.get("type") == "message_end":
-            message = event.get("message", {})
-            if message.get("role") == "assistant":
-                stop_reason = message.get("stopReason") or stop_reason
-
-    # Which budget, if any, ended this run. Without it a short draft is
-    # indistinguishable from an author that had nothing to say -- which is
-    # exactly the reading three aborted runs got when they were filed as
-    # "empty stubs".
-    budgets = []
-    for line in child.stdout.splitlines():
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if event.get("type") == "entry_appended":
-            kind = event.get("entry", {}).get("customType", "")
-            if kind.endswith("_exhausted") or kind in ("read_budget_reached", "author_would_not_stop"):
-                budgets.append(kind)
+    text, stop_reason, budgets = _parse_transcript(child.stdout)
 
     contract = extract_contract(text)
     args.out.mkdir(parents=True, exist_ok=True)
