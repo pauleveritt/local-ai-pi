@@ -27,6 +27,12 @@ not something a default `pytest` run exercises. `--n` and `--task` exist
 for a cheaper partial rehearsal (a single task, n=1) before committing to
 the full 64-attempt batch; the pre-registration's own n=8 across all four
 tasks is what any batch presented as *the* confirmatory result must use.
+
+On first run this provisions the two gitignored, derived inputs it needs
+(`bootstrap_cache()`: a bare clone of the cohort upstream under
+`.workloads/svcs.git`, and the frozen cohort interpreter under
+`.workloads/env`), which takes ~20 seconds and needs network access for
+the clone. Subsequent runs reuse both.
 """
 
 import argparse
@@ -42,12 +48,21 @@ import harness.candidate as candidate_mod
 import tools.deliver_candidate as deliver_candidate
 from harness.intervals import newcombe_interval, wilson_interval
 from harness.model_config import bumped_max_tokens
-from harness.workload import export_tree, load_manifest, overlay_oracle
+from harness.workload import (
+    ensure_clone,
+    ensure_cohort_env,
+    export_tree,
+    load_cohort,
+    load_manifest,
+    overlay_oracle,
+)
 from harness.workspace import disposable_dir, git_init_commit
 
 REPO = Path(__file__).resolve().parents[1]
-CLONE = REPO / ".workloads" / "svcs.git"
-COHORT_PYTHON_BIN = (REPO / ".workloads" / "env" / "bin").resolve()
+CACHE = REPO / ".workloads"
+CLONE = CACHE / "svcs.git"
+COHORT_PYTHON_BIN = (CACHE / "env" / "bin").resolve()
+COHORT_TOML = REPO / "workloads" / "svcs" / "cohort.toml"
 TASKS_DIR = REPO / "workloads" / "svcs" / "tasks"
 CELL = REPO / "workloads" / "svcs" / "cells" / "gemma12b-implementer-v1.toml"
 AGENT_DIR = REPO / "pi-agent-dir"
@@ -67,6 +82,34 @@ BUMPED_MODEL = "gemma-4-12B-it-MLX-8bit"
 BUMPED_MAX_TOKENS = 32768
 
 _real_deliver = candidate_mod.deliver
+
+
+def bootstrap_cache() -> None:
+    """Create the two derived, gitignored inputs this batch reads.
+
+    `.workloads/svcs.git` (a bare clone of the cohort's upstream) and
+    `.workloads/env` (the frozen cohort interpreter) are deliberately not
+    committed -- every manifest names its upstream and SHAs, so both are
+    reconstructible, and `.gitignore` says they must never be committed.
+    But nothing here created them either: before this function existed, a
+    fresh clone running this driver died on a bare
+    `FileNotFoundError: .../.workloads/svcs.git` from deep inside
+    `subprocess`, with no message saying what was missing or how to get
+    it. Found by cloning the curated export and running this tool as a
+    collaborator would (2026-08-12).
+
+    Both helpers are idempotent -- `ensure_clone` returns early if the
+    clone exists, `ensure_cohort_env` runs `uv sync --locked` -- so this
+    costs a few seconds on an already-provisioned checkout and does the
+    one-time ~20s setup otherwise.
+    """
+    cohort = load_cohort(COHORT_TOML)
+    if not CLONE.is_dir():
+        print(f"provisioning {CLONE} from {cohort.upstream} (one time)...", flush=True)
+    ensure_clone(cohort.upstream, CACHE)
+    if not COHORT_PYTHON_BIN.is_dir():
+        print(f"provisioning the cohort environment under {CACHE / 'env'} (one time)...", flush=True)
+    ensure_cohort_env(cohort.env_dir, CACHE)
 
 
 def cohort_env(pythonpath: Path) -> dict[str, str]:
@@ -239,6 +282,7 @@ def main(argv: list[str] | None = None) -> int:
 
     tasks = TASKS if args.task is None else tuple(t for t in TASKS if t[0] == args.task)
     args.out_dir.mkdir(parents=True, exist_ok=True)
+    bootstrap_cache()
 
     results = run_batch(tasks, args.n, args.out_dir)
     (args.out_dir / "all_results.json").write_text(json.dumps(results, indent=2, sort_keys=True))
