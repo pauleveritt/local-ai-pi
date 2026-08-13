@@ -1313,3 +1313,57 @@ A contributor can run `uv run python -m harness.cli --help` and get from
 zero to a batch with no reference to `harness/runner.py`. `docs/evals.md`
 exists and the README points at it. The engine (`run_suite`/`run_batch`)
 is byte-identical except for the two registry dicts added to `runner.py`.
+
+---
+
+## Execution Notes
+
+All five cycles committed on `phase8-eval-cli` (base `main@d3aee12`), then
+a review pass added a fix, a polish, test corrections, and this section.
+Deviations from the plan text, recorded rather than quietly absorbed:
+
+- **Task 1 laziness test.** The plan's in-process
+  `importlib.reload(harness.runner)` re-executes the module and re-defines
+  `RunResult`/`GradeResult` under the other test modules that already
+  imported them, breaking their dataclass equality (instances of two
+  distinct classes are never `==`) — two existing `test_runner.py` tests
+  failed only when the reload test ran first. The shipped test reloads in a
+  subprocess instead. The plan's lazy-invocation assertion also named
+  `tech-stack-only`, which never calls `pi_package_root()` (its extensions
+  are the repo's loop-breaker) — the shipped assertion uses
+  `sdd-orchestrator`, the one factory that resolves Pi.
+- **Task 2 `_result` helper.** The plan's helper passed `refused_config=()`
+  explicitly *and* accepted `**grade_overrides`, so a test overriding
+  `refused_config` raised `TypeError: got multiple values`. Shipped helper
+  merges a defaults dict.
+- **Pass-count expectations off by one from Task 2 on.** The plan said
+  10/16/20 passed; the shipped counts are 11/17/21 — the plan undercounted
+  its own test lists.
+- **`_rejection_reasons` (post-plan review).** Added a `pi exited N`
+  signal (`RunResult.pi_returncode`) and a `no recorded signal` fallback.
+  The plan's helper returned `[]` — verdicts printed a bare `rejected: ` —
+  when a run was rejected by a Pi-side failure with a passing grade, or by
+  an exotic grade state with no visible signal.
+- **`suites` parens (post-plan review).** A key equal to its `Suite.name`
+  is printed bare (`duration`, not `duration (duration)`); the parens now
+  appear only where the shorthand differs.
+- **Per-flag `--help` text (post-plan review).** Left absent by decision:
+  the `choices=` lists self-document the names, and the longer treatment
+  lives in `docs/evals.md`.
+- **`preflight`'s `pi --version` has no timeout (post-plan review).** Left
+  to match `runner._conditions`, which runs it the same way.
+- **`EXIT_ERROR = 1` documented but unused (post-plan review).** Kept: it
+  states the exit-code contract, and unexpected exceptions exit 1 via
+  traceback.
+- **`one`'s verdict does not echo the suite/improvement (post-plan
+  review).** Left as-is: adding it would churn the output format and its
+  tests for marginal value.
+- **Batch output timing.** `_cmd_batch` prints the per-attempt lines when
+  `run_batch` returns, not during the run — the engine is deliberately
+  untouched and `run_batch` is monolithic, so there is no live progress
+  output. Spec Section 2 amended to say so.
+- **Commit trailers.** The original six commits carried
+  `Co-Authored-By: Claude Sonnet 5`, copied from the repo's recent-commit
+  convention without checking which model would execute; the session model
+  was not Claude Sonnet 5. The trailer was stripped from the branch history
+  at review rather than left as a false attribution.

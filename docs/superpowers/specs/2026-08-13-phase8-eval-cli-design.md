@@ -176,7 +176,10 @@ summarize      CHECKPOINT_PATH
   **not** write a checkpoint — checkpointing is `batch`'s job; `one` is for
   exploring and verifying.
 - `batch` runs `run_batch` and prints one line per attempt plus a final
-  summary naming the checkpoint path and the accepted count.
+  summary naming the checkpoint path and the accepted count. The per-attempt
+  lines are printed when `run_batch` returns, not during the run — the
+  engine is deliberately untouched and `run_batch` is monolithic, so there
+  is no live progress output.
 - `suites` prints the keys sorted, each with its `Suite.name` in
   parentheses (D1's self-documentation); `improvements` prints the keys
   sorted.
@@ -285,6 +288,12 @@ apply (`tests/support.py`, `tests/conftest.py`, the `capsys` +
   `importlib.reload(harness.runner)` succeeds (import never calls it), and
   invoking a factory raises — the registry holds lazy callables, not
   eager results.
+  **Amended at execution:** the reload happens in a subprocess — an
+  in-process reload re-defines the module's dataclasses under other test
+  modules that already imported them, breaking their equality — and the
+  lazy-invocation assertion uses `sdd-orchestrator` (the one factory that
+  resolves Pi; `tech-stack-only` never does). See the plan's execution
+  notes.
 
 **`tests/test_cli.py`** (cycles 2–4), driving `main(argv)` directly:
 
