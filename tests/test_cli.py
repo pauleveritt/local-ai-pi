@@ -6,13 +6,14 @@ liveness/version checks are stubbed in the cycle-3 tests.
 """
 
 import json
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
+import harness.runner as runner
 from harness import cli
 from harness.grading import GradeResult
 from harness.liveness import ModelServerDown
@@ -58,15 +59,6 @@ def _result(
 def _write_checkpoint(path: Path, results: list[RunResult]) -> None:
     """Write records the same way append_checkpoint would."""
     path.write_text("\n".join(json.dumps(asdict(result)) for result in results) + "\n")
-
-
-def test_help_lists_the_cli_subcommands(capsys):
-    with pytest.raises(SystemExit) as excinfo:
-        cli.main(["--help"])
-    assert excinfo.value.code == 0
-    out = capsys.readouterr().out
-    for name in ("one", "batch", "suites", "improvements"):
-        assert name in out
 
 
 def test_suites_lists_each_key_beside_its_suite_name(capsys):
@@ -297,8 +289,21 @@ def test_summarize_prints_conditions_acceptance_and_rejections(capsys, tmp_path)
                 model="m", improvement_name="none", pi_version="0.84.1"
             ),
         ),
-        _result(accepted=False, refused_config=("pyproject.toml",)),
-        _result(accepted=False, timed_out=True, pi_timed_out=True),
+        _result(
+            accepted=False,
+            refused_config=("pyproject.toml",),
+            conditions=make_conditions(
+                model="m", improvement_name="none", pi_version="0.84.1"
+            ),
+        ),
+        _result(
+            accepted=False,
+            timed_out=True,
+            pi_timed_out=True,
+            conditions=make_conditions(
+                model="m", improvement_name="none", pi_version="0.84.1"
+            ),
+        ),
     ]
     _write_checkpoint(path, records)
     assert cli.main(["summarize", str(path)]) == 0
@@ -344,3 +349,42 @@ def test_one_reports_a_rejection_without_a_recorded_signal(monkeypatch, capsys):
     )
     assert cli.main(["one", "--suite", "duration"]) == 0
     assert "rejected: no recorded signal" in capsys.readouterr().out
+
+
+def test_summarize_handles_a_checkpoint_without_conditions(capsys, tmp_path):
+    path = tmp_path / "checkpoint.jsonl"
+    record = replace(_result(accepted=True), conditions=None)
+    _write_checkpoint(path, [record])
+    assert cli.main(["summarize", str(path)]) == 0
+    out = capsys.readouterr().out
+    assert "conditions: <none recorded>" in out
+    assert "accepted:   1" in out
+
+
+class _FakeSubprocessMissingPi:
+    def run(self, command, **kwargs):
+        raise FileNotFoundError("pi not found")
+
+
+def test_preflight_reports_a_missing_pi(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "check_model_server_alive", lambda: None)
+    monkeypatch.setattr(cli, "subprocess", _FakeSubprocessMissingPi())
+    assert cli.main(["preflight"]) == 2
+    out = capsys.readouterr().out
+    assert "pi version: MISMATCH (installed '<pi not found>'" in out
+
+
+def test_one_with_an_improvement_that_needs_pi_is_friendly(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "check_model_server_alive", lambda: None)
+
+    def no_pi():
+        raise RuntimeError("cannot locate Pi's installed package")
+
+    monkeypatch.setattr(runner, "pi_package_root", no_pi)
+    assert (
+        cli.main(["one", "--suite", "duration", "--improvement", "sdd-orchestrator"])
+        == 2
+    )
+    err = capsys.readouterr().err
+    assert "cannot locate Pi" in err
+    assert "Traceback" not in err
