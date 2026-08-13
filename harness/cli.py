@@ -77,7 +77,11 @@ def _rejection_reasons(result: RunResult) -> list[str]:
 
 def _cmd_suites(args: argparse.Namespace) -> int:
     for key in sorted(SUITES):
-        print(f"{key} ({SUITES[key].name})")
+        suite = SUITES[key]
+        if key == suite.name:
+            print(key)
+        else:
+            print(f"{key} ({suite.name})")
     return EXIT_OK
 
 

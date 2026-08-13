@@ -73,7 +73,8 @@ def test_suites_lists_each_key_beside_its_suite_name(capsys):
     assert cli.main(["suites"]) == 0
     out = capsys.readouterr().out
     for key, suite in SUITES.items():
-        assert f"{key} ({suite.name})" in out
+        shown = key if key == suite.name else f"{key} ({suite.name})"
+        assert shown in out
 
 
 def test_improvements_lists_the_keys(capsys):
