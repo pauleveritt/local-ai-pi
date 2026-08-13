@@ -1367,3 +1367,11 @@ Deviations from the plan text, recorded rather than quietly absorbed:
   convention without checking which model would execute; the session model
   was not Claude Sonnet 5. The trailer was stripped from the branch history
   at review rather than left as a false attribution.
+- **Post-merge review fixes.** A second review pass found two more, fixed
+  on `main` after merge: `_cmd_batch` did not create the default
+  checkpoint's parent directory, so a fresh machine (`~/evidence/` absent)
+  would lose the first completed run to a `FileNotFoundError` traceback —
+  the CLI now `mkdir`s the parent up front, as `deliver_candidate` does for
+  its `--receipt`. And the final summary said "wrote N runs", which is
+  wrong for a resumed batch that adds nothing — it now reports "checkpoint
+  holds N runs at <path>".

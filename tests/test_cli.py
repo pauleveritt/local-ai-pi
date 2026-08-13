@@ -176,6 +176,7 @@ def test_batch_prints_attempts_and_summary(monkeypatch, capsys, tmp_path):
     assert "run 1: accepted" in out
     assert "run 2: rejected (timed_out)" in out
     assert "batch complete: 1/2 accepted" in out
+    assert "checkpoint holds 2 runs at" in out
 
 
 def test_negative_target_is_refused(monkeypatch, capsys):
@@ -388,3 +389,18 @@ def test_one_with_an_improvement_that_needs_pi_is_friendly(monkeypatch, capsys):
     err = capsys.readouterr().err
     assert "cannot locate Pi" in err
     assert "Traceback" not in err
+
+
+def test_batch_creates_the_default_checkpoint_directory(monkeypatch, capsys, tmp_path):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(cli, "check_model_server_alive", lambda: None)
+
+    def fake_run_batch(checkpoint_path, **kwargs):
+        # The CLI must have created the parent dir before run_batch ever
+        # appends -- a fresh machine has no ~/evidence/.
+        assert checkpoint_path.parent.is_dir()
+        return [_result(accepted=True)]
+
+    monkeypatch.setattr(cli, "run_batch", fake_run_batch)
+    assert cli.main(["batch", "--suite", "duration", "--target", "1"]) == 0
+    assert (tmp_path / "evidence").is_dir()

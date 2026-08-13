@@ -117,6 +117,12 @@ def _cmd_batch(args: argparse.Namespace) -> int:
         checkpoint = (
             Path.home() / "evidence" / f"{args.suite}-{date.today().isoformat()}.jsonl"
         )
+    # append_checkpoint opens the path in `a+b` and does not create parent
+    # directories, so a fresh machine (no ~/evidence/) would fail with a
+    # FileNotFoundError after the first run completes -- the run already
+    # spent its model call. Create the directory up front, as
+    # deliver_candidate does for its --receipt.
+    checkpoint.parent.mkdir(parents=True, exist_ok=True)
     results = run_batch(
         checkpoint,
         suite=SUITES[args.suite],
@@ -133,7 +139,7 @@ def _cmd_batch(args: argparse.Namespace) -> int:
             print(f"run {index}: rejected ({', '.join(reasons)})")
     accepted = sum(1 for result in results if result.accepted)
     print(f"batch complete: {accepted}/{len(results)} accepted")
-    print(f"wrote {len(results)} runs to {checkpoint}")
+    print(f"checkpoint holds {len(results)} runs at {checkpoint}")
     return EXIT_OK
 
 
