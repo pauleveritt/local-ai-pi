@@ -19,13 +19,16 @@ translates it.
 """
 
 import argparse
+import subprocess
 import sys
 from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 
+from harness.liveness import ModelServerDown, check_model_server_alive
 from harness.pi_invocation import DEFAULT_MODEL
 from harness.runner import (
+    EXPECTED_PI_VERSION,
     IMPROVEMENTS,
     SUITES,
     Improvement,
@@ -37,6 +40,8 @@ from harness.runner import (
 EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_REFUSED = 2
+
+MODEL_SERVER_FIX = "Start the model server with `omlx start` (see docs/setup.md)."
 
 
 def _resolve_improvement(name: str | None) -> Improvement | None:
@@ -80,6 +85,7 @@ def _cmd_improvements(args: argparse.Namespace) -> int:
 
 
 def _cmd_one(args: argparse.Namespace) -> int:
+    check_model_server_alive()
     result = run_suite(
         SUITES[args.suite],
         model=args.model,
@@ -98,6 +104,7 @@ def _cmd_batch(args: argparse.Namespace) -> int:
     if args.target < 0:
         print("refused: --target must not be negative", file=sys.stderr)
         return EXIT_REFUSED
+    check_model_server_alive()
     checkpoint = args.checkpoint
     if checkpoint is None:
         checkpoint = (
@@ -120,6 +127,38 @@ def _cmd_batch(args: argparse.Namespace) -> int:
     accepted = sum(1 for result in results if result.accepted)
     print(f"batch complete: {accepted}/{len(results)} accepted")
     print(f"wrote {len(results)} runs to {checkpoint}")
+    return EXIT_OK
+
+
+def _cmd_preflight(args: argparse.Namespace) -> int:
+    lines = []
+    ok = True
+    try:
+        check_model_server_alive()
+        lines.append("model server: OK")
+    except ModelServerDown as error:
+        lines.append(f"model server: DOWN ({error})")
+        ok = False
+    version = ""
+    try:
+        completed = subprocess.run(
+            ["pi", "--version"], capture_output=True, text=True, check=False
+        )
+        version = (completed.stdout or completed.stderr).strip()
+    except OSError:
+        version = ""
+    if version == EXPECTED_PI_VERSION:
+        lines.append(f"pi version: OK ({version})")
+    else:
+        shown = version or "<pi not found>"
+        lines.append(
+            f"pi version: MISMATCH (installed {shown!r}, expected {EXPECTED_PI_VERSION})"
+        )
+        ok = False
+    print("\n".join(lines))
+    if not ok:
+        print(f"Fix: {MODEL_SERVER_FIX} For Pi, see docs/setup.md.", file=sys.stderr)
+        return EXIT_REFUSED
     return EXIT_OK
 
 
@@ -158,13 +197,25 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     batch.set_defaults(func=_cmd_batch)
 
+    preflight = subparsers.add_parser(
+        "preflight", help="check the model server and the pinned Pi version"
+    )
+    preflight.set_defaults(func=_cmd_preflight)
+
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except ModelServerDown as error:
+        print(f"refused: {error}\n{MODEL_SERVER_FIX}", file=sys.stderr)
+        return EXIT_REFUSED
+    except (RuntimeError, ValueError) as error:
+        print(f"refused: {error}", file=sys.stderr)
+        return EXIT_REFUSED
 
 
 if __name__ == "__main__":

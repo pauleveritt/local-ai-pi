@@ -6,11 +6,13 @@ liveness/version checks are stubbed in the cycle-3 tests.
 """
 
 from datetime import date
+from types import SimpleNamespace
 
 import pytest
 
 from harness import cli
 from harness.grading import GradeResult
+from harness.liveness import ModelServerDown
 from harness.runner import SUITES, RunConditions, RunResult
 from tests.support import make_conditions
 
@@ -86,6 +88,7 @@ def test_unknown_improvement_is_an_argparse_error(capsys):
 
 
 def test_one_prints_an_accepted_verdict(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "check_model_server_alive", lambda: None)
     monkeypatch.setattr(
         cli, "run_suite", lambda suite, **kwargs: _result(accepted=True)
     )
@@ -94,6 +97,7 @@ def test_one_prints_an_accepted_verdict(monkeypatch, capsys):
 
 
 def test_one_prints_the_signal_behind_a_rejection(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "check_model_server_alive", lambda: None)
     monkeypatch.setattr(
         cli,
         "run_suite",
@@ -106,6 +110,7 @@ def test_one_prints_the_signal_behind_a_rejection(monkeypatch, capsys):
 
 
 def test_one_forwards_improvement_model_and_timeout(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "check_model_server_alive", lambda: None)
     seen = {}
 
     def fake_run_suite(suite, **kwargs):
@@ -137,6 +142,7 @@ def test_one_forwards_improvement_model_and_timeout(monkeypatch, capsys):
 
 def test_batch_uses_the_default_checkpoint_path(monkeypatch, capsys, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(cli, "check_model_server_alive", lambda: None)
     captured = {}
 
     def fake_run_batch(checkpoint_path, **kwargs):
@@ -153,6 +159,7 @@ def test_batch_uses_the_default_checkpoint_path(monkeypatch, capsys, tmp_path):
 
 def test_batch_prints_attempts_and_summary(monkeypatch, capsys, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(cli, "check_model_server_alive", lambda: None)
     monkeypatch.setattr(
         cli,
         "run_batch",
@@ -176,3 +183,79 @@ def test_negative_target_is_refused(monkeypatch, capsys):
     )
     assert cli.main(["batch", "--suite", "duration", "--target", "-1"]) == 2
     assert "must not be negative" in capsys.readouterr().err
+
+
+def test_one_dead_server_is_a_friendly_refusal(monkeypatch, capsys):
+    def down():
+        raise ModelServerDown(
+            "model server not reachable at http://127.0.0.1:8001/v1/models"
+        )
+
+    monkeypatch.setattr(cli, "check_model_server_alive", down)
+    assert cli.main(["one", "--suite", "duration"]) == 2
+    err = capsys.readouterr().err
+    assert "omlx start" in err
+    assert "Traceback" not in err
+
+
+def test_batch_version_mismatch_is_a_friendly_refusal(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "check_model_server_alive", lambda: None)
+
+    def wrong_version(*args, **kwargs):
+        raise RuntimeError("this harness pins Pi 0.84.1, but 0.83.0 is installed")
+
+    monkeypatch.setattr(cli, "run_batch", wrong_version)
+    assert cli.main(["batch", "--suite", "duration"]) == 2
+    err = capsys.readouterr().err
+    assert "refused:" in err
+    assert "pins Pi 0.84.1" in err
+    assert "Traceback" not in err
+
+
+def test_batch_checkpoint_mismatch_is_a_friendly_refusal(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "check_model_server_alive", lambda: None)
+
+    def mismatch(*args, **kwargs):
+        raise ValueError("checkpoint conditions do not match this batch")
+
+    monkeypatch.setattr(cli, "run_batch", mismatch)
+    assert cli.main(["batch", "--suite", "duration"]) == 2
+    err = capsys.readouterr().err
+    assert "checkpoint conditions do not match" in err
+    assert "Traceback" not in err
+
+
+class _FakeSubprocess:
+    def __init__(self, stdout: str):
+        self._stdout = stdout
+
+    def run(self, command, **kwargs):
+        return SimpleNamespace(stdout=self._stdout, stderr="", returncode=0)
+
+
+def test_preflight_reports_ok(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "check_model_server_alive", lambda: None)
+    monkeypatch.setattr(cli, "subprocess", _FakeSubprocess("0.84.1\n"))
+    assert cli.main(["preflight"]) == 0
+    out = capsys.readouterr().out
+    assert "model server: OK" in out
+    assert "pi version: OK (0.84.1)" in out
+
+
+def test_preflight_reports_a_wrong_pi_version(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "check_model_server_alive", lambda: None)
+    monkeypatch.setattr(cli, "subprocess", _FakeSubprocess("0.83.0\n"))
+    assert cli.main(["preflight"]) == 2
+    err = capsys.readouterr().err
+    assert "docs/setup.md" in err
+
+
+def test_preflight_reports_a_dead_server(monkeypatch, capsys):
+    def down():
+        raise ModelServerDown("model server not reachable")
+
+    monkeypatch.setattr(cli, "check_model_server_alive", down)
+    monkeypatch.setattr(cli, "subprocess", _FakeSubprocess("0.84.1\n"))
+    assert cli.main(["preflight"]) == 2
+    out = capsys.readouterr().out
+    assert "model server: DOWN" in out
