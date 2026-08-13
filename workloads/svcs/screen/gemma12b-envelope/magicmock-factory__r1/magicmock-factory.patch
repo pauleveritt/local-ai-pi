@@ -1,7 +1,0 @@
-diff --git a/ls_output.sh b/ls_output.sh
-new file mode 100644
-index 0000000..969e186
---- /dev/null
-+++ b/ls_output.sh
-@@ -0,0 +1 @@
-+ls -R

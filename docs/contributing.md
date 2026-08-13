@@ -118,9 +118,41 @@ Each is real, currently true, and self-contained — no need to read
    replayable.
 
 3. **Add a repository policy check against newly-tracked oversized
-   artifacts.** `workloads/svcs/screen/` is 106 MiB, tracked deliberately;
-   nothing today stops a *new* multi-megabyte transcript or binary from
-   being added the same way by accident. A `pytest` check (or a pre-commit
-   hook) that fails on a newly tracked file above some size threshold
-   outside an explicit allowlist would close a real, still-open gap from
-   the 2026-08-11 distribution brief's step 3.
+   artifacts.** Nothing today stops a multi-megabyte transcript or binary
+   from being tracked by accident. A `pytest` check (or a pre-commit hook)
+   that fails on a newly tracked file above some size threshold outside an
+   explicit allowlist would close a real, still-open gap from the
+   2026-08-11 distribution brief's step 3.
+
+   *Amended 2026-08-12. This item previously read "`workloads/svcs/screen/`
+   is 106 MiB, tracked deliberately" and used that as its motivating
+   example. That corpus is no longer tracked (see below), so the example is
+   gone — but the gap it pointed at is not, which is why the item stays.*
+
+## Why the screen corpus is not in your checkout
+
+`workloads/svcs/screen/` — 570 files, 104.7 MiB of mechanism-screen output
+— was tracked deliberately until **2026-08-12**, on the reasoning that
+evidence a claim rests on should travel with the repository.
+
+That reasoning was right about the evidence and wrong about the vehicle.
+It made a first checkout 123 MiB, 95% of it a corpus no supported code
+path reads, sitting between a new contributor and the 10 MiB that is
+actually the project. Meanwhile a checksum-verified copy already existed
+out of tree, and git history keeps every byte regardless.
+
+So the corpus was removed from the working tree, not from the record:
+
+```bash
+git log --oneline -- workloads/svcs/screen/   # still there
+git show <sha>:workloads/svcs/screen/<path>   # still readable
+```
+
+The out-of-tree bundle is named, located and checksummed in
+[`evidence-index.md`](evidence-index.md). `.gitignore` now covers the
+directory, because `tools/screen_workload.py` writes new batches there by
+default and would otherwise re-commit the corpus a batch at a time.
+
+`workloads/svcs/overnight/` (7.8 MiB) is **still tracked**, deliberately
+and for a different reason: it has no out-of-tree copy, and 7.8 MiB does
+not buy back enough to be worth the only-copy risk.

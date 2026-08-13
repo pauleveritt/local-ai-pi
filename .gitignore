@@ -14,6 +14,14 @@ node_modules/
 # and must never be committed.
 .workloads/
 
+# Mechanism-screen output. 570 files / 104.7 MiB were tracked here until
+# 2026-08-12; they are archived out-of-tree, checksum-verified, and remain
+# in this repository's history (`git log -- workloads/svcs/screen/`).
+# `tools/screen_workload.py` writes new batches here by default, so without
+# this entry the corpus would be re-committed a batch at a time. See
+# docs/evidence-index.md for where the archive lives.
+workloads/svcs/screen/
+
 # Runtime state Pi writes into the harness-owned agent dir. Everything the
 # harness *owns* there is listed explicitly above it in git; anything Pi
 # creates at startup (an empty auth.json, sessions, caches) is not ours and
