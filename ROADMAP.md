@@ -252,6 +252,7 @@ defaulted.
 | 5 | The improvement loop | Make an improvement a named artifact the harness digests, then run the loop once end to end — what orchestration costs on a saturated workload, what it buys on one with headroom — and finish pointed at something installable | complete |
 | 6 | Enforcement over persuasion | One at a time, add a guard to the extension, each drawn from prior experience and each proven against a recorded failure before it ships | complete; the guard harness shipped, but the candidate well was overtaken by Phase 7's re-plan and the mutation engine absorbed the enforcement job — see "Now" |
 | 7 | Workload first, envelope to candidate commit | Credible evidence for a small local model doing routine, pre-chewed coding work, and the smallest useful repository-safe executor: task → typed handoff → bounded implementer → validated candidate ref | in progress — the current phase; [execution plan](docs/superpowers/plans/2026-08-09-phase7-workload-first-roadmap.md) |
+| 8 | An eval you can type, not one you paste | Give the harness a documented entry point — a small, stdlib-only CLI (names not symbols, friendly preflight, a checkpoint summary) — and move the why/what/how into `docs/evals.md` | planned |
 
 
 **Phase 7 — Workload first, envelope to candidate commit. In progress; the
@@ -289,6 +290,28 @@ generally (one task of four discriminated), that the typed bridge is a
 planner (it is scoped to exactly four tasks and refuses the rest at the
 CLI), or anything about wall-clock cost.
 
+**Phase 8 — An eval you can type, not one you paste. Planned.** Every number
+this project publishes was produced by `run_suite` and `run_batch`, and the
+only interface to them is Python: the `AGENTCLINIC_PHASE_1_USER_STORY`
+constant, the `tech_stack_only()` factory, a `pathlib.Path.home() /
+'evidence' / …` default. A contributor who wants to check a technique must
+read `harness/runner.py` to reconstruct the invocation; there is no
+`--help`, no way to discover what suites or improvements exist, and a dead
+server or wrong Pi version surfaces as a traceback. The machinery is done —
+this phase is about the entry point. It replaces that friction with a small,
+stdlib-only command, `uv run python -m harness.cli`, with one subcommand per
+step of the workflow (`one`, `batch`, `preflight`, `summarize`), suites and
+improvements addressed by name rather than symbol, and failures that say
+what to fix.
+
+Three things it deliberately does **not** do. It adds **no dependency** —
+`argparse` ships with Python, so there is nothing to install and nothing to
+version-pin. It is **not a manifest and not a Makefile** — the `Improvement`
+docstring already names the cycle that adds a manifest if one is ever
+needed, and the Justfile is this machine's unrelated local tooling, not a
+pattern to extend. And it does **not automate comparison** — `summarize`
+reports what a checkpoint holds and compares nothing, keeping the "one
+improvement at a time, comparison by hand" binding intact.
 
 ### Phase 6 feature cycles
 
@@ -325,6 +348,16 @@ arm had — a *capability*, not an information leak, which is why redacting
 failure text would not fix it. `grade()` already backs this structurally by
 copying allowlisted paths out to a fresh directory, so the acceptance file is
 never in the workspace during a run.
+
+### Phase 8 feature cycles
+
+| Cycle | Summary | State |
+|-------|---------|-------|
+| 1 | **Name registries** — `SUITES` and `IMPROVEMENTS` dicts in `harness/runner.py` keyed by short name (`agentclinic-phase-1`, `user-story`, `duration`, `tech-stack-only`, …), so a name rather than a symbol addresses a suite or improvement. The mild step short of a manifest, which the `Improvement` docstring already parks ("that is the cycle that adds the manifest"). Tests: every registry entry resolves; names are unique and stable. | Planned |
+| 2 | **The CLI** — `harness/cli.py`, run as `uv run python -m harness.cli`, stdlib `argparse`. Subcommands `one`, `batch`, `preflight`, plus `suites` and `improvements` for discovery; flags `--suite`, `--target`, `--improvement`, `--checkpoint` (default `~/evidence/<suite>-<date>.jsonl`). `--help` is the documentation. Serves the exact contract the README documents; comparison stays manual. | Planned |
+| 3 | **Friendly preflight** — `one` and `batch` run `check_model_server_alive()` and the Pi-version check up front, printing a human sentence with the fix (`omlx start`; `docs/setup.md`) instead of a raw traceback. The harness already refuses; the CLI translates. | Planned |
+| 4 | **`summarize`** — `harness.cli summarize <checkpoint.jsonl>` prints accepted/total and the grade breakdown via `load_checkpoint`. A summary is not a comparison; only read. | Planned |
+| 5 | **Documentation** — give the harness a documented entry point in the README (one-liners for `one` and `batch`), and start `docs/evals.md` as the longer treatment: why measure, what a run/batch/improvement/checkpoint is, how to run each, and the three things that will bite you, moved out of the README and given room. | Planned |
 
 ### Deferred candidates
 
