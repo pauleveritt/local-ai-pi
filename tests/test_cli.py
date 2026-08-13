@@ -5,7 +5,10 @@ Cycles 2-4. Hermetic: nothing here invokes Pi or a model. `run_suite` and
 liveness/version checks are stubbed in the cycle-3 tests.
 """
 
+import json
+from dataclasses import asdict
 from datetime import date
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -48,6 +51,11 @@ def _result(
         pi_timed_out=pi_timed_out,
         conditions=conditions if conditions is not None else make_conditions(),
     )
+
+
+def _write_checkpoint(path: Path, results: list[RunResult]) -> None:
+    """Write records the same way append_checkpoint would."""
+    path.write_text("\n".join(json.dumps(asdict(result)) for result in results) + "\n")
 
 
 def test_help_lists_the_cli_subcommands(capsys):
@@ -259,3 +267,57 @@ def test_preflight_reports_a_dead_server(monkeypatch, capsys):
     assert cli.main(["preflight"]) == 2
     out = capsys.readouterr().out
     assert "model server: DOWN" in out
+
+
+def test_help_lists_all_six_subcommands(capsys):
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main(["--help"])
+    assert excinfo.value.code == 0
+    out = capsys.readouterr().out
+    for name in (
+        "one",
+        "batch",
+        "preflight",
+        "suites",
+        "improvements",
+        "summarize",
+    ):
+        assert name in out
+
+
+def test_summarize_prints_conditions_acceptance_and_rejections(capsys, tmp_path):
+    path = tmp_path / "checkpoint.jsonl"
+    records = [
+        _result(
+            accepted=True,
+            conditions=make_conditions(
+                model="m", improvement_name="none", pi_version="0.84.1"
+            ),
+        ),
+        _result(accepted=False, refused_config=("pyproject.toml",)),
+        _result(accepted=False, timed_out=True, pi_timed_out=True),
+    ]
+    _write_checkpoint(path, records)
+    assert cli.main(["summarize", str(path)]) == 0
+    out = capsys.readouterr().out
+    assert "runs:       3" in out
+    assert "accepted:   1" in out
+    assert "conditions: model=m  improvement=none  pi=0.84.1" in out
+    assert "2   refused_config=pyproject.toml" in out
+    assert "3   timed_out" in out
+
+
+def test_summarize_reports_a_missing_checkpoint(capsys, tmp_path):
+    missing = tmp_path / "nope.jsonl"
+    assert cli.main(["summarize", str(missing)]) == 2
+    err = capsys.readouterr().err
+    assert "no such checkpoint" in err
+    assert "Traceback" not in err
+
+
+def test_summarize_reads_an_empty_checkpoint(capsys, tmp_path):
+    path = tmp_path / "empty.jsonl"
+    path.write_text("")
+    assert cli.main(["summarize", str(path)]) == 0
+    out = capsys.readouterr().out
+    assert "runs:       0" in out

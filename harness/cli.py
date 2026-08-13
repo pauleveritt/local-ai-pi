@@ -25,6 +25,7 @@ from collections.abc import Sequence
 from datetime import date
 from pathlib import Path
 
+from harness.checkpoint import load_checkpoint
 from harness.liveness import ModelServerDown, check_model_server_alive
 from harness.pi_invocation import DEFAULT_MODEL
 from harness.runner import (
@@ -162,6 +163,42 @@ def _cmd_preflight(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
+def _cmd_summarize(args: argparse.Namespace) -> int:
+    path = args.checkpoint
+    if not path.is_file():
+        print(f"refused: no such checkpoint: {path}", file=sys.stderr)
+        return EXIT_REFUSED
+    results = load_checkpoint(path)
+    print(f"file:       {path}")
+    if not results:
+        print("runs:       0")
+        return EXIT_OK
+    conditions = results[0].conditions
+    if conditions is None:
+        print("conditions: <none recorded>")
+    else:
+        print(
+            "conditions: "
+            f"model={conditions.model}  "
+            f"improvement={conditions.improvement_name}  "
+            f"pi={conditions.pi_version}"
+        )
+    print(f"runs:       {len(results)}")
+    accepted = sum(1 for result in results if result.accepted)
+    print(f"accepted:   {accepted}")
+    rejected = [
+        (index, result)
+        for index, result in enumerate(results, start=1)
+        if not result.accepted
+    ]
+    if rejected:
+        print()
+        print("rejected:")
+        for index, result in rejected:
+            print(f"  {index:<3} {', '.join(_rejection_reasons(result))}")
+    return EXIT_OK
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="harness.cli", description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -201,6 +238,13 @@ def _build_parser() -> argparse.ArgumentParser:
         "preflight", help="check the model server and the pinned Pi version"
     )
     preflight.set_defaults(func=_cmd_preflight)
+
+    summarize = subparsers.add_parser(
+        "summarize",
+        help="summarize a checkpoint; reads it and compares nothing",
+    )
+    summarize.add_argument("checkpoint", type=Path)
+    summarize.set_defaults(func=_cmd_summarize)
 
     return parser
 
