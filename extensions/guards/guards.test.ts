@@ -20,6 +20,8 @@
 
 import { describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { callKey, createLoopBreaker, THRESHOLD, WINDOW } from "./loop-breaker";
 import { createPreserveSymbols, symbolsIn } from "./preserve-symbols";
 import type { ToolCall } from "./types";
@@ -206,5 +208,139 @@ describe("the two loop-breaker artifacts", () => {
 		);
 		expect(replay).toContain('".pi/extensions/loop-breaker.ts"');
 		expect(replay).not.toContain("extensions/guards/loop-breaker.ts\"");
+	});
+});
+
+// The engine bundle artifact -- the installable one-file extension.
+//
+//   .pi/extensions/engine.ts   a self-contained Pi extension bundling
+//       both guards behind one default factory. Imports nothing local,
+//       so README's install is `cp` of this one file. It reuses the
+//       two guard sources verbatim, so these tests pin the copy against
+//       them -- the same drift protection the "two loop-breaker
+//       artifacts" block gives the standalone loop breaker.
+const ENGINE = new URL("../../.pi/extensions/engine.ts", import.meta.url);
+const ENGINE_SOURCE = await readFile(ENGINE, "utf8");
+const engineModule = await import(pathToFileURL(fileURLToPath(ENGINE)));
+
+const loopFixture = { toolName: "bash", input: { command: "ls -R" } };
+function fakePi() {
+	const handlers = new Map<string, (event: any) => unknown>();
+	const entries: Array<[string, unknown]> = [];
+	const pi = {
+		on: (event: string, handler: (event: any) => unknown) => {
+			handlers.set(event, handler);
+		},
+		appendEntry: (kind: string, data: unknown) => {
+			entries.push([kind, data]);
+		},
+	} as any;
+	return { pi, handlers, entries };
+}
+
+describe("the engine bundle artifact", () => {
+	// The exact payload the model sent in the three failing preservation
+	// runs, reduced to its edits array (copied verbatim from the
+	// "preserve-symbols" block above, which scopes its copy to itself).
+	const destructive = {
+		toolName: "edit",
+		input: {
+			path: "app.py",
+			edits: [
+				{
+					oldText:
+						'@app.get("/about", response_class=HTMLResponse)\ndef about(request: Request):\n    return templates.TemplateResponse(\n        "about.html", {"request": request, "title": "About"}\n    )',
+					newText:
+						'@app.get("/contact", response_class=HTMLResponse)\ndef contact(request: Request):\n    return templates.TemplateResponse(\n        "contact.html", {"request": request, "title": "Contact"}\n    )',
+				},
+			],
+		},
+	};
+
+	// The nav edit every run made, including the one that passed. Adds a
+	// link and keeps both existing ones. Nothing is deleted.
+	const additive = {
+		toolName: "edit",
+		input: {
+			path: "templates/base.html",
+			edits: [
+				{
+					oldText: '    <a href="/">Home</a>\n    <a href="/about">About</a>',
+					newText:
+						'    <a href="/">Home</a>\n    <a href="/about">About</a>\n    <a href="/contact">Contact</a>',
+				},
+			],
+		},
+	};
+
+	test("the artifact stays free of local imports", () => {
+		// The property that makes `cp` a complete install. A relative
+		// import here would break the one-file install without breaking
+		// any other test.
+		const localImports = ENGINE_SOURCE
+			.split("\n")
+			.filter((line) => /^import\s/.test(line) && /["']\.{1,2}\//.test(line));
+		expect(localImports).toEqual([]);
+	});
+
+	test("the artifact's constants agree with the Guard sources", () => {
+		// If these diverge, an installed copy refuses at a different point
+		// than the measured Guard.
+		expect(engineModule.WINDOW).toBe(WINDOW);
+		expect(engineModule.THRESHOLD).toBe(THRESHOLD);
+	});
+
+	test("the artifact's loop breaker fires on the repeated call and reasons like the Guard", () => {
+		const source = createLoopBreaker();
+		const artifact = engineModule.createLoopBreaker();
+		for (let i = 0; i < 5; i++) {
+			expect(source.inspect(loopFixture)).toBeUndefined();
+			expect(artifact.inspect(loopFixture)).toBeUndefined();
+		}
+		const sourceDecision = source.inspect(loopFixture);
+		const artifactDecision = artifact.inspect(loopFixture);
+		expect(sourceDecision?.block).toBe(true);
+		expect(artifactDecision?.block).toBe(true);
+		expect(artifactDecision?.reason).toBe(sourceDecision?.reason);
+	});
+
+	test("the artifact's preserve-symbols fires on the recorded destructive edit and stays silent on the additive edit", () => {
+		const source = createPreserveSymbols();
+		const artifact = engineModule.createPreserveSymbols();
+		const sourceDecision = source.inspect(destructive);
+		const artifactDecision = artifact.inspect(destructive);
+		expect(sourceDecision?.block).toBe(true);
+		expect(artifactDecision?.block).toBe(true);
+		expect(artifactDecision?.entry.data.deleted).toEqual(["function:about", "route:/about"]);
+		expect(artifactDecision?.reason).toBe(sourceDecision?.reason);
+		expect(artifact.inspect(additive)).toBeUndefined();
+	});
+
+	test("the default export registers both guards on tool_call", async () => {
+		const first = fakePi();
+		engineModule.default(first.pi);
+		expect(first.handlers.has("tool_call")).toBe(true);
+
+		// loop-breaker: five admitted calls, then the sixth is refused.
+		const loopRun = fakePi();
+		engineModule.default(loopRun.pi);
+		const loopHandler = loopRun.handlers.get("tool_call")!;
+		for (let i = 0; i < 5; i++) {
+			expect(await loopHandler(loopFixture)).toBeUndefined();
+		}
+		const blocked: any = await loopHandler(loopFixture);
+		expect(blocked?.block).toBe(true);
+		expect(blocked?.reason).toContain("You have already run this exact bash call");
+		expect(loopRun.entries.length).toBe(1);
+		expect(loopRun.entries[0][0]).toBe("loop_broken");
+
+		// preserve-symbols: the destructive edit is refused.
+		const symbolRun = fakePi();
+		engineModule.default(symbolRun.pi);
+		const symbolHandler = symbolRun.handlers.get("tool_call")!;
+		const refused: any = await symbolHandler(destructive);
+		expect(refused?.block).toBe(true);
+		expect(symbolRun.entries.length).toBe(1);
+		expect(symbolRun.entries[0][0]).toBe("symbol_preserved");
 	});
 });
