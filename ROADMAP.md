@@ -330,8 +330,9 @@ without on a suite, indexed as pilot.
 [spec](docs/superpowers/specs/2026-08-13-phase9-engine-onboarding-design.md)
 
 Three things it deliberately does **not** do. It adds **no dependency** and
-**no new guard** — the bundle ships what exists, and bun (already in the
-repo) produces it. It does **not** touch the executor —
+**no new guard** — Pi loads extensions through jiti (no compile step), so
+the bundle is a self-contained file with no bundler, and it ships the two
+guards that already exist. It does **not** touch the executor —
 `deliver_candidate`'s digest-pinned closure and its tests stay as they
 are, and bundling the bounded implementer into `engine.ts` is deferred to
 the npm-packaging effort that will follow. And it is **not** the eval CLI
@@ -388,7 +389,7 @@ never in the workspace during a run.
 
 | Cycle | Summary | State |
 |-------|---------|-------|
-| 1 | **The bundle** — `extensions/guards/{loop-breaker,preserve-symbols,types}.ts` bundled by `bun build` into one self-contained `.pi/extensions/engine.ts`, one-file user-scope install, guard sources untouched. Replay fixtures drive the shipped bundle (fires on the 261-turn loop, silent on a clean run); a drift test pins the install instructions; `deliver_candidate`'s closure and tests stay green. | Planned |
+| 1 | **The bundle** — one self-contained `.pi/extensions/engine.ts`: the two guards' policy plus a thin adapter registering both on `tool_call`, one-file user-scope install (`cp .pi/extensions/engine.ts ~/.pi/agent/extensions/`), guard sources untouched. Pinned against the sources by test (constants and refusal text agree; the file stays free of local imports) and driven against the recorded loop and destructive-edit fixtures; a drift test pins the install instructions; `deliver_candidate`'s closure and tests stay green. | Planned |
 | 2 | **README restructure** — four parts: why; the engine (minimal install, everyday steering, executor one-liner); the shared setup section (uv, ruff/pyrefly/pytest, local model/server, pointing at `docs/setup.md`); the evals (what exists today, not pre-empting Phase 8). `docs/index.md` gains the matching engine link and toctree. | Planned |
 | 3 | **`docs/engine/`** — `index.md` (why/how/what, the two faces, where to go next) and `architecture.md` (problems being solved, guards as pure decisions, the bounded implementer underneath); cross-links to `loop-breaker.md`, `setup.md`, `evidence-index.md`. Quoted constants get the `test_loop_breaker_doc.py` drift treatment. | Planned |
 | 4 | **The shootout pilot** — a small hermetic harness seam loads `engine.ts` into `run_suite` (extension-only `Improvement` or `extensions=`), one suite chosen with the owner, 4–6 attempts per arm, with-engine versus without. Write-up in `docs/engine/shootout.md`, labeled pilot, indexed in `evidence-index.md`; no pooling; a defect is fixed and rerun, a disappointing number recorded honestly. | Planned |

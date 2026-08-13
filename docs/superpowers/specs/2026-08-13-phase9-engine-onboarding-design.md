@@ -41,10 +41,14 @@ one pilot comparison behind the pitch.
   `preserve-symbols`. The candidate well (turn budgets, tool-output limits,
   churn breakers, …) stays in the backlog.
 - **Not the caps.** `author-cap`, `envelope-cap`, `probe-cap`,
-  `proposal-limit` are research calibration for screening arms — named only
-  by `tools/screen_workload.py`, `tools/replicate.py`, and
-  `tools/build_export.py`, which deliberately does **not** carry them into
-  the export. They are not everyday product and are not in the user bundle.
+  `proposal-limit` are research calibration for the screening and
+  replication arms — named only by that machinery
+  (`tools/screen_workload.py`, `tools/replicate.py`, `harness/screen.py`,
+  `harness/cell_resolution.py`) and its tests. `tools/build_export.py`
+  carries only `probe-cap` (because `cell_resolution.py` names it for
+  bare-envelope screening) and deliberately excludes `author-cap`,
+  `envelope-cap`, and `proposal-limit`. They are not everyday product and
+  are not in the user bundle.
 - **Not the eval CLI.** Phase 8 (the `harness.cli` registries and
   subcommands, `docs/evals.md`) is a separate effort. This phase's README
   eval section documents what exists today and does not pre-empt Phase 8;
@@ -62,9 +66,10 @@ that deletes a public symbol). The caps stay research-only.
 
 **D2 — Interim install: one self-contained file.** `engine.ts` is a single
 file the user copies into `~/.pi/agent/extensions/`, matching the loop
-breaker's existing 2-minute story. Two files are acceptable only if a
-loader constraint demands it (e.g., Pi's runtime cannot load a bundled
-file and needs the types split out). Placement is user-scope, because a
+breaker's existing 2-minute story. Pi loads extensions through jiti —
+TypeScript runs without a compile step — and supports a single file or a
+directory with an `index.ts` entry point; a single file is the choice for
+this phase, not a loader requirement. Placement is user-scope, because a
 delegated child loads user-scope extensions but not project ones — the
 documented gotcha the loop-breaker page already teaches.
 
@@ -88,41 +93,51 @@ the engine and the evals, so they sit in their own README section outside
 the engine and eval sections, and the long form stays in `docs/setup.md`.
 
 **D6 — No new dependencies, no new guards, no manifest.** Nothing is added
-to `pyproject.toml`; bun (already in the repo) is the bundler. No
-manifest, no Makefile/Justfile target, no comparison automation — those
-are Phase 8's and the backlog's territory.
+to `pyproject.toml`; Pi loads extensions through jiti, so there is no
+bundler and no compile step. No manifest, no Makefile/Justfile target, no
+comparison automation — those are Phase 8's and the backlog's territory.
 
 ## Section 1 — The engine bundle (`engine.ts`)
 
-The two guards are pure decision functions over tool calls. Their only
-imports are type-only (`./types`, the Pi SDK), so they bundle cleanly; the
-installed loop breaker already proves the one-file pattern — it
-self-registers on `pi.on("tool_call")` and has no runtime imports.
+The two guards are pure decision functions over tool calls with no runtime
+imports (`./types` and the Pi SDK are type-only), so a single
+self-contained file is enough. Pi loads extensions through jiti —
+TypeScript runs without a compile step — and the installed loop breaker
+already proves the one-file pattern: `.pi/extensions/loop-breaker.ts` is a
+self-contained extension that registers on `pi.on("tool_call")`.
 
-Deliverable: a checked-in installable bundle at
-`.pi/extensions/engine.ts` — the same location the loop-breaker install
-copy lives in today — produced by bundling the guard sources
-(`extensions/guards/loop-breaker.ts` + `extensions/guards/preserve-symbols.ts`
-+ their types) with `bun build`, keeping the type-only SDK import and the
-self-registration. The install command in the README then reads
-`cp .pi/extensions/engine.ts ~/.pi/agent/extensions/`, one line, exactly the
-loop-breaker pattern. Bundling the sources, not reimplementing them, is
-mandatory: the guard philosophy (`types.ts` docstring) is that a second
-implementation of a guard policy can diverge with no test noticing. The
-bundle is the shipped artifact and is driven by the same replay fixtures as
-the sources.
+Deliverable: a checked-in installable `.pi/extensions/engine.ts` — the same
+location the loop-breaker install copy lives in today. It is a
+self-contained extension: the two guards' policy plus a thin adapter that
+registers both on `tool_call`. Because it inlines the policy rather than
+importing the guard sources, it is a *second copy*, and is therefore
+pinned against the sources — the exact "two artifacts" discipline the repo
+already applies to the loop breaker (`guards.test.ts` pins that the
+standalone and the `Guard` agree on `WINDOW`/`THRESHOLD`, and that the
+standalone stays free of local imports; `tools/replay_guards.mjs` drives
+the standalone install copy against the recorded transcripts). The adapter
+is the registration boundary `types.ts` names as replay-uncovered and
+proven by a live smoke — not a second policy.
 
 The guard sources stay in place. `tools/deliver_candidate.py`'s
 `IMPLEMENTER_EXTENSION_CLOSURE` and its digest-pinned tests are untouched;
 `deliver_candidate` keeps loading the closure it pins today.
 
-**Install verification (hermetic):** the repo already has a test seam for a
-fresh agent dir (`tests/test_agent_dir.py`, `PI_CODING_AGENT_DIR`). The
-cycle's tests prove the bundle fires on the recorded loop fixture and
-stays silent on a clean accepted run — the same two fixtures
-`guards.test.ts` already replays — and that the install instructions in
-the README and `docs/engine/` stay in lockstep with the artifact (the
-`tests/test_loop_breaker_doc.py` pattern).
+The install command in the README reads
+`cp .pi/extensions/engine.ts ~/.pi/agent/extensions/`, one line, the loop
+breaker's pattern. (Pi also supports a directory with an `index.ts` entry
+point — the no-duplication alternative the npm package will eventually own
+cleanly; this phase ships the single file.)
+
+**Verification (hermetic):** the cycle's tests pin
+`.pi/extensions/engine.ts` against the guard sources (constants and refusal
+text agree; the file stays free of local imports), drive the artifact
+against the recorded loop and destructive-edit fixtures (the
+`guards.test.ts` + `tools/replay_guards.mjs` patterns, extended to both
+guards), and model a live load on `tests/test_extensions.py` (loads the
+artifact under an installed Pi, skips when Pi is absent). The install
+instructions in the README and `docs/engine/` stay in lockstep with the
+artifact (the `tests/test_loop_breaker_doc.py` pattern).
 
 ## Section 2 — README restructure
 
@@ -204,13 +219,17 @@ existing loop-breaker evidence stands alone.
 Hermetic throughout; no live model, no Pi, no network.
 
 - **Bundle (cycle 1):** existing guard tests keep passing
-  (`bun test extensions/`, `tests/test_extensions.py`); a test drives the
-  shipped bundle against the recorded loop fixture (fires) and a clean
-  accepted run (silent) — the `guards.test.ts` replay pattern applied to
-  the bundle; a drift test pins the install instructions and quoted
-  constants (`test_loop_breaker_doc.py` pattern, extended to the README
-  engine section and `docs/engine/`); `deliver_candidate`'s closure tests
-  stay green.
+  (`bun test extensions/`, `tests/test_extensions.py`); new tests pin
+  `.pi/extensions/engine.ts` against the guard sources (constants and
+  refusal text agree; the file stays free of local imports — the
+  `guards.test.ts` "two artifacts" pattern extended to both guards), drive
+  the artifact against the recorded loop and destructive-edit fixtures
+  (fires where the sources fire, silent where they stay silent), and model
+  a live load on `tests/test_extensions.py` (skips without Pi); a drift
+  test pins the install instructions and quoted constants
+  (`test_loop_breaker_doc.py` pattern, extended to the README engine
+  section and `docs/engine/`); `deliver_candidate`'s closure tests stay
+  green.
 - **README and `docs/engine/` (cycles 2–3):** Sphinx builds clean under
   `-W`; links resolve; drift tests green.
 - **Shootout (cycle 4):** a hermetic test proves the seam resolves the
@@ -220,8 +239,8 @@ Hermetic throughout; no live model, no Pi, no network.
 
 ## Constraints and norms
 
-- **No new dependencies.** Nothing added to `pyproject.toml`; bun is
-  already in the repo.
+- **No new dependencies.** Nothing added to `pyproject.toml`; jiti (Pi's
+  loader) does the rest — no bundler, no compile step.
 - **No new guards; no executor changes.** The bundle ships what exists;
   `deliver_candidate`'s closure, cell machinery, and tests are untouched.
 - **Phase 8 seams respected.** No registry/CLI work here; if Phase 8 lands
@@ -235,7 +254,8 @@ Hermetic throughout; no live model, no Pi, no network.
   then four cycle commits, one per cycle, test-first, messages in repo
   style (`feat(phase9): …`, `docs(phase9): …`).
 - **Verify, don't assert.** Measured claims are tested or recorded, never
-  asserted; the friendly-install claim is proven against a fresh agent dir.
+  asserted; the one-copy install claim is proven by the live-load and
+  drift tests, not asserted.
 
 ## Definition of done
 
@@ -244,8 +264,8 @@ Hermetic throughout; no live model, no Pi, no network.
   the local model/server via the shared setup section; (c) run an eval;
   and (d) read an honest pilot number for with-engine versus without in
   `docs/engine/shootout.md`.
-- `extensions/engine.ts` exists, is self-contained, is checked in, fires
-  on the recorded loop fixture, and stays silent on a clean run.
+- `.pi/extensions/engine.ts` exists, is self-contained, is checked in,
+  fires on the recorded loop fixture, and stays silent on a clean run.
 - The README has the four parts, `docs/engine/` exists with index and
   architecture, and both front doors (README and `docs/index.md`) agree on
   the product path.
