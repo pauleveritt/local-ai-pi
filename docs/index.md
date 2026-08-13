@@ -39,6 +39,8 @@ for the full statement — it's short, and it's the whole context.
 Two things, independent of each other. You can take either without the
 other, and neither needs the rest of this project.
 
+**The engine** — why/how/what, in `engine/index.md`.
+
 **A [loop breaker](loop-breaker.md) for your own Pi sessions.** One file,
 copied into place. It refuses a tool call the model has already made,
 unchanged, several times in a row. It came out of a recorded run of 261
@@ -120,6 +122,14 @@ setup
 contributing
 glossary
 loop-breaker
+```
+
+```{toctree}
+:maxdepth: 1
+:caption: The engine
+
+engine/index
+engine/architecture
 ```
 
 ```{toctree}
