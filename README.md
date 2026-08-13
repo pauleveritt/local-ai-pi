@@ -8,20 +8,26 @@ is small, routine, and much more like engineering — which makes the
 interesting question not *is it magic* but *did that technique actually
 help?*
 
-This project's answer is to measure, carefully, and to write down what
-the measurement does **not** show.
+Agent Engine is two parts:
 
-## What you can use today
+- A Pi extension to help steer small models by tackling their common problems
+- An eval harness, to find those problems and see if you tackled them
 
-Two things, and they're independent — you can take either without the other.
+## Pi extension
 
-**A loop breaker for your own Pi sessions.** One file, copied into place.
+We are building an Agent Engine as a Pi extension. As we discover evidence and 
+fix issues, we fix them in the extension. Python developers can then install 
+the extension and have a good experience with small models.
+
+It's early, here's what we have so far:
+
+- **A loop breaker for your own Pi sessions.** One file, copied into place.
 It refuses a tool call the model has already made, unchanged, several
 times in a row. It came out of a recorded run of 261 turns, 245 of them
 the identical `ls -R` against an empty directory.
 → [Install it](#install-the-loop-breaker) (2 minutes, needs nothing else here)
 
-**A bounded executor for your own repository.** It runs a model once
+- **A bounded executor for your own repository.** It runs a model once
 against your repo in a throwaway git worktree, checks the result with a
 command *you* declare, and leaves either a git ref you can review or a
 receipt explaining why not. Your working tree is never written to.
@@ -103,6 +109,9 @@ holds `--target` of them (default 16). `suites` and `improvements` list
 what exists, `preflight` checks the model server and the pinned Pi version,
 and `summarize <checkpoint.jsonl>` reads a checkpoint without comparing
 anything — comparison stays manual. `--help` is the documentation.
+
+Both need Pi and a model server running — [setup.md](docs/setup.md) Part 2
+gets you there, and `preflight` is the fast readiness check.
 
 What a run, batch, improvement, and checkpoint are — and the three things
 that will bite you — is in [evals.md](docs/evals.md).

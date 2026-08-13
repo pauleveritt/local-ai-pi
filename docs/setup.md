@@ -157,6 +157,18 @@ This explicitly opts into invoking `pi` against a real model and grading the
 result. It takes a minute or so. A passing result is evidence that the live
 path worked; without `SATYRN_LIVE=1`, the test deliberately skips.
 
+Or, with the CLI the harness ships:
+
+```bash
+uv run python -m harness.cli preflight
+uv run python -m harness.cli one --suite duration
+```
+
+`preflight` reports the model server and the pinned Pi version and says what
+to fix if either is wrong; `one --suite duration` runs the smallest suite
+once. The longer treatment of what these commands do — and what a run,
+batch, improvement, and checkpoint are — is in [evals.md](evals.md).
+
 ## Editor notes
 
 Nothing is required, but if you're configuring one: point it at

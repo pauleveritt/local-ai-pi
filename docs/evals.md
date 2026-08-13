@@ -5,6 +5,16 @@ model (Pi driving oMLX) is given a task, its workspace is graded against a
 fixed acceptance contract, and the verdict is recorded. The one-liners are
 in the [README](https://github.com/pauleveritt/local-ai-pi/blob/main/README.md); this page is the longer treatment.
 
+## Before you start
+
+An eval needs Pi and a model server up before anything runs. Getting both
+is [setup.md](setup.md) Part 2's job: Pi (pinned 0.84.1) and oMLX serving
+the reference model on `127.0.0.1:8001`. The fast check that everything is
+in place is `uv run python -m harness.cli preflight` — it reports the
+server and the Pi version, and says what to fix if either is wrong. A
+single `one` run needs a working `pi` and the server; a `batch` also pins
+the Pi version, so runs stay comparable between contributors.
+
 ## Why measure
 
 Small models are stochastic. A single run tells you almost nothing — the
@@ -48,6 +58,17 @@ uv run python -m harness.cli one --suite duration
 uv run python -m harness.cli batch --suite duration --improvement tech-stack-only
 uv run python -m harness.cli summarize ~/evidence/duration-2026-08-13.jsonl
 ```
+
+The three suites you can run:
+
+- `duration` — the cheapest eval: write one function (`parse_duration`) and
+  have it pass a small contract. Start here.
+- `agentclinic-phase-1` — the flagship: build a FastAPI + Jinja2 web app
+  from a roadmap, graded against the full acceptance contract.
+- `user-story` — the same application and contract as `agentclinic-phase-1`,
+  but the task is described as user-facing outcomes rather than
+  implementation steps. The two are a comparison pair: the description
+  varies and nothing else.
 
 `--help` on any subcommand is the documentation. Exit codes follow the
 project's convention: 0 the command completed its purpose, 2 refused before
