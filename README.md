@@ -88,6 +88,25 @@ That's the bare form — your prompt, your validation command. The
 evidenced path underneath it is more bounded than this; see
 [architecture.md](docs/architecture.md) when you want it.
 
+## Run an eval
+
+The harness that produced the evidence below is driven by a small command —
+suites and improvements by name, not Python constants:
+
+```bash
+uv run python -m harness.cli one --suite duration
+uv run python -m harness.cli batch --suite duration --improvement tech-stack-only
+```
+
+`one` runs a single attempt; `batch` runs attempts until the checkpoint
+holds `--target` of them (default 16). `suites` and `improvements` list
+what exists, `preflight` checks the model server and the pinned Pi version,
+and `summarize <checkpoint.jsonl>` reads a checkpoint without comparing
+anything — comparison stays manual. `--help` is the documentation.
+
+What a run, batch, improvement, and checkpoint are — and the three things
+that will bite you — is in [evals.md](docs/evals.md).
+
 ## What the evidence actually says
 
 One pre-registered comparison, 64 attempts, run 2026-08-11: does giving
@@ -129,6 +148,7 @@ answers.
 | Contribute — commands, conventions, starter tasks | [contributing.md](docs/contributing.md) |
 | Look up a term | [glossary.md](docs/glossary.md) |
 | Check what backs a claim | [evidence-index.md](docs/evidence-index.md) |
+| Run an eval | [evals.md](docs/evals.md) |
 | Read the full research history | [ROADMAP.md](ROADMAP.md), [BRIEF.md](BRIEF.md), [the design record](docs/superpowers/index.md) — all historical |
 
 ## How this project works

@@ -120,6 +120,7 @@ setup
 contributing
 glossary
 loop-breaker
+evals
 ```
 
 ```{toctree}
