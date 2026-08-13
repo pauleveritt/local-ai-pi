@@ -73,6 +73,18 @@ are only [pilot](glossary.md#pilot) is written down, claim by claim, in the
 retracted over this project's life, both recorded with banners rather than
 edited away.
 
+## What's still experimental
+
+The bounded executor's bare form — your prompt, your validation command —
+is general. The *evidenced* path underneath it is not: the typed-contract
+bridge is scoped to exactly four tasks and refuses the rest at the command
+line rather than guessing. It's a tested bridge, not a planner.
+
+And the fourth task above sits at a genuine capability ceiling. That's a
+real limit rather than a harness bug — we checked, because a
+similar-looking result once turned out to be our own validation gate
+rejecting correct answers.
+
 ## Where things stand
 
 **Phases 1–5 built the measurement half** — a grading engine that runs a

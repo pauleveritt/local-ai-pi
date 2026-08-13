@@ -34,8 +34,8 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const extensionPath = resolve(root, ".pi/extensions/loop-breaker.ts");
 const { default: guards } = await import(pathToFileURL(extensionPath));
 
-function loadFixture(path) {
-	return JSON.parse(path);
+function loadFixture(contents) {
+	return JSON.parse(contents);
 }
 
 async function replay(fixture) {

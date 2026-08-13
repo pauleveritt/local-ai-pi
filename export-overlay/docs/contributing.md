@@ -27,7 +27,7 @@ the cheapest evidence here to reproduce. `bun test` covers the `Guard`
 the bounded implementer uses; the replay covers
 `.pi/extensions/loop-breaker.ts`, the standalone file `cp` installs.
 
-Both suites are hermetic — no model server. One Python test is opt-in behind
+All three are hermetic — no model server. One Python test is opt-in behind
 `SATYRN_LIVE=1`; everything else needs nothing live.
 
 Run one file the normal way:

@@ -402,34 +402,31 @@ def build(out: Path) -> None:
     # passes: decide the tests without fixtures available, then add back
     # only what those tests name.
     tests, rejected = keepable_tests(code, data)
-    # A fixture comes along when a kept test names it: by file name (those
-    # are distinctive), or under a directory the test names as a path.
+    # A fixture comes along when a kept test names its file name. Those are
+    # distinctive enough to match on; bare *directory* names are not, and
+    # matching on them was a real bug -- merging `main` added
+    # `tests/fixtures/guards/`, the word "guards" appears in unrelated test
+    # sources, and six JSON files shipped into the export with nothing in
+    # it that read them.
     #
-    # The earlier rule also matched the fixture's *bare parent directory
-    # name* anywhere in a test's source. That is far too loose: merging
-    # `main` added `tests/fixtures/guards/`, and the word "guards" appears
-    # in unrelated test sources, so six JSON files shipped into the export
-    # with nothing in it that reads them. Directory matches now require a
-    # real path.
-    named: set[str] = set()
-    for t in sorted(tests):
-        named |= path_literals(REPO / t)
-    sources = {t: (REPO / t).read_text() for t in tests}
-
-    def under_named_dir(rel: str) -> bool:
-        return any(
-            rel == literal or rel.startswith(literal.rstrip("/") + "/")
-            for literal in named
-        )
-
+    # Matching on a directory *path* instead would be sound but is dead
+    # code, so it is not here. `keepable_tests` above already rejects any
+    # test naming a rooted path absent from `available`, and fixtures are
+    # not in `available` during that pass -- so a kept test can only name a
+    # `tests/fixtures/...` path that `data` already carries, and re-adding
+    # it selects nothing. Verified: no test in the current export names one.
+    #
+    # Known limitation, no current instance: a test that reaches its
+    # fixtures unrooted (`Path(__file__).parent / "fixtures" / x`) and then
+    # globs them is kept, because `path_literals` only records paths under
+    # a known top-level root. Its fixtures would be dropped and the glob
+    # would find nothing -- a vacuous pass rather than a loud failure. If
+    # that ever gets written, name the fixture files.
+    sources = [(REPO / t).read_text() for t in sorted(tests)]
     fixtures = {
         str(f.relative_to(REPO))
         for f in sorted((REPO / "tests" / "fixtures").rglob("*"))
-        if f.is_file()
-        and (
-            any(f.name in source for source in sources.values())
-            or under_named_dir(str(f.relative_to(REPO)))
-        )
+        if f.is_file() and any(f.name in source for source in sources)
     }
     paths: set[str] = set(code) | tests | data | fixtures
 

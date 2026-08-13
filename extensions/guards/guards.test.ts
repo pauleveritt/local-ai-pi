@@ -5,11 +5,17 @@
  *
  * Ported from `phase6-orchestrator-spike`'s `guards.test.ts`, trimmed to the
  * two guards this branch ports: loop-breaker (the pure-function form used
- * internally by `extensions/orchestration/implementer.ts`; the standalone
- * envelope-arm extension at `.pi/extensions/loop-breaker.ts` is a separate,
- * frozen artifact and is untouched by this file) and preserve-symbols.
- * turn-budget, validation-signal and the guard registry (`index.ts`) were
- * not ported -- implementer-policy.ts already enforces its own tool budget.
+ * internally by `extensions/orchestration/implementer.ts`) and
+ * preserve-symbols. turn-budget, validation-signal and that spike's guard
+ * registry were not ported -- implementer-policy.ts already enforces its
+ * own tool budget.
+ *
+ * The standalone extension at `.pi/extensions/loop-breaker.ts` is a
+ * separate artifact with its own reasons; the behaviour tests below do not
+ * exercise it, but the last describe block reads it and pins it against
+ * this one. Do not confuse the spike's registry above with
+ * `extensions/guards/index.ts`, a different, also-deleted file that block
+ * discusses.
  */
 
 import { describe, expect, test } from "bun:test";
