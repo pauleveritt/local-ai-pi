@@ -24,12 +24,14 @@ def _result(
     accepted: bool = True,
     conditions: RunConditions | None = None,
     pi_timed_out: bool = False,
+    pi_returncode: int | None = 0,
     **grade_overrides,
 ) -> RunResult:
     """A synthetic run result: accepted by default, signals overridable.
 
     `grade_overrides` reaches `GradeResult` (e.g. `refused_config`,
-    `timed_out`); `pi_timed_out` is a `RunResult` field and must not.
+    `timed_out`); `pi_timed_out` and `pi_returncode` are `RunResult`
+    fields and must not.
     """
     grade_fields = {
         "accepted": accepted,
@@ -47,7 +49,7 @@ def _result(
         grade=grade,
         pi_stdout="",
         pi_stderr="",
-        pi_returncode=0,
+        pi_returncode=pi_returncode,
         pi_timed_out=pi_timed_out,
         conditions=conditions if conditions is not None else make_conditions(),
     )
@@ -321,3 +323,23 @@ def test_summarize_reads_an_empty_checkpoint(capsys, tmp_path):
     assert cli.main(["summarize", str(path)]) == 0
     out = capsys.readouterr().out
     assert "runs:       0" in out
+
+
+def test_one_reports_a_pi_failure(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "check_model_server_alive", lambda: None)
+    monkeypatch.setattr(
+        cli,
+        "run_suite",
+        lambda suite, **kwargs: _result(accepted=True, pi_returncode=1),
+    )
+    assert cli.main(["one", "--suite", "duration"]) == 0
+    assert "rejected: pi exited 1" in capsys.readouterr().out
+
+
+def test_one_reports_a_rejection_without_a_recorded_signal(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "check_model_server_alive", lambda: None)
+    monkeypatch.setattr(
+        cli, "run_suite", lambda suite, **kwargs: _result(accepted=False)
+    )
+    assert cli.main(["one", "--suite", "duration"]) == 0
+    assert "rejected: no recorded signal" in capsys.readouterr().out

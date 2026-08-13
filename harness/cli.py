@@ -70,7 +70,9 @@ def _rejection_reasons(result: RunResult) -> list[str]:
             reasons.append(f"returncode={grade.returncode}")
     elif grade.tests_executed < grade.tests_expected:
         reasons.append(f"tests_executed {grade.tests_executed}/{grade.tests_expected}")
-    return reasons
+    if result.pi_returncode not in (0, None):
+        reasons.append(f"pi exited {result.pi_returncode}")
+    return reasons or ["no recorded signal"]
 
 
 def _cmd_suites(args: argparse.Namespace) -> int:
