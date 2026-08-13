@@ -111,6 +111,21 @@ class Improvement:
     system_prompt: Path | None
 
 
+# The engine arm (Phase 9 shootout): the shipped bundle as an
+# extension-only improvement, so a comparison reuses the harness's arm
+# machinery -- same task, same prompt, same model, engine loaded. No
+# seed_dir (nothing to place), no system_prompt (the guards steer; they
+# do not instruct). `improvement_name="engine"` and the extension digest
+# record the arm in the checkpoint.
+ENGINE_EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / ".pi" / "extensions" / "engine.ts",)
+ENGINE_IMPROVEMENT = Improvement(
+    name="engine",
+    seed_dir=None,
+    extensions=ENGINE_EXTENSIONS,
+    system_prompt=None,
+)
+
+
 IMPROVEMENTS = REPO_ROOT / "improvements"
 
 
