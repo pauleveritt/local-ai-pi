@@ -253,6 +253,7 @@ defaulted.
 | 6 | Enforcement over persuasion | One at a time, add a guard to the extension, each drawn from prior experience and each proven against a recorded failure before it ships | complete; the guard harness shipped, but the candidate well was overtaken by Phase 7's re-plan and the mutation engine absorbed the enforcement job — see "Now" |
 | 7 | Workload first, envelope to candidate commit | Credible evidence for a small local model doing routine, pre-chewed coding work, and the smallest useful repository-safe executor: task → typed handoff → bounded implementer → validated candidate ref | in progress — the current phase; [execution plan](docs/superpowers/plans/2026-08-09-phase7-workload-first-roadmap.md) |
 | 8 | An eval you can type, not one you paste | Give the harness a documented entry point — a small, stdlib-only CLI (names not symbols, friendly preflight, a checkpoint summary) — and move the why/what/how into `docs/evals.md` | planned |
+| 9 | An engine you can install | Make the engine adoptable by a Python developer running a small local model in Pi: a one-file install that puts the guards in every session, a README whose setup section serves both the engine and the evals, and an honest pilot number for what the guards change | planned |
 
 
 **Phase 7 — Workload first, envelope to candidate commit. In progress; the
@@ -313,6 +314,30 @@ pattern to extend. And it does **not automate comparison** — `summarize`
 reports what a checkpoint holds and compares nothing, keeping the "one
 improvement at a time, comparison by hand" binding intact.
 
+**Phase 9 — An engine you can install. Planned.** The engine works but has
+no user-facing front door. The loop breaker is one installable file and one
+documented page; the other guard sits next to research machinery; the
+bounded executor is reachable only from a checkout; and the pitch —
+*install the engine and your small model behaves better* — has no number of
+its own. This phase gives the engine a user-facing install: the two guards
+bundled into one self-contained `engine.ts` a developer copies into user
+scope (`cp .pi/extensions/engine.ts ~/.pi/agent/extensions/`), a README
+rebuilt around four parts (why; the engine; a setup section shared by
+engine and evals — uv, ruff/pyrefly/pytest, local model and server; the
+evals), a new `docs/engine/` section (why/how/what, problems and
+architecture, shootout), and one pilot comparison of with-engine versus
+without on a suite, indexed as pilot.
+[spec](docs/superpowers/specs/2026-08-13-phase9-engine-onboarding-design.md)
+
+Three things it deliberately does **not** do. It adds **no dependency** and
+**no new guard** — the bundle ships what exists, and bun (already in the
+repo) produces it. It does **not** touch the executor —
+`deliver_candidate`'s digest-pinned closure and its tests stay as they
+are, and bundling the bounded implementer into `engine.ts` is deferred to
+the npm-packaging effort that will follow. And it is **not** the eval CLI
+or confirmatory evidence — Phase 8 owns the harness entry point, and the
+shootout is a pilot with its non-claims written down.
+
 ### Phase 6 feature cycles
 
 | Cycle | Summary | State |
@@ -358,6 +383,15 @@ never in the workspace during a run.
 | 3 | **Friendly preflight** — `one` and `batch` run `check_model_server_alive()` and the Pi-version check up front, printing a human sentence with the fix (`omlx start`; `docs/setup.md`) instead of a raw traceback. The harness already refuses; the CLI translates. | Planned |
 | 4 | **`summarize`** — `harness.cli summarize <checkpoint.jsonl>` prints accepted/total and the grade breakdown via `load_checkpoint`. A summary is not a comparison; only read. | Planned |
 | 5 | **Documentation** — give the harness a documented entry point in the README (one-liners for `one` and `batch`), and start `docs/evals.md` as the longer treatment: why measure, what a run/batch/improvement/checkpoint is, how to run each, and the three things that will bite you, moved out of the README and given room. | Planned |
+
+### Phase 9 feature cycles
+
+| Cycle | Summary | State |
+|-------|---------|-------|
+| 1 | **The bundle** — `extensions/guards/{loop-breaker,preserve-symbols,types}.ts` bundled by `bun build` into one self-contained `.pi/extensions/engine.ts`, one-file user-scope install, guard sources untouched. Replay fixtures drive the shipped bundle (fires on the 261-turn loop, silent on a clean run); a drift test pins the install instructions; `deliver_candidate`'s closure and tests stay green. | Planned |
+| 2 | **README restructure** — four parts: why; the engine (minimal install, everyday steering, executor one-liner); the shared setup section (uv, ruff/pyrefly/pytest, local model/server, pointing at `docs/setup.md`); the evals (what exists today, not pre-empting Phase 8). `docs/index.md` gains the matching engine link and toctree. | Planned |
+| 3 | **`docs/engine/`** — `index.md` (why/how/what, the two faces, where to go next) and `architecture.md` (problems being solved, guards as pure decisions, the bounded implementer underneath); cross-links to `loop-breaker.md`, `setup.md`, `evidence-index.md`. Quoted constants get the `test_loop_breaker_doc.py` drift treatment. | Planned |
+| 4 | **The shootout pilot** — a small hermetic harness seam loads `engine.ts` into `run_suite` (extension-only `Improvement` or `extensions=`), one suite chosen with the owner, 4–6 attempts per arm, with-engine versus without. Write-up in `docs/engine/shootout.md`, labeled pilot, indexed in `evidence-index.md`; no pooling; a defect is fixed and rerun, a disappointing number recorded honestly. | Planned |
 
 ### Deferred candidates
 
