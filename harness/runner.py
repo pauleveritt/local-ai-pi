@@ -2,6 +2,7 @@ import hashlib
 import json
 import os
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -83,6 +84,19 @@ DURATION = Suite(
 )
 
 
+SUITES: dict[str, Suite] = {
+    # Keys are CLI-facing short names, not mirrors of `Suite.name`: the
+    # user-story suite's real name is `agentclinic-phase-1-user-story`,
+    # and nobody should have to type it. The shorthand is safe because
+    # `Suite.name` is not recorded in `RunConditions` -- a checkpoint
+    # distinguishes suites by task_spec_sha256/acceptance_sha256/
+    # source_allowlist -- so it cannot drift recorded evidence.
+    "agentclinic-phase-1": AGENTCLINIC_PHASE_1,
+    "user-story": AGENTCLINIC_PHASE_1_USER_STORY,
+    "duration": DURATION,
+}
+
+
 @dataclass(frozen=True)
 class Improvement:
     """A named, optional change to how a run is steered.
@@ -111,7 +125,7 @@ class Improvement:
     system_prompt: Path | None
 
 
-IMPROVEMENTS = REPO_ROOT / "improvements"
+IMPROVEMENTS_DIR = REPO_ROOT / "improvements"
 
 
 def pi_package_root() -> Path:
@@ -199,11 +213,11 @@ def sdd_orchestrator() -> Improvement:
     """
     return Improvement(
         name="sdd-orchestrator",
-        seed_dir=IMPROVEMENTS / "sdd-orchestrator" / "seed",
+        seed_dir=IMPROVEMENTS_DIR / "sdd-orchestrator" / "seed",
         extensions=(
             pi_package_root() / "examples" / "extensions" / "subagent" / "index.ts",
         ),
-        system_prompt=IMPROVEMENTS / "sdd-orchestrator" / "orchestrator.md",
+        system_prompt=IMPROVEMENTS_DIR / "sdd-orchestrator" / "orchestrator.md",
     )
 
 
@@ -247,7 +261,7 @@ def tech_stack_only() -> Improvement:
         name="tech-stack-only",
         seed_dir=None,
         extensions=(LOOP_BREAKER,),
-        system_prompt=IMPROVEMENTS / "tech-stack-only" / "stack.md",
+        system_prompt=IMPROVEMENTS_DIR / "tech-stack-only" / "stack.md",
     )
 
 
@@ -272,8 +286,25 @@ def sdd_orchestrator_guarded_stack() -> Improvement:
         name="sdd-orchestrator-guarded-stack",
         seed_dir=base.seed_dir,
         extensions=base.extensions,
-        system_prompt=IMPROVEMENTS / "sdd-orchestrator" / "orchestrator-with-stack.md",
+        system_prompt=IMPROVEMENTS_DIR
+        / "sdd-orchestrator"
+        / "orchestrator-with-stack.md",
     )
+
+
+IMPROVEMENTS: dict[str, Callable[[], Improvement]] = {
+    # Values are the *factories*, never their results: they call
+    # pi_package_root(), and calling it at import time would break
+    # `import harness.runner` on a machine without Pi. The CLI resolves
+    # a name by invoking the factory, exactly as callers invoke
+    # tech_stack_only() today. Keys mirror `Improvement.name` exactly
+    # because improvement_name *is* recorded in RunConditions -- the
+    # name a user types is the name in the checkpoint.
+    "tech-stack-only": tech_stack_only,
+    "sdd-orchestrator": sdd_orchestrator,
+    "sdd-orchestrator-guarded": sdd_orchestrator_guarded,
+    "sdd-orchestrator-guarded-stack": sdd_orchestrator_guarded_stack,
+}
 
 
 @dataclass(frozen=True)
