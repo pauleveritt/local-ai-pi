@@ -225,15 +225,15 @@ Keep the current opening ("Can a small local model do real Python work…"), the
      --model your-provider/your-model
    ```
 
-   Link: "More, including what the engine is and isn't: [docs/engine/index.md](docs/engine/index.md)."
+   Link: "More, including what the engine is and isn't: `docs/engine/index.md`."
 
-2. **## Setup (applies to the engine and the evals)** — `uv`; the quality gates `ruff` / `pyrefly` / `pytest`; the local model and local server (`omlx start`, the `base_url` gotcha). One short paragraph each, then "the long form: [docs/setup.md](docs/setup.md)".
+2. **## Setup (applies to the engine and the evals)** — `uv`; the quality gates `ruff` / `pyrefly` / `pytest`; the local model and local server (`omlx start`, the `base_url` gotcha). One short paragraph each, then "the long form: `docs/setup.md`".
 
 3. **## The evals** — what the evals measure (three suites: `agentclinic-phase-1`, `agentclinic-phase-1-user-story`, `duration`), the evidence index link, and that running one today goes through the harness in `docs/setup.md` (Phase 8's CLI is the planned entry point — do not document a command you have not verified).
 
 4. **## The evidence** — keep the existing "What the evidence actually says" content (the Phase 7 confirmatory result) and "What's still experimental" as-is, moved under this heading.
 
-Retire the old "Install the loop breaker" section into one line under The engine ("only want guard #1? [docs/loop-breaker.md](docs/loop-breaker.md) installs it alone"). Keep "Where to go next", "How this project works", and "Layout" as-is, adding `docs/engine/index.md` to the table.
+Retire the old "Install the loop breaker" section into one line under The engine ("only want guard #1? `docs/loop-breaker.md` installs it alone"). Keep "Where to go next", "How this project works", and "Layout" as-is, adding `docs/engine/index.md` to the table.
 
 - [ ] **Step 4: Verify the drift test passes and gates are green**
 
@@ -286,7 +286,7 @@ The problems being solved, with their numbers (from the guard docstrings): the 2
 
 - [ ] **Step 4: Wire the engine into `docs/index.md` and build**
 
-Under the "What you can use today" section, add a one-line engine link ("the engine — [why/how/what](engine/index.md)"); and add a toctree:
+Under the "What you can use today" section, add a one-line engine link ("the engine — why/how/what" pointing at `engine/index.md`); and add a toctree:
 
 ```markdown
 ```{toctree}
