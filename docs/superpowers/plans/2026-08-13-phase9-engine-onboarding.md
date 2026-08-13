@@ -138,7 +138,6 @@ git commit -m "feat(phase9): ship the engine bundle as a one-file extension"
 
 **Files:**
 - Modify: `README.md` (rebuilt into four parts)
-- Modify: `docs/index.md` (Sphinx home — add an engine link and toctree entry pointing at `docs/engine/index.md`)
 - Create: `tests/test_engine_doc.py` (drift test, modeled on `tests/test_loop_breaker_doc.py`)
 
 **Interfaces:**
@@ -161,8 +160,6 @@ pinned here so the instructions cannot keep saying what used to be true.
 
 import re
 from pathlib import Path
-
-import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 README = REPO_ROOT / "README.md"
@@ -238,24 +235,11 @@ Keep the current opening ("Can a small local model do real Python work…"), the
 
 Retire the old "Install the loop breaker" section into one line under The engine ("only want guard #1? [docs/loop-breaker.md](docs/loop-breaker.md) installs it alone"). Keep "Where to go next", "How this project works", and "Layout" as-is, adding `docs/engine/index.md` to the table.
 
-- [ ] **Step 4: Add the engine link and toctree to `docs/index.md`**
+- [ ] **Step 4: Verify the drift test passes and gates are green**
 
-Under the "What you can use today" section, add the loop breaker and bounded-executor lines pointing to the engine (a one-line "the engine — [why/how/what](engine/index.md)" link); and add a toctree:
+Run: `uv run pytest tests/test_engine_doc.py -v` → PASS. Then `uv run pytest -q`, `uv run ruff check .`, `uv run ruff format --diff`, `uv run pyrefly check`, `bun test extensions/`, and `uv run --group docs sphinx-build -W -b html docs docs/_build/html` — all green. (The Sphinx build must be clean under `-W`: this task does **not** touch `docs/index.md`; the engine link and toctree land in Task 3, where the pages exist.)
 
-```markdown
-```{toctree}
-:maxdepth: 1
-:caption: The engine
-
-engine/index
-```
-```
-
-- [ ] **Step 5: Verify the drift test passes and gates are green**
-
-Run: `uv run pytest tests/test_engine_doc.py -v` → PASS. Then `uv run pytest -q`, `uv run ruff check .`, `uv run ruff format --diff`, `uv run pyrefly check`, `bun test extensions/` — all green.
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add README.md docs/index.md tests/test_engine_doc.py
@@ -268,6 +252,7 @@ git commit -m "docs(phase9): rebuild the README around the engine, shared setup,
 
 **Files:**
 - Create: `docs/engine/index.md`, `docs/engine/architecture.md`
+- Modify: `docs/index.md` (Sphinx home — engine link and toctree, added here where the pages exist)
 - Modify: `tests/test_engine_doc.py` (extend the drift pins to the new pages)
 
 **Interfaces:**
@@ -299,15 +284,27 @@ The problems being solved, with their numbers (from the guard docstrings): the 2
 - The bundle: `.pi/extensions/engine.ts` — policy inlined, a thin adapter registering both guards on `tool_call`, pinned against the sources.
 - Underneath, the bounded executor (linked to `docs/architecture.md` rather than re-explained): typed handoff → mutation engine → preservation validation → candidate ref.
 
-- [ ] **Step 4: Wire the toctree and build**
+- [ ] **Step 4: Wire the engine into `docs/index.md` and build**
 
-The `docs/index.md` toctree added in Task 2 already references `engine/index`; add `engine/architecture` to the same caption block. Then build:
+Under the "What you can use today" section, add a one-line engine link ("the engine — [why/how/what](engine/index.md)"); and add a toctree:
+
+```markdown
+```{toctree}
+:maxdepth: 1
+:caption: The engine
+
+engine/index
+engine/architecture
+```
+```
+
+Then build:
 
 ```bash
 uv run --group docs sphinx-build -W -b html docs docs/_build/html
 ```
 
-Expected: clean under `-W` (this is the phase's standing gate). Also run `uv run pytest tests/test_engine_doc.py -v` → PASS.
+Expected: clean under `-W` (this is the phase's standing gate; it was already green for the README-only commit in Task 2). Also run `uv run pytest tests/test_engine_doc.py -v` → PASS.
 
 - [ ] **Step 5: Full gates**
 
