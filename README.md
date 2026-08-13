@@ -11,54 +11,34 @@ help?*
 This project's answer is to measure, carefully, and to write down what
 the measurement does **not** show.
 
-## What you can use today
+## The engine
 
-Two things, and they're independent — you can take either without the other.
+One Pi extension — a single file — that steers a small local model during
+everyday sessions. It bundles two guards: the **loop breaker**, which
+refuses a tool call the model has already made unchanged several times in
+a row, and **preserve-symbols**, which refuses an edit that deletes a
+public symbol (a function, class, or route) without replacing it. It is
+not a planner and not a turn cap; varied work is untouched.
 
-**A loop breaker for your own Pi sessions.** One file, copied into place.
-It refuses a tool call the model has already made, unchanged, several
-times in a row. It came out of a recorded run of 261 turns, 245 of them
-the identical `ls -R` against an empty directory.
-→ [Install it](#install-the-loop-breaker) (2 minutes, needs nothing else here)
-
-**A bounded executor for your own repository.** It runs a model once
-against your repo in a throwaway git worktree, checks the result with a
-command *you* declare, and leaves either a git ref you can review or a
-receipt explaining why not. Your working tree is never written to.
-Nothing is merged. Nothing is promoted.
-→ [Try it](#try-one-attempt-on-your-own-repository)
-
-New to the vocabulary? The [glossary](docs/glossary.md) is short and
-defines only words this project uses in a particular way.
-
-## Install the loop breaker
-
-Nothing from this repository is required except one file:
+Minimal install:
 
 ```bash
 mkdir -p ~/.pi/agent/extensions
-cp .pi/extensions/loop-breaker.ts ~/.pi/agent/extensions/
+cp .pi/extensions/engine.ts ~/.pi/agent/extensions/
 ```
 
-That's the whole install — Pi loads user-scope extensions
-unconditionally, so your next session anywhere has it. When the model
-makes the same call with the same arguments 5 times inside a 20-call
-window, the next one is refused and the model is told to do something
-else. It is not a turn cap; varied work is untouched. Both numbers are
-constants at the top of the file.
+That copy is the whole install. Pi loads user-scope extensions
+unconditionally, so the guards are active in every session — including
+delegated children, where a small model's runaway usually happens. Put the
+file in user scope, not a project's `.pi/extensions/`, if you delegate at
+all: a child loads user-scope extensions but not project ones. (Only want
+guard #1? [loop-breaker.md](docs/loop-breaker.md) installs the loop breaker
+alone.)
 
-**Use the user-scope directory, not a project's `.pi/extensions/`**, if
-you delegate to subagents at all — a delegated child loads user-scope
-extensions but not project ones, and on a small model the child is
-usually where the runaway happens. We spent a whole cycle learning that.
-
-This assumes `pi` already works for you. If it doesn't, fix that first
-(`/login`, or `~/.pi/agent/models.json`) — an unconfigured Pi fails
-before any extension loads.
-
-More, including what to tune: [loop-breaker.md](docs/loop-breaker.md).
-
-## Try one attempt on your own repository
+The other face is the bounded executor, run from a checkout. It runs a
+model once against your repo in a throwaway git worktree, checks the result
+with a command you declare, and leaves either a git ref you can review or a
+receipt explaining why not — your working tree is never written to:
 
 ```bash
 uv sync
@@ -69,26 +49,48 @@ uv run python -m tools.deliver_candidate \
   --model your-provider/your-model
 ```
 
-Three things must be true first, and only the third tells you when it
-isn't: `pi --version` answers; `--model` names a model your Pi resolves;
-and the server behind it is up. A dead server doesn't make Pi fail — it
-exits 0 having written nothing — so the tool checks before spending a
-call.
-
-The exit code is the answer: **0** a candidate exists, **1** it was
-judged and discarded, **2** refused before starting (dirty repo, dead
-server), **3** your setup is broken. Success prints a ref, and reviewing
-it is ordinary git:
+Success prints a ref you can review with ordinary git:
 
 ```bash
 git show refs/satyrn/candidates/add-iter
 ```
 
-That's the bare form — your prompt, your validation command. The
-evidenced path underneath it is more bounded than this; see
-[architecture.md](docs/architecture.md) when you want it.
+More, including what the engine is and isn't:
+[docs/engine/index.md](docs/engine/index.md).
 
-## What the evidence actually says
+## Setup (applies to the engine and the evals)
+
+[uv](https://docs.astral.sh/uv/) manages everything — the Python version,
+the dependencies, and the commands. `uv sync` sets up the project; prefix
+every command with `uv run`.
+
+The quality gates are four commands you run before pushing: `uv run ruff
+check .`, `uv run ruff format --diff`, `uv run pyrefly check`, and
+`uv run pytest`.
+
+A real model run needs a local server. We use
+[oMLX](https://github.com/olmo-tools/omlx) on Apple Silicon — `omlx start`
+— and if your server is not at the default address, pass `base_url=` to
+point at it rather than editing the default.
+
+The long form, with the gotchas and how to verify the server is actually
+up: [docs/setup.md](docs/setup.md).
+
+## The evals
+
+The measurement side runs three suites — `agentclinic-phase-1`,
+`agentclinic-phase-1-user-story`, and `duration` — that grade a small local
+model against real tasks and decide hermetically whether it succeeded.
+Which claim rests on which suite is written down, claim by claim, in
+[docs/evidence-index.md](docs/evidence-index.md).
+
+Running one today goes through the harness in
+[docs/setup.md](docs/setup.md). A single command for it is the planned
+entry point of a later phase, and is not documented here until it exists.
+
+## The evidence
+
+### What the evidence actually says
 
 One pre-registered comparison, 64 attempts, run 2026-08-11: does giving
 the model a complete [locating contract](docs/glossary.md#locating-contract)
@@ -109,7 +111,7 @@ Every claim's evidence category — [pilot](docs/glossary.md#pilot) versus
 [confirmatory](docs/glossary.md#confirmatory) — is indexed in
 [evidence-index.md](docs/evidence-index.md).
 
-## What's still experimental
+### What's still experimental
 
 The typed-contract path is scoped to exactly four tasks and refuses the
 rest at the command line rather than guessing. It's a tested bridge, not
@@ -124,6 +126,7 @@ answers.
 
 | You want to… | Read |
 |---|---|
+| Understand the engine — what it is and isn't | [engine/index.md](docs/engine/index.md) |
 | Understand the one supported path, end to end | [architecture.md](docs/architecture.md) |
 | Get set up properly | [setup.md](docs/setup.md) |
 | Contribute — commands, conventions, starter tasks | [contributing.md](docs/contributing.md) |
