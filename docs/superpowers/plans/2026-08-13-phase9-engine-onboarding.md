@@ -44,7 +44,7 @@ import { readFile } from "node:fs/promises";
 
 const ENGINE = new URL("../../.pi/extensions/engine.ts", import.meta.url);
 const ENGINE_SOURCE = await readFile(ENGINE, "utf8");
-const engineModule = await import(pathToFileURL(ENGINE.href));
+const engineModule = await import(ENGINE.href);
 
 const loopFixture = { toolName: "bash", input: { command: "ls -R" } };
 function fakePi() {
