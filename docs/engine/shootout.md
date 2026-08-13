@@ -27,7 +27,9 @@ suite, compared with the same suite, task, prompt, and model without them?
   prompt, same model; the arms differ only in whether the guards are
   loaded. The engine arm's checkpoints record
   `improvement_name="engine"` and the artifact's extension digest, so the
-  run is auditable: the guards were genuinely loaded.
+  run is auditable: the artifact was passed to Pi and its content pinned by
+  the extension digest, and no load error appeared in any run's recorded
+  output (`pi_stderr`).
 - **n:** 6 attempts per arm, sequential, separate checkpoints. A pilot,
   not a pre-registered comparison — no hypothesis, no superiority margin,
   no interval math.

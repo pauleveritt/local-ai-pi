@@ -82,9 +82,12 @@ a long time is untouched by these guards.
 The loop breaker came out of that 261-turn run, and live, in a 16-run
 batch, it fired in two runs — refusing 12 calls — and both still passed
 their acceptance tests. Preserve-symbols came out of three of four runs
-failing the same way on the `/about`-route deletion. The pilot shootout
-for the executor side is `docs/evidence-index.md`, which also writes
-down, claim by claim, what is confirmatory and what is only pilot.
+failing the same way on the `/about`-route deletion. The pilot shootout measured the **guards** — everyday steering, not
+the executor — on `agentclinic-phase-1`: both arms at ceiling, the
+guards loaded but never fired. It is written up in
+`docs/engine/shootout.md`; `docs/evidence-index.md` lists the claims and
+writes down, claim by claim, what is confirmatory and what is only
+pilot.
 
 ## Where to go next
 
@@ -92,6 +95,8 @@ down, claim by claim, what is confirmatory and what is only pilot.
   engine section is the front door.
 - Understand the problems and the architecture:
   `docs/engine/architecture.md`.
+- The pilot shootout, and what it does and does not establish:
+  `docs/engine/shootout.md`.
 - The loop breaker alone, with tuning and the subagent gotcha:
   `docs/loop-breaker.md`.
 - The executor path, end to end: `docs/architecture.md`.

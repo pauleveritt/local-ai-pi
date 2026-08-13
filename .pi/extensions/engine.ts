@@ -245,6 +245,12 @@ export function createPreserveSymbols(): Guard {
 // Adapter — one default factory that registers both guards on `tool_call`.
 // ---------------------------------------------------------------------------
 
+// The guard instances live at module scope, so their state (the loop
+// breaker's recent/blocked history, the preserve-symbols refusal count) is
+// shared across registrations of the default export. One `default()` call
+// per session makes that equivalent to per-registration state, but it is a
+// difference from the standalone loop-breaker extension, whose `recent` and
+// `blocked` state is created fresh inside the factory each registration.
 const loopBreaker = createLoopBreaker();
 const preserveSymbols = createPreserveSymbols();
 const GUARDS: Guard[] = [loopBreaker, preserveSymbols];
