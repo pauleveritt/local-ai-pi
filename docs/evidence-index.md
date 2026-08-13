@@ -4,7 +4,8 @@ What backs the claims in `README.md` at the repository root and
 [`docs/architecture.md`](architecture.md), classified by what kind of
 evidence each item is. **Scope:** the Phase 7 typed-contract / bounded-
 implementer product line only (`harness/typed_contract.py`,
-`extensions/orchestration/`, the `gemma12b-implementer-v1` cell). It does
+`extensions/orchestration/`, the `gemma12b-implementer-v1` cell), plus the
+Phase 9 engine-arm pilot (`docs/engine/shootout.md`). It does
 not attempt to re-classify the wider Phase 1–6 record —
 [`docs/superpowers/index.md`](superpowers/index.md) is the cycle-by-cycle
 index for that, and it predates this page.
@@ -18,6 +19,7 @@ index for that, and it predates this page.
 | `docs/superpowers/research/2026-08-11-phase7-cleanup-and-distribution-brief.md`'s "One correctness gate before distribution" section | **Correction** | The `preserveSymbols`/`removableSymbols` guard contradiction: a contract-blind pre-edit guard could refuse a contract-authorized rename before the mutation engine ever ran. Resolved by removing the redundant guard (`extensions/orchestration/implementer.ts`), not by making it contract-aware. | Confirmed inert for the Cycle 7 batch itself (no task in that cohort declares `removableSymbols`), so the confirmatory result above did not need re-running. |
 | `local-ai-pi-evidence-archive/screen-corpus/` (external, sibling directory, not tracked in this repository) | **Raw archive** | **The only working-tree copy** of the mechanism-screen corpus — 570 files / 104.7 MiB — since 2026-08-12, when the same 570 files were untracked from `workloads/svcs/screen/` (they remain in this repository's history). Checksum-verified, indexed in [`2026-08-11-evidence-archive-index.md`](superpowers/research/2026-08-11-evidence-archive-index.md). | All 25 subdirectories were labeled 2026-08-12 (valid / superseded / pilot-only / withdrawn) in that bundle's own `MANIFEST.md`: 2 withdrawn, 8 superseded, 10 pilot-only, 4 valid, 1 empty. Note rule 8 blankets the corpus — "valid" there means the finding still stands uncorrected, never "confirmatory." |
 | `local-ai-pi-evidence-archive/2026-08-11-phase7-cycle7-confirmatory/` (external, not tracked) | **Raw archive** | All 65 attempt receipts, `all_results.json`, and the batch's run log for the confirmatory result above, checksum-verified. | Does not include raw model transcripts or candidate diffs — neither was ever captured to disk for this batch (see that bundle's own `MANIFEST.md` for why). |
+| [`docs/engine/shootout.md`](engine/shootout.md) | **Pilot** | The Phase 9 engine shootout: `agentclinic-phase-1`, 6 attempts per arm, with-engine (the one-file guard bundle via `ENGINE_IMPROVEMENT`) versus without — both arms 6/6 accepted; the guards were loaded (verified by the recorded extension digest) but never fired (zero `loop_broken`/`symbol_preserved` telemetry entries). The null result the loop breaker's "insurance that mostly does nothing" framing predicts. | Not confirmatory — no pre-registration, no intervals, no superiority margin. One suite, one task, one model only. Nothing about the executor or orchestration. Not pooled with the Cycle 7 result. |
 | `local-ai-pi-evidence-archive/screen-corpus/superseded-buggy-grading/` | **Superseded** | Self-labeled by its own directory name; not cited as current evidence anywhere in this index or the confirmatory result. | Not otherwise documented here — read the batch's own contents if you need to know what was superseded and why. |
 
 ## What this index does not cover
