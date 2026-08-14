@@ -254,6 +254,7 @@ defaulted.
 | 7 | Workload first, envelope to candidate commit | Credible evidence for a small local model doing routine, pre-chewed coding work, and the smallest useful repository-safe executor: task → typed handoff → bounded implementer → validated candidate ref | in progress — the current phase; [execution plan](docs/superpowers/plans/2026-08-09-phase7-workload-first-roadmap.md) |
 | 8 | An eval you can type, not one you paste | Give the harness a documented entry point — a small, stdlib-only CLI (names not symbols, friendly preflight, a checkpoint summary) — and move the why/what/how into `docs/evals.md` | complete; five cycles shipped 2026-08-13 — see the Phase 8 section below |
 | 9 | An engine you can install | Make the engine adoptable by a Python developer running a small local model in Pi: a one-file install that puts the guards in every session, a README whose setup section serves both the engine and the evals, and an honest pilot number for what the guards change | complete |
+| 10 | Name the engine | Land the end-user vocabulary — engine as the package, orchestrator and implementer as the roles, guards as passive steering — in the docs and user-facing code, after the scheduled evidence run, so collaborators onboard to a naming regime that is not about to change | planned |
 
 
 **Phase 7 — Workload first, envelope to candidate commit. In progress; the
@@ -359,6 +360,29 @@ the npm-packaging effort that will follow. And it is **not** the eval CLI
 or confirmatory evidence — Phase 8 owns the harness entry point, and the
 shootout is a pilot with its non-claims written down.
 
+**Phase 10 — Name the engine. Planned.** Phase 9 shipped the engine bundle
+and its docs, and the product's second face is called "the bounded
+executor" — mechanism-speak that must go before collaborators onboard. The
+intended vocabulary is the one the project has used internally all along:
+the **engine** is what you install; the **orchestrator** is the front you
+invoke — it pre-chews a task into a handoff packet and keeps the
+implementer's context small; the **implementer** is the bounded worker it
+drives; the **guards** steer passively. This phase runs the scheduled
+guards-baseline evidence first (under the current names), then lands the
+vocabulary in the docs and the user-facing code, registers `/implement` as
+the orchestrator's session front (a thin shell-out to the existing CLI),
+and shapes Phase 11 — the contract-authoring bridge — at the roadmap
+level.
+[spec](docs/superpowers/specs/2026-08-14-phase10-name-the-engine-design.md)
+
+Three things it deliberately does **not** do. It does **not** rename the
+directory or unpin the closure — `extensions/orchestration/` and the
+digest-pinned `IMPLEMENTER_EXTENSION_CLOSURE` stay pinned until packaging.
+It does **not** do TypeScript orchestration — the orchestrator's substrate
+is the Python CLI, and TS orchestration may never happen. And it is **not**
+the contract-authoring bridge — pre-chewing real handoff packets is Phase
+11's job.
+
 ### Phase 6 feature cycles
 
 | Cycle | Summary | State |
@@ -413,6 +437,15 @@ never in the workspace during a run.
 | 2 | **README restructure** — four parts: why; the engine (minimal install, everyday steering, executor one-liner); the shared setup section (uv, ruff/pyrefly/pytest, local model/server, pointing at `docs/setup.md`); the evals (what exists today, not pre-empting Phase 8). `docs/index.md` gains the matching engine link and toctree. | Done — the README rebuilt. |
 | 3 | **`docs/engine/`** — `index.md` (why/how/what, the two faces, where to go next) and `architecture.md` (problems being solved, guards as pure decisions, the bounded implementer underneath); cross-links to `loop-breaker.md`, `setup.md`, `evidence-index.md`. Quoted constants get the `test_loop_breaker_doc.py` drift treatment. | Done — the docs/engine pages added. |
 | 4 | **The shootout pilot** — a small hermetic harness seam loads `engine.ts` into `run_suite` (extension-only `Improvement` or `extensions=`), one suite chosen with the owner, 4–6 attempts per arm, with-engine versus without. Write-up in `docs/engine/shootout.md`, labeled pilot, indexed in `evidence-index.md`; no pooling; a defect is fixed and rerun, a disappointing number recorded honestly. | Done — the seam + pilot ran (6/6 both arms, ceiling). |
+
+### Phase 10 feature cycles
+
+| Cycle | Summary | State |
+|-------|---------|-------|
+| 1 | **The evidence run** — bare control versus `ENGINE_IMPROVEMENT` (guards-only) on `agentclinic-phase-1-user-story`, pilot n=6 per arm, n=16 if the direction holds; updates `docs/engine/shootout.md` with the discriminating comparison and closes the Deferred-candidates entry. | Planned |
+| 2 | **The rename/re-org** — the vocabulary lands across README, `docs/engine/*`, `docs/glossary.md`, the evidence-index scope note, and the ROADMAP; "bounded executor" retires from user-facing text; user-facing strings in `tools/deliver_candidate.py` and `.pi/extensions/engine.ts` move to the vocabulary. No directory rename, no closure changes. | Planned |
+| 3 | **The `/implement` command** — a Pi command registered by the engine package via `pi.registerCommand()`; maps the user's prompt and repo onto the CLI's flags and shells out to `uv run python -m tools.deliver_candidate`; returns the candidate ref or the refusal. The vocabulary anchor, not new orchestration. | Planned |
+| 4 | **Phase 11 shape** — a ROADMAP entry for the contract-authoring bridge: the orchestrator pre-chews a real `HandoffContract` from a roadmap/manifest (`author_contract.py` → `HandoffContract`, `inspectContract` as the admission gate), driving `/implement`'s structured flavor. Spec-level shape only. | Planned |
 
 ### Deferred candidates
 
