@@ -88,6 +88,11 @@ steered out of failures it is not having.
   but that arm is composite (four fixes landed together, the guards among
   them), so it shows the composed pipeline's effect, not a guards-only
   comparison, and it does not fill this pilot's gap.
+- **The missing measurement is scheduled.** The bare-baseline and
+  guards-only runs on `agentclinic-phase-1-user-story` — which would
+  isolate the guards' share the composite cannot show, and which the
+  cycle-10 record already names as "the obvious next measurement" — are
+  tracked in ROADMAP's Deferred candidates as the next measurement.
 - **Not confirmatory.** Pilot, not pre-registered; no intervals, no
   superiority margin, and it is not pooled with the Phase 7 confirmatory
   result. A negative pilot is not a reason to distrust the guards' recorded
