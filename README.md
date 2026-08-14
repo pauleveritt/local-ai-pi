@@ -40,9 +40,11 @@ all: a child loads user-scope extensions but not project ones. (Only want
 guard #1? [loop-breaker.md](docs/engine/loop-breaker.md) installs the loop breaker
 alone.)
 
-The other face is the bounded executor, run from a checkout. It runs a
-model once against your repo in a throwaway git worktree, checks the result
-with a command you declare, and leaves either a git ref you can review or a
+The other face is the orchestrator, run from a checkout: the explicit
+front you invoke. It pre-chews a task into a handoff packet and drives the
+implementer — the bounded worker — through one attempt. It runs a model
+once against your repo in a throwaway git worktree, checks the result with
+a command you declare, and leaves either a git ref you can review or a
 receipt explaining why not — your working tree is never written to:
 
 ```bash
@@ -161,7 +163,7 @@ argued.
 
 ```
 harness/       the typed-contract bridge, candidate lifecycle, cell verification
-extensions/    the bounded implementer, mutation engine, and guards (Pi extensions)
+extensions/    the implementer, mutation engine, and guards (Pi extensions)
 tools/         CLI entry points — deliver_candidate is the one to start with
 tests/         Python tests, hermetic unless explicitly opted in
 workloads/     the task cohort, manifests, cells, and recorded evidence

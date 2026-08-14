@@ -1,8 +1,10 @@
-# Architecture: the bounded-implementer path
+# Architecture: the orchestrator path
 
-**This is the bounded executor — a companion tool shipped alongside the
-engine, not the engine extension itself.** It is a non-interactive CLI
-for a deliberate, one-shot attempt against your repository; see the
+**This is the orchestrator — a companion tool shipped alongside the
+engine, not the engine extension itself.** It is the explicit front you
+invoke: a non-interactive CLI that pre-chews a task into a handoff packet
+and drives the implementer — the bounded worker — for a deliberate,
+one-shot attempt against your repository; see the
 [engine front door](index.md) for how it relates to everyday steering.
 
 **One supported route, start to finish.** This page traces it in the order
@@ -20,10 +22,10 @@ the research repository, not here; see [history](#history) below.
 task input                (a manifest + either a brief or a locating contract)
     |
     v
-typed handoff              harness/typed_contract.py: build_typed_handoff()
+handoff packet             harness/typed_contract.py: build_typed_handoff()
     |                       -- HandoffContract + FileBaseline[], four tasks only
     v
-bounded implementer         extensions/orchestration/implementer.ts
+implementer                 extensions/orchestration/implementer.ts
     |                       -- read/write/edit only, 16-turn / 30-tool caps,
     |                          runs as a Pi child under a pinned cell
     v
@@ -52,9 +54,9 @@ preservation command, oracle command, attestations) paired with either the
 task's own concise `brief.md` or a complete human-authored locating contract
 under `workloads/svcs/contracts/locating/`. `harness/typed_contract.py`'s
 `TaskSource` picks which one becomes `contract.task`; everything else the
-executor is bound by comes from the manifest either way.
+orchestrator is bound by comes from the manifest either way.
 
-**Typed handoff.** `build_typed_handoff(task_id, worktree, task_source=...)`
+**Handoff packet.** `build_typed_handoff(task_id, worktree, task_source=...)`
 assembles a `HandoffContract` (task text, exact writable files, validation
 command, optionally `removableSymbols`) and a `FileBaseline[]` (SHA-256 +
 line-ending + mode for every writable path, read from the worktree, not
@@ -64,7 +66,7 @@ a clear error, not a silent pass-through (see
 [`2026-08-11-phase7-cycle7-preregistration-design.md`](../superpowers/specs/2026-08-11-phase7-cycle7-preregistration-design.md)
 for why these four).
 
-**Bounded implementer.** A Pi child, loaded with exactly
+**Implementer.** The bounded worker — a Pi child, loaded with exactly
 `extensions/orchestration/implementer.ts` and its same-repository import
 closure (`IMPLEMENTER_EXTENSION_CLOSURE` in `tools/deliver_candidate.py`,
 digest-verified against the pinned cell before every attempt). It registers
@@ -147,7 +149,7 @@ constraint exists):
 - **A planner arm.** The confirmatory comparison has two arms (brief,
   locating contract), not three — a planner-authored-contract arm is
   future work, not yet built.
-- **Anything beyond `read`/`write`/`edit`.** No `bash` reaches the bounded
+- **Anything beyond `read`/`write`/`edit`.** No `bash` reaches the
   implementer at any point in this path.
 
 ## History
@@ -157,9 +159,9 @@ Phases 1–5 built a duration-suite harness around `Suite`/`Improvement`/
 change turn count or acceptance on a fixed AgentClinic-style suite). It
 is still real and still tested, and the two share
 `harness/pi_invocation.py`'s `pi_command`/`pi_env`, but a change to the
-bounded-implementer path above does not touch it or vice versa.
+orchestrator path above does not touch it or vice versa.
 
 That machinery, the phase-by-phase roadmap, and the full cycle-by-cycle
 design record live in the **research repository** this one is exported
-from. Ask whoever pointed you here if you need them; nothing on the path
-above depends on them.
+from. Ask whoever pointed you here if you need them; nothing on the
+orchestrator path above depends on them.

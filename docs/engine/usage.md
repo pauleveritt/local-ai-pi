@@ -56,13 +56,14 @@ the same user-scope reasoning and the subagent gotcha.
   varied work is untouched), and not a godbox — it steers, it does not
   reason for you.
 
-## A companion tool: the bounded executor
+## A companion tool: the orchestrator
 
-The project also ships a **bounded executor** (`deliver_candidate`) — a
-separate, non-interactive CLI that makes one reviewable attempt against
-your repository in a throwaway worktree, checked with a command you
-declare. It is not part of the engine and not something you reach for
-mid-session: it is for the deliberate moment when you want a validated,
-reviewable artifact instead of a session. It lives at
+The project also ships an **orchestrator** (`deliver_candidate`) — a
+separate, non-interactive CLI that pre-chews a task into a handoff packet
+and drives the implementer — the bounded worker — to make one reviewable
+attempt against your repository in a throwaway worktree, checked with a
+command you declare. It is not part of the engine and not something you
+reach for mid-session: it is for the deliberate moment when you want a
+validated, reviewable artifact instead of a session. It lives at
 [docs/engine/deliver-candidate.md](deliver-candidate.md); the one-liner
 is in the README.

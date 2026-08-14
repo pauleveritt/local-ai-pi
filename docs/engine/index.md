@@ -1,8 +1,8 @@
 # The engine
 
 **One Pi extension — one file — that steers a small local model while
-you work.** Not a planner, not a turn cap, not the executor this project
-also builds. It is the everyday layer: it watches tool calls and refuses
+you work.** Not a planner, not a turn cap, not the orchestrator this
+project also builds. It is the everyday layer: it watches tool calls and refuses
 the two failure modes that cost real runs, before they cost you a run.
 
 ## What it is
@@ -57,17 +57,18 @@ success into a failure.
 Only want guard #1? `docs/engine/loop-breaker.md` installs it alone, with the
 same user-scope reasoning.
 
-**A companion tool, not part of the engine.** The project also ships a
-bounded executor (`deliver_candidate`) — a non-interactive CLI that makes
-one reviewable attempt against your repository in a throwaway worktree,
-checked with a command you declare. It is for a deliberate, non-session
-moment, not something you reach for mid-session. See
-`docs/engine/deliver-candidate.md`; the one-liner is in the README.
+**A companion tool, not part of the engine.** The project also ships an
+orchestrator (`deliver_candidate`) — a non-interactive CLI that pre-chews
+a task into a handoff packet and drives the implementer, the bounded
+worker, to make one reviewable attempt against your repository in a
+throwaway worktree, checked with a command you declare. It is for a
+deliberate, non-session moment, not something you reach for mid-session.
+See `docs/engine/deliver-candidate.md`; the one-liner is in the README.
 
 ## What it is not
 
-Not a planner. The typed-contract bridge under the executor is scoped to
-exactly four tasks and refuses the rest at the command line rather than
+Not a planner. The typed-contract bridge under the orchestrator is scoped
+to exactly four tasks and refuses the rest at the command line rather than
 guessing — a tested bridge, not a general contractor.
 
 Not a godbox. It will not reason your way to a conclusion for you. It
@@ -84,7 +85,7 @@ The loop breaker came out of that 261-turn run, and live, in a 16-run
 batch, it fired in two runs — refusing 12 calls — and both still passed
 their acceptance tests. Preserve-symbols came out of three of four runs
 failing the same way on the `/about`-route deletion. The pilot shootout measured the **guards** — everyday steering, not
-the executor — on `agentclinic-phase-1`: both arms at ceiling, the
+the orchestrator — on `agentclinic-phase-1`: both arms at ceiling, the
 guards loaded but never fired. It is written up in
 `docs/engine/shootout.md`; `docs/evidence-index.md` lists the claims and
 writes down, claim by claim, what is confirmatory and what is only
@@ -102,6 +103,6 @@ pilot.
   `docs/engine/shootout.md`.
 - The loop breaker alone, with tuning and the subagent gotcha:
   `docs/engine/loop-breaker.md`.
-- The executor path, end to end: `docs/engine/deliver-candidate.md`.
+- The orchestrator path, end to end: `docs/engine/deliver-candidate.md`.
 - Look up a term: `docs/glossary.md`.
 - Check what backs a claim: `docs/evidence-index.md`.

@@ -1,10 +1,10 @@
 # The engine: architecture
 
-**Two problems, two guards, one installable file, and the bounded
-executor underneath.** This page traces the engine in execution order —
-the shape of a guard, how the bundle wires them, and where the executor
-picks up — naming the real file at each stage. It links to
-`docs/engine/deliver-candidate.md` for the executor rather than re-explaining it.
+**Two problems, two guards, one installable file, and the orchestrator
+underneath.** This page traces the engine in execution order — the shape
+of a guard, how the bundle wires them, and where the orchestrator picks
+up — naming the real file at each stage. It links to
+`docs/engine/deliver-candidate.md` for the orchestrator rather than re-explaining it.
 
 ## The problems being solved
 
@@ -75,19 +75,21 @@ and replays the recorded destructive and additive edits through it, so
 the one file you install cannot drift silently from the guards that were
 measured.
 
-## Underneath: the bounded executor
+## Underneath: the orchestrator
 
-The engine's two faces are independent, and the executor is the second
-one. It is not part of the bundle; it runs from a checkout and shares
-only the guards' source files through the implementer's extension
-closure. Its path is typed handoff → mutation engine → preservation
-validation → candidate ref, and it is traced end to end, in execution
-order, in `docs/engine/deliver-candidate.md`. The guards ride along there
+The engine's two faces are independent, and the orchestrator is the
+second one. It is the explicit front you invoke: not part of the bundle,
+it runs from a checkout, pre-chews a task into a handoff packet, and
+drives the implementer — the bounded worker — which shares only the
+guards' source files through its extension closure. Its path is handoff
+packet → mutation engine → preservation validation → candidate ref, and
+it is traced end to end, in execution order, in
+`docs/engine/deliver-candidate.md`. The guards ride along there
 contract-blind by design; here they are the whole product.
 
 ## What is deliberately out of scope
 
-- **Planning.** Neither guard plans; the executor's typed-contract
+- **Planning.** Neither guard plans; the orchestrator's typed-contract
   bridge is scoped to four tasks and refuses the rest at the command
   line.
 - **Shell oversight.** Preserve-symbols governs `edit` alone, on

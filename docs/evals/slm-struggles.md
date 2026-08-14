@@ -131,7 +131,7 @@ operator's extension was rewriting the child's bash commands under it.
 
 ## The model installs into the harness venv
 
-An executor with a shell spent eight turns making `import svcs` work,
+A model with a shell spent eight turns making `import svcs` work,
 running `ensurepip` and then `pip install`ing packages — replacing the
 pinned pytest 8.3.4 with 9.1.1. The thing being graded changed its own
 grader.

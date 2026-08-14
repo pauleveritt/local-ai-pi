@@ -1,8 +1,11 @@
 """Run one bounded attempt against a real repository, deliver a candidate.
 
-The CLI path comes first on purpose: the roadmap defers a live Pi tool
-entry point until this is stable, so there is exactly one way in while
-the lifecycle is still settling.
+`deliver_candidate` is the orchestrator — the explicit front you invoke.
+It pre-chews a task into a handoff packet and drives the implementer, the
+bounded worker, through exactly one attempt. The CLI path comes first on
+purpose, because the roadmap defers a live Pi tool entry point until this
+is stable, so there is exactly one way in while the lifecycle is still
+settling.
 
 What a contributor gets: their repository untouched, and either a
 durable ref they can read, cherry-pick or delete, or nothing at all plus
@@ -159,10 +162,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--contract-task",
         default=None,
         help="a workloads/svcs/tasks/<id> task id; builds the typed "
-        "HandoffContract and file baselines from its manifest and locating "
-        "contract, and drives the implementer extension instead of a bare "
-        "prompt file. See harness/typed_contract.py -- this is a smoke-test "
-        "bridge, not general contract authoring.",
+        "handoff packet (HandoffContract) and file baselines from its manifest "
+        "and locating contract, and drives the implementer extension instead of "
+        "a bare prompt file. See harness/typed_contract.py -- this is a "
+        "smoke-test bridge, not general contract authoring.",
     )
     parser.add_argument(
         "--task-source",

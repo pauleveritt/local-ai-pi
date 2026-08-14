@@ -90,8 +90,8 @@ before any tool call exists to steer — the loop breaker and
 preserve-symbols act on tool calls, and a run that never makes one is out of
 their reach. So the cycle-10 composite's 13/16 cannot credit the guards with
 "rescuing failing runs" on this suite: whatever moved 0/16 to 13/16 lives in
-the executor/stack and the facts (naming FastAPI and `app.py`), not in the
-guards alone. That is a real finding, not a wash — it measures the guards'
+the orchestrator/implementer stack and the facts (naming FastAPI and
+`app.py`), not in the guards alone. That is a real finding, not a wash — it measures the guards'
 individual share at zero and relocates the effect.
 
 Two non-claims, stated so the zero is not overread. First, this is a pilot —

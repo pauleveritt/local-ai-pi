@@ -71,3 +71,15 @@ def test_quoted_loop_breaker_constants_match_the_artifact():
         # Any README mention of the constant must carry the artifact's value.
         for mention in re.finditer(rf"{name}[^0-9]*(\d+)", readme):
             assert mention.group(1) == match.group(1)
+
+
+def test_the_user_facing_vocabulary_is_the_new_one():
+    # "Bounded executor" retired in Phase 10; the front door must not keep
+    # naming the old product. The front you invoke is the orchestrator and
+    # the bounded worker it drives is the implementer.
+    readme = _flat(README.read_text())
+    index = _flat(ENGINE_INDEX.read_text())
+    for text in (readme, index):
+        assert "bounded executor" not in text
+        assert "orchestrator" in text
+        assert "implementer" in text

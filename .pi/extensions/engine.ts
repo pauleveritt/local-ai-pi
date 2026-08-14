@@ -1,14 +1,16 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 /**
- * The engine bundle — one self-contained extension that ships both guards.
+ * The engine — the package you install: one self-contained extension that
+ * ships both guards.
  *
  * Install: `cp .pi/extensions/engine.ts ~/.pi/agent/extensions/`.
  *
- * This file imports nothing local. The two guards below are copied verbatim
- * from `extensions/guards/loop-breaker.ts` and
- * `extensions/guards/preserve-symbols.ts`, with their shared types inlined
- * from `extensions/guards/types.ts`. The pinning tests in
+ * The guards are passive steering: they watch tool calls and refuse two
+ * failure modes, nothing else. This file imports nothing local. The two
+ * guards below are copied verbatim from `extensions/guards/loop-breaker.ts`
+ * and `extensions/guards/preserve-symbols.ts`, with their shared types
+ * inlined from `extensions/guards/types.ts`. The pinning tests in
  * `extensions/guards/guards.test.ts` ("the engine bundle artifact") keep the
  * copies and the sources from drifting apart.
  */

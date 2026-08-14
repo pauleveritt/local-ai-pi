@@ -61,20 +61,33 @@ confirmatory evidence supports a claim.
 
 Contrast [pilot](#pilot). See [rule 8](#rule-8).
 
+## Engine
+
+The package you install: one self-contained Pi extension
+(`.pi/extensions/engine.ts`) bundling the two [guards](#guard) — the
+[loop breaker](#loop-breaker) and preserve-symbols. Copy one file into
+user scope and the guards steer every session; there is no other install
+step.
+
+Not to be confused with **Agent Engine**, the product name for the whole
+project (the engine plus the [orchestrator](#orchestrator)).
+
 ## Extension
 
 A TypeScript file Pi loads to change its behaviour — adding a tool,
 inspecting a tool call, injecting a prompt. This project's
-[implementer](#bounded-implementer) and [guards](#guard) are extensions.
+[implementer](#implementer) and [guards](#guard) are extensions.
 
 Pi loads user-scope extensions unconditionally, which is why the
 [loop breaker](#loop-breaker) installs by copying one file.
 
-## Bounded implementer
+## Implementer
 
-The executor: a Pi child restricted to `read`/`write`/`edit` (no shell),
-capped at 16 turns and 30 tool calls, with every write routed through
-the [mutation engine](#mutation-engine).
+The bounded worker: a Pi child restricted to `read`/`write`/`edit` (no
+shell), capped at 16 turns and 30 tool calls, with every write routed
+through the [mutation engine](#mutation-engine). Driven by the
+[orchestrator](#orchestrator), which pre-chews the task into a
+[handoff packet](#handoff-packet).
 
 "Bounded" is the whole idea — it cannot reach outside its declared
 files, and code, not prose, enforces that.
@@ -88,12 +101,12 @@ against itself, never against the task, so they can ship standalone.
 The [loop breaker](#loop-breaker) is the one with live evidence behind
 it.
 
-## Handoff contract
+## Handoff packet
 
-The typed packet handed to the [bounded implementer](#bounded-implementer):
-the task text, the exact writable files, the
+The pre-chewed task handed to the [implementer](#implementer): the task
+text, the exact writable files, the
 [validation command](#validation-command), and a SHA-256
-[baseline](#baseline) per file.
+[baseline](#baseline) per file. Its code type is `HandoffContract`.
 
 Declared in two places that must agree — `harness/typed_contract.py`
 (Python, builds it) and `extensions/orchestration/handoff-contract.ts`
@@ -144,6 +157,15 @@ against a throwaway copy after the attempt finishes.
 
 Distinct from the [validation command](#validation-command), which the
 model *is* told about.
+
+## Orchestrator
+
+The explicit front you invoke: the `deliver_candidate` CLI
+(`tools/deliver_candidate.py`). It pre-chews a task into a
+[handoff packet](#handoff-packet), keeps the [implementer](#implementer)'s
+context small, runs the model once in a throwaway worktree, and returns
+either a reviewable [candidate](#candidate) ref or a
+[receipt](#receipt) saying why not.
 
 ## Pilot
 
