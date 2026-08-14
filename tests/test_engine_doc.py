@@ -19,6 +19,7 @@ README = REPO_ROOT / "README.md"
 ENGINE = REPO_ROOT / ".pi" / "extensions" / "engine.ts"
 ORCHESTRATOR = REPO_ROOT / ".pi" / "extensions" / "orchestrator.ts"
 ENGINE_INDEX = REPO_ROOT / "docs" / "engine" / "index.md"
+USAGE = REPO_ROOT / "docs" / "engine" / "usage.md"
 
 
 def _flat(text: str) -> str:
@@ -30,11 +31,22 @@ def test_the_engine_install_command_is_one_line():
     # guards) and the orchestrator (/implement). Pin both, so the README
     # cannot silently drop the command half of the install.
     readme = _flat(README.read_text())
+    usage = _flat(USAGE.read_text())
     command = (
         "cp .pi/extensions/engine.ts .pi/extensions/orchestrator.ts "
         "~/.pi/agent/extensions/"
     )
     assert command in readme
+    # The quick-start page must agree, or it silently teaches the old
+    # one-file install.
+    assert command in usage
+
+
+def test_the_usage_page_names_the_implement_command():
+    # Not vacuous: the orchestrator's session front must be discoverable
+    # from the quick-start page, not only from the README.
+    assert USAGE.is_file()
+    assert "/implement" in USAGE.read_text()
 
 
 def test_the_engine_artifact_exists():
