@@ -133,7 +133,7 @@ Quick start <engine/usage>
 Architecture <engine/architecture>
 Performance <engine/shootout>
 The loop breaker <engine/loop-breaker>
-Architecture <engine/deliver-candidate>
+The bounded executor <engine/deliver-candidate>
 ```
 
 ```{toctree}

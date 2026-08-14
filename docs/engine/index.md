@@ -25,9 +25,10 @@ knows anything about your task; that is what lets them ship in one file
 and steer any session. The details, and the measured case for each, are
 in `docs/engine/loop-breaker.md` and `docs/engine/architecture.md`.
 
-## The two faces
+## How you use it
 
-You can use the engine two ways, and they are independent.
+The engine is one thing — everyday steering — and the install is one
+file.
 
 **Everyday steering.** Copy the one file into user scope:
 
@@ -56,12 +57,12 @@ success into a failure.
 Only want guard #1? `docs/engine/loop-breaker.md` installs it alone, with the
 same user-scope reasoning.
 
-**The bounded executor.** Run from a checkout, it lets a model make one
-attempt against your repository in a throwaway git worktree, checks the
-result with a command you declare, and leaves either a ref you can review
-or a receipt explaining why not. Your working tree is never written to.
-The one-liner is in the README (`uv run python -m tools.deliver_candidate
-...`); the full path, in execution order, is `docs/engine/deliver-candidate.md`.
+**A companion tool, not part of the engine.** The project also ships a
+bounded executor (`deliver_candidate`) — a non-interactive CLI that makes
+one reviewable attempt against your repository in a throwaway worktree,
+checked with a command you declare. It is for a deliberate, non-session
+moment, not something you reach for mid-session. See
+`docs/engine/deliver-candidate.md`; the one-liner is in the README.
 
 ## What it is not
 

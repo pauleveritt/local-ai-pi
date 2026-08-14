@@ -1,5 +1,10 @@
 # Architecture: the bounded-implementer path
 
+**This is the bounded executor — a companion tool shipped alongside the
+engine, not the engine extension itself.** It is a non-interactive CLI
+for a deliberate, one-shot attempt against your repository; see the
+[engine front door](index.md) for how it relates to everyday steering.
+
 **One supported route, start to finish.** This page traces it in the order
 execution actually happens, naming the real module and function at each
 stage rather than describing the idea of one. If a claim here and the code

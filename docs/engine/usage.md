@@ -24,20 +24,6 @@ and deleting a public symbol — when they occur. Use Pi as you normally
 would. When a guard fires, the model sees a refusal that says why and
 offers the next concrete action; it is steering, not a bare "no".
 
-**A bounded attempt** — the executor — is a shell command from a checkout,
-not something typed into Pi:
-
-```bash
-uv run python -m tools.deliver_candidate \
-  --repo . --task add-iter \
-  --prompt-file docs/engine/example-brief.md \
-  --validation "pytest -q" --writable "src/**" \
-  --model your-provider/your-model
-```
-
-It needs a model your Pi can resolve, a model server up, and a clean
-repo. The details are below.
-
 ## Ways to use it
 
 **Everyday steering.** The two guards run in every session. The loop
@@ -53,27 +39,6 @@ anything about your task; that is what lets them ship in one file.
 [docs/engine/loop-breaker.md](loop-breaker.md) installs it alone, with
 the same user-scope reasoning and the subagent gotcha.
 
-**A bounded executor attempt.** One model attempt against your repository
-in a throwaway git worktree, checked with a command you declare, leaving
-either a ref you can review or a receipt explaining why not. Your working
-tree is never written to. The exit code is the answer: **0** a candidate
-exists, **1** it was judged and discarded, **2** refused before starting
-(dirty repo, dead server), **3** your setup is broken. Success prints a
-ref; reviewing it is ordinary git:
-
-```bash
-git show refs/satyrn/candidates/add-iter
-```
-
-The full path, stage by stage, is
-[docs/engine/deliver-candidate.md](deliver-candidate.md).
-
-**The measured form.** Cells pin the arm — model, tools, budgets — and
-verify the live configuration before spending a call. If you want a
-reproducible arm rather than a one-off attempt, that is the cell
-machinery; the model wiring is in
-[docs/evals/model-setup.md](../evals/model-setup.md).
-
 ## What to expect
 
 - **Silence until it fires.** The guards do nothing visible until a
@@ -87,15 +52,17 @@ machinery; the model wiring is in
 - **When preserve-symbols fires:** an `edit` deleting a public symbol —
   a function, a class, a route — is refused unless the new text replaces
   it. It never touches `write`.
-- **The dead-server trap.** A model server that is down does not make Pi
-  fail — Pi exits 0 having written nothing. The executor checks liveness
-  before spending a call and refuses with exit 2, so a dead server never
-  reads as a bad model.
-- **The model string.** `--model <provider>/<id>` must resolve in your
-  Pi's `models.json`; how to register a provider or model, and the
-  server-address limits, are in
-  [docs/evals/model-setup.md](../evals/model-setup.md).
-- **What it is not.** Not a planner (the typed-contract bridge under the
-  executor is scoped to exactly four tasks and refuses the rest), not a
-  turn cap (Pi has none, and varied work is untouched), and not a godbox
-  — it steers, it does not reason for you.
+- **What it is not.** Not a planner, not a turn cap (Pi has none, and
+  varied work is untouched), and not a godbox — it steers, it does not
+  reason for you.
+
+## A companion tool: the bounded executor
+
+The project also ships a **bounded executor** (`deliver_candidate`) — a
+separate, non-interactive CLI that makes one reviewable attempt against
+your repository in a throwaway worktree, checked with a command you
+declare. It is not part of the engine and not something you reach for
+mid-session: it is for the deliberate moment when you want a validated,
+reviewable artifact instead of a session. It lives at
+[docs/engine/deliver-candidate.md](deliver-candidate.md); the one-liner
+is in the README.
