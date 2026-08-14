@@ -77,6 +77,12 @@ The three suites you can run:
   implementation steps. The two are a comparison pair: the description
   varies and nothing else.
 
+**Planned: the `svcs` eval.** Phase 7 built the workload — `workloads/svcs/`
+(a commit-replay cohort drawn from the `svcs` library: tasks with
+manifests, hidden-oracle and preservation suites, cell pins). Bringing it
+into `harness.cli` as a runnable suite is the intended next eval; it is
+not runnable yet.
+
 `--help` on any subcommand is the documentation. Exit codes follow the
 project's convention: 0 the command completed its purpose, 2 refused before
 starting (unknown name, dead server, wrong Pi version, checkpoint

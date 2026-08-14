@@ -142,6 +142,8 @@ The bounded executor <engine/deliver-candidate>
 
 Why evals? <evals/why-evals>
 evals/index
+How to write an eval <evals/writing-evals>
+The eval architecture <evals/architecture>
 evals/model-setup
 evals/slm-struggles
 ```
