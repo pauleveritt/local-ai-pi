@@ -128,11 +128,11 @@ glossary
 :maxdepth: 1
 :caption: The engine
 
-engine/index
-engine/architecture
-engine/shootout
-engine/loop-breaker
-engine/deliver-candidate
+What is the engine? <engine/index>
+Architecture <engine/architecture>
+Performance <engine/shootout>
+The loop breaker <engine/loop-breaker>
+Architecture <engine/deliver-candidate>
 ```
 
 ```{toctree}
