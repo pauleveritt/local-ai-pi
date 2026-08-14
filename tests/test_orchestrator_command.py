@@ -17,6 +17,12 @@ def test_the_orchestrator_file_exists():
     assert ORCHESTRATOR.is_file()
 
 
+def test_the_command_is_registered():
+    # Not vacuous: nothing else here reads the source, so without this the
+    # registration could vanish and the file-existence test stay green.
+    assert 'pi.registerCommand("implement"' in ORCHESTRATOR.read_text()
+
+
 def test_the_argv_builder_maps_the_inputs():
     # Run the TS builder under bun and check the argv it prints.
     out = subprocess.run(

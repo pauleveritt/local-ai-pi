@@ -66,6 +66,10 @@ Success prints a ref you can review with ordinary git:
 git show refs/satyrn/candidates/add-iter
 ```
 
+The ad-hoc flavor of `/implement` validates with `pytest -q`; a repo with
+a different test command should wait for the structured flavor (Phase 11)
+or run `deliver_candidate` directly.
+
 More, including what the engine is and isn't:
 [docs/engine/index.md](docs/engine/index.md).
 

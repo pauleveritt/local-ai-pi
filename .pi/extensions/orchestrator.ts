@@ -50,6 +50,7 @@ export default function (pi: ExtensionAPI) {
 			const child = spawn("uv", argv, { cwd: ctx.cwd });
 			child.stdout.on("data", (d) => ctx.ui.notify(String(d).trim(), "info"));
 			child.stderr.on("data", (d) => ctx.ui.notify(String(d).trim(), "warning"));
+			child.on("error", (e) => ctx.ui.notify(`Could not start uv: ${e.message}`, "warning"));
 		},
 	});
 }

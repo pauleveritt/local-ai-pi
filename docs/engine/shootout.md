@@ -84,6 +84,10 @@ how to proceed, then settled. The grader found `No module named 'app'` in
 all twelve — the model wrote nothing. That is the cycle-4 bare failure mode
 ("stopped to ask a human what to do"), reproduced at n=6.
 
+The engine arm's checkpoints record the engine bundle's extension digest
+(`62dc3260…`, plus hello-world), so the guards were loaded; zero firings is
+not a silent load failure.
+
 The honest reading is the one the record's honesty clause predicted. The
 guards do **not** rescue these failing runs, because the failure happens
 before any tool call exists to steer — the loop breaker and
