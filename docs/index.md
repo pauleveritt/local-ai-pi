@@ -120,10 +120,12 @@ hold you to.
 :caption: Getting started
 
 setup
+model-setup
 contributing
 glossary
 loop-breaker
 evals
+slm-struggles
 ```
 
 ```{toctree}

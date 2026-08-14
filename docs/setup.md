@@ -130,6 +130,19 @@ configured for the recorded oMLX endpoint; another OpenAI-compatible server
 is not yet a supported runner configuration. Do not compare numbers from a
 different model or endpoint with the Phase 1 baseline.
 
+### The model string
+
+The one thing you type is the model string: `--model
+omlx/gemma-4-12B-it-MLX-8bit` (the CLI's default). It is
+`<provider>/<model-id>`, and both halves live in `pi-agent-dir/models.json`
+— the `omlx` *provider* (its `baseUrl` and `apiKey`) and a *model entry*
+under it. Pi resolves the string against that file; the harness pins
+`PI_CODING_AGENT_DIR=pi-agent-dir/`, so that file is the registry. There is
+no CLI that lists models — read the file. To use a different model on the
+same server, get it into oMLX, add an entry there, and pass
+`--model omlx/<id>`. The full treatment — servers, model acquisition,
+tuning, and the wiring — is [model-setup.md](model-setup.md).
+
 ### Verify the server
 
 ```bash

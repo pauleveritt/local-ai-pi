@@ -93,6 +93,8 @@ pilot.
 
 - Install it: `docs/setup.md` has the environment, or the README's
   engine section is the front door.
+- Set up a local model — server, model string, tuning, wiring it into Pi:
+  `docs/model-setup.md`.
 - Understand the problems and the architecture:
   `docs/engine/architecture.md`.
 - The pilot shootout, and what it does and does not establish:

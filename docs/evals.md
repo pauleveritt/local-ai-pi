@@ -13,7 +13,10 @@ the reference model on `127.0.0.1:8001`. The fast check that everything is
 in place is `uv run python -m harness.cli preflight` — it reports the
 server and the Pi version, and says what to fix if either is wrong. A
 single `one` run needs a working `pi` and the server; a `batch` also pins
-the Pi version, so runs stay comparable between contributors.
+the Pi version, so runs stay comparable between contributors. The model
+string and the server underneath it — install, model acquisition, tuning —
+are in [model-setup.md](model-setup.md); the failures to expect along the
+way are in [slm-struggles.md](slm-struggles.md).
 
 ## Why measure
 
