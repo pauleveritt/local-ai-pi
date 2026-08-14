@@ -27,6 +27,10 @@ checkpoint full of attempts, and the acceptance rate across those attempts
 is the number you can compare. The comparison itself stays manual and
 deliberate: one improvement at a time, side by side, by hand.
 
+The fuller argument — why this harness exists when benchmarks already do,
+where it has collected signals nothing else could, and why the machinery
+is the size it is — is in [why evals?](why-evals.md).
+
 ## The four concepts
 
 **A run** is one model invocation against one suite. The harness checks the

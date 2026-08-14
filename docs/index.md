@@ -140,6 +140,7 @@ The bounded executor <engine/deliver-candidate>
 :maxdepth: 1
 :caption: Evals
 
+Why evals? <evals/why-evals>
 evals/index
 evals/model-setup
 evals/slm-struggles
