@@ -84,7 +84,7 @@ steered out of failures it is not having.
   this model. No claim for `agentclinic-phase-1-user-story`, `duration`,
   another model, or a different task. Complementary evidence exists — the
   `agentclinic-phase-1-user-story` suite's 0/16 → 13/16 turn in
-  [phase 5 cycle 10](superpowers/research/2026-08-04-phase5-cycle10-publishable-arm.md) —
+  [phase 5 cycle 10](../superpowers/research/2026-08-04-phase5-cycle10-publishable-arm.md) —
   but that arm is composite (four fixes landed together, the guards among
   them), so it shows the composed pipeline's effect, not a guards-only
   comparison, and it does not fill this pilot's gap.
