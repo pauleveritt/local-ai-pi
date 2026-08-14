@@ -129,6 +129,7 @@ glossary
 :caption: The engine
 
 What is the engine? <engine/index>
+Quick start <engine/usage>
 Architecture <engine/architecture>
 Performance <engine/shootout>
 The loop breaker <engine/loop-breaker>

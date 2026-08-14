@@ -91,8 +91,8 @@ pilot.
 
 ## Where to go next
 
-- Install it: `docs/setup.md` has the environment, or the README's
-  engine section is the front door.
+- Install it and use it: [using the engine](usage.md) has the quick
+  start, or `docs/setup.md` has the environment.
 - Set up a local model — server, model string, tuning, wiring it into Pi:
   `docs/evals/model-setup.md`.
 - Understand the problems and the architecture:
