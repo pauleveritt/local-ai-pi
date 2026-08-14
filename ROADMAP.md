@@ -454,17 +454,14 @@ never in the workspace during a run.
 end of each cycle, so the next brainstorming session starts from this list
 instead of re-deriving it from old specs.*
 
-**Open — the missing guards baseline, scheduled as the next measurement.**
-The cycle-10 record's own "bare arm rerun under these conditions is the
-obvious next measurement and is not in this record" is still true, and
-Phase 9 sharpened why it matters: the 13/16 composite cannot credit the
-guards, and the Phase 9 shootout's 6/6 ceiling on the pre-chewed suite
-cannot measure them either. The scheduled run is bare control versus
-`ENGINE_IMPROVEMENT` (guards-only) on `agentclinic-phase-1-user-story` —
-the suite where the as-shipped arm scored 0/16 — enough attempts per arm
-to see whether the guards rescue failing runs (the insurance number) or
-whether the effect lives in the executor/stack. Pilot (n=6) first, n=16
-if the direction holds; `docs/engine/shootout.md` records the gap.
+**Closed 2026-08-14 — the missing guards baseline.** The scheduled run —
+bare control versus `ENGINE_IMPROVEMENT` (guards-only) on
+`agentclinic-phase-1-user-story`, pilot n=6 per arm, checkpoints
+`~/evidence/shootout-userstory-{control,engine}-2026-08-14.jsonl` —
+floor-tied both arms at 0/6 with zero guard firings (the model asked the
+human how to proceed and never wrote a file), so the guards' insurance
+number is zero on this suite and the 13/16 effect lives in the
+executor/stack, as recorded in `docs/engine/shootout.md`.
 
 The 2026-07-30 re-plan absorbed this list into cycles 3–10 above (numbers
 as they stood then): the hermetic grader split into cycles 3 and 5, the
