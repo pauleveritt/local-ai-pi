@@ -84,12 +84,17 @@ a long time is untouched by these guards.
 The loop breaker came out of that 261-turn run, and live, in a 16-run
 batch, it fired in two runs — refusing 12 calls — and both still passed
 their acceptance tests. Preserve-symbols came out of three of four runs
-failing the same way on the `/about`-route deletion. The pilot shootout measured the **guards** — everyday steering, not
-the orchestrator — on `agentclinic-phase-1`: both arms at ceiling, the
-guards loaded but never fired. It is written up in
-`docs/engine/shootout.md`; `docs/evidence-index.md` lists the claims and
-writes down, claim by claim, what is confirmatory and what is only
-pilot.
+failing the same way on the `/about`-route deletion. The pilot shootout
+measured the **guards** — everyday steering, not the orchestrator — twice,
+on the two suites: on the pre-chewed `agentclinic-phase-1` both arms hit
+ceiling (6/6) with the guards never firing; on the harder
+`agentclinic-phase-1-user-story` both arms hit the floor (0/6) — the bare
+path provokes non-engagement, one turn and zero tool calls per run — and
+the guards never fired there either. The composed pipeline's 13/16 on the
+harder suite does not credit the guards: the effect lives in the pipeline.
+It is written up in `docs/engine/shootout.md`; `docs/evidence-index.md`
+lists the claims and writes down, claim by claim, what is confirmatory and
+what is only pilot.
 
 ## Where to go next
 

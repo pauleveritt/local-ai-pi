@@ -88,15 +88,24 @@ The engine arm's checkpoints record the engine bundle's extension digest
 (`62dc3260…`, plus hello-world), so the guards were loaded; zero firings is
 not a silent load failure.
 
-The honest reading is the one the record's honesty clause predicted. The
-guards do **not** rescue these failing runs, because the failure happens
-before any tool call exists to steer — the loop breaker and
-preserve-symbols act on tool calls, and a run that never makes one is out of
-their reach. So the cycle-10 composite's 13/16 cannot credit the guards with
-"rescuing failing runs" on this suite: whatever moved 0/16 to 13/16 lives in
-the orchestrator/implementer stack and the facts (naming FastAPI and
-`app.py`), not in the guards alone. That is a real finding, not a wash — it measures the guards'
-individual share at zero and relocates the effect.
+The honest reading is the one the record's honesty clause predicted, with
+one sharpening the numbers force. The guards do not rescue these failing
+runs — but the reason narrows the claim. The failure here does not happen
+*in* a run the guards could steer; it happens **before** the first tool
+call: every run took one turn, made zero tool calls, and asked the human
+how to proceed. This bare path provokes **non-engagement** — the same
+failure mode cycle 4 documented and cycle 10's fixes were built to
+displace. So this measurement never isolated the guards on a
+working-but-flawed run — there were no working runs through this path at
+all. What it does establish is narrower and still valuable: **the guards'
+share of the cycle-10 turn (0/16 → 13/16) is zero** — the suite moves
+when the model is made to engage, and nothing in the guards causes
+engagement. The effect lives in the composed pipeline (the orchestration
+fixes and the facts — naming FastAPI and `app.py`), not in the guards
+alone. The guards' payoff on a working-but-looping run is a different
+question, and its evidence is already banked separately: the cycle-10
+record's run 1 repeated one call 14 times and finished correctly once
+steered out of it.
 
 Two non-claims, stated so the zero is not overread. First, this is a pilot —
 one suite, one model, n=6 per arm, not pooled, not confirmatory. Second, it
