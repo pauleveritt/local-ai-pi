@@ -1,102 +1,80 @@
-# The engine shootout — pilot
+# The engine shootout
 
 **Phase:** 9 — an engine you can install
-**Status:** pilot — a light comparison behind the "why install the engine" pitch, not confirmatory
-**Category:** [pilot](../evidence-index.md) — see "What this does not establish"
+**Status:** pilot — a first pass behind the "why install the engine" pitch, not confirmatory
+**Category:** [pilot](../evidence-index.md)
 **Run:** 2026-08-13, model `omlx/gemma-4-12B-it-MLX-8bit` (the harness default), Pi 0.84.1
 **Checkpoints:** `~/evidence/shootout-control-2026-08-13.jsonl`, `~/evidence/shootout-engine-2026-08-13.jsonl`
 
-## Question
+The question underneath the pitch is simple: does the engine — the two
+guards, loop-breaker and preserve-symbols, shipped as one file — change
+what happens? The answer depends entirely on the problem you hand it. Two
+populations, two answers, and one gap the record has not yet closed.
 
-Does loading the engine — the two guards, `loop-breaker` and
-`preserve-symbols`, shipped as one file — change accepted rates on an eval
-suite, compared with the same suite, task, prompt, and model without them?
+## 1. The pre-chewed floor: no effect, and why that is the point
 
-## Design
+The easiest suite, `agentclinic-phase-1`, is easy on purpose. Its task
+spec is the output of this project's own spec-driven process — 28 lines
+naming every file, every route, and the exact tagline text. The model
+transcribes a design a "big brain" already pre-chewed. There is nothing
+left to get wrong.
 
-- **Suite:** `agentclinic-phase-1` — the model builds an application from a
-  roadmap (`examples/agentclinic/specs/roadmap.md`) and is graded by the
-  acceptance suite (`test_acceptance.py`, 4 tests). Chosen because it is
-  the suite with the most room for both guard failure modes: the model
-  iterates on `app.py` and templates, re-running the acceptance tests
-  (loop-breaker territory) and editing code with functions and routes
-  (preserve-symbols territory).
-- **Arms:** control (no improvement) versus engine
-  (`ENGINE_IMPROVEMENT` in `harness/runner.py` — an extension-only
-  `Improvement` carrying `.pi/extensions/engine.ts`). Same task, same
-  prompt, same model; the arms differ only in whether the guards are
-  loaded. The engine arm's checkpoints record
-  `improvement_name="engine"` and the artifact's extension digest, so the
-  run is auditable: the artifact was passed to Pi and its content pinned by
-  the extension digest, and no load error appeared in any run's recorded
-  output (`pi_stderr`).
-- **n:** 6 attempts per arm, sequential, separate checkpoints. A pilot,
-  not a pre-registered comparison — no hypothesis, no superiority margin,
-  no interval math.
+| Arm | n | accepted | turns | tool calls | tokens |
+|---|---|---|---|---|---|
+| control | 6 | 6 | 7.0 — every run | 6 — same sequence every run | ~10,117 |
+| engine | 6 | 6 | 7.0 — every run | 6 — same sequence every run | ~10,077 |
 
-## Result
+Every one of the twelve runs took exactly 7 turns and the identical six
+tool calls (`bash`, `write` ×4, `bash`). The guards never fired — no
+`loop_broken`, no `symbol_preserved` — because there was nothing to steer.
 
-| Arm | n | accepted | refused | timed out |
-|---|---|---|---|---|
-| control | 6 | 6 | 0 | 0 |
-| engine | 6 | 6 | 0 | 0 |
+This is not evidence that the engine is useless. It is the floor we intend
+to move: a task the model already passes cannot show steering, any more
+than insurance pays out on a run with no accident. The shootout's real
+question starts where this suite ends.
 
-Both arms at **ceiling**. Loading the guards changed nothing measurable on
-this suite at this task.
+## 2. The harder suite: where the composed engine showed up
 
-**The guards never fired.** No engine-arm run produced a single
-`loop_broken` or `symbol_preserved` telemetry entry (checked in each run's
-recorded Pi output). The model neither looped on a repeated call nor
-attempted an edit deleting a public symbol. The engine was present and
-inert.
+`agentclinic-phase-1-user-story` states the same application as outcomes
+("what agents experience, not what files to create") — the model must
+infer the implementation. Here the as-shipped pipeline came apart. The
+full record is [phase 5 cycle 10](../superpowers/research/2026-08-04-phase5-cycle10-publishable-arm.md); the numbers:
 
-**Directness: no difference either.** Both arms ran **exactly 7 turns and
-6 tool calls with the same tool sequence** (`bash`, `write` ×4, `bash`)
-in every one of the 12 runs, at ~10,000 tokens each. There is no
-turn-count or cost effect to attribute — which is what "the guards never
-fired" predicts: fewer turns from steering requires the loop breaker to
-block a repeated call at least once, and it never did. This is a post-hoc
-look at the recorded Pi output (turn count was not a pre-registered
-metric of this pilot), and the runs' uniformity is why it is a null
-result rather than a measured difference.
+| Arm | accepted | timeouts | median turns | max turns | median transcript |
+|---|---|---|---|---|---|
+| cycle 4 — as-shipped | 0/16 | 6/16 | 30.5 | 261 | 2.65 MB |
+| cycle 10 — corrected, guarded, stacked, hermetic | 13/16 | 1/16 | 14 | 42 | 0.50 MB |
 
-## The honest headline
+The baseline was not merely failing — it was deranged: 261-turn runs, a
+71.88 MB transcript, 1.8M context tokens, an `ls -R` repeated 245 times,
+and runs that stopped to ask a human what to do. The corrected arm cut
+median turns in half, kept every run under 42, and — in the clearest
+possible demonstration of what the guards are for — the loop breaker fired
+12 times across two runs and **both still passed**; one had repeated a
+single call 14 times and was steered out.
 
-On a task the model already passes, the engine has no observable effect —
-consistent with the loop breaker's own documented framing: it is
-"insurance that mostly does nothing." This pilot is the null result that
-framing predicts, not evidence against the guards. The guards' value was
-established against recorded failures (the 261-turn loop run; the
-`/about`-route-deleting edit), and those runs are a different population
-from this one — a model that is not looping or deleting symbols cannot be
-steered out of failures it is not having.
+Two honesty clauses, from the record itself. First, that arm is
+**composite**: four changes landed together (call shape, empty-workspace
+statement, stack naming, hermetic child) with the guards as insurance on
+top — the 0/16 → 13/16 is the composed pipeline's number, and the guards'
+individual share is not isolated in it. Second, it is not a comparison
+against bare Pi on this suite: the cycle-4 floor was partly "stopped to
+ask a human", a different failure mode.
 
-## What this does not establish
+## 3. The missing measurement, and the floor to move
 
-- **No with-versus-without difference.** Both arms at ceiling, so this
-  pilot contributes no comparative information. It says nothing about
-  whether the guards help on a suite where the control arm fails.
-- **Nothing about the executor or orchestration.** This compared the
-  guards alone, as everyday steering. The bounded executor
-  (`deliver_candidate`), the mutation engine, and the typed-contract
-  bridge are untouched by this comparison and unmeasured by it.
-- **Nothing beyond one suite.** `agentclinic-phase-1` at this task and
-  this model. No claim for `agentclinic-phase-1-user-story`, `duration`,
-  another model, or a different task. Complementary evidence exists — the
-  `agentclinic-phase-1-user-story` suite's 0/16 → 13/16 turn in
-  [phase 5 cycle 10](../superpowers/research/2026-08-04-phase5-cycle10-publishable-arm.md) —
-  but that arm is composite (four fixes landed together, the guards among
-  them), so it shows the composed pipeline's effect, not a guards-only
-  comparison, and it does not fill this pilot's gap.
-- **The missing measurement is scheduled.** The bare-baseline and
-  guards-only runs on `agentclinic-phase-1-user-story` — which would
-  isolate the guards' share the composite cannot show, and which the
-  cycle-10 record already names as "the obvious next measurement" — are
-  tracked in ROADMAP's Deferred candidates as the next measurement.
-- **Not confirmatory.** Pilot, not pre-registered; no intervals, no
-  superiority margin, and it is not pooled with the Phase 7 confirmatory
-  result. A negative pilot is not a reason to distrust the guards' recorded
-  evidence; a positive pilot would not have been a verdict.
+Put the two sections together and the gap is exact. The guards alone have
+been measured only on the pre-chewed suite, where nothing fires; the
+composed engine has been measured on the harder suite, where the guards'
+share cannot be separated. The run that closes the gap — bare control
+versus guards-only on `agentclinic-phase-1-user-story` — is scheduled in
+the ROADMAP's Deferred candidates (`ROADMAP.md`).
+
+And there is no suite more complex than user-story to move to yet. The
+three runnable suites are all ~30-line tasks; the genuinely harder
+`workloads/svcs/` cohort lives on a different product path (the typed
+handoff bridge, not `run_suite`). Making the floor move means authoring
+harder tasks in the user-story style — which is the plan, not an accident.
 
 ## Reproduction
 
@@ -111,5 +89,5 @@ for arm, imp in [('control', None), ('engine', ENGINE_IMPROVEMENT)]:
 "
 ```
 
-Requires the local model server (`docs/setup.md`, Part 2). The checkpoints
+Requires the local model server (`docs/setup.md` Part 2). The checkpoints
 live outside version control, at the paths above.
