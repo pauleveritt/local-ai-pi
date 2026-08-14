@@ -50,6 +50,16 @@ recorded Pi output). The model neither looped on a repeated call nor
 attempted an edit deleting a public symbol. The engine was present and
 inert.
 
+**Directness: no difference either.** Both arms ran **exactly 7 turns and
+6 tool calls with the same tool sequence** (`bash`, `write` ×4, `bash`)
+in every one of the 12 runs, at ~10,000 tokens each. There is no
+turn-count or cost effect to attribute — which is what "the guards never
+fired" predicts: fewer turns from steering requires the loop breaker to
+block a repeated call at least once, and it never did. This is a post-hoc
+look at the recorded Pi output (turn count was not a pre-registered
+metric of this pilot), and the runs' uniformity is why it is a null
+result rather than a measured difference.
+
 ## The honest headline
 
 On a task the model already passes, the engine has no observable effect —
@@ -72,7 +82,12 @@ steered out of failures it is not having.
   bridge are untouched by this comparison and unmeasured by it.
 - **Nothing beyond one suite.** `agentclinic-phase-1` at this task and
   this model. No claim for `agentclinic-phase-1-user-story`, `duration`,
-  another model, or a different task.
+  another model, or a different task. Complementary evidence exists — the
+  `agentclinic-phase-1-user-story` suite's 0/16 → 13/16 turn in
+  [phase 5 cycle 10](superpowers/research/2026-08-04-phase5-cycle10-publishable-arm.md) —
+  but that arm is composite (four fixes landed together, the guards among
+  them), so it shows the composed pipeline's effect, not a guards-only
+  comparison, and it does not fill this pilot's gap.
 - **Not confirmatory.** Pilot, not pre-registered; no intervals, no
   superiority margin, and it is not pooled with the Phase 7 confirmatory
   result. A negative pilot is not a reason to distrust the guards' recorded
