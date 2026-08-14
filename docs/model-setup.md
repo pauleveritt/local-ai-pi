@@ -132,5 +132,69 @@ package when the harness cannot locate it (`pi_package_root` in
 
 The honest limit, restated: a different model on the reference server is a
 one-entry edit. A different *server* — different port, different host, a
-real API key — is not yet possible through the CLI without either running
-it on `127.0.0.1:8001` or a small code change.
+real API key — is not possible through the **eval** CLI without either
+running it on `127.0.0.1:8001` or a small code change; the **engine** CLI
+has `--server` and can point elsewhere today.
+
+## Telling the eval and the engine about a new provider or model
+
+Two consumers read the model registry, and they are configured
+differently. This documents the existing seams — it builds no new
+machinery.
+
+**The registry.** Both paths resolve the model string through Pi, and Pi
+reads `models.json` from the agent directory it is pointed at. The eval
+pins `PI_CODING_AGENT_DIR=pi-agent-dir/` — the repo's committed registry.
+The engine defaults to your own `~/.pi/agent` (`--agent-dir` overrides), so
+its registry is personal unless you point it at the repo's.
+
+**The eval (`one` / `batch`).** Three steps, all in
+`pi-agent-dir/models.json`:
+
+1. Add (or reuse) a provider block: `name`, `baseUrl` (the server's
+   OpenAI-compatible root), `api`, `apiKey`, and a `models` list.
+2. Add a model entry under it: `id`, `name`, `reasoning`, `input`, `cost`,
+   `contextWindow`, `maxTokens`.
+3. Run `--model <provider>/<id>` (or change `DEFAULT_MODEL` in
+   `harness/pi_invocation.py`).
+
+The eval's own liveness check still probes `127.0.0.1:8001` with no flag
+to change it — a provider on another port is reachable by Pi but refused
+by the CLI's liveness before any call. The `dsflash` provider in the
+committed file (a DeepSeek server on port 8002) is a real example of a
+second provider block.
+
+**The engine (`deliver_candidate`).** Two forms:
+
+- **Bare:** `--model <provider>/<id>` — the string must resolve in the
+  `models.json` of the agent dir in use (default `~/.pi/agent/models.json`;
+  `--agent-dir pi-agent-dir` to use the repo's). A different server
+  address is `--server http://host:port` (the engine's liveness check
+  honors it, and `--skip-server-check` exists for a server the machine
+  cannot see). Pi's actual calls still go to the model entry's provider
+  `baseUrl`.
+- **Measured (a cell):** cells pin the arm's whole configuration and
+  verify it before spending a call. `workloads/svcs/cells/*.toml` has a
+  `[pinned]` section holding `model`, `base_url`, `max_tokens`,
+  `context_window`, `tools`, `extensions`, `extensions_sha256`, and
+  `wall_clock_seconds`; `verify()` refuses unless the live configuration
+  matches ("Do not spend model calls until they agree"). So a new
+  provider/model as a *measured* arm means a new cell pinning the new
+  string and values, with the model registered in the agent dir's
+  `models.json` — and any `maxTokens`/`contextWindow` the cell pins equal
+  to that entry's fields (a mismatch fails `verify()`, not a run).
+
+**Worked example — a second provider and a model on it.** A server on
+`127.0.0.1:8003` serving `my-model`:
+
+1. `models.json` gains a provider block, e.g.
+   `"myprov": {"name": "My local server", "baseUrl":
+   "http://127.0.0.1:8003/v1", "api": "openai-completions",
+   "apiKey": "not-needed", "models": [{"id": "my-model", ...}]}`.
+2. Eval: `uv run python -m harness.cli one --suite duration --model
+   myprov/my-model` — on port 8003 the CLI's liveness refuses (port
+   mismatch); serve it on 8001 and it runs.
+3. Engine: `uv run python -m tools.deliver_candidate ... --model
+   myprov/my-model --server http://127.0.0.1:8003` runs in bare form; a
+   cell `myprov-my-model.toml` pins the string, `base_url`, and budgets
+   for the measured form.
