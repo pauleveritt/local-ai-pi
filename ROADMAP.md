@@ -255,6 +255,7 @@ defaulted.
 | 8 | An eval you can type, not one you paste | Give the harness a documented entry point — a small, stdlib-only CLI (names not symbols, friendly preflight, a checkpoint summary) — and move the why/what/how into `docs/evals.md` | complete; five cycles shipped 2026-08-13 — see the Phase 8 section below |
 | 9 | An engine you can install | Make the engine adoptable by a Python developer running a small local model in Pi: a one-file install that puts the guards in every session, a README whose setup section serves both the engine and the evals, and an honest pilot number for what the guards change | complete |
 | 10 | Name the engine | Land the end-user vocabulary — engine as the package, orchestrator and implementer as the roles, guards as passive steering — in the docs and user-facing code, after the scheduled evidence run, so collaborators onboard to a naming regime that is not about to change | planned |
+| 11 | The contract-authoring bridge | The orchestrator pre-chews a real `HandoffContract` from a roadmap/manifest (`tools/author_contract.py` → `HandoffContract` JSON, `inspectContract` as the admission gate), driving `/implement`'s structured flavor | planned |
 
 
 **Phase 7 — Workload first, envelope to candidate commit. In progress; the
@@ -382,6 +383,24 @@ It does **not** do TypeScript orchestration — the orchestrator's substrate
 is the Python CLI, and TS orchestration may never happen. And it is **not**
 the contract-authoring bridge — pre-chewing real handoff packets is Phase
 11's job.
+
+**Phase 11 — The contract-authoring bridge. Planned.** Phase 10 registered
+`/implement` in its ad-hoc flavor — the user's prompt mapped onto the CLI's
+flags and shelled out to the existing executor — and deliberately stopped
+there. The structured flavor is still missing: a real handoff packet
+pre-chewed from a roadmap/manifest rather than a prompt passed through.
+This phase builds the bridge. `tools/author_contract.py` emits
+`HandoffContract` JSON — writable files sourced from the manifest, not the
+author's judgment; `validation` from the manifest's command — and
+`inspectContract` admits the packet, which then drives `/implement`'s
+structured flavor end to end. Shaped, not built, for now:
+[shape](docs/superpowers/specs/2026-08-14-phase11-contract-authoring-bridge-shape.md)
+
+Three questions stay open in the shape, deliberately: which product the
+planned Cycle 6 is buying (a solution-bearing plan for safe transcription,
+or a requirements-only contract intended to improve reasoning); where the
+manifest-to-handoff boundary sits; and whether contract authoring is
+reliable under the gate.
 
 ### Phase 6 feature cycles
 
