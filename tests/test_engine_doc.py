@@ -17,6 +17,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 README = REPO_ROOT / "README.md"
 ENGINE = REPO_ROOT / ".pi" / "extensions" / "engine.ts"
+ORCHESTRATOR = REPO_ROOT / ".pi" / "extensions" / "orchestrator.ts"
 ENGINE_INDEX = REPO_ROOT / "docs" / "engine" / "index.md"
 
 
@@ -25,8 +26,14 @@ def _flat(text: str) -> str:
 
 
 def test_the_engine_install_command_is_one_line():
+    # Phase 10: the install is two files on one copy line — the engine (the
+    # guards) and the orchestrator (/implement). Pin both, so the README
+    # cannot silently drop the command half of the install.
     readme = _flat(README.read_text())
-    command = "cp .pi/extensions/engine.ts ~/.pi/agent/extensions/"
+    command = (
+        "cp .pi/extensions/engine.ts .pi/extensions/orchestrator.ts "
+        "~/.pi/agent/extensions/"
+    )
     assert command in readme
 
 
@@ -34,6 +41,12 @@ def test_the_engine_artifact_exists():
     # Not vacuous: nothing else here imports the artifact, so without this
     # the file could vanish and the suite stay green.
     assert ENGINE.is_file()
+
+
+def test_the_orchestrator_artifact_exists():
+    # Not vacuous: nothing else here imports the artifact, so without this
+    # the file could vanish and the suite stay green.
+    assert ORCHESTRATOR.is_file()
 
 
 def test_the_engine_section_points_at_docs_engine_index():

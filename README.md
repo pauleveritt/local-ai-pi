@@ -29,23 +29,27 @@ Minimal install:
 
 ```bash
 mkdir -p ~/.pi/agent/extensions
-cp .pi/extensions/engine.ts ~/.pi/agent/extensions/
+cp .pi/extensions/engine.ts .pi/extensions/orchestrator.ts ~/.pi/agent/extensions/
 ```
 
-That copy is the whole install. Pi loads user-scope extensions
-unconditionally, so the guards are active in every session — including
+Those two files are the whole install: the engine (the guards) and the
+orchestrator's `/implement` command. Pi loads user-scope extensions
+unconditionally, so both are active in every session — including
 delegated children, where a small model's runaway usually happens. Put the
-file in user scope, not a project's `.pi/extensions/`, if you delegate at
+files in user scope, not a project's `.pi/extensions/`, if you delegate at
 all: a child loads user-scope extensions but not project ones. (Only want
 guard #1? [loop-breaker.md](docs/engine/loop-breaker.md) installs the loop breaker
 alone.)
 
-The other face is the orchestrator, run from a checkout: the explicit
-front you invoke. It pre-chews a task into a handoff packet and drives the
-implementer — the bounded worker — through one attempt. It runs a model
-once against your repo in a throwaway git worktree, checks the result with
-a command you declare, and leaves either a git ref you can review or a
-receipt explaining why not — your working tree is never written to:
+The other face is the orchestrator: the explicit front you invoke. In a
+Pi session with the two-file install, that front is `/implement <task>` —
+it writes your task to a prompt file and shells out to the CLI below,
+which is also the direct path from a checkout. It pre-chews a task into a
+handoff packet and drives the implementer — the bounded worker — through
+one attempt. It runs a model once against your repo in a throwaway git
+worktree, checks the result with a command you declare, and leaves either
+a git ref you can review or a receipt explaining why not — your working
+tree is never written to:
 
 ```bash
 uv sync
