@@ -42,12 +42,12 @@ others, and none needs the rest of this project.
 **The [engine](engine/index.md)** — why, how, and what: the two guards
 bundled into one self-contained file.
 
-**A [loop breaker](loop-breaker.md) for your own Pi sessions.** One file,
+**A [loop breaker](engine/loop-breaker.md) for your own Pi sessions.** One file,
 copied into place. It refuses a tool call the model has already made,
 unchanged, several times in a row. It came out of a recorded run of 261
 turns, 245 of them the identical `ls -R` against an empty directory.
 
-**A [bounded executor](architecture.md) for your own repository.** It runs
+**A [bounded executor](engine/deliver-candidate.md) for your own repository.** It runs
 a model once against your repo in a throwaway git worktree, checks the
 result with a command *you* declare, and leaves either a git ref you can
 review or a receipt explaining why not. Your working tree is never written
@@ -97,7 +97,7 @@ to express *"this run had something applied to it"* and measure it.
 
 **Phases 6–7 built the bounded-implementer half** — the guards, the
 mutation engine, the typed handoff, and the pre-registered comparison
-above. [architecture.md](architecture.md) traces that path end to end, in
+above. [deliver-candidate.md](engine/deliver-candidate.md) traces that path end to end, in
 the order execution happens, naming the real module at each stage.
 
 The full phase-by-phase record, including the withdrawn framings and
@@ -120,12 +120,8 @@ hold you to.
 :caption: Getting started
 
 setup
-model-setup
 contributing
 glossary
-loop-breaker
-evals
-slm-struggles
 ```
 
 ```{toctree}
@@ -135,13 +131,23 @@ slm-struggles
 engine/index
 engine/architecture
 engine/shootout
+engine/loop-breaker
+engine/deliver-candidate
 ```
 
 ```{toctree}
 :maxdepth: 1
-:caption: The bounded-implementer path
+:caption: Evals
 
-architecture
+evals/index
+evals/model-setup
+evals/slm-struggles
+```
+
+```{toctree}
+:maxdepth: 1
+:caption: Evidence
+
 evidence-index
 ```
 

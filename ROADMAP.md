@@ -9,7 +9,7 @@
 >
 > Not where a new contributor should start. For what's usable now, see
 > [`README.md`](README.md); for the supported architecture,
-> [`docs/architecture.md`](docs/architecture.md); for starter tasks,
+> [`docs/engine/deliver-candidate.md`](docs/engine/deliver-candidate.md); for starter tasks,
 > [`docs/contributing.md`](docs/contributing.md).
 
 *Phases group feature cycles. One direction at a time. Tangents go to the
@@ -273,7 +273,7 @@ Where it stands as of 2026-08-12:
   under a revision-checked mutation engine; the result is validated and
   lands as a reviewable `refs/satyrn/candidates/<task>` ref or a receipt
   saying why not. Traced end to end in
-  [`docs/architecture.md`](docs/architecture.md).
+  [`docs/engine/deliver-candidate.md`](docs/engine/deliver-candidate.md).
 - **Cycle 7's pre-registered comparison ran** — 64 attempts, two arms
   (concise brief vs. complete locating contract) across four tasks, n=8.
   The locating contract wins on one task of four; two are ceiling-tied and

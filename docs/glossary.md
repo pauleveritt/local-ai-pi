@@ -123,7 +123,7 @@ unchanged, several times in a row. Came out of a recorded run of 261
 turns, 245 of them the identical `ls -R`.
 
 Installable on its own, outside this project: see
-[loop-breaker.md](loop-breaker.md).
+[loop-breaker.md](engine/loop-breaker.md).
 
 ## Mutation engine
 

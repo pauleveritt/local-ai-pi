@@ -23,7 +23,7 @@ small rule that inspects a tool call and may refuse it:
 Each guard compares a call against itself and returns a decision. Neither
 knows anything about your task; that is what lets them ship in one file
 and steer any session. The details, and the measured case for each, are
-in `docs/loop-breaker.md` and `docs/engine/architecture.md`.
+in `docs/engine/loop-breaker.md` and `docs/engine/architecture.md`.
 
 ## The two faces
 
@@ -53,7 +53,7 @@ alone, because the one run that recovered did so by rewriting a file
 wholesale — blocking that escape hatch would have converted the only
 success into a failure.
 
-Only want guard #1? `docs/loop-breaker.md` installs it alone, with the
+Only want guard #1? `docs/engine/loop-breaker.md` installs it alone, with the
 same user-scope reasoning.
 
 **The bounded executor.** Run from a checkout, it lets a model make one
@@ -61,7 +61,7 @@ attempt against your repository in a throwaway git worktree, checks the
 result with a command you declare, and leaves either a ref you can review
 or a receipt explaining why not. Your working tree is never written to.
 The one-liner is in the README (`uv run python -m tools.deliver_candidate
-...`); the full path, in execution order, is `docs/architecture.md`.
+...`); the full path, in execution order, is `docs/engine/deliver-candidate.md`.
 
 ## What it is not
 
@@ -94,13 +94,13 @@ pilot.
 - Install it: `docs/setup.md` has the environment, or the README's
   engine section is the front door.
 - Set up a local model — server, model string, tuning, wiring it into Pi:
-  `docs/model-setup.md`.
+  `docs/evals/model-setup.md`.
 - Understand the problems and the architecture:
   `docs/engine/architecture.md`.
 - The pilot shootout, and what it does and does not establish:
   `docs/engine/shootout.md`.
 - The loop breaker alone, with tuning and the subagent gotcha:
-  `docs/loop-breaker.md`.
-- The executor path, end to end: `docs/architecture.md`.
+  `docs/engine/loop-breaker.md`.
+- The executor path, end to end: `docs/engine/deliver-candidate.md`.
 - Look up a term: `docs/glossary.md`.
 - Check what backs a claim: `docs/evidence-index.md`.

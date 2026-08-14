@@ -4,7 +4,7 @@
 executor underneath.** This page traces the engine in execution order —
 the shape of a guard, how the bundle wires them, and where the executor
 picks up — naming the real file at each stage. It links to
-`docs/architecture.md` for the executor rather than re-explaining it.
+`docs/engine/deliver-candidate.md` for the executor rather than re-explaining it.
 
 ## The problems being solved
 
@@ -82,7 +82,7 @@ one. It is not part of the bundle; it runs from a checkout and shares
 only the guards' source files through the implementer's extension
 closure. Its path is typed handoff → mutation engine → preservation
 validation → candidate ref, and it is traced end to end, in execution
-order, in `docs/architecture.md`. The guards ride along there
+order, in `docs/engine/deliver-candidate.md`. The guards ride along there
 contract-blind by design; here they are the whole product.
 
 ## What is deliberately out of scope

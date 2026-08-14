@@ -1,7 +1,7 @@
 # Evidence index: the bounded-implementer path
 
 What backs the claims in `README.md` at the repository root and
-[`docs/architecture.md`](architecture.md), classified by what kind of
+[`docs/engine/deliver-candidate.md`](engine/deliver-candidate.md), classified by what kind of
 evidence each item is. **Scope:** the Phase 7 typed-contract / bounded-
 implementer product line only (`harness/typed_contract.py`,
 `extensions/orchestration/`, the `gemma12b-implementer-v1` cell), plus the

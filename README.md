@@ -37,7 +37,7 @@ unconditionally, so the guards are active in every session — including
 delegated children, where a small model's runaway usually happens. Put the
 file in user scope, not a project's `.pi/extensions/`, if you delegate at
 all: a child loads user-scope extensions but not project ones. (Only want
-guard #1? [loop-breaker.md](docs/loop-breaker.md) installs the loop breaker
+guard #1? [loop-breaker.md](docs/engine/loop-breaker.md) installs the loop breaker
 alone.)
 
 The other face is the bounded executor, run from a checkout. It runs a
@@ -49,7 +49,7 @@ receipt explaining why not — your working tree is never written to:
 uv sync
 uv run python -m tools.deliver_candidate \
   --repo . --task add-iter \
-  --prompt-file docs/example-brief.md \
+  --prompt-file docs/engine/example-brief.md \
   --validation "pytest -q" --writable "src/**" \
   --model your-provider/your-model
 ```
@@ -101,7 +101,7 @@ Both need Pi and a model server running — [setup.md](docs/setup.md) Part 2
 gets you there, and `preflight` is the fast readiness check.
 
 What a run, batch, improvement, and checkpoint are — and the three things
-that will bite you — is in [evals.md](docs/evals.md).
+that will bite you — is in [evals.md](docs/evals/index.md).
 
 ## What the evidence actually says
 
@@ -140,9 +140,9 @@ answers.
 | You want to… | Read |
 |---|---|
 | Understand the engine — what it is and isn't | [engine/index.md](docs/engine/index.md) |
-| Understand the one supported path, end to end | [architecture.md](docs/architecture.md) |
+| Understand the one supported path, end to end | [deliver-candidate.md](docs/engine/deliver-candidate.md) |
 | Get set up properly | [setup.md](docs/setup.md) |
-| Run an eval | [evals.md](docs/evals.md) |
+| Run an eval | [evals.md](docs/evals/index.md) |
 | Contribute — commands, conventions, starter tasks | [contributing.md](docs/contributing.md) |
 | Look up a term | [glossary.md](docs/glossary.md) |
 | Check what backs a claim | [evidence-index.md](docs/evidence-index.md) |

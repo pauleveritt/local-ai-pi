@@ -10,7 +10,7 @@ If a term stops you, try the [glossary](glossary.md) — it's short.
 A rough order for a first hour:
 
 1. `uv run pytest` — see it green (2 minutes)
-2. Skim [architecture.md](architecture.md) — one page, one path
+2. Skim [deliver-candidate.md](engine/deliver-candidate.md) — one page, one path
 3. Pick a [starter task](#three-starter-tasks) below
 
 ## Test commands
@@ -32,7 +32,7 @@ committed. `bun test` covers `extensions/guards/loop-breaker.ts`, the
 `Guard` the bounded implementer uses; this covers
 `.pi/extensions/loop-breaker.ts`, the standalone file README's `cp`
 installs. Same policy, two artifacts, deliberately
-([architecture.md](architecture.md#guards-still-in-the-extension-closure)).
+([deliver-candidate.md](engine/deliver-candidate.md#guards-still-in-the-extension-closure)).
 
 `bun install` is only needed once (or after `package.json` changes) — it
 pulls the one runtime dependency (`typebox`) into a gitignored

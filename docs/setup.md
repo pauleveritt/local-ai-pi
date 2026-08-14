@@ -141,7 +141,7 @@ under it. Pi resolves the string against that file; the harness pins
 no CLI that lists models — read the file. To use a different model on the
 same server, get it into oMLX, add an entry there, and pass
 `--model omlx/<id>`. The full treatment — servers, model acquisition,
-tuning, and the wiring — is [model-setup.md](model-setup.md).
+tuning, and the wiring — is [model-setup.md](evals/model-setup.md).
 
 ### Verify the server
 
@@ -180,7 +180,7 @@ uv run python -m harness.cli one --suite duration
 `preflight` reports the model server and the pinned Pi version and says what
 to fix if either is wrong; `one --suite duration` runs the smallest suite
 once. The longer treatment of what these commands do — and what a run,
-batch, improvement, and checkpoint are — is in [evals.md](evals.md).
+batch, improvement, and checkpoint are — is in [evals.md](evals/index.md).
 
 ## Editor notes
 
