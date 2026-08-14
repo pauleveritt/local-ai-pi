@@ -83,7 +83,7 @@ being precise, because the two halves of this repository differ:
   in `harness/runner.py`; `run_batch` refuses to run on any other version,
   so batches from different contributors stay comparable. A single
   `run_suite` does not check, so exploring is never blocked.
-- **The bounded-implementer path does not.** `harness/cell.py` says so
+- **The orchestrator path does not.** `harness/cell.py` says so
   outright — a cell "carries the conditions that define an arm and nothing
   else: not the grading rule …, not the Pi version or `models.json` digest
   (which move for legitimate reasons and are recorded per attempt

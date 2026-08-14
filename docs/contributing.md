@@ -29,7 +29,7 @@ node --experimental-strip-types tools/replay_guards.mjs tests/fixtures/guards/*.
 
 It needs no model, no server, and no `bun install` — the fixtures are
 committed. `bun test` covers `extensions/guards/loop-breaker.ts`, the
-`Guard` the bounded implementer uses; this covers
+`Guard` the implementer uses; this covers
 `.pi/extensions/loop-breaker.ts`, the standalone file README's `cp`
 installs. Same policy, two artifacts, deliberately
 ([deliver-candidate.md](engine/deliver-candidate.md#guards-still-in-the-extension-closure)).
@@ -58,13 +58,13 @@ bun test extensions/orchestration/orchestration.test.ts
 You can read code, run the full default test suite, and make most changes
 without ever starting a model server. You need one only when:
 
-- exercising the [bounded implementer](glossary.md#bounded-implementer)
+- exercising the [implementer](glossary.md#implementer)
   end to end (`tools/deliver_candidate.py --contract-task ...` against a
   real model), or
 - running anything gated behind `SATYRN_LIVE=1`.
 
 [`docs/setup.md`](setup.md)'s Part 2 covers getting a local server running.
-If you're working on [handoff contract](glossary.md#handoff-contract)
+If you're working on [handoff packet](glossary.md#handoff-packet)
 construction, [guard](glossary.md#guard) logic, the
 [mutation engine](glossary.md#mutation-engine)'s TypeScript, or harness
 plumbing, you almost certainly don't need Part 2 at all — the hermetic

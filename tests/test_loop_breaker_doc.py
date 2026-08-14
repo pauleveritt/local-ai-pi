@@ -18,7 +18,7 @@ import re
 
 from harness import runner
 
-PAGE = runner.REPO_ROOT / "docs" / "loop-breaker.md"
+PAGE = runner.REPO_ROOT / "docs" / "engine" / "loop-breaker.md"
 
 
 def _flat(text: str) -> str:

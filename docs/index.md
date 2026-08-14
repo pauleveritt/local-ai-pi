@@ -47,7 +47,7 @@ copied into place. It refuses a tool call the model has already made,
 unchanged, several times in a row. It came out of a recorded run of 261
 turns, 245 of them the identical `ls -R` against an empty directory.
 
-**A [bounded executor](engine/deliver-candidate.md) for your own repository.** It runs
+**An [orchestrator](engine/deliver-candidate.md) for your own repository.** It runs
 a model once against your repo in a throwaway git worktree, checks the
 result with a command *you* declare, and leaves either a git ref you can
 review or a receipt explaining why not. Your working tree is never written
@@ -78,7 +78,7 @@ edited away.
 
 ## What's still experimental
 
-The bounded executor's bare form — your prompt, your validation command —
+The orchestrator's bare form — your prompt, your validation command —
 is general. The *evidenced* path underneath it is not: the typed-contract
 bridge is scoped to exactly four tasks and refuses the rest at the command
 line rather than guessing. It's a tested bridge, not a planner.
@@ -95,8 +95,8 @@ small local model against a real task and decides hermetically whether it
 succeeded, hardened by deliberate attacks on its own grading, then extended
 to express *"this run had something applied to it"* and measure it.
 
-**Phases 6–7 built the bounded-implementer half** — the guards, the
-mutation engine, the typed handoff, and the pre-registered comparison
+**Phases 6–7 built the orchestrator-and-implementer half** — the guards,
+the mutation engine, the handoff packet, and the pre-registered comparison
 above. [deliver-candidate.md](engine/deliver-candidate.md) traces that path end to end, in
 the order execution happens, naming the real module at each stage.
 
@@ -133,7 +133,7 @@ Quick start <engine/usage>
 Architecture <engine/architecture>
 Performance <engine/shootout>
 The loop breaker <engine/loop-breaker>
-The bounded executor <engine/deliver-candidate>
+The orchestrator <engine/deliver-candidate>
 ```
 
 ```{toctree}

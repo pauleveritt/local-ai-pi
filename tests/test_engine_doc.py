@@ -17,7 +17,9 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 README = REPO_ROOT / "README.md"
 ENGINE = REPO_ROOT / ".pi" / "extensions" / "engine.ts"
+ORCHESTRATOR = REPO_ROOT / ".pi" / "extensions" / "orchestrator.ts"
 ENGINE_INDEX = REPO_ROOT / "docs" / "engine" / "index.md"
+USAGE = REPO_ROOT / "docs" / "engine" / "usage.md"
 
 
 def _flat(text: str) -> str:
@@ -25,15 +27,38 @@ def _flat(text: str) -> str:
 
 
 def test_the_engine_install_command_is_one_line():
+    # Phase 10: the install is two files on one copy line — the engine (the
+    # guards) and the orchestrator (/implement). Pin both, so the README
+    # cannot silently drop the command half of the install.
     readme = _flat(README.read_text())
-    command = "cp .pi/extensions/engine.ts ~/.pi/agent/extensions/"
+    usage = _flat(USAGE.read_text())
+    command = (
+        "cp .pi/extensions/engine.ts .pi/extensions/orchestrator.ts "
+        "~/.pi/agent/extensions/"
+    )
     assert command in readme
+    # The quick-start page must agree, or it silently teaches the old
+    # one-file install.
+    assert command in usage
+
+
+def test_the_usage_page_names_the_implement_command():
+    # Not vacuous: the orchestrator's session front must be discoverable
+    # from the quick-start page, not only from the README.
+    assert USAGE.is_file()
+    assert "/implement" in USAGE.read_text()
 
 
 def test_the_engine_artifact_exists():
     # Not vacuous: nothing else here imports the artifact, so without this
     # the file could vanish and the suite stay green.
     assert ENGINE.is_file()
+
+
+def test_the_orchestrator_artifact_exists():
+    # Not vacuous: nothing else here imports the artifact, so without this
+    # the file could vanish and the suite stay green.
+    assert ORCHESTRATOR.is_file()
 
 
 def test_the_engine_section_points_at_docs_engine_index():
@@ -71,3 +96,15 @@ def test_quoted_loop_breaker_constants_match_the_artifact():
         # Any README mention of the constant must carry the artifact's value.
         for mention in re.finditer(rf"{name}[^0-9]*(\d+)", readme):
             assert mention.group(1) == match.group(1)
+
+
+def test_the_user_facing_vocabulary_is_the_new_one():
+    # "Bounded executor" retired in Phase 10; the front door must not keep
+    # naming the old product. The front you invoke is the orchestrator and
+    # the bounded worker it drives is the implementer.
+    readme = _flat(README.read_text())
+    index = _flat(ENGINE_INDEX.read_text())
+    for text in (readme, index):
+        assert "bounded executor" not in text
+        assert "orchestrator" in text
+        assert "implementer" in text

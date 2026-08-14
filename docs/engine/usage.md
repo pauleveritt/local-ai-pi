@@ -2,18 +2,18 @@
 
 Install it once, forget it's there, and use Pi normally — the guards act
 in the background. When you want a bounded attempt against your own repo,
-that is a shell command, not a Pi incantation. The
+that is `/implement` in a session, or a CLI from a checkout. The
 [front door](index.md) explains what the engine is; this page is how to
 use it.
 
 ## Quick start
 
-The whole install is one file, in user scope (so it loads in every
-session, including delegated children):
+The install is two files, in user scope (so they load in every session,
+including delegated children):
 
 ```bash
 mkdir -p ~/.pi/agent/extensions
-cp .pi/extensions/engine.ts ~/.pi/agent/extensions/
+cp .pi/extensions/engine.ts .pi/extensions/orchestrator.ts ~/.pi/agent/extensions/
 ```
 
 If Pi is already running, `/reload` picks it up.
@@ -42,9 +42,12 @@ the same user-scope reasoning and the subagent gotcha.
 ## What to expect
 
 - **Silence until it fires.** The guards do nothing visible until a
-  guard blocks a call. The pilot shootout measured exactly this: guards
-  loaded but never fired, both arms at ceiling — 7 turns and 6 tool
-  calls with the same tool sequence in every one of the 12 runs.
+  guard blocks a call. The pilot shootout measured exactly this on both
+  suites: at the ceiling (`agentclinic-phase-1` — 6/6 both arms, 7 turns
+  and 6 tool calls in every run) and at the floor
+  (`agentclinic-phase-1-user-story` — 0/6 both arms, one turn and zero
+  tool calls per run, the model asking the human). In neither did a guard
+  fire.
 - **When the loop breaker fires:** the 6th identical call (after 5 in the
   window of 20) is refused with a reason; the blocked call does not enter
   the window, so the repeats stay blocked rather than sliding out of
@@ -56,13 +59,16 @@ the same user-scope reasoning and the subagent gotcha.
   varied work is untouched), and not a godbox — it steers, it does not
   reason for you.
 
-## A companion tool: the bounded executor
+## The orchestrator: a bounded attempt, on demand
 
-The project also ships a **bounded executor** (`deliver_candidate`) — a
-separate, non-interactive CLI that makes one reviewable attempt against
-your repository in a throwaway worktree, checked with a command you
-declare. It is not part of the engine and not something you reach for
-mid-session: it is for the deliberate moment when you want a validated,
-reviewable artifact instead of a session. It lives at
-[docs/engine/deliver-candidate.md](deliver-candidate.md); the one-liner
-is in the README.
+The engine package also registers **`/implement`**, the orchestrator's
+in-session front: a task you type is chewed into a handoff packet, and
+the implementer — the bounded worker — makes one reviewable attempt
+against your repository in a throwaway worktree, checked with a command
+you declare. It is an explicit command, not something that fires in the
+background: it is for the deliberate moment when you want a validated,
+reviewable artifact instead of just steering. The ad-hoc flavor validates
+with `pytest -q`; the structured flavor (Phase 11) is the roadmap. The
+CLI form is `tools/deliver_candidate` from a checkout; it lives at
+[docs/engine/deliver-candidate.md](deliver-candidate.md), and the
+one-liner is in the README.

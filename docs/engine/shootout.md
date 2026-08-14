@@ -3,13 +3,14 @@
 **Phase:** 9 — an engine you can install
 **Status:** pilot — a first pass behind the "why install the engine" pitch, not confirmatory
 **Category:** [pilot](../evidence-index.md)
-**Run:** 2026-08-13, model `omlx/gemma-4-12B-it-MLX-8bit` (the harness default), Pi 0.84.1
-**Checkpoints:** `~/evidence/shootout-control-2026-08-13.jsonl`, `~/evidence/shootout-engine-2026-08-13.jsonl`
+**Run:** 2026-08-13 (the pre-chewed ceiling) and 2026-08-14 (the user-story comparison), model `omlx/gemma-4-12B-it-MLX-8bit` (the harness default), Pi 0.84.1
+**Checkpoints:** `~/evidence/shootout-control-2026-08-13.jsonl`, `~/evidence/shootout-engine-2026-08-13.jsonl`, `~/evidence/shootout-userstory-control-2026-08-14.jsonl`, `~/evidence/shootout-userstory-engine-2026-08-14.jsonl`
 
 The question underneath the pitch is simple: does the engine — the two
 guards, loop-breaker and preserve-symbols, shipped as one file — change
 what happens? The answer depends entirely on the problem you hand it. Two
-populations, two answers, and one gap the record has not yet closed.
+populations, two answers, and the one gap the record left open — the
+guards' individual share of the composite number — is closed by this run.
 
 ## 1. The pre-chewed floor: no effect, and why that is the point
 
@@ -61,14 +62,58 @@ individual share is not isolated in it. Second, it is not a comparison
 against bare Pi on this suite: the cycle-4 floor was partly "stopped to
 ask a human", a different failure mode.
 
-## 3. The missing measurement, and the floor to move
+## 3. The missing measurement, run
 
-Put the two sections together and the gap is exact. The guards alone have
+Put the two sections together and the gap was exact. The guards alone had
 been measured only on the pre-chewed suite, where nothing fires; the
-composed engine has been measured on the harder suite, where the guards'
-share cannot be separated. The run that closes the gap — bare control
-versus guards-only on `agentclinic-phase-1-user-story` — is scheduled in
-the ROADMAP's Deferred candidates (`ROADMAP.md`).
+composed engine had been measured on the harder suite, where the guards'
+share could not be separated. The run that closes the gap — bare control
+versus guards-only on `agentclinic-phase-1-user-story` — is the one this
+section records (2026-08-14, pilot n=6 per arm, `run_timeout=600`).
+
+| Arm | n | accepted | timeouts | turns | tool calls | guard firings |
+|---|---|---|---|---|---|---|
+| bare control | 6 | 0/6 | 0 | 1 — every run | 0 — every run | — |
+| guards-only | 6 | 0/6 | 0 | 1 — every run | 0 — every run | 0 — no `loop_broken`, no `symbol_preserved` |
+
+The two arms are floor-tied, and the guards never fired — not because they
+slept through anything, but because there was nothing to fire on. Every one
+of the twelve runs took exactly one turn and made **zero tool calls**: the
+model read the spec, restated the requirements, and stopped to ask the human
+how to proceed, then settled. The grader found `No module named 'app'` in
+all twelve — the model wrote nothing. That is the cycle-4 bare failure mode
+("stopped to ask a human what to do"), reproduced at n=6.
+
+The engine arm's checkpoints record the engine bundle's extension digest
+(`62dc3260…`, plus hello-world), so the guards were loaded; zero firings is
+not a silent load failure.
+
+The honest reading is the one the record's honesty clause predicted, with
+one sharpening the numbers force. The guards do not rescue these failing
+runs — but the reason narrows the claim. The failure here does not happen
+*in* a run the guards could steer; it happens **before** the first tool
+call: every run took one turn, made zero tool calls, and asked the human
+how to proceed. This bare path provokes **non-engagement** — the same
+failure mode cycle 4 documented and cycle 10's fixes were built to
+displace. So this measurement never isolated the guards on a
+working-but-flawed run — there were no working runs through this path at
+all. What it does establish is narrower and still valuable: **the guards'
+share of the cycle-10 turn (0/16 → 13/16) is zero** — the suite moves
+when the model is made to engage, and nothing in the guards causes
+engagement. The effect lives in the composed pipeline (the orchestration
+fixes and the facts — naming FastAPI and `app.py`), not in the guards
+alone. The guards' payoff on a working-but-looping run is a different
+question, and its evidence is already banked separately: the cycle-10
+record's run 1 repeated one call 14 times and finished correctly once
+steered out of it.
+
+Two non-claims, stated so the zero is not overread. First, this is a pilot —
+one suite, one model, n=6 per arm, not pooled, not confirmatory. Second, it
+is not a verdict that the guards are worthless: the cycle-10 record already
+shows the loop breaker firing 12 times across two runs that still passed.
+The insurance pays out where there is an accident to steer; the user-story
+suite's bare failure is upstream of any accident, so a tool-call guard is
+the wrong instrument for it and shows exactly zero.
 
 And there is no suite more complex than user-story to move to yet. The
 three runnable suites are all ~30-line tasks; the genuinely harder
@@ -78,6 +123,8 @@ harder tasks in the user-story style — which is the plan, not an accident.
 
 ## Reproduction
 
+The pre-chewed ceiling (2026-08-13):
+
 ```bash
 uv run python -c "
 from pathlib import Path
@@ -85,6 +132,19 @@ from harness.runner import run_batch, AGENTCLINIC_PHASE_1, ENGINE_IMPROVEMENT
 for arm, imp in [('control', None), ('engine', ENGINE_IMPROVEMENT)]:
     cp = Path.home() / 'evidence' / f'shootout-{arm}-2026-08-13.jsonl'
     results = run_batch(cp, suite=AGENTCLINIC_PHASE_1, target=6, improvement=imp)
+    print(arm, sum(1 for r in results if r.grade.accepted), '/', len(results))
+"
+```
+
+The discriminating user-story comparison (2026-08-14):
+
+```bash
+uv run python -c "
+from pathlib import Path
+from harness.runner import run_batch, AGENTCLINIC_PHASE_1_USER_STORY, ENGINE_IMPROVEMENT
+for arm, imp in [('control', None), ('engine', ENGINE_IMPROVEMENT)]:
+    cp = Path.home() / 'evidence' / f'shootout-userstory-{arm}-2026-08-14.jsonl'
+    results = run_batch(cp, suite=AGENTCLINIC_PHASE_1_USER_STORY, target=6, improvement=imp)
     print(arm, sum(1 for r in results if r.grade.accepted), '/', len(results))
 "
 ```

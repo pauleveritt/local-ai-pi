@@ -254,6 +254,8 @@ defaulted.
 | 7 | Workload first, envelope to candidate commit | Credible evidence for a small local model doing routine, pre-chewed coding work, and the smallest useful repository-safe executor: task → typed handoff → bounded implementer → validated candidate ref | in progress — the current phase; [execution plan](docs/superpowers/plans/2026-08-09-phase7-workload-first-roadmap.md) |
 | 8 | An eval you can type, not one you paste | Give the harness a documented entry point — a small, stdlib-only CLI (names not symbols, friendly preflight, a checkpoint summary) — and move the why/what/how into `docs/evals.md` | complete; five cycles shipped 2026-08-13 — see the Phase 8 section below |
 | 9 | An engine you can install | Make the engine adoptable by a Python developer running a small local model in Pi: a one-file install that puts the guards in every session, a README whose setup section serves both the engine and the evals, and an honest pilot number for what the guards change | complete |
+| 10 | Name the engine | Land the end-user vocabulary — engine as the package, orchestrator and implementer as the roles, guards as passive steering — in the docs and user-facing code, after the scheduled evidence run, so collaborators onboard to a naming regime that is not about to change | complete |
+| 11 | The contract-authoring bridge | The orchestrator pre-chews a real `HandoffContract` from a roadmap/manifest (`tools/author_contract.py` → `HandoffContract` JSON, `inspectContract` as the admission gate), driving `/implement`'s structured flavor | planned |
 
 
 **Phase 7 — Workload first, envelope to candidate commit. In progress; the
@@ -359,6 +361,47 @@ the npm-packaging effort that will follow. And it is **not** the eval CLI
 or confirmatory evidence — Phase 8 owns the harness entry point, and the
 shootout is a pilot with its non-claims written down.
 
+**Phase 10 — Name the engine. Complete.** Phase 9 shipped the engine bundle
+and its docs, and the product's second face is called "the bounded
+executor" — mechanism-speak that must go before collaborators onboard. The
+intended vocabulary is the one the project has used internally all along:
+the **engine** is what you install; the **orchestrator** is the front you
+invoke — it pre-chews a task into a handoff packet and keeps the
+implementer's context small; the **implementer** is the bounded worker it
+drives; the **guards** steer passively. This phase ran the scheduled
+guards-baseline evidence first (under the current names), then landed the
+vocabulary in the docs and the user-facing code, registered `/implement` as
+the orchestrator's session front (a thin shell-out to the existing CLI),
+and shaped Phase 11 — the contract-authoring bridge — at the roadmap
+level.
+[spec](docs/superpowers/specs/2026-08-14-phase10-name-the-engine-design.md)
+
+Three things it deliberately does **not** do. It does **not** rename the
+directory or unpin the closure — `extensions/orchestration/` and the
+digest-pinned `IMPLEMENTER_EXTENSION_CLOSURE` stay pinned until packaging.
+It does **not** do TypeScript orchestration — the orchestrator's substrate
+is the Python CLI, and TS orchestration may never happen. And it is **not**
+the contract-authoring bridge — pre-chewing real handoff packets is Phase
+11's job.
+
+**Phase 11 — The contract-authoring bridge. Planned.** Phase 10 registered
+`/implement` in its ad-hoc flavor — the user's prompt mapped onto the CLI's
+flags and shelled out to the existing executor — and deliberately stopped
+there. The structured flavor is still missing: a real handoff packet
+pre-chewed from a roadmap/manifest rather than a prompt passed through.
+This phase builds the bridge. `tools/author_contract.py` emits
+`HandoffContract` JSON — writable files sourced from the manifest, not the
+author's judgment; `validation` from the manifest's command — and
+`inspectContract` admits the packet, which then drives `/implement`'s
+structured flavor end to end. Shaped, not built, for now:
+[shape](docs/superpowers/specs/2026-08-14-phase11-contract-authoring-bridge-shape.md)
+
+Three questions stay open in the shape, deliberately: which product the
+planned Cycle 6 is buying (a solution-bearing plan for safe transcription,
+or a requirements-only contract intended to improve reasoning); where the
+manifest-to-handoff boundary sits; and whether contract authoring is
+reliable under the gate.
+
 ### Phase 6 feature cycles
 
 | Cycle | Summary | State |
@@ -414,6 +457,15 @@ never in the workspace during a run.
 | 3 | **`docs/engine/`** — `index.md` (why/how/what, the two faces, where to go next) and `architecture.md` (problems being solved, guards as pure decisions, the bounded implementer underneath); cross-links to `loop-breaker.md`, `setup.md`, `evidence-index.md`. Quoted constants get the `test_loop_breaker_doc.py` drift treatment. | Done — the docs/engine pages added. |
 | 4 | **The shootout pilot** — a small hermetic harness seam loads `engine.ts` into `run_suite` (extension-only `Improvement` or `extensions=`), one suite chosen with the owner, 4–6 attempts per arm, with-engine versus without. Write-up in `docs/engine/shootout.md`, labeled pilot, indexed in `evidence-index.md`; no pooling; a defect is fixed and rerun, a disappointing number recorded honestly. | Done — the seam + pilot ran (6/6 both arms, ceiling). |
 
+### Phase 10 feature cycles
+
+| Cycle | Summary | State |
+|-------|---------|-------|
+| 1 | **The evidence run** — bare control versus `ENGINE_IMPROVEMENT` (guards-only) on `agentclinic-phase-1-user-story`, pilot n=6 per arm, n=16 if the direction holds; updates `docs/engine/shootout.md` with the discriminating comparison and closes the Deferred-candidates entry. | Done — bare 0/6, guards-only 0/6 on user-story; guards inert, recorded in the shootout. |
+| 2 | **The rename/re-org** — the vocabulary lands across README, `docs/engine/*`, `docs/glossary.md`, the evidence-index scope note, and the ROADMAP; "bounded executor" retires from user-facing text; user-facing strings in `tools/deliver_candidate.py` and `.pi/extensions/engine.ts` move to the vocabulary. No directory rename, no closure changes. | Done — the vocabulary landed. |
+| 3 | **The `/implement` command** — a Pi command registered by the engine package via `pi.registerCommand()`; maps the user's prompt and repo onto the CLI's flags and shells out to `uv run python -m tools.deliver_candidate`; returns the candidate ref or the refusal. The vocabulary anchor, not new orchestration. | Done — `/implement` registered. |
+| 4 | **Phase 11 shape** — a ROADMAP entry for the contract-authoring bridge: the orchestrator pre-chews a real `HandoffContract` from a roadmap/manifest (`author_contract.py` → `HandoffContract`, `inspectContract` as the admission gate), driving `/implement`'s structured flavor. Spec-level shape only. | Done — Phase 11 shaped. |
+
 ### Deferred candidates
 
 *Things a cycle's brainstorming considered and passed over — usually the
@@ -421,17 +473,14 @@ never in the workspace during a run.
 end of each cycle, so the next brainstorming session starts from this list
 instead of re-deriving it from old specs.*
 
-**Open — the missing guards baseline, scheduled as the next measurement.**
-The cycle-10 record's own "bare arm rerun under these conditions is the
-obvious next measurement and is not in this record" is still true, and
-Phase 9 sharpened why it matters: the 13/16 composite cannot credit the
-guards, and the Phase 9 shootout's 6/6 ceiling on the pre-chewed suite
-cannot measure them either. The scheduled run is bare control versus
-`ENGINE_IMPROVEMENT` (guards-only) on `agentclinic-phase-1-user-story` —
-the suite where the as-shipped arm scored 0/16 — enough attempts per arm
-to see whether the guards rescue failing runs (the insurance number) or
-whether the effect lives in the executor/stack. Pilot (n=6) first, n=16
-if the direction holds; `docs/engine/shootout.md` records the gap.
+**Closed 2026-08-14 — the missing guards baseline.** The scheduled run —
+bare control versus `ENGINE_IMPROVEMENT` (guards-only) on
+`agentclinic-phase-1-user-story`, pilot n=6 per arm, checkpoints
+`~/evidence/shootout-userstory-{control,engine}-2026-08-14.jsonl` —
+floor-tied both arms at 0/6 with zero guard firings (the model asked the
+human how to proceed and never wrote a file), so the guards' insurance
+number is zero on this suite and the 13/16 effect lives in the
+executor/stack, as recorded in `docs/engine/shootout.md`.
 
 The 2026-07-30 re-plan absorbed this list into cycles 3–10 above (numbers
 as they stood then): the hermetic grader split into cycles 3 and 5, the
