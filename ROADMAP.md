@@ -256,6 +256,7 @@ defaulted.
 | 9 | An engine you can install | Make the engine adoptable by a Python developer running a small local model in Pi: a one-file install that puts the guards in every session, a README whose setup section serves both the engine and the evals, and an honest pilot number for what the guards change | complete |
 | 10 | Name the engine | Land the end-user vocabulary — engine as the package, orchestrator and implementer as the roles, guards as passive steering — in the docs and user-facing code, after the scheduled evidence run, so collaborators onboard to a naming regime that is not about to change | complete |
 | 11 | The contract-authoring bridge | The orchestrator pre-chews a real `HandoffContract` from a roadmap/manifest (`tools/author_contract.py` → `HandoffContract` JSON, `inspectContract` as the admission gate), driving `/implement`'s structured flavor | planned |
+| 12 | The engine, packaged | Make the engine a real pi package — `pi install` from a git repo or npm — so the two-file copy becomes a one-line install, and land the deferred re-org (directory rename, orchestration consolidation, closure unfreeze) at the same time | planned |
 
 
 **Phase 7 — Workload first, envelope to candidate commit. In progress; the
@@ -401,6 +402,23 @@ planned Cycle 6 is buying (a solution-bearing plan for safe transcription,
 or a requirements-only contract intended to improve reasoning); where the
 manifest-to-handoff boundary sits; and whether contract authoring is
 reliable under the gate.
+
+**Phase 12 — The engine, packaged. Planned.** The engine installs by
+copying two files into user scope; the npm package was deferred to "the
+packaging effort" in Phase 9 and again in Phase 10. This phase makes the
+engine a real pi package: a `pi` manifest in the root `package.json`
+pointing at exactly the two installable files (which disables Pi's
+convention-directory auto-discovery, so the research `extensions/` tree
+never loads into a user session), a pinned ref for stable installs, and
+`pi install git:github.com/pauleveritt/local-ai-pi@<ref>` as the one-line
+story. The deferred re-org lands here too: the directory rename
+(`extensions/orchestration/` → `extensions/implementer/`), orchestration
+consolidation into the package (the digest-pinned closure unfreezes), and
+the `author_contract.py` vocabulary sweep. It also documents the fact
+that the engine already works inside this repository (project-local
+`.pi/extensions/` loads it with zero install) and decides whether that
+directory keeps its double duty.
+[shape](docs/superpowers/specs/2026-08-14-phase12-engine-packaged-shape.md)
 
 ### Phase 6 feature cycles
 

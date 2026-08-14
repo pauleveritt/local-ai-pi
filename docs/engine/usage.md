@@ -18,6 +18,11 @@ cp .pi/extensions/engine.ts .pi/extensions/orchestrator.ts ~/.pi/agent/extension
 
 If Pi is already running, `/reload` picks it up.
 
+**Working inside this repository already?** The engine lives in this
+repo's project-local `.pi/extensions/`, which Pi loads when the project
+is trusted — so the guards and `/implement` are active here with zero
+install. The copy above is for every other project.
+
 **Everyday use needs no typing.** The guards are passive: they watch tool
 calls and refuse the two failure modes — repeating an identical call,
 and deleting a public symbol — when they occur. Use Pi as you normally
