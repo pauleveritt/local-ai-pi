@@ -64,7 +64,7 @@ Contrast [pilot](#pilot). See [rule 8](#rule-8).
 ## Engine
 
 The package you install: one self-contained Pi extension
-(`.pi/extensions/engine.ts`) bundling the two [guards](#guard) — the
+(`packages/engine/engine.ts`) bundling the two [guards](#guard) — the
 [loop breaker](#loop-breaker) and preserve-symbols. Copy one file into
 user scope and the guards steer every session; there is no other install
 step.

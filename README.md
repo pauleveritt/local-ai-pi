@@ -29,7 +29,7 @@ Minimal install:
 
 ```bash
 mkdir -p ~/.pi/agent/extensions
-cp .pi/extensions/engine.ts .pi/extensions/orchestrator.ts ~/.pi/agent/extensions/
+cp packages/engine/engine.ts packages/engine/orchestrator.ts ~/.pi/agent/extensions/
 ```
 
 Those two files are the whole install: the engine (the guards) and the

@@ -13,7 +13,7 @@ including delegated children):
 
 ```bash
 mkdir -p ~/.pi/agent/extensions
-cp .pi/extensions/engine.ts .pi/extensions/orchestrator.ts ~/.pi/agent/extensions/
+cp packages/engine/engine.ts packages/engine/orchestrator.ts ~/.pi/agent/extensions/
 ```
 
 If Pi is already running, `/reload` picks it up.

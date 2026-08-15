@@ -131,7 +131,7 @@ class Improvement:
 # seed_dir (nothing to place), no system_prompt (the guards steer; they
 # do not instruct). `improvement_name="engine"` and the extension digest
 # record the arm in the checkpoint.
-ENGINE_EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / ".pi" / "extensions" / "engine.ts",)
+ENGINE_EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / "packages" / "engine" / "engine.ts",)
 ENGINE_IMPROVEMENT = Improvement(
     name="engine",
     seed_dir=None,

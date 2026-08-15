@@ -7,7 +7,7 @@ the two failure modes that cost real runs, before they cost you a run.
 
 ## What it is
 
-The engine is `.pi/extensions/engine.ts`. It bundles two guards, each a
+The engine is a pi package at `packages/engine/`, whose two files — `engine.ts` and `orchestrator.ts` — are the installable surface (`.pi/extensions/` holds symlinks to them, so a checkout loads the engine with zero install). It bundles two guards, each a
 small rule that inspects a tool call and may refuse it:
 
 - **The loop breaker** refuses a tool call the model has already made,
@@ -34,7 +34,7 @@ file.
 
 ```bash
 mkdir -p ~/.pi/agent/extensions
-cp .pi/extensions/engine.ts ~/.pi/agent/extensions/
+cp packages/engine/engine.ts ~/.pi/agent/extensions/
 ```
 
 That copy is the whole install — the file imports nothing local, so a

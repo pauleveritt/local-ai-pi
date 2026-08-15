@@ -18,6 +18,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 README = REPO_ROOT / "README.md"
 ENGINE = REPO_ROOT / ".pi" / "extensions" / "engine.ts"
 ORCHESTRATOR = REPO_ROOT / ".pi" / "extensions" / "orchestrator.ts"
+PACKAGE_ENGINE = REPO_ROOT / "packages" / "engine" / "engine.ts"
+PACKAGE_ORCHESTRATOR = REPO_ROOT / "packages" / "engine" / "orchestrator.ts"
 ENGINE_INDEX = REPO_ROOT / "docs" / "engine" / "index.md"
 USAGE = REPO_ROOT / "docs" / "engine" / "usage.md"
 
@@ -33,7 +35,7 @@ def test_the_engine_install_command_is_one_line():
     readme = _flat(README.read_text())
     usage = _flat(USAGE.read_text())
     command = (
-        "cp .pi/extensions/engine.ts .pi/extensions/orchestrator.ts "
+        "cp packages/engine/engine.ts packages/engine/orchestrator.ts "
         "~/.pi/agent/extensions/"
     )
     assert command in readme
@@ -59,6 +61,16 @@ def test_the_orchestrator_artifact_exists():
     # Not vacuous: nothing else here imports the artifact, so without this
     # the file could vanish and the suite stay green.
     assert ORCHESTRATOR.is_file()
+
+
+def test_the_project_local_entries_are_symlinks():
+    # A checkout must load the engine with zero install, and the package
+    # must stay the single source of truth — so .pi/extensions holds
+    # symlinks, not copies.
+    assert ENGINE.is_symlink()
+    assert ORCHESTRATOR.is_symlink()
+    assert ENGINE.resolve() == PACKAGE_ENGINE.resolve()
+    assert ORCHESTRATOR.resolve() == PACKAGE_ORCHESTRATOR.resolve()
 
 
 def test_the_engine_section_points_at_docs_engine_index():

@@ -60,7 +60,7 @@ re-adding it in another is refactoring, not destroying.
 
 ## The bundle
 
-`.pi/extensions/engine.ts` is the installable artifact. The two guards
+`packages/engine/engine.ts` is the installable artifact (`.pi/extensions/` holds a symlink to it, so a checkout loads the engine with zero install). The two guards
 are copied into it verbatim, policy inlined, with the shared types
 folded in, so the file imports nothing local and a `cp` is a complete
 install. A thin adapter — the default export — registers both guards on
