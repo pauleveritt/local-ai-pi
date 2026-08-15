@@ -46,7 +46,7 @@ from harness.typed_contract import (
 
 # The 2026-08-11 re-plan's step 4 executor extension: `read`/`write`/`edit`
 # mediated by the mutation engine, not raw Pi tools. Not in `harness/screen.py`
-# alongside the other named extensions because it is orchestration, not a
+# alongside the other named extensions because it is the implementer, not a
 # measurement probe -- it belongs beside the module it wires together.
 _EXTENSIONS_ROOT = Path(__file__).resolve().parents[1] / "extensions"
 IMPLEMENTER_EXTENSION = _EXTENSIONS_ROOT / "implementer" / "implementer.ts"

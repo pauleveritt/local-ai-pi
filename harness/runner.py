@@ -18,7 +18,12 @@ EXAMPLES = REPO_ROOT / "examples"
 EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / ".pi" / "extensions" / "hello-world.ts",)
 # The engine bundle — the loop breaker's shipped home since Phase 12.
 # The eval improvements that used to load the standalone loop-breaker
-# extension now load the engine (both guards).
+# extension (LOOP_BREAKER) now load the engine (both guards). This
+# changes the arms' measured behavior: preserve-symbols now fires on
+# destructive edits in runs that previously only had the loop breaker,
+# and the recorded extension_digests differ from pre-Phase-12
+# checkpoints (a resumed old checkpoint trips the conditions guard —
+# correct, since the arm changed).
 ENGINE = REPO_ROOT / "packages" / "engine" / "engine.ts"
 AGENT_DIR_FILES: tuple[str, ...] = (
     "README.md",
