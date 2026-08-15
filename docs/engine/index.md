@@ -7,7 +7,7 @@ the two failure modes that cost real runs, before they cost you a run.
 
 ## What it is
 
-The engine is `.pi/extensions/engine.ts`. It bundles two guards, each a
+The engine is a pi package at `packages/engine/`, whose two files — `engine.ts` and `orchestrator.ts` — are the installable surface (`.pi/extensions/` holds symlinks to them, so a checkout loads the engine with zero install). It bundles two guards, each a
 small rule that inspects a tool call and may refuse it:
 
 - **The loop breaker** refuses a tool call the model has already made,
@@ -33,18 +33,20 @@ are project-local, and Pi loads them once you trust the project.
 `/implement` is available in any session here, with no setup.
 
 **Everyday steering.** For every session everywhere — including delegated
-children, where a small model's runaway usually happens — copy the two
-files to user scope:
+children, where a small model's runaway usually happens — install the
+package:
 
 ```bash
-mkdir -p ~/.pi/agent/extensions
-cp .pi/extensions/engine.ts .pi/extensions/orchestrator.ts ~/.pi/agent/extensions/
+pi install git:github.com/pauleveritt/local-ai-pi@v0.1.0
 ```
 
-That copy is the whole install — each file imports nothing local, so a
-`cp` is complete. User scope is the point: Pi loads user-scope
-extensions unconditionally, in every session, and in delegated children; a
-project-local file guards the parent and leaves the child unguarded.
+(Or, from a checkout, copy the two files from the package:
+`cp packages/engine/engine.ts packages/engine/orchestrator.ts
+~/.pi/agent/extensions/`.)
+
+User scope is the point: Pi loads user-scope extensions unconditionally,
+in every session, and in delegated children; a project-local file guards
+the parent and leaves the child unguarded.
 
 The loop breaker remembers the last `WINDOW` (20) calls and refuses the
 next identical one once it has seen `THRESHOLD` (5) of them in that
@@ -56,16 +58,19 @@ alone, because the one run that recovered did so by rewriting a file
 wholesale — blocking that escape hatch would have converted the only
 success into a failure.
 
-Only want guard #1? `docs/engine/loop-breaker.md` installs it alone, with the
-same user-scope reasoning.
+The loop breaker is part of the engine — there is no standalone install.
 
-**A companion tool, not part of the engine.** The project also ships an
-orchestrator (`deliver_candidate`) — a non-interactive CLI that pre-chews
-a task into a handoff packet and drives the implementer, the bounded
-worker, to make one reviewable attempt against your repository in a
-throwaway worktree, checked with a command you declare. It is for a
-deliberate, non-session moment, not something you reach for mid-session.
-See `docs/engine/deliver-candidate.md`; the one-liner is in the README.
+**The orchestrator: a bounded attempt, on demand.** The engine package
+also registers `/implement`, the orchestrator's in-session front: a task
+you type is chewed into a handoff packet, and the implementer — the
+bounded worker — makes one reviewable attempt against your repository in
+a throwaway worktree, checked with a command you declare. It is an
+explicit command, not something that fires in the background: it is for
+the deliberate moment when you want a validated, reviewable artifact
+instead of just steering. The ad-hoc flavor validates with `pytest -q`;
+the structured flavor (Phase 11) is the roadmap. The CLI form is
+`tools/deliver_candidate` from a checkout; it lives at
+`docs/engine/deliver-candidate.md`, and the one-liner is in the README.
 
 ## What it is not
 
@@ -108,7 +113,7 @@ what is only pilot.
   `docs/engine/architecture.md`.
 - The pilot shootout, and what it does and does not establish:
   `docs/engine/shootout.md`.
-- The loop breaker alone, with tuning and the subagent gotcha:
+- The loop breaker, with tuning and the subagent gotcha:
   `docs/engine/loop-breaker.md`.
 - The orchestrator path, end to end: `docs/engine/deliver-candidate.md`.
 - Look up a term: `docs/glossary.md`.

@@ -54,23 +54,11 @@ the runs where it does something are runs you would otherwise have lost.
 
 ## Installing it
 
-Copy [`loop-breaker.ts`](https://github.com/pauleveritt/local-ai-pi/blob/main/.pi/extensions/loop-breaker.ts)
-to one of two places.
-
-**For every project you work on** — put it in your user-scope extensions
-directory:
-
-```bash
-mkdir -p ~/.pi/agent/extensions
-cp loop-breaker.ts ~/.pi/agent/extensions/
-```
-
-**For one project only** — put it in the project's extensions directory:
-
-```bash
-mkdir -p .pi/extensions
-cp loop-breaker.ts .pi/extensions/
-```
+The loop breaker ships **inside the engine** — `packages/engine/engine.ts`
+bundles both guards, and the engine is the install ([using the engine](usage.md)
+is the quick start). There is no standalone loop-breaker install; the guard
+comes with the engine, either in a checkout (`.pi/extensions/` loads it with
+zero install) or via the pi package.
 
 Pi loads user-scope extensions unconditionally. Project-scope extensions are
 **trust-gated**: an interactive session will ask, and a non-interactive one

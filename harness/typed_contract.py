@@ -15,7 +15,7 @@ complete locating contract (`task_source="locating-contract"`, the
 default and everything this module ran before the pre-registration).
 
 The gap this papers over: `HandoffContract.writableFiles` (see
-`extensions/orchestration/handoff-contract.ts`) requires exact,
+`extensions/implementer/handoff-contract.ts`) requires exact,
 already-existing-or-declared paths -- `normalizeContractPath` rejects a
 glob outright. Three of the four smoke tasks' `candidate_output` is
 already exact. `autowire`'s is deliberately the whole writable surface
@@ -39,7 +39,7 @@ type TaskSource = Literal["locating-contract", "brief"]
 
 
 class WritableFile(TypedDict):
-    """Mirrors `WritableFile` in extensions/orchestration/handoff-contract.ts."""
+    """Mirrors `WritableFile` in extensions/implementer/handoff-contract.ts."""
 
     path: str
 
@@ -48,7 +48,7 @@ class HandoffContract(TypedDict):
     """The contract handed to the bounded implementer, as JSON.
 
     A structural mirror of the `HandoffContract` interface in
-    `extensions/orchestration/handoff-contract.ts` -- this dict is
+    `extensions/implementer/handoff-contract.ts` -- this dict is
     serialized into `SATYRN_HANDOFF_CONTRACT` and parsed back by
     `implementer.ts`'s `isContract()`, so the two definitions are one
     wire format with two declarations. Typed rather than left as

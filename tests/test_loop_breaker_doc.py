@@ -38,9 +38,9 @@ def _flat(text: str) -> str:
 
 
 def _constant(name: str) -> int:
-    source = runner.LOOP_BREAKER.read_text()
+    source = runner.ENGINE.read_text()
     match = re.search(rf"const {name} = (\d+);", source)
-    assert match is not None, f"{name} not found in {runner.LOOP_BREAKER}"
+    assert match is not None, f"{name} not found in {runner.ENGINE}"
     return int(match.group(1))
 
 
@@ -57,7 +57,7 @@ def test_the_page_quotes_the_real_refusal_text():
     steering in the extension must reach the page, because the whole point of
     quoting it is that a reader recognises it when they see it in a log.
     """
-    source = _flat(runner.LOOP_BREAKER.read_text())
+    source = _flat(runner.ENGINE.read_text())
     page = _flat(PAGE.read_text())
 
     for fragment in (

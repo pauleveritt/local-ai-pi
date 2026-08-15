@@ -11,14 +11,18 @@ use it.
 **In this repository you already have it** — `.pi/extensions/engine.ts`
 and `orchestrator.ts` are project-local and load once you trust the
 project. The user-scope install below is for every session, everywhere
-(and for delegated children, which project-local files do not reach):
+(and for delegated children, which project-local files do not reach).
+
+One line, as a pi package:
 
 ```bash
-mkdir -p ~/.pi/agent/extensions
-cp .pi/extensions/engine.ts .pi/extensions/orchestrator.ts ~/.pi/agent/extensions/
+pi install git:github.com/pauleveritt/local-ai-pi@v0.1.0
 ```
 
-If Pi is already running, `/reload` picks it up.
+(Or, from a checkout, copy the two files from the package:
+`cp packages/engine/engine.ts packages/engine/orchestrator.ts
+~/.pi/agent/extensions/`.) If Pi is already running, `/reload` picks it
+up.
 
 **Everyday use needs no typing.** The guards are passive: they watch tool
 calls and refuse the two failure modes — repeating an identical call,
@@ -37,9 +41,10 @@ edit that deletes a public symbol without replacing it is refused, while
 recovered did so by rewriting the file wholesale. Neither guard knows
 anything about your task; that is what lets them ship in one file.
 
-**Only the loop breaker.** If you want guard #1 and nothing else,
-[docs/engine/loop-breaker.md](loop-breaker.md) installs it alone, with
-the same user-scope reasoning and the subagent gotcha.
+**The loop breaker is part of the engine.** There is no standalone install;
+[the engine](index.md) bundles both guards, and
+[docs/engine/loop-breaker.md](loop-breaker.md) has the guard's behavior,
+tuning, and the subagent gotcha.
 
 ## What to expect
 

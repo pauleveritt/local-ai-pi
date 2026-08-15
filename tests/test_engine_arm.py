@@ -9,7 +9,7 @@ server, no Pi run.
 
 from harness import runner
 
-ENGINE_FILE = runner.REPO_ROOT / ".pi" / "extensions" / "engine.ts"
+ENGINE_FILE = runner.REPO_ROOT / "packages" / "engine" / "engine.ts"
 
 
 def test_the_engine_improvement_is_extension_only():

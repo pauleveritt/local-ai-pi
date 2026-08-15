@@ -1,5 +1,5 @@
 # The 2026-08-11 re-plan's step-4 executor cell: the real implementer
-# extension (extensions/orchestration/implementer.ts), not a probe or the
+# extension (extensions/implementer/implementer.ts), not a probe or the
 # bare envelope. `read` is Pi's built-in; `write` and `edit` are both
 # overridden by the extension's registerTool calls and routed through the
 # revision-checked mutation engine -- MutationEngine.propose() for whole-
@@ -24,7 +24,7 @@
 # extensions_sha256 covers implementer.ts's complete same-repo import
 # closure -- itself plus the seven files it (transitively) imports:
 # extensions/guards/{types,loop-breaker,preserve-symbols}.ts and
-# extensions/orchestration/{handoff-contract,tool-target,
+# extensions/implementer/{handoff-contract,tool-target,
 # implementer-policy,mutation-engine}.ts -- confirmed by reading every
 # import line in the chain, not guessed. This was a real gap through
 # 432a3e3: the digest covered only implementer.ts's own bytes, matching

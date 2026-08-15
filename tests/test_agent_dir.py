@@ -219,24 +219,24 @@ def test_the_agent_dir_serves_the_model_the_harness_runs():
     assert model in [m["id"] for m in models["providers"][provider]["models"]]
 
 
-def test_the_child_and_parent_loop_breakers_are_the_same_file():
+def test_the_child_and_parent_engine_bundles_are_the_same_file():
     """Two copies exist because they are delivered by different routes: the
     parent gets an explicit `--extension`, the child can only get a
     user-scope extension in the agent dir. Copies drift; this is the same
     guard the prompt files carry.
     """
-    child_copy = runner.AGENT_DIR / "extensions" / "loop-breaker.ts"
+    child_copy = runner.AGENT_DIR / "extensions" / "engine.ts"
 
-    assert child_copy.read_bytes() == runner.LOOP_BREAKER.read_bytes()
+    assert child_copy.read_bytes() == runner.ENGINE.read_bytes()
 
 
-def test_the_loop_breaker_is_a_text_file():
+def test_the_engine_bundle_is_a_text_file():
     """A single literal NUL in the source made git classify the guard as
     **binary**, so its diffs were invisible in every review it has ever had.
     It was a separator inside a template literal and is now written `\\u0000`,
     which is the same string with none of the consequences.
     """
-    assert b"\x00" not in runner.LOOP_BREAKER.read_bytes()
+    assert b"\x00" not in runner.ENGINE.read_bytes()
 
 
 @pytest.mark.parametrize("name", ["settings.json", "models.json"])

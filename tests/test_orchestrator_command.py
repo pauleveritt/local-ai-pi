@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-ORCHESTRATOR = REPO_ROOT / ".pi" / "extensions" / "orchestrator.ts"
+ORCHESTRATOR = REPO_ROOT / "packages" / "engine" / "orchestrator.ts"
 
 
 def test_the_orchestrator_file_exists():

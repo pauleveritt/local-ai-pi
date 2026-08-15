@@ -47,7 +47,7 @@ A threshold of two looked reasonable until the test for it was written:
 one statement, so any tolerance at all admits the whole answer for the
 smallest tasks. A locating contract needs no executable statements --
 signatures and call examples match none of these patterns, and anything
-the executor must import can be named in prose."""
+the implementer must import can be named in prose."""
 
 
 def solution_statements(text: str) -> list[str]:
@@ -95,7 +95,7 @@ def extract_contract(text: str) -> str:
     the first draft opened "I don't have a write tool available, so I'll
     present the complete contract content here" and fenced the document
     in a markdown block. Appended raw to a brief, that preamble becomes
-    part of the executor's instructions and the arm partly measures the
+    part of the implementer's instructions and the arm partly measures the
     author's apology.
 
     A wrapper is unwrapped; anything else is left alone. Telling the two
@@ -139,8 +139,8 @@ def compose_prompt(instruction: str, writable: tuple[str, ...], brief: str) -> s
 
     The scope line is not a guess. Without it a contract can pass the leak
     probe and the fenced-statement gate while still asking for a change
-    outside what the executor is allowed to make -- `flask-extensions`'s
-    contract told the executor to update a docs file the manifest's own
+    outside what the implementer is allowed to make -- `flask-extensions`'s
+    contract told the implementer to update a docs file the manifest's own
     writable policy (`src/svcs/**`) excludes, and a letter-perfect code fix
     was rejected out-of-scope for it. Not oracle information: the
     instruction already asks the author to name the file, so this only
@@ -148,7 +148,7 @@ def compose_prompt(instruction: str, writable: tuple[str, ...], brief: str) -> s
     being tested on.
     """
     scope = (
-        f"\n\nThe executor may only change files matching: {', '.join(writable)}\n"
+        f"\n\nThe implementer may only change files matching: {', '.join(writable)}\n"
         "Do not describe or require a change to any file outside that list "
         "-- not documentation, not tests, nothing else, even if updating it "
         "would be good practice."

@@ -16,12 +16,20 @@ from harness.workspace import prepare_workspace
 REPO_ROOT = Path(__file__).resolve().parents[1]
 EXAMPLES = REPO_ROOT / "examples"
 EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / ".pi" / "extensions" / "hello-world.ts",)
-LOOP_BREAKER = REPO_ROOT / ".pi" / "extensions" / "loop-breaker.ts"
+# The engine bundle — the loop breaker's shipped home since Phase 12.
+# The eval improvements that used to load the standalone loop-breaker
+# extension (LOOP_BREAKER) now load the engine (both guards). This
+# changes the arms' measured behavior: preserve-symbols now fires on
+# destructive edits in runs that previously only had the loop breaker,
+# and the recorded extension_digests differ from pre-Phase-12
+# checkpoints (a resumed old checkpoint trips the conditions guard —
+# correct, since the arm changed).
+ENGINE = REPO_ROOT / "packages" / "engine" / "engine.ts"
 AGENT_DIR_FILES: tuple[str, ...] = (
     "README.md",
     "settings.json",
     "models.json",
-    "extensions/loop-breaker.ts",
+    "extensions/engine.ts",
 )
 EXPECTED_PI_VERSION = "0.84.1"
 
@@ -131,7 +139,7 @@ class Improvement:
 # seed_dir (nothing to place), no system_prompt (the guards steer; they
 # do not instruct). `improvement_name="engine"` and the extension digest
 # record the arm in the checkpoint.
-ENGINE_EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / ".pi" / "extensions" / "engine.ts",)
+ENGINE_EXTENSIONS: tuple[Path, ...] = (REPO_ROOT / "packages" / "engine" / "engine.ts",)
 ENGINE_IMPROVEMENT = Improvement(
     name="engine",
     seed_dir=None,
@@ -249,7 +257,7 @@ def sdd_orchestrator_guarded() -> Improvement:
     return Improvement(
         name="sdd-orchestrator-guarded",
         seed_dir=base.seed_dir,
-        extensions=base.extensions + (LOOP_BREAKER,),
+        extensions=base.extensions + (ENGINE,),
         system_prompt=base.system_prompt,
     )
 
@@ -275,7 +283,7 @@ def tech_stack_only() -> Improvement:
     return Improvement(
         name="tech-stack-only",
         seed_dir=None,
-        extensions=(LOOP_BREAKER,),
+        extensions=(ENGINE,),
         system_prompt=IMPROVEMENTS_DIR / "tech-stack-only" / "stack.md",
     )
 

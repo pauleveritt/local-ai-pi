@@ -1,18 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * Replay recorded tool calls through the shipped TypeScript guard.
+ * Replay recorded tool calls through the shipped TypeScript engine bundle.
  *
  * This deliberately uses a tiny ExtensionAPI double rather than copying the
  * loop-breaker algorithm into Python. The replay therefore tests the artifact
  * that contributors install, with no model or network involved.
  *
- * It imports `.pi/extensions/loop-breaker.ts` directly — the exact file
- * README's `cp` puts in `~/.pi/agent/extensions/`. An earlier version went
- * through a re-export at `extensions/guards/index.ts`; that indirection was
- * removed, because the one property worth pinning is that this harness
- * loads the installed file and not the parallel `Guard` in
- * `extensions/guards/loop-breaker.ts`. `guards.test.ts` pins it.
+ * It imports `packages/engine/engine.ts` directly — the shipped engine
+ * bundle, whose default export registers both guards (loop-breaker and
+ * preserve-symbols) on `tool_call`. On the loop fixtures the calls are
+ * `bash ls -R`, which preserve-symbols (edit-only) ignores, so the expected
+ * block counts are unchanged from the standalone-loop-breaker era.
  *
  * **Fixtures must contain only calls that reach `beforeToolCall`.** Pi
  * validates tool arguments at `agent-loop.js:404` and invokes the hook on the
@@ -31,7 +30,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, resolve } from "node:path";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const extensionPath = resolve(root, ".pi/extensions/loop-breaker.ts");
+const extensionPath = resolve(root, "packages/engine/engine.ts");
 const { default: guards } = await import(pathToFileURL(extensionPath));
 
 function loadFixture(contents) {

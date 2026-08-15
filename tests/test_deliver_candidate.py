@@ -247,7 +247,7 @@ def test_cell_digest_changes_if_a_dependency_file_changes(tmp_path, monkeypatch)
 
     shadow_root = tmp_path / "extensions"
     shadow_root.mkdir()
-    (shadow_root / "orchestration").mkdir()
+    (shadow_root / "implementer").mkdir()
     (shadow_root / "guards").mkdir()
     shadowed = []
     for path in real_extensions:
@@ -256,7 +256,7 @@ def test_cell_digest_changes_if_a_dependency_file_changes(tmp_path, monkeypatch)
         shadow_path.write_bytes(path.read_bytes())
         shadowed.append(shadow_path)
     # Touch exactly one dependency, not the entry point itself.
-    dependency = shadow_root / "orchestration" / "mutation-engine.ts"
+    dependency = shadow_root / "implementer" / "mutation-engine.ts"
     dependency.write_text(dependency.read_text() + "\n// a change nobody asked for\n")
 
     modified = resolve_cell(
