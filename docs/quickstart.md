@@ -4,6 +4,16 @@ From zero to: tests green, a model running, the engine steering a Pi
 session, and one eval run. Each step is terse here and has an in-depth
 page. [What is Agent Engine?](what-is.md) is the context for any of it.
 
+```{admonition} Note
+:class: info
+
+These docs and this project are still too big. I'm working on slimming it
+down. If you get lost, need the big picture, have a question, want to
+find something... ask your agent. The repo has tons of specs and
+material. The answers are in there, it's just too big to find on your
+own.
+```
+
 ## 0. The environment
 
 ```bash
