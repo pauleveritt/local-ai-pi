@@ -9,7 +9,7 @@ page. [What is Agent Engine?](what-is.md) is the context for any of it.
 
 These docs and this project are still too big. I'm working on slimming it
 down. If you get lost, need the big picture, have a question, want to
-find something... ask your agent. The repo has tons of specs and
+find something... **ask your agent.** The repo has tons of specs and
 material. The answers are in there, it's just too big to find on your
 own.
 ```
