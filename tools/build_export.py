@@ -79,12 +79,12 @@ SUPPORTED_TASKS = (
 # envelope-cap.ts, proposal-limit.ts -- those are named only by
 # `harness/screen.py`, which the product path no longer imports.
 EXTENSION_PATHS = (
-    "extensions/orchestration/handoff-contract.ts",
-    "extensions/orchestration/implementer-policy.ts",
-    "extensions/orchestration/implementer.ts",
-    "extensions/orchestration/mutation-engine.ts",
-    "extensions/orchestration/tool-target.ts",
-    "extensions/orchestration/orchestration.test.ts",
+    "extensions/implementer/handoff-contract.ts",
+    "extensions/implementer/implementer-policy.ts",
+    "extensions/implementer/implementer.ts",
+    "extensions/implementer/mutation-engine.ts",
+    "extensions/implementer/tool-target.ts",
+    "extensions/implementer/orchestration.test.ts",
     "extensions/guards/types.ts",
     "extensions/guards/loop-breaker.ts",
     "extensions/guards/preserve-symbols.ts",
