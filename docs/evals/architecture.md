@@ -11,7 +11,7 @@ Six subcommands — `one`, `batch`, `preflight`, `suites`, `improvements`,
 `summarize` — are a **translation layer, not an engine**. The CLI resolves
 names against the registries, checks liveness and the version pin, and
 renders the engine's refusals as sentences with exit code 2 (`omlx start`,
-`docs/setup.md`) instead of tracebacks. The engine (`run_suite`,
+`docs/evals/setup.md`) instead of tracebacks. The engine (`run_suite`,
 `run_batch`) is byte-identical whether driven by the CLI or by Python;
 the CLI is deliberately thin.
 
@@ -95,7 +95,7 @@ The model string `--model <provider>/<id>` resolves through Pi against
 `models.json` in the pinned agent dir; the default is `DEFAULT_MODEL` in
 `harness/pi_invocation.py`; liveness uses the recorded server defaults;
 `SATYRN_PI_PACKAGE` overrides where Pi's package lives. See
-[model-setup](model-setup.md) for the full story and its limits.
+[model-setup](../model-setup.md) for the full story and its limits.
 
 ## What is deliberately absent
 

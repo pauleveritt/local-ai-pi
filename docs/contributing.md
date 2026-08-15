@@ -4,7 +4,7 @@ Welcome. The most useful thing to know up front: **you can contribute
 here without a GPU, a model server, or any of the research history.**
 Most of this is ordinary Python with hermetic tests.
 
-Start with [setup.md](setup.md) for a green test run, then come back.
+Start with [quick start](quickstart.md) for a green test run, then come back.
 If a term stops you, try the [glossary](glossary.md) — it's short.
 
 A rough order for a first hour:
@@ -63,7 +63,7 @@ without ever starting a model server. You need one only when:
   real model), or
 - running anything gated behind `SATYRN_LIVE=1`.
 
-[`docs/setup.md`](setup.md)'s Part 2 covers getting a local server running.
+[`docs/model-setup.md`](model-setup.md) covers getting a local server running.
 If you're working on [handoff packet](glossary.md#handoff-packet)
 construction, [guard](glossary.md#guard) logic, the
 [mutation engine](glossary.md#mutation-engine)'s TypeScript, or harness

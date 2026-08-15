@@ -89,7 +89,7 @@ A real model run needs a local server. We use
 point at it rather than editing the default.
 
 The long form, with the gotchas and how to verify the server is actually
-up: [docs/setup.md](docs/setup.md).
+up: [model-setup.md](docs/model-setup.md) and [evals setup](docs/evals/setup.md).
 
 ## Run an eval
 
@@ -107,7 +107,7 @@ what exists, `preflight` checks the model server and the pinned Pi version,
 and `summarize <checkpoint.jsonl>` reads a checkpoint without comparing
 anything — comparison stays manual. `--help` is the documentation.
 
-Both need Pi and a model server running — [setup.md](docs/setup.md) Part 2
+Both need Pi and a model server running — [model setup](docs/model-setup.md)
 gets you there, and `preflight` is the fast readiness check.
 
 What a run, batch, improvement, and checkpoint are — and the three things
@@ -151,7 +151,7 @@ answers.
 |---|---|
 | Understand the engine — what it is and isn't | [engine/index.md](docs/engine/index.md) |
 | Understand the one supported path, end to end | [deliver-candidate.md](docs/engine/deliver-candidate.md) |
-| Get set up properly | [setup.md](docs/setup.md) |
+| Get set up properly | [quickstart.md](docs/quickstart.md) |
 | Run an eval | [evals.md](docs/evals/index.md) |
 | Contribute — commands, conventions, starter tasks | [contributing.md](docs/contributing.md) |
 | Look up a term | [glossary.md](docs/glossary.md) |

@@ -99,9 +99,9 @@ what is only pilot.
 ## Where to go next
 
 - Install it and use it: [using the engine](usage.md) has the quick
-  start, or `docs/setup.md` has the environment.
+  start, or `docs/engine/setup.md` has the setup.
 - Set up a local model — server, model string, tuning, wiring it into Pi:
-  `docs/evals/model-setup.md`.
+  `docs/model-setup.md`.
 - Understand the problems and the architecture:
   `docs/engine/architecture.md`.
 - The pilot shootout, and what it does and does not establish:

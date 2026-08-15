@@ -895,13 +895,13 @@ def test_the_pinned_version_is_the_installed_version():
     # 0.83.0 during a working session and nothing caught it; eight
     # file:line citations in a published chapter went stale.
     #
-    # Skipped when Pi is absent, because docs/setup.md says Pi is needed
+    # Skipped when Pi is absent, because docs/evals/setup.md says Pi is needed
     # only for work that invokes a model, and every other Pi-dependent
     # test here is opt-in. A contributor without Pi has done nothing
     # wrong. A contributor with the *wrong* Pi still fails, which is the
     # case this exists for.
     if shutil.which("pi") is None:
-        pytest.skip("Pi is not installed; see docs/setup.md")
+        pytest.skip("Pi is not installed; see docs/evals/setup.md")
 
     installed = subprocess.run(
         ["pi", "--version"], check=True, capture_output=True, text=True

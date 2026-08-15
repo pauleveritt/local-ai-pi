@@ -8,14 +8,14 @@ in the [README](https://github.com/pauleveritt/local-ai-pi/blob/main/README.md);
 ## Before you start
 
 An eval needs Pi and a model server up before anything runs. Getting both
-is [setup.md](../setup.md) Part 2's job: Pi (pinned 0.84.1) and oMLX serving
+is [the evals setup](setup.md): Pi (pinned 0.84.1) and oMLX serving
 the reference model on `127.0.0.1:8001`. The fast check that everything is
 in place is `uv run python -m harness.cli preflight` — it reports the
 server and the Pi version, and says what to fix if either is wrong. A
 single `one` run needs a working `pi` and the server; a `batch` also pins
 the Pi version, so runs stay comparable between contributors. The model
 string and the server underneath it — install, model acquisition, tuning —
-are in [model-setup.md](model-setup.md); the failures to expect along the
+are in [model-setup.md](../model-setup.md); the failures to expect along the
 way are in [slm-struggles.md](slm-struggles.md).
 
 ## Why measure

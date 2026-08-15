@@ -149,5 +149,5 @@ for arm, imp in [('control', None), ('engine', ENGINE_IMPROVEMENT)]:
 "
 ```
 
-Requires the local model server (`docs/setup.md` Part 2). The checkpoints
+Requires the local model server (`docs/evals/setup.md`). The checkpoints
 live outside version control, at the paths above.

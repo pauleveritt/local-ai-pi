@@ -251,7 +251,7 @@ def test_preflight_reports_a_wrong_pi_version(monkeypatch, capsys):
     monkeypatch.setattr(cli, "subprocess", _FakeSubprocess("0.83.0\n"))
     assert cli.main(["preflight"]) == 2
     err = capsys.readouterr().err
-    assert "docs/setup.md" in err
+    assert "docs/evals/setup.md" in err
 
 
 def test_preflight_reports_a_dead_server(monkeypatch, capsys):

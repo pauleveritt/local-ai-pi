@@ -101,14 +101,16 @@ REPLAY_HARNESS = ("tools/replay_guards.mjs",)
 REPLAY_FIXTURE_DIR = "tests/fixtures/guards"
 
 DOC_PATHS = (
-    "docs/architecture.md",
+    "docs/what-is.md",
+    "docs/quickstart.md",
     "docs/contributing.md",
     "docs/evidence-index.md",
-    "docs/setup.md",
-    "docs/loop-breaker.md",
+    "docs/model-setup.md",
+    "docs/engine/loop-breaker.md",
+    "docs/engine/setup.md",
     "docs/glossary.md",
     "docs/sdd.md",
-    "docs/example-brief.md",
+    "docs/engine/example-brief.md",
 )
 
 # Flattened into docs/evidence/ in the export, since docs/superpowers/

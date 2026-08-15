@@ -105,7 +105,7 @@ retracted figures, is in [the development record](superpowers/index.md).
 
 ## For new collaborators
 
-Start with [setup](setup.md) — most of this project's tests need nothing
+Start with [quick start](quickstart.md) — most of this project's tests need nothing
 but Python, so you can contribute before you ever start a model server.
 Then [contributing](contributing.md) has the test commands, the
 conventions, and three starter tasks sized for a first afternoon.
@@ -119,7 +119,9 @@ hold you to.
 :maxdepth: 1
 :caption: Getting started
 
-setup
+What is Agent Engine? <what-is>
+Quick Start <quickstart>
+Model setup <model-setup>
 contributing
 glossary
 ```
@@ -130,6 +132,7 @@ glossary
 
 What is the engine? <engine/index>
 Quick start <engine/usage>
+Setup <engine/setup>
 Architecture <engine/architecture>
 Performance <engine/shootout>
 The loop breaker <engine/loop-breaker>
@@ -142,9 +145,9 @@ The orchestrator <engine/deliver-candidate>
 
 Why evals? <evals/why-evals>
 evals/index
+Setup <evals/setup>
 How to write an eval <evals/writing-evals>
 The eval architecture <evals/architecture>
-evals/model-setup
 evals/slm-struggles
 ```
 

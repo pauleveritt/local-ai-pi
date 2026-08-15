@@ -120,7 +120,7 @@ often done the work itself.
 oMLX demands a Bearer header but never checks its value. Without it, a
 perfectly healthy server answers 401 and reads as down. Cost real
 debugging time before it was documented.
-*docs/setup.md.*
+*docs/evals/setup.md.*
 
 ## The child loads your own extensions
 
@@ -164,7 +164,7 @@ every queued run — over a step that only produces a diagnostic.
 
 A different Pi version is an unrecorded variable between contributors.
 The pin turns a silent upgrade into a red suite — a deliberate failure.
-*docs/setup.md; tests/test_runner.py.*
+*docs/evals/setup.md; tests/test_runner.py.*
 
 ## Default-deny evasion
 

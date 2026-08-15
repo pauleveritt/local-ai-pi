@@ -42,7 +42,7 @@ EXIT_OK = 0
 EXIT_ERROR = 1
 EXIT_REFUSED = 2
 
-MODEL_SERVER_FIX = "Start the model server with `omlx start` (see docs/setup.md)."
+MODEL_SERVER_FIX = "Start the model server with `omlx start` (see docs/model-setup.md)."
 
 
 def _resolve_improvement(name: str | None) -> Improvement | None:
@@ -170,7 +170,9 @@ def _cmd_preflight(args: argparse.Namespace) -> int:
         ok = False
     print("\n".join(lines))
     if not ok:
-        print(f"Fix: {MODEL_SERVER_FIX} For Pi, see docs/setup.md.", file=sys.stderr)
+        print(
+            f"Fix: {MODEL_SERVER_FIX} For Pi, see docs/evals/setup.md.", file=sys.stderr
+        )
         return EXIT_REFUSED
     return EXIT_OK
 
