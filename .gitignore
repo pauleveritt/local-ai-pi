@@ -9,6 +9,12 @@ node_modules/
 .worktrees/
 .superpowers/
 
+# IDE state. `.idea/` must be ignored in this file, not only via a developer's
+# global excludesfile: the harness's hermetic `GIT_ENV` disables global git
+# config, so deliver_candidate's dirty-repository preflight sees `.idea/` as
+# untracked and refuses every /implement run.
+.idea/
+
 # Derived workload state: the bare clone cache and the cohort venv. Every
 # committed manifest names its upstream and SHAs, so this is reconstructible
 # and must never be committed.
