@@ -170,5 +170,5 @@ sdd
 :caption: Development record
 
 superpowers/index
-superpowers/phase-history
+Phase History <superpowers/phase-history>
 ```
