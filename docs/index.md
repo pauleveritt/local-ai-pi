@@ -160,15 +160,9 @@ evidence-index
 
 ```{toctree}
 :maxdepth: 1
-:caption: How we work
+:caption: Development
 
 sdd
-```
-
-```{toctree}
-:maxdepth: 1
-:caption: Development record
-
 superpowers/index
 Phase History <superpowers/phase-history>
 ```
