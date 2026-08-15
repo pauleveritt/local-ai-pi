@@ -25,22 +25,25 @@ a row, and **preserve-symbols**, which refuses an edit that deletes a
 public symbol (a function, class, or route) without replacing it. It is
 not a planner and not a turn cap; varied work is untouched.
 
-Minimal install:
+Minimal install — one line, as a pi package:
 
 ```bash
-mkdir -p ~/.pi/agent/extensions
-cp packages/engine/engine.ts packages/engine/orchestrator.ts ~/.pi/agent/extensions/
+pi install git:github.com/pauleveritt/local-ai-pi@v0.1.0
 ```
 
-Those two files are the whole install: the engine (the guards) and the
-orchestrator's `/implement` command. Pi loads user-scope extensions
-unconditionally, so both are active in every session — including
-delegated children, where a small model's runaway usually happens. Put the
-files in user scope, not a project's `.pi/extensions/`, if you delegate at
-all: a child loads user-scope extensions but not project ones. (Working
-inside this repository? It already loads here — the same files live in
-this repo's project-local `.pi/extensions/`, active with zero install. The
-copy is for every other project.)
+(Or, from a checkout, copy the two files from the package:
+`cp packages/engine/engine.ts packages/engine/orchestrator.ts
+~/.pi/agent/extensions/`.)
+
+The engine is a pi package: the guards and the orchestrator's `/implement`
+command. Pi loads user-scope extensions unconditionally, so both are
+active in every session — including delegated children, where a small
+model's runaway usually happens. Put the files in user scope, not a
+project's `.pi/extensions/`, if you delegate at all: a child loads
+user-scope extensions but not project ones. (Working inside this
+repository? It already loads here — the same files live in this repo's
+project-local `.pi/extensions/`, active with zero install. No install
+needed in a checkout.)
 
 The other face is the orchestrator: the explicit front you invoke. In a
 Pi session with the two-file install, that front is `/implement <task>` —

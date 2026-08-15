@@ -8,20 +8,21 @@ use it.
 
 ## Quick start
 
-The install is two files, in user scope (so they load in every session,
-including delegated children):
+One line, as a pi package:
 
 ```bash
-mkdir -p ~/.pi/agent/extensions
-cp packages/engine/engine.ts packages/engine/orchestrator.ts ~/.pi/agent/extensions/
+pi install git:github.com/pauleveritt/local-ai-pi@v0.1.0
 ```
 
-If Pi is already running, `/reload` picks it up.
+(Or, from a checkout, copy the two files from the package:
+`cp packages/engine/engine.ts packages/engine/orchestrator.ts
+~/.pi/agent/extensions/`.) If Pi is already running, `/reload` picks it
+up.
 
 **Working inside this repository already?** The engine lives in this
 repo's project-local `.pi/extensions/`, which Pi loads when the project
 is trusted — so the guards and `/implement` are active here with zero
-install. The copy above is for every other project.
+install. The install above is for every other project.
 
 **Everyday use needs no typing.** The guards are passive: they watch tool
 calls and refuse the two failure modes — repeating an identical call,

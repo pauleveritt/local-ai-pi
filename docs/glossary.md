@@ -63,11 +63,13 @@ Contrast [pilot](#pilot). See [rule 8](#rule-8).
 
 ## Engine
 
-The package you install: one self-contained Pi extension
-(`packages/engine/engine.ts`) bundling the two [guards](#guard) — the
-[loop breaker](#loop-breaker) and preserve-symbols. Copy one file into
-user scope and the guards steer every session; there is no other install
-step.
+The package you install: a pi package at `packages/engine/`, whose two
+files — `engine.ts` (bundling the two [guards](#guard): the
+[loop breaker](#loop-breaker) and preserve-symbols) and `orchestrator.ts`
+(the `/implement` command) — are the installable surface. `pi install
+git:github.com/pauleveritt/local-ai-pi@v0.1.0` is the one-line install;
+`.pi/extensions/` holds symlinks to the package, so a checkout loads the
+engine with zero install.
 
 Not to be confused with **Agent Engine**, the product name for the whole
 project (the engine plus the [orchestrator](#orchestrator)).

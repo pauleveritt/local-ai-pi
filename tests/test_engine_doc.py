@@ -29,18 +29,18 @@ def _flat(text: str) -> str:
 
 
 def test_the_engine_install_command_is_one_line():
-    # Phase 10: the install is two files on one copy line — the engine (the
-    # guards) and the orchestrator (/implement). Pin both, so the README
-    # cannot silently drop the command half of the install.
+    # Phase 12: the primary install is the pi package one-liner; the copy
+    # command is the from-a-checkout fallback. Pin both, so the README
+    # cannot silently lose the packaged install.
     readme = _flat(README.read_text())
     usage = _flat(USAGE.read_text())
+    assert "pi install git:github.com/pauleveritt/local-ai-pi@v0.1.0" in readme
+    assert "pi install git:github.com/pauleveritt/local-ai-pi@v0.1.0" in usage
     command = (
         "cp packages/engine/engine.ts packages/engine/orchestrator.ts "
         "~/.pi/agent/extensions/"
     )
     assert command in readme
-    # The quick-start page must agree, or it silently teaches the old
-    # one-file install.
     assert command in usage
 
 
