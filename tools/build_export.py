@@ -90,7 +90,7 @@ EXTENSION_PATHS = (
     "extensions/guards/preserve-symbols.ts",
     "extensions/guards/guards.test.ts",
     "extensions/probe-cap.ts",
-    ".pi/extensions/loop-breaker.ts",
+    "packages/engine/engine.ts",
 )
 
 # The guard replay harness. No import graph reaches it -- it is JavaScript,

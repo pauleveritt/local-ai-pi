@@ -40,9 +40,7 @@ files in user scope, not a project's `.pi/extensions/`, if you delegate at
 all: a child loads user-scope extensions but not project ones. (Working
 inside this repository? It already loads here — the same files live in
 this repo's project-local `.pi/extensions/`, active with zero install. The
-copy is for every other project. Only want
-guard #1? [loop-breaker.md](docs/engine/loop-breaker.md) installs the loop breaker
-alone.)
+copy is for every other project.)
 
 The other face is the orchestrator: the explicit front you invoke. In a
 Pi session with the two-file install, that front is `/implement <task>` —

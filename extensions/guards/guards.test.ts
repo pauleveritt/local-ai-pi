@@ -26,6 +26,15 @@ import { callKey, createLoopBreaker, THRESHOLD, WINDOW } from "./loop-breaker";
 import { createPreserveSymbols, symbolsIn } from "./preserve-symbols";
 import type { ToolCall } from "./types";
 
+// The shipped engine bundle (packages/engine/), the artifact a checkout
+// loads and a pi install delivers. The "engine bundle artifact" block
+// below pins it against the guard sources.
+const ENGINE = new URL("../../packages/engine/engine.ts", import.meta.url);
+const ENGINE_SOURCE = await readFile(ENGINE, "utf8");
+const engineModule = await import(ENGINE.href);
+
+const loopFixture: ToolCall = { toolName: "bash", input: { command: "ls -R" } };
+
 const bash = (command: string): ToolCall => ({
 	toolName: "bash",
 	input: { command },
@@ -151,79 +160,6 @@ describe("preserve-symbols", () => {
 	});
 });
 
-describe("the two loop-breaker artifacts", () => {
-	// There are deliberately two implementations of one policy:
-	//
-	//   .pi/extensions/loop-breaker.ts   a self-contained Pi extension.
-	//       Imports nothing local -- README's install is `cp` of this one
-	//       file into ~/.pi/agent/extensions/, so a local import would
-	//       break it. This is the standalone artifact.
-	//
-	//   extensions/guards/loop-breaker.ts  a pure Guard factory, imported
-	//       by the bounded implementer and covered by the tests above.
-	//
-	// `main` added extensions/guards/index.ts to end an earlier duplication,
-	// with the rationale "one artifact, tested where it lives". That fix
-	// cannot extend to this pair -- collapsing them would cost the
-	// copy-one-file install. What it was really protecting against is the
-	// two drifting apart, so this pins that directly instead. index.ts
-	// itself was deleted when the branches merged: it re-exported the
-	// standalone for one caller (tools/replay_guards.mjs), which now
-	// imports the standalone itself.
-	const standalone = fs.readFileSync(
-		new URL("../../.pi/extensions/loop-breaker.ts", import.meta.url), "utf8",
-	);
-
-	function constantIn(source: string, name: string): number {
-		const match = source.match(new RegExp(`${name}\\s*=\\s*(\\d+)`));
-		if (!match) throw new Error(`${name} not found`);
-		return Number(match[1]);
-	}
-
-	test("the standalone extension and the Guard agree on WINDOW and THRESHOLD", () => {
-		// If these diverge, a contributor's installed copy refuses at a
-		// different point than the measured one -- and every number this
-		// project published about the loop breaker describes the other file.
-		expect(constantIn(standalone, "WINDOW")).toBe(WINDOW);
-		expect(constantIn(standalone, "THRESHOLD")).toBe(THRESHOLD);
-	});
-
-	test("the standalone extension stays free of local imports", () => {
-		// The property that makes `cp` a complete install. A relative
-		// import here would break the README's two-command instructions
-		// without breaking any other test.
-		const localImports = standalone
-			.split("\n")
-			.filter((line) => /^import\s/.test(line) && /["']\.{1,2}\//.test(line));
-		expect(localImports).toEqual([]);
-	});
-
-	test("the replay harness loads the standalone, not the Guard", () => {
-		// Both files export a working loop breaker, so pointing the replay
-		// at the wrong one still passes every fixture -- it would just be
-		// measuring a file nobody installs. That is exactly the drift
-		// index.ts existed to prevent, and this is what survives it.
-		const replay = fs.readFileSync(
-			new URL("../../tools/replay_guards.mjs", import.meta.url), "utf8",
-		);
-		expect(replay).toContain('".pi/extensions/loop-breaker.ts"');
-		expect(replay).not.toContain("extensions/guards/loop-breaker.ts\"");
-	});
-});
-
-// The engine bundle artifact -- the installable one-file extension.
-//
-//   .pi/extensions/engine.ts   a self-contained Pi extension bundling
-//       both guards behind one default factory. Imports nothing local,
-//       so README's install is `cp` of this one file. It reuses the
-//       two guard sources verbatim, so these tests pin the copy against
-//       them -- the same drift protection the "two loop-breaker
-//       artifacts" block gives the standalone loop breaker.
-const ENGINE = new URL("../../.pi/extensions/engine.ts", import.meta.url);
-const ENGINE_SOURCE = await readFile(ENGINE, "utf8");
-const engineModule = await import(pathToFileURL(fileURLToPath(ENGINE)));
-
-const loopFixture = { toolName: "bash", input: { command: "ls -R" } };
 function fakePi() {
 	const handlers = new Map<string, (event: any) => unknown>();
 	const entries: Array<[string, unknown]> = [];

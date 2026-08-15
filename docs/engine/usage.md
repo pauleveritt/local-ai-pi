@@ -40,9 +40,10 @@ edit that deletes a public symbol without replacing it is refused, while
 recovered did so by rewriting the file wholesale. Neither guard knows
 anything about your task; that is what lets them ship in one file.
 
-**Only the loop breaker.** If you want guard #1 and nothing else,
-[docs/engine/loop-breaker.md](loop-breaker.md) installs it alone, with
-the same user-scope reasoning and the subagent gotcha.
+**The loop breaker is part of the engine.** There is no standalone install;
+[the engine](index.md) bundles both guards, and
+[docs/engine/loop-breaker.md](loop-breaker.md) has the guard's behavior,
+tuning, and the subagent gotcha.
 
 ## What to expect
 

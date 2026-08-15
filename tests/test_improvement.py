@@ -639,7 +639,7 @@ def test_the_guarded_improvement_carries_both_extensions():
 
     assert guarded.name != plain.name
     assert set(plain.extensions) < set(guarded.extensions)
-    assert runner.LOOP_BREAKER in guarded.extensions
+    assert runner.ENGINE in guarded.extensions
     assert guarded.seed_dir == plain.seed_dir
     assert guarded.system_prompt == plain.system_prompt
 
@@ -647,7 +647,7 @@ def test_the_guarded_improvement_carries_both_extensions():
 def test_the_guarded_improvement_has_its_own_digest():
     """Two improvements differing only in an extension must not produce
     equal conditions, or their checkpoints become mutually resumable."""
-    assert runner.LOOP_BREAKER.is_file()
+    assert runner.ENGINE.is_file()
     plain = runner.sdd_orchestrator()
     guarded = runner.sdd_orchestrator_guarded()
 
@@ -665,14 +665,17 @@ def test_the_loop_breaker_trips_on_successful_repeats():
     counts only *failing* identical calls, and all 245 of cycle 4's `ls -R`
     calls succeeded. `tool_call` fires before execution, so success is not
     even knowable here -- the source must not reference it."""
-    source = runner.LOOP_BREAKER.read_text()
+    source = runner.ENGINE.read_text()
 
     assert 'pi.on("tool_call"' in source
     assert "block: true" in source
     assert "isError" not in source, (
         "the hook fires before execution; success is unknowable"
     )
-    assert 'pi.appendEntry("loop_broken"' in source
+    # The engine bundle's guards return a Decision carrying the entry kind;
+    # the adapter appends it. Both halves must be present.
+    assert 'kind: "loop_broken"' in source
+    assert "pi.appendEntry(decision.entry.kind" in source
 
 
 def test_the_stack_prompt_is_the_guarded_prompt_plus_a_section():

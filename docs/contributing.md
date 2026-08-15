@@ -29,9 +29,9 @@ node --experimental-strip-types tools/replay_guards.mjs tests/fixtures/guards/*.
 
 It needs no model, no server, and no `bun install` — the fixtures are
 committed. `bun test` covers `extensions/guards/loop-breaker.ts`, the
-`Guard` the implementer uses; this covers
-`.pi/extensions/loop-breaker.ts`, the standalone file README's `cp`
-installs. Same policy, two artifacts, deliberately
+`Guard` the implementer uses, and pins the shipped engine bundle
+(`packages/engine/engine.ts`) against it. One policy, one shipped
+artifact, deliberately
 ([deliver-candidate.md](engine/deliver-candidate.md#guards-still-in-the-extension-closure)).
 
 `bun install` is only needed once (or after `package.json` changes) — it

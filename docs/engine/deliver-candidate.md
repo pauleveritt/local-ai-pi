@@ -119,11 +119,12 @@ constraint exists):
 - **`loop-breaker.ts`** — refuses an identical tool call repeated past a
   threshold within a window.
 
-  Note which file this is. The one *installed* standalone (README's `cp`)
-  is `.pi/extensions/loop-breaker.ts`, a separate, self-contained Pi
-  extension — it imports nothing local, because a `cp` of one file has to
-  be a complete install. This one is the pure `Guard` the implementer
-  uses. Two deliberate artifacts implementing one policy; `guards.test.ts`
+  Note which file this is. The one *shipped* — inside the engine bundle
+  (`packages/engine/engine.ts`), the artifact a checkout loads and a pi
+  install delivers. This one is the pure `Guard` the implementer
+  uses. The engine bundle is pinned against it by `guards.test.ts`
+  (`extensions/guards/guards.test.ts` — the "engine bundle artifact"
+  block).
   pins their `WINDOW`/`THRESHOLD` to agree and pins the standalone copy to
   stay import-free, so the pair cannot drift silently.
 
