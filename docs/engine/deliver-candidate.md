@@ -117,30 +117,16 @@ by design (see `extensions/guards/`'s own module docstrings for why that
 constraint exists):
 
 - **`loop-breaker.ts`** — refuses an identical tool call repeated past a
-  threshold within a window.
-
-  Note which file this is. The one *shipped* — inside the engine bundle
-  (`packages/engine/engine.ts`), the artifact a checkout loads and a pi
-  install delivers. This one is the pure `Guard` the implementer
-  uses. The engine bundle is pinned against it by `guards.test.ts`
-  (`extensions/guards/guards.test.ts` — the "engine bundle artifact"
-  block).
-  pins their `WINDOW`/`THRESHOLD` to agree and pins the standalone copy to
-  stay import-free, so the pair cannot drift silently.
-
-  They are also tested by different runners, which is the point.
-  `bun test` exercises the `Guard` directly. `tools/replay_guards.mjs`
-  replays recorded tool calls from real runs — six committed fixtures, no
-  model or network — through the *standalone* file, the one a contributor
-  actually installs. A third pin in `guards.test.ts` keeps the replay
-  pointed at that file: both artifacts pass every fixture, so aiming the
-  replay at the wrong one would stay green while measuring something
-  nobody installs.
+  threshold within a window. The file in this closure is the pure `Guard`
+  the implementer uses; the *shipped* copy lives inside the engine bundle
+  (`packages/engine/engine.ts`), and `guards.test.ts`'s "engine bundle
+  artifact" block pins the two so the shipped policy cannot drift from
+  the source.
 - **`preserve-symbols.ts`** — no longer wired into the implementer's
   `tool_call` handler (see "Mutation engine" above), but the module and its
   `symbolsIn()` helper remain, both because `mutation-engine.ts` imports
-  `symbolsIn()` and because the guard itself may still have a standalone
-  Pi-extension use case outside this bounded path.
+  `symbolsIn()` and because the guard itself ships in the engine bundle's
+  everyday steering.
 
 ## What is deliberately out of scope here
 

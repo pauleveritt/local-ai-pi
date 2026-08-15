@@ -137,7 +137,7 @@ A [guard](#guard) that refuses a tool call the model has already made,
 unchanged, several times in a row. Came out of a recorded run of 261
 turns, 245 of them the identical `ls -R`.
 
-Installable on its own, outside this project: see
+Ships inside the [engine](#engine) package; see
 [loop-breaker.md](engine/loop-breaker.md).
 
 ## Mutation engine
@@ -148,8 +148,7 @@ atomically, and refuses an edit that would delete a public symbol
 without replacing it.
 
 `extensions/implementer/mutation-engine.ts`. It is the sole authority
-on whether a write happens — deliberately, after a redundant second
-check was found to contradict it.
+on whether a write happens.
 
 ## Oracle
 

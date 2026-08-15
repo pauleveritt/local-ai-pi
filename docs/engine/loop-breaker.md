@@ -69,7 +69,7 @@ To load it explicitly for a single run, pass the **file** — not its
 directory, which fails silently:
 
 ```bash
-pi --extension ./loop-breaker.ts "your prompt"
+pi --extension ./packages/engine/engine.ts "your prompt"
 ```
 
 ## The thing that will surprise you: subagents

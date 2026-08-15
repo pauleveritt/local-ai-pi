@@ -102,24 +102,19 @@ share of the cycle-10 turn (0/16 → 13/16) is zero** — the suite moves
 when the model is made to engage, and nothing in the guards causes
 engagement. The effect lives in the composed pipeline (the orchestration
 fixes and the facts — naming FastAPI and `app.py`), not in the guards
-alone. The guards' payoff on a working-but-looping run is a different
-question, and its evidence is already banked separately: the cycle-10
-record's run 1 repeated one call 14 times and finished correctly once
-steered out of it.
+alone.
 
-Two non-claims, stated so the zero is not overread. First, this is a pilot —
-one suite, one model, n=6 per arm, not pooled, not confirmatory. Second, it
-is not a verdict that the guards are worthless: the cycle-10 record already
-shows the loop breaker firing 12 times across two runs that still passed.
-The insurance pays out where there is an accident to steer; the user-story
-suite's bare failure is upstream of any accident, so a tool-call guard is
-the wrong instrument for it and shows exactly zero.
+This is a pilot — one suite, one model, n=6 per arm, not pooled, not
+confirmatory — and it is not a verdict on the guards' value: the cycle-10
+record shows the loop breaker firing 12 times across two runs that still
+passed, because the insurance pays out where there is an accident to
+steer and the user-story suite's bare failure is upstream of any
+accident.
 
-And there is no suite more complex than user-story to move to yet. The
-three runnable suites are all ~30-line tasks; the genuinely harder
-`workloads/svcs/` cohort lives on a different product path (the typed
-handoff bridge, not `run_suite`). Making the floor move means authoring
-harder tasks in the user-story style — which is the plan, not an accident.
+There is no suite more complex than user-story to move to yet — the three
+runnable suites are ~30-line tasks, and the harder `workloads/svcs/`
+cohort lives on a different product path. Making the floor move means
+authoring harder tasks in the user-story style, which is the plan.
 
 ## Reproduction
 
