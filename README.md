@@ -18,7 +18,8 @@ Agent Engine is two parts:
 
 ## The engine
 
-One Pi extension — a single file — that steers a small local model during
+A pi package — the guards plus the orchestrator's `/implement` command —
+that steers a small local model during
 everyday sessions. It bundles two guards: the **loop breaker**, which
 refuses a tool call the model has already made unchanged several times in
 a row, and **preserve-symbols**, which refuses an edit that deletes a

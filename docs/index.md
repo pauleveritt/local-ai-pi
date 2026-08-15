@@ -39,8 +39,8 @@ for the full statement — it's short, and it's the whole context.
 Three things, independent of each other. You can take any without the
 others, and none needs the rest of this project.
 
-**The [engine](engine/index.md)** — why, how, and what: the two guards
-bundled into one self-contained file.
+**The [engine](engine/index.md)** — why, how, and what: the guards and the
+`/implement` command, shipped as a pi package.
 
 **A [loop breaker](engine/loop-breaker.md) for your own Pi sessions.** One file,
 copied into place. It refuses a tool call the model has already made,

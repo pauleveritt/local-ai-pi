@@ -27,11 +27,11 @@ available in any session inside this repo, with no setup.
 Install to user scope when you want the engine in *every* session,
 everywhere — and in delegated children, where a small model's runaway
 usually happens, because project-local files guard the parent only. The
-install is two files, in user scope — the whole install:
+install is two files, in user scope — the whole install, from a checkout:
 
 ```bash
 mkdir -p ~/.pi/agent/extensions
-cp .pi/extensions/engine.ts .pi/extensions/orchestrator.ts ~/.pi/agent/extensions/
+cp packages/engine/engine.ts packages/engine/orchestrator.ts ~/.pi/agent/extensions/
 ```
 
 If Pi is already running, `/reload` picks them up.

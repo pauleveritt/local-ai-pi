@@ -25,11 +25,11 @@ task input                (a manifest + either a brief or a locating contract)
 handoff packet             harness/typed_contract.py: build_typed_handoff()
     |                       -- HandoffContract + FileBaseline[], four tasks only
     v
-implementer                 extensions/orchestration/implementer.ts
+implementer                 extensions/implementer/implementer.ts
     |                       -- read/write/edit only, 16-turn / 30-tool caps,
     |                          runs as a Pi child under a pinned cell
     v
-mutation engine              extensions/orchestration/mutation-engine.ts
+mutation engine              extensions/implementer/mutation-engine.ts
     |                       -- MutationEngine.propose()/proposeEdits():
     |                          revision-checked, atomic, refuses undeclared
     |                          public-symbol loss
@@ -67,7 +67,7 @@ a clear error, not a silent pass-through (see
 for why these four).
 
 **Implementer.** The bounded worker — a Pi child, loaded with exactly
-`extensions/orchestration/implementer.ts` and its same-repository import
+`extensions/implementer/implementer.ts` and its same-repository import
 closure (`IMPLEMENTER_EXTENSION_CLOSURE` in `tools/deliver_candidate.py`,
 digest-verified against the pinned cell before every attempt). It registers
 `read`, `write`, and `edit` — no `bash` — and enforces a 16-turn budget

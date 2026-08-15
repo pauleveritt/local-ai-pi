@@ -17,7 +17,7 @@ A rough order for a first hour:
 
 ```bash
 uv run pytest        # Python: harness, tools, guards' Python-side wiring
-bun install && bun test   # TypeScript: extensions/orchestration, extensions/guards
+bun install && bun test   # TypeScript: extensions/implementer, extensions/guards
 ```
 
 There is a third, smaller one. It replays recorded tool calls from real
@@ -50,7 +50,7 @@ Run a single file or test the normal way:
 
 ```bash
 uv run pytest tests/test_typed_contract.py -k "supported_tasks"
-bun test extensions/orchestration/orchestration.test.ts
+bun test extensions/implementer/implementer.test.ts
 ```
 
 ## The model-optional boundary

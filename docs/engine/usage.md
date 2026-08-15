@@ -39,7 +39,7 @@ keeps retrying stays blocked. Preserve-symbols governs `edit` alone: an
 edit that deletes a public symbol without replacing it is refused, while
 `write` and shell heredocs are left alone, because the one run that
 recovered did so by rewriting the file wholesale. Neither guard knows
-anything about your task; that is what lets them ship in one file.
+anything about your task; that is what lets them ship self-contained.
 
 **The loop breaker is part of the engine.** There is no standalone install;
 [the engine](index.md) bundles both guards, and

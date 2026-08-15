@@ -1,8 +1,8 @@
 # The engine
 
-**One Pi extension — one file — that steers a small local model while
-you work.** Not a planner, not a turn cap, not the orchestrator this
-project also builds. It is the everyday layer: it watches tool calls and refuses
+**A pi package — the guards plus the orchestrator's `/implement` command —
+that steers a small local model while
+you work.** Not a planner, not a turn cap. It is the everyday layer: it watches tool calls and refuses
 the two failure modes that cost real runs, before they cost you a run.
 
 ## What it is
@@ -21,9 +21,9 @@ small rule that inspects a tool call and may refuse it:
   that single deletion.
 
 Each guard compares a call against itself and returns a decision. Neither
-knows anything about your task; that is what lets them ship in one file
-and steer any session. The details, and the measured case for each, are
-in `docs/engine/loop-breaker.md` and `docs/engine/architecture.md`.
+knows anything about your task; that is what lets them ship
+self-contained and steer any session. The details, and the measured case
+for each, are in `docs/engine/loop-breaker.md` and `docs/engine/architecture.md`.
 
 ## How you use it
 

@@ -81,7 +81,7 @@ inspecting a tool call, injecting a prompt. This project's
 [implementer](#implementer) and [guards](#guard) are extensions.
 
 Pi loads user-scope extensions unconditionally, which is why the
-[loop breaker](#loop-breaker) installs by copying one file.
+[loop breaker](#loop-breaker) ships inside the [engine](#engine) package.
 
 ## Implementer
 
@@ -111,7 +111,7 @@ text, the exact writable files, the
 [baseline](#baseline) per file. Its code type is `HandoffContract`.
 
 Declared in two places that must agree — `harness/typed_contract.py`
-(Python, builds it) and `extensions/orchestration/handoff-contract.ts`
+(Python, builds it) and `extensions/implementer/handoff-contract.ts`
 (TypeScript, parses it).
 
 ## Baseline
@@ -147,7 +147,7 @@ The only thing that writes files during an attempt. Checks the
 atomically, and refuses an edit that would delete a public symbol
 without replacing it.
 
-`extensions/orchestration/mutation-engine.ts`. It is the sole authority
+`extensions/implementer/mutation-engine.ts`. It is the sole authority
 on whether a write happens — deliberately, after a redundant second
 check was found to contradict it.
 
