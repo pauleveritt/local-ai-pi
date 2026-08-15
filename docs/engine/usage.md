@@ -8,8 +8,10 @@ use it.
 
 ## Quick start
 
-The install is two files, in user scope (so they load in every session,
-including delegated children):
+**In this repository you already have it** — `.pi/extensions/engine.ts`
+and `orchestrator.ts` are project-local and load once you trust the
+project. The user-scope install below is for every session, everywhere
+(and for delegated children, which project-local files do not reach):
 
 ```bash
 mkdir -p ~/.pi/agent/extensions

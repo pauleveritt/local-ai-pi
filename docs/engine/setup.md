@@ -19,7 +19,15 @@ dependency list.
 
 ## Install
 
-Two files, in user scope — the whole install:
+**In this repository, nothing to install.** The engine is project-local
+here — `.pi/extensions/engine.ts` and `orchestrator.ts` — and Pi loads
+project-local extensions once you trust the project. `/implement` is
+available in any session inside this repo, with no setup.
+
+Install to user scope when you want the engine in *every* session,
+everywhere — and in delegated children, where a small model's runaway
+usually happens, because project-local files guard the parent only. The
+install is two files, in user scope — the whole install:
 
 ```bash
 mkdir -p ~/.pi/agent/extensions

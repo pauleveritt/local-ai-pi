@@ -27,22 +27,24 @@ in `docs/engine/loop-breaker.md` and `docs/engine/architecture.md`.
 
 ## How you use it
 
-The engine is one thing — everyday steering — and the install is one
-file.
+The engine is one thing — everyday steering — and in this repository it
+is already installed: `.pi/extensions/engine.ts` and `orchestrator.ts`
+are project-local, and Pi loads them once you trust the project.
+`/implement` is available in any session here, with no setup.
 
-**Everyday steering.** Copy the one file into user scope:
+**Everyday steering.** For every session everywhere — including delegated
+children, where a small model's runaway usually happens — copy the two
+files to user scope:
 
 ```bash
 mkdir -p ~/.pi/agent/extensions
-cp .pi/extensions/engine.ts ~/.pi/agent/extensions/
+cp .pi/extensions/engine.ts .pi/extensions/orchestrator.ts ~/.pi/agent/extensions/
 ```
 
-That copy is the whole install — the file imports nothing local, so a
+That copy is the whole install — each file imports nothing local, so a
 `cp` is complete. User scope is the point: Pi loads user-scope
-extensions unconditionally, in every session, and — the reason it
-matters here — in delegated children, where a small model's runaway
-usually happens. A file in a project's `.pi/extensions/` guards the
-parent and leaves the child unguarded.
+extensions unconditionally, in every session, and in delegated children; a
+project-local file guards the parent and leaves the child unguarded.
 
 The loop breaker remembers the last `WINDOW` (20) calls and refuses the
 next identical one once it has seen `THRESHOLD` (5) of them in that

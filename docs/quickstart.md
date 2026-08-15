@@ -22,15 +22,23 @@ story — install, acquisition, tuning, wiring — is [model setup](model-setup.
 
 ## 2. The engine, in a Pi session
 
-The install is two files, in user scope:
+**If you're working in this repository, you already have it.** The engine
+is project-local here — `.pi/extensions/engine.ts` and `orchestrator.ts`
+— and Pi loads project-local extensions once you trust the project, so
+`/implement` is already available. Skip the install.
+
+(To carry the engine into *every* session, everywhere — and into
+delegated children, where a small model's runaway usually happens — copy
+the two files to user scope:
 
 ```bash
 mkdir -p ~/.pi/agent/extensions
 cp .pi/extensions/engine.ts .pi/extensions/orchestrator.ts ~/.pi/agent/extensions/
 ```
 
-If Pi is already running, `/reload` picks them up. Then, in the repository
-you're working on, type:
+If Pi is already running, `/reload` picks them up.)
+
+Then, in the repository you're working on, type:
 
 ```
 /implement add a hello() function to duration.py
@@ -46,8 +54,9 @@ git show refs/satyrn/candidates/<task-slug>
 git update-ref -d refs/satyrn/candidates/<task-slug>
 ```
 
-That is the whole engine: install, use Pi normally, `/implement` when you
-want a bounded attempt. The full setup is [engine setup](engine/setup.md);
+That is the whole engine: in this repo it is already there, elsewhere it
+is one install — then use Pi normally, and `/implement` when you want a
+bounded attempt. The full setup is [engine setup](engine/setup.md);
 the ways to use it are [using the engine](engine/usage.md).
 
 ## 3. Run an eval
