@@ -79,9 +79,9 @@ The three suites you can run:
 
 **Planned: the `svcs` eval.** Phase 7 built the workload — `workloads/svcs/`
 (a commit-replay cohort drawn from the `svcs` library: tasks with
-manifests, hidden-oracle and preservation suites, cell pins). Bringing it
-into `harness.cli` as a runnable suite is the intended next eval; it is
-not runnable yet.
+manifests, hidden-oracle and preservation suites, cell pins). Making it a
+`harness.cli` suite is wanted; it needs design work (a different workload
+shape from prompt→acceptance), not just registration.
 
 `--help` on any subcommand is the documentation. Exit codes follow the
 project's convention: 0 the command completed its purpose, 2 refused before

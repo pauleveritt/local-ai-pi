@@ -17,8 +17,8 @@ is mapped onto the CLI's flags and shelled out to the existing executor;
 nothing is pre-chewed. The typed bridge already exists in pieces —
 `tools/author_contract.py` authors a locating contract from a staged
 packet, `harness/typed_contract.py` builds a `HandoffContract` for the
-four-task smoke set, and `extensions/orchestration/implementer.ts` parses
-one — but no path connects a roadmap/manifest to a real handoff packet
+four-task smoke set, and `extensions/implementer/handoff-contract.ts`
+parses one — but no path connects a roadmap/manifest to a real handoff packet
 that `/implement` can serve.
 
 Phase 11 closes that gap. It makes the orchestrator pre-chew real handoff
@@ -43,7 +43,7 @@ Three pieces, two of which exist and one of which is the bridge:
   `.md`; the bridge extends it to emit `HandoffContract` JSON.
 - **`HandoffContract`** is the wire format, declared twice and kept in
   sync by hand — `harness/typed_contract.py` builds it,
-  `extensions/orchestration/handoff-contract.ts` parses it. Its
+  `extensions/implementer/handoff-contract.ts` parses it. Its
   `writableFiles` are exact paths the manifest already declares, not the
   author's judgment; its `validation` is the manifest's command.
 - **`inspectContract`** is the admission gate. A packet passes or it does
