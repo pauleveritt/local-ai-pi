@@ -122,7 +122,6 @@ hold you to.
 What is Agent Engine? <what-is>
 Quick Start <quickstart>
 Model setup <model-setup>
-contributing
 glossary
 ```
 
@@ -162,6 +161,7 @@ evidence-index
 :maxdepth: 1
 :caption: Development
 
+contributing
 sdd
 superpowers/index
 Phase History <superpowers/phase-history>
