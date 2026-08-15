@@ -35,7 +35,7 @@
 - Modify: `package.json` (root — the git-install seam)
 - Modify: `.pi/extensions/` (engine.ts + orchestrator.ts become symlinks to `packages/engine/`)
 - Modify: `harness/runner.py` (`ENGINE_EXTENSIONS` → `packages/engine/engine.ts`)
-- Modify: `tests/test_engine_doc.py`, `tests/test_orchestrator_command.py` (paths + install pins)
+- Modify: `tests/test_engine_doc.py`, `tests/test_orchestrator_command.py`, `tests/test_engine_arm.py` (paths + install pins; `test_engine_arm.py`'s `ENGINE_FILE` points at `.pi/extensions/engine.ts`)
 - Modify: `docs/engine/index.md`, `docs/engine/architecture.md`, `docs/glossary.md`, `docs/engine/usage.md` (the engine's path/install references)
 
 **Interfaces:**
@@ -96,14 +96,16 @@ The root `package.json` gains the `pi` seam (D3), so `pi install git:…` finds 
 - [ ] **Step 4: The symlinks**
 
 ```bash
-ln -s packages/engine/engine.ts .pi/extensions/engine.ts
-ln -s packages/engine/orchestrator.ts .pi/extensions/orchestrator.ts
+# The target is relative to the symlink's own directory (.pi/extensions/),
+# so two levels up to the repo root, then into packages/engine/.
+ln -s ../../packages/engine/engine.ts .pi/extensions/engine.ts
+ln -s ../../packages/engine/orchestrator.ts .pi/extensions/orchestrator.ts
 git add .pi/extensions/engine.ts .pi/extensions/orchestrator.ts
 ```
 
 - [ ] **Step 5: Rewire the harness and the tests**
 
-`harness/runner.py:134`: `ENGINE_EXTENSIONS = (REPO_ROOT / "packages" / "engine" / "engine.ts",)`. Update `tests/test_engine_doc.py` (the install command now references `packages/engine/`), `tests/test_orchestrator_command.py` (the ORCHESTRATOR path), and the docs' install references (`docs/engine/index.md`, `docs/engine/architecture.md`, `docs/engine/usage.md`, `docs/glossary.md`).
+`harness/runner.py:134`: `ENGINE_EXTENSIONS = (REPO_ROOT / "packages" / "engine" / "engine.ts",)`. Update `tests/test_engine_doc.py` (the install command now references `packages/engine/`), `tests/test_orchestrator_command.py` (the ORCHESTRATOR path), `tests/test_engine_arm.py` (`ENGINE_FILE` → `packages/engine/engine.ts`, matching the rewired `ENGINE_EXTENSIONS` — path equality is by string, so the symlink path would fail the `imp.extensions == (ENGINE_FILE,)` assertion), and the docs' install references (`docs/engine/index.md`, `docs/engine/architecture.md`, `docs/engine/usage.md`, `docs/glossary.md`).
 
 - [ ] **Step 6: Verify and commit**
 
@@ -124,7 +126,7 @@ git commit -m "feat(phase12): the engine is a package — packages/engine with a
 - Modify: `extensions/guards/guards.test.ts` (the "two artifacts" block pins the engine bundle)
 - Modify: `docs/engine/loop-breaker.md`, `README.md`, `docs/engine/usage.md` (the loop breaker is part of the engine; no standalone install)
 - Modify: `tests/test_loop_breaker_doc.py` (the page it pins — still exists; the doc's content changes)
-- Modify: `tools/build_export.py` if it lists `.pi/extensions/loop-breaker.ts` in the export closure
+- Modify: `tools/build_export.py` — it lists `.pi/extensions/loop-breaker.ts` (line 93) and `docs/loop-breaker.md` (line 108) in the export closure; retarget the loop-breaker artifact to the engine bundle
 
 **Interfaces:**
 - Consumes: `tools/replay_guards.mjs` (imports the standalone by path), `guards.test.ts` (pins the standalone against the source), the docs' standalone install sections.
@@ -132,18 +134,19 @@ git commit -m "feat(phase12): the engine is a package — packages/engine with a
 
 - [ ] **Step 1: Retarget replay at the engine bundle (failing)**
 
-`tools/replay_guards.mjs` line 34 imports `.pi/extensions/loop-breaker.ts` directly. Change the path to `packages/engine/engine.ts` — the engine bundle is the shipped artifact now, and it self-registers both guards. Its default export is `function (pi)`, so the replay's import-and-drive pattern changes: the engine bundle's guards register on `pi.on("tool_call")`, so replay must drive the registered handler (pass a fake `pi`, capture the `tool_call` handler, feed it the recorded calls). Update the replay's docstring ("the replay therefore tests the artifact" — now the engine bundle, not the standalone loop-breaker copy).
+`tools/replay_guards.mjs` line 34 imports `.pi/extensions/loop-breaker.ts` directly. Change the path to `packages/engine/engine.ts` — the engine bundle is the shipped artifact now, and it self-registers both guards. Its default export is `function (pi)`, so the replay's import-and-drive pattern changes: the engine bundle's guards register on `pi.on("tool_call")`, so replay must drive the registered handler (pass a fake `pi`, capture the `tool_call` handler, feed it the recorded calls). Update the replay's docstring ("the replay therefore tests the artifact" — now the engine bundle, not the standalone loop-breaker copy). **Verify the fixtures:** the engine bundle registers *both* guards; the loop fixtures are `bash ls -R` calls, which preserve-symbols (edit-only) ignores — but confirm the expected block counts still hold, and confirm the replay runs one fixture per process (the engine bundle's guard state is module-level and shared across registrations).
 
 - [ ] **Step 2: Update the pinning test (failing)**
 
-`extensions/guards/guards.test.ts`'s "the two loop-breaker artifacts" describe block reads `.pi/extensions/loop-breaker.ts`. Retarget it to `packages/engine/engine.ts`: pin that the engine bundle's loop-breaker behavior and constants agree with `extensions/guards/loop-breaker.ts`, and that the engine bundle stays free of local imports (the property the standalone previously pinned). The pairwise pinning the block enforced becomes "the engine bundle vs the guard source."
+`extensions/guards/guards.test.ts`'s "the two loop-breaker artifacts" describe block reads `.pi/extensions/loop-breaker.ts`. **Delete the block** — the Phase 9 "engine bundle artifact" block (line 241) already pins the engine bundle's constants, free-of-local-imports, loop-breaker behavior, preserve-symbols behavior, and default-export registration against the guard sources; retargeting would duplicate it. If the "replay loads the engine bundle" property is worth pinning, add a single small assertion (the replay's import path) rather than a full block.
 
-- [ ] **Step 3: Delete the standalone and rewrite the docs**
+- [ ] **Step 3: Update the export, delete the standalone, rewrite the docs**
 
-Delete `.pi/extensions/loop-breaker.ts`. Rewrite:
+First update `tools/build_export.py`'s loop-breaker entry (line 93 — retarget to the engine bundle or drop it), then delete `.pi/extensions/loop-breaker.ts` (ordering matters: the export closure must not name a missing file). Rewrite:
 - `docs/engine/loop-breaker.md` — drop the "install it alone" section; the page is now "the loop breaker, part of the engine" (its behavior, tuning, and the subagent gotcha stay; the install points at the engine).
 - `README.md` — the "(Only want guard #1? … installs the loop breaker alone)" note goes away; the engine includes the loop breaker.
 - `docs/engine/usage.md` — the "Only the loop breaker" section becomes "part of the engine."
+- `docs/contributing.md` (line 33) and `docs/engine/deliver-candidate.md` (line 123) — both name `.pi/extensions/loop-breaker.ts` as the standalone file; update to the engine bundle.
 
 Update `tests/test_loop_breaker_doc.py` if its pinned assertions reference the standalone install.
 
@@ -163,6 +166,7 @@ git commit -m "feat(phase12): fold the loop breaker into the engine — no stand
 **Files:**
 - Rename: `extensions/orchestration/` → `extensions/implementer/` (git move)
 - Modify: `tools/deliver_candidate.py` (`IMPLEMENTER_EXTENSION` + `IMPLEMENTER_EXTENSION_CLOSURE` paths)
+- Modify: `workloads/svcs/cells/gemma12b-implementer-v1.toml` — **comments only** (lines 2, 24–27 reference `extensions/orchestration/`). Its `extensions` list uses basenames and its `extensions_sha256` is over file *contents*, so a path-only rename leaves both unchanged — the suite proves it, nothing to recompute.
 - Modify: `tools/build_export.py`, `harness/typed_contract.py` (paths that name `orchestration/`)
 - Modify: `tools/author_contract.py` (the model-facing "executor" prose)
 - Modify: `tests/test_deliver_candidate.py` (the closure-digest assertions)
@@ -231,13 +235,9 @@ def test_the_root_manifest_lists_only_the_package_files():
 
 README engine section + `docs/engine/usage.md`: the install is now `pi install git:github.com/pauleveritt/local-ai-pi@v0.1.0` (from a checkout, or the local equivalent). Keep the symlink note (a checkout needs nothing). The `docs/glossary.md` Engine entry names the package.
 
-- [ ] **Step 3: The tag**
+- [ ] **Step 3: The tag (deferred to merge)**
 
-```bash
-git tag v0.1.0
-```
-
-(Note: the tag lands when the branch merges — the commit message and the docs reference `v0.1.0`.)
+Do **not** create the tag in this phase: it belongs on the merge commit on `main`, so the finishing-a-development-branch step creates `v0.1.0` after the merge. The docs written here reference `v0.1.0`, and the phase's DoD names the tagged install; the tag itself is a finishing action.
 
 - [ ] **Step 4: Verify and commit**
 

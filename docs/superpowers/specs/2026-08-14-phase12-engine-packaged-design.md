@@ -61,10 +61,13 @@ tag. npm publishing is deferred.
 
 **D5 — The loop breaker merges into the engine.** The standalone
 `.pi/extensions/loop-breaker.ts` install copy is deleted; the replay
-harness (`tools/replay_guards.mjs`) and the artifact pinning
-(`guards.test.ts`) retarget the engine bundle (the shipped artifact); the
-docs present the loop breaker as part of the engine, with no standalone
-install path.
+harness (`tools/replay_guards.mjs`) retargets the engine bundle (the
+shipped artifact — a two-guard extension, so the replay now drives both
+guards, with the loop fixtures unaffected because preserve-symbols is
+edit-only); the `guards.test.ts` "two artifacts" block is deleted (the
+Phase 9 "engine bundle artifact" block already pins the bundle against
+the guard sources); the docs present the loop breaker as part of the
+engine, with no standalone install path.
 
 **D6 — The re-org is rename + rewire only.** `extensions/orchestration/` →
 `extensions/implementer/`; `IMPLEMENTER_EXTENSION_CLOSURE` rewired and its
@@ -115,11 +118,17 @@ already notes this and Phase 11 owns the structured flavor.
   same files, under their new names).
 - `tools/author_contract.py`'s "executor" prose → "implementer" (the
   model-facing vocabulary sweep deferred by the Phase 10 final review).
+- The `gemma12b-implementer-v1.toml` cell's comments referencing
+  `extensions/orchestration/` are updated; its `extensions` list
+  (basenames) and `extensions_sha256` (over file contents) are unchanged
+  by a path-only rename — the suite proves it, nothing is recomputed.
 
 ## Section 4 — Install and verification
 
-- Tag `v0.1.0`; the README and `docs/engine/usage.md` document the one-line
-  install: `pi install git:github.com/pauleveritt/local-ai-pi@v0.1.0`.
+- The tag `v0.1.0` is a **post-merge finishing action** (created on the
+  merge commit on `main`, not on the branch); the README and
+  `docs/engine/usage.md` document the one-line install:
+  `pi install git:github.com/pauleveritt/local-ai-pi@v0.1.0`.
 - Verification on a fresh agent dir: the package installs, the guards load,
   `/implement` registers — via the `PI_CODING_AGENT_DIR` seam, not asserted.
 
