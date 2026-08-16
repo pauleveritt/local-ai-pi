@@ -158,6 +158,36 @@ def _out_of_scope(
     )
 
 
+def model_server_reachable(base_url: str, timeout: float = 10.0) -> bool:
+    """Is the model server answering *now*, just after a child timed out?
+
+    The one question that separates "your server is down" from "the model
+    burned its whole budget and wrote nothing". Both leave an empty tree
+    and a non-zero exit, which is why `deliver()` could not tell them
+    apart and called every timeout an infrastructure failure.
+
+    Deliberately conservative: an unknown or unparseable `base_url`, and
+    any error at all, answer `False` -- which preserves the old
+    infrastructure-failure classification. This may only ever *reclassify
+    a timeout as a model failure*, never the reverse, so a genuinely dead
+    server can never be blamed on the model.
+
+    A liveness check after the fact is not proof the server was up for the
+    whole attempt; it is evidence, and the refusal text says so.
+    """
+    if not base_url or base_url == "?":
+        return False
+    try:
+        import urllib.request
+
+        with urllib.request.urlopen(
+            base_url.rstrip("/") + "/models", timeout=timeout
+        ) as response:
+            return 200 <= response.status < 300
+    except Exception:  # noqa: BLE001 -- any failure means "cannot confirm alive"
+        return False
+
+
 def deliver(
     repo: Path,
     task_id: str,
@@ -169,6 +199,7 @@ def deliver(
     cell: dict[str, str] | None = None,
     validation_timeout: float = 900.0,
     validation_env: dict[str, str] | None = None,
+    server_probe: Callable[[], bool] | None = None,
 ) -> Receipt:
     """One attempt, delivered as a candidate ref or discarded cleanly."""
     started = time.monotonic()
@@ -219,6 +250,42 @@ def deliver(
             # unreachable server. A child that failed but *did* write is
             # left to validation: truncated work can still be correct, and
             # discarding it unread throws away a judgeable candidate.
+            #
+            # ...except for one case the tree genuinely cannot show, and
+            # which cost a batch on 2026-08-15: a model that spends its
+            # whole wall clock without writing. That also arrives here as
+            # "timed out, nothing on disk", was called an infrastructure
+            # failure, and the batch driver voids and *retries* an
+            # infrastructure failure -- three 900s attempts per slot,
+            # ending in `void_exhausted` with no data and a receipt
+            # blaming a server that was up the whole time. The Cycle 7
+            # pre-registration is explicit that exhausting the budget is a
+            # plain failure ("candidate-created = false"), not a void, so
+            # the misclassification silently corrupts denominators.
+            #
+            # The discriminator is one question the tree cannot answer:
+            # is the server answering? Asked only on a timeout, and only
+            # able to turn infra into a recorded failure, never the
+            # reverse (see `model_server_reachable`).
+            probe = server_probe or (
+                lambda: model_server_reachable((cell or {}).get("base_url", ""))
+            )
+            if child.timed_out and probe():
+                return receipt(
+                    "discarded",
+                    child_seconds=child_seconds,
+                    child_exit=child.returncode,
+                    child_timed_out=child.timed_out,
+                    cleanup=cleanup,
+                    refusal=(
+                        "the model exhausted its time budget without writing "
+                        "anything. The model server answered a liveness check "
+                        "immediately afterwards, so this is recorded as a "
+                        "model failure rather than a broken setup. (A check "
+                        "after the fact cannot prove the server was up for the "
+                        "whole attempt -- it is evidence, not a guarantee.)"
+                    ),
+                )
             return receipt(
                 "infrastructure-failure",
                 child_seconds=child_seconds,

@@ -71,3 +71,54 @@ def newcombe_interval(
     low = p_a - p_b - math.sqrt((p_a - wa.low) ** 2 + (wb.high - p_b) ** 2)
     high = p_a - p_b + math.sqrt((wa.high - p_a) ** 2 + (p_b - wb.low) ** 2)
     return Interval(max(-1.0, low), min(1.0, high))
+
+
+def fisher_exact_two_sided(a: int, b: int, c: int, d: int) -> float:
+    """Two-sided Fisher exact p for the 2x2 table [[a, b], [c, d]].
+
+    Rows are arms, columns are (accepted, not accepted). Added
+    2026-08-15: three separate write-ups had by then quoted Fisher
+    p-values computed by throwaway inline functions, and one of them
+    claimed this module as their source when it had no Fisher at all.
+    That is precisely the hand-computed-statistic failure this module
+    exists to prevent -- see `wilson_interval`'s own history -- so the
+    computation lives here, tested, or it does not get quoted.
+
+    Exact, not an approximation: it enumerates every table with the same
+    margins and sums the probability of those no more likely than the
+    observed one (the conventional two-sided criterion). Small integer
+    margins only, which is all this project's arms produce; there is no
+    attempt at the large-sample shortcuts a general library would need.
+    """
+    for name, value in (("a", a), ("b", b), ("c", c), ("d", d)):
+        if value < 0:
+            raise ValueError(f"{name}={value} must be non-negative")
+    total = a + b + c + d
+    if total == 0:
+        raise ValueError("the table is empty")
+
+    row_a, row_c = a + b, c + d
+    col_accepted = a + c
+
+    def table_probability(x: int) -> float:
+        # Hypergeometric probability of `x` acceptances in the first row,
+        # holding both margins fixed.
+        return (
+            math.comb(row_a, x)
+            * math.comb(row_c, col_accepted - x)
+            / math.comb(total, col_accepted)
+        )
+
+    observed = table_probability(a)
+    low = max(0, col_accepted - row_c)
+    high = min(row_a, col_accepted)
+    # 1e-12 slack: equally-likely mirror tables must be counted, and exact
+    # float equality would drop them on some margins.
+    return min(
+        1.0,
+        sum(
+            table_probability(x)
+            for x in range(low, high + 1)
+            if table_probability(x) <= observed + 1e-12
+        ),
+    )
