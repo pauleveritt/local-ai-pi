@@ -385,23 +385,39 @@ is the Python CLI, and TS orchestration may never happen. And it is **not**
 the contract-authoring bridge — pre-chewing real handoff packets is Phase
 11's job.
 
-**Phase 11 — The contract-authoring bridge. Planned.** Phase 10 registered
-`/implement` in its ad-hoc flavor — the user's prompt mapped onto the CLI's
-flags and shelled out to the existing executor — and deliberately stopped
-there. The structured flavor is still missing: a real handoff packet
-pre-chewed from a roadmap/manifest rather than a prompt passed through.
-This phase builds the bridge. `tools/author_contract.py` emits
-`HandoffContract` JSON — writable files sourced from the manifest, not the
-author's judgment; `validation` from the manifest's command — and
-`inspectContract` admits the packet, which then drives `/implement`'s
-structured flavor end to end. Shaped, not built, for now:
-[shape](docs/superpowers/specs/2026-08-14-phase11-contract-authoring-bridge-shape.md)
+**Phase 11 — The handoff contract file, human-directed. Complete.** Phase
+10 registered `/implement` in its ad-hoc flavor — the user's prompt mapped
+onto the CLI's flags and shelled out to the existing executor — and
+deliberately stopped there. This phase gives `/implement` a structured
+flavor, but not the one originally shaped below: a 2026-08-15/16 spike
+found machine-made **bounds** confine the implementer (proven — bare
+envelope 0/24 candidate-created, `autowire`'s bounded contract 8/8) and
+packet **content** moves outcomes floor-to-ceiling (proven — one contract
+arm 8/8 against a 0/4 brief), but the system **authoring and gating that
+content autonomously** is not established (3/8 vs. 8/8 by hand, and a
+remediated authoring prompt collapsed to 0/8 all-noop). So the phase
+re-scoped around what the spike actually proved instead of what it was
+shaped to build: the main agent, not a machine, authors the contract
+in-session, guided by the new `write-handoff-contract` skill.
+`harness/contract_file.py` parses the resulting markdown-plus-YAML file
+into the existing `HandoffContract` wire format; `harness/contract_lint.py`
+ports the one criterion that survived a five-criterion gate's own
+deletion — a path the packet names that can be neither read nor created;
+and `tools/deliver_candidate.py --contract` (`--prompt-file` removed
+outright) refuses a bad packet before spending a single model call.
+`/implement <contract-file>` drives it end to end.
+[rescope spec](docs/superpowers/specs/2026-08-16-phase11-rescope-design.md),
+[plan](docs/superpowers/plans/2026-08-16-phase11-contract-file.md),
+[smoke test](docs/superpowers/research/2026-08-16-phase11-contract-file-smoke.md)
+(n=1, a wiring check, not a rate — not a substitute for the spike's own
+evidence above). The original shape is superseded in place, not deleted:
+[shape](docs/superpowers/specs/2026-08-14-phase11-contract-authoring-bridge-shape.md).
 
-Three questions stay open in the shape, deliberately: which product the
-planned Cycle 6 is buying (a solution-bearing plan for safe transcription,
-or a requirements-only contract intended to improve reasoning); where the
-manifest-to-handoff boundary sits; and whether contract authoring is
-reliable under the gate.
+Autonomous authoring and gating — the piece this phase explicitly does
+not establish — moves to Phase 14, along with `--contract-task`'s removal
+(the harness-only four-task bridge this phase left untouched, marked for
+removal) and a runtime-signal meter the spike's evidence pointed at but
+nobody built.
 
 **Phase 12 — The engine, packaged. Complete.** The engine installs by
 copying two files into user scope; the npm package was deferred to "the
