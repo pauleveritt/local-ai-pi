@@ -48,7 +48,7 @@ def test_optional_fields_are_carried_through_when_present(tmp_path):
     text = """\
 ---
 writableFiles: [src/svcs/_core.py]
-readableFiles: [src/svcs/**, tests/**]
+readableFiles: [src/svcs/_registry.py, tests/test_container.py]
 validation: pytest -q
 knownFacts:
   - The app is ASGI, not WSGI.
@@ -58,7 +58,10 @@ acceptanceStrings:
 Body.
 """
     contract = parse_contract_file(_write(tmp_path, text))
-    assert contract["readableFiles"] == ["src/svcs/**", "tests/**"]
+    assert contract["readableFiles"] == [
+        "src/svcs/_registry.py",
+        "tests/test_container.py",
+    ]
     assert contract["knownFacts"] == ["The app is ASGI, not WSGI."]
     assert contract["acceptanceStrings"] == ["aget returns the entered value"]
 
@@ -106,4 +109,63 @@ def test_an_empty_body_is_refused(tmp_path):
 def test_a_scalar_where_a_list_belongs_names_the_field(tmp_path):
     text = "---\nwritableFiles: src/svcs/_core.py\nvalidation: pytest -q\n---\nBody.\n"
     with pytest.raises(ContractFileError, match="writableFiles"):
+        parse_contract_file(_write(tmp_path, text))
+
+
+def test_a_standalone_dash_line_in_the_body_does_not_truncate_it(tmp_path):
+    # A markdown thematic break, or any standalone "---" line, used to be
+    # read as a second closing delimiter: `split(sep, maxsplit=2)` kept only
+    # the text between the first and second occurrence, and silently
+    # dropped everything after -- with no error, in a file whose entire
+    # premise is "the body is the task".
+    text = (
+        "---\nwritableFiles: [a/b.py]\nvalidation: pytest -q\n---\n"
+        "Part one.\n\n---\n\nPart two after the rule.\n"
+    )
+    contract = parse_contract_file(_write(tmp_path, text))
+    assert "Part one." in contract["task"]
+    assert "Part two after the rule." in contract["task"]
+
+
+def test_a_closing_delimiter_with_trailing_text_is_not_treated_as_the_close(tmp_path):
+    # "--- see below" contains "\n---" as a substring but is not a bare
+    # delimiter line; it must not be accepted as the front-matter close.
+    text = "---\nwritableFiles: [a/b.py]\nvalidation: pytest -q\n--- see below\nBody.\n"
+    with pytest.raises(ContractFileError, match="never closed"):
+        parse_contract_file(_write(tmp_path, text))
+
+
+def test_a_glob_in_writable_files_is_refused(tmp_path):
+    # The engine's own normalizeContractPath (handoff-contract.ts) silently
+    # drops any path containing "*" -- accepting it here would parse and
+    # lint cleanly, then leave the implementer with nothing it can write.
+    text = "---\nwritableFiles: [src/**]\nvalidation: pytest -q\n---\nBody.\n"
+    with pytest.raises(ContractFileError, match="glob"):
+        parse_contract_file(_write(tmp_path, text))
+
+
+def test_a_glob_in_readable_files_is_refused(tmp_path):
+    text = (
+        "---\nwritableFiles: [a/b.py]\nreadableFiles: [src/**]\n"
+        "validation: pytest -q\n---\nBody.\n"
+    )
+    with pytest.raises(ContractFileError, match="glob"):
+        parse_contract_file(_write(tmp_path, text))
+
+
+def test_an_absolute_writable_path_is_refused(tmp_path):
+    text = "---\nwritableFiles: [/etc/passwd]\nvalidation: pytest -q\n---\nBody.\n"
+    with pytest.raises(ContractFileError, match="absolute"):
+        parse_contract_file(_write(tmp_path, text))
+
+
+def test_a_path_traversal_writable_path_is_refused(tmp_path):
+    text = "---\nwritableFiles: [../outside.py]\nvalidation: pytest -q\n---\nBody.\n"
+    with pytest.raises(ContractFileError, match="escapes the workspace"):
+        parse_contract_file(_write(tmp_path, text))
+
+
+def test_a_directory_writable_path_is_refused(tmp_path):
+    text = "---\nwritableFiles: [src/svcs/]\nvalidation: pytest -q\n---\nBody.\n"
+    with pytest.raises(ContractFileError, match="directory"):
         parse_contract_file(_write(tmp_path, text))

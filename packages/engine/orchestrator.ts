@@ -42,10 +42,21 @@ export default function (pi: ExtensionAPI) {
 					: "omlx/gemma-4-12B-it-MLX-8bit",
 			});
 			ctx.ui.notify(`Orchestrating: ${argv.join(" ")}`, "info");
-			const child = spawn("uv", argv, { cwd: ctx.cwd });
-			child.stdout.on("data", (d) => ctx.ui.notify(String(d).trim(), "info"));
-			child.stderr.on("data", (d) => ctx.ui.notify(String(d).trim(), "warning"));
-			child.on("error", (e) => ctx.ui.notify(`Could not start uv: ${e.message}`, "warning"));
+			// Awaited, not fire-and-forget: in --print (non-interactive) mode
+			// the session tears down as soon as the handler's promise settles,
+			// and a stdout/stderr callback that fires after that touches a
+			// stale ctx and crashes the process. Verified against a live
+			// smoke run (2026-08-16) -- see the contract-file smoke doc.
+			await new Promise<void>((resolve) => {
+				const child = spawn("uv", argv, { cwd: ctx.cwd });
+				child.stdout.on("data", (d) => ctx.ui.notify(String(d).trim(), "info"));
+				child.stderr.on("data", (d) => ctx.ui.notify(String(d).trim(), "warning"));
+				child.on("error", (e) => {
+					ctx.ui.notify(`Could not start uv: ${e.message}`, "warning");
+					resolve();
+				});
+				child.on("close", () => resolve());
+			});
 		},
 	});
 }

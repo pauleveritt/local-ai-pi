@@ -141,3 +141,81 @@ def test_a_contract_run_sets_the_child_env_and_selects_the_implementer(
     assert "Append `(name, svc)`" in seen["prompt"]
     assert seen["validation"] == ("pytest", "-q")
     assert seen["writable"] == ("src/svcs/_core.py",)
+
+
+def test_known_facts_and_acceptance_strings_reach_the_prompt(
+    repo, tmp_path, monkeypatch
+):
+    # implementer.ts's system prompt tells the child to "preserve the
+    # listed behavior and include every acceptance string exactly" -- that
+    # promise is empty unless the parent-rendered prompt actually shows
+    # them, which the original _render_contract_prompt never did.
+    good = tmp_path / "good.md"
+    good.write_text(
+        "---\nwritableFiles: [src/svcs/_core.py]\n"
+        "readableFiles: [src/svcs/_registry.py]\n"
+        "validation: pytest -q\n"
+        "knownFacts:\n  - The app is ASGI, not WSGI.\n"
+        "acceptanceStrings:\n  - aget returns the entered value\n"
+        "preservedBehavior:\n  - get() stays synchronous\n"
+        "---\nDo the thing.\n"
+    )
+    seen = {}
+
+    def fake_deliver(repo_arg, task, prompt, run_model, validation, **kwargs):
+        seen["prompt"] = prompt
+        raise deliver_candidate.DeliveryRefused("stop here, the wiring is what we test")
+
+    monkeypatch.setattr(deliver_candidate, "deliver", fake_deliver)
+    monkeypatch.setattr(
+        deliver_candidate, "check_model_server_alive", lambda *a, **k: None
+    )
+    assert _run(repo, good) == 2
+    assert "src/svcs/_registry.py" in seen["prompt"]
+    assert "The app is ASGI, not WSGI." in seen["prompt"]
+    assert "aget returns the entered value" in seen["prompt"]
+    assert "get() stays synchronous" in seen["prompt"]
+
+
+def test_an_explicit_validation_is_refused_alongside_contract(repo, tmp_path, no_model):
+    good = tmp_path / "good.md"
+    good.write_text(CONTRACT)
+    with pytest.raises(SystemExit):
+        deliver_candidate.main(
+            [
+                "--repo",
+                str(repo),
+                "--task",
+                "t",
+                "--contract",
+                str(good),
+                "--model",
+                "omlx/test",
+                "--skip-server-check",
+                "--validation",
+                "echo explicit",
+            ]
+        )
+    assert no_model == []
+
+
+def test_an_explicit_writable_is_refused_alongside_contract(repo, tmp_path, no_model):
+    good = tmp_path / "good.md"
+    good.write_text(CONTRACT)
+    with pytest.raises(SystemExit):
+        deliver_candidate.main(
+            [
+                "--repo",
+                str(repo),
+                "--task",
+                "t",
+                "--contract",
+                str(good),
+                "--model",
+                "omlx/test",
+                "--skip-server-check",
+                "--writable",
+                "src/**",
+            ]
+        )
+    assert no_model == []

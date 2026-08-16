@@ -61,6 +61,24 @@ def test_bare_words_and_dotted_attributes_are_not_paths(tree):
     assert impossible_paths(task, ["src/svcs/_core.py"], tree) == ()
 
 
+def test_a_dotfile_rooted_path_is_still_a_path(tree):
+    # A leading "." (`.github/...`, `.claude/...`) used to fall outside the
+    # leading character class entirely, so the lint never saw it -- a false
+    # negative, not a wrong refusal, but a real gap: this repo's own most
+    # common config paths are dotfile-rooted.
+    task = "Add a step to `.github/workflows/ci.yml`."
+    assert impossible_paths(task, ["src/svcs/_core.py"], tree) == (
+        ".github/workflows/ci.yml",
+    )
+
+
+def test_an_extension_with_a_digit_is_still_a_path(tree):
+    task = "Regenerate `src/svcs/report.py3`."
+    assert impossible_paths(task, ["src/svcs/_core.py"], tree) == (
+        "src/svcs/report.py3",
+    )
+
+
 def test_refuses_to_judge_without_bounds(tree):
     with pytest.raises(ContractLintUnusable, match="writableFiles"):
         impossible_paths("Edit `src/svcs/x.py`.", [], tree)

@@ -22,7 +22,7 @@ tree before any model call.
 ````markdown
 ---
 writableFiles: [src/svcs/_core.py]
-readableFiles: [src/svcs/**, tests/**]
+readableFiles: [src/svcs/_registry.py, tests/test_container.py]
 validation: pytest -q
 knownFacts:
   - The app is ASGI, not WSGI.
@@ -62,6 +62,10 @@ model emits the same no-op edit nine times and writes nothing at all.
 - **Bounds are declared, never implied.** A file the implementer must
   change goes in `writableFiles` even if the body names it. A file that
   does not exist yet is fine there — that is how you say "create this".
+- **No globs, no `**`.** Name every file exactly, in both `writableFiles`
+  and `readableFiles`. A glob parses but the implementer's own path
+  normalizer drops it silently — you get a run that can write or read
+  nothing, not a refusal.
 - **Every backticked path must exist in the tree or be in
   `writableFiles`.** Otherwise `/implement` refuses before spending a
   model call, naming the path.

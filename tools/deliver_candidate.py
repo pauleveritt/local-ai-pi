@@ -81,7 +81,11 @@ BASELINES_ENV = "SATYRN_FILE_BASELINES"
 
 
 def _render_contract_prompt(contract: HandoffContract) -> str:
-    """A minimal, faithful-enough echo of `handoff-contract.ts`'s `renderContract`.
+    """The `--contract-task` bridge's own prompt shape. Not touched by this
+    phase -- `--contract-task` is the harness-only smoke bridge and its
+    prompt shape (and the `prompt_sha256` receipts record) must not drift
+    out from under a measured batch. `--contract` uses
+    `_render_file_contract_prompt` below instead.
 
     The system prompt `implementer.ts` injects (`promptFor`) states the
     bounded-writer rules; it never repeats `contract.task`. That has to
@@ -96,6 +100,45 @@ def _render_contract_prompt(contract: HandoffContract) -> str:
         f"## Writable Files\n\n{writable}\n\n"
         f"## Validation (run by the parent)\n\n{contract['validation']}\n"
     )
+
+
+def _render_file_contract_prompt(contract: HandoffContract) -> str:
+    """The `--contract` file-contract path's prompt.
+
+    `implementer.ts`'s system prompt (`promptFor`) tells the child to
+    "preserve the listed behavior and include every acceptance string
+    exactly" and to read only the declared readable/writable files -- but
+    it never shows the child those lists; they travel only in
+    `SATYRN_HANDOFF_CONTRACT`, which the engine reads for policy
+    (`writableFiles`/`readableFiles`) and mutation bookkeeping
+    (`removableSymbols`), not for prompt content. `_render_contract_prompt`
+    above renders only task/writableFiles/validation, so an author who
+    filled in `knownFacts`, `acceptanceStrings`, or `preservedBehavior` --
+    exactly the fields the skill tells them are worth writing -- got a
+    child that never saw them. This renderer is deliberately separate from
+    `_render_contract_prompt` rather than an edit to it: that function also
+    serves `--contract-task`, whose prompt shape (and the `prompt_sha256`
+    every receipt records) must not change out from under a measured arm.
+    """
+    writable = (
+        "\n".join(f"- `{f['path']}`" for f in contract["writableFiles"]) or "None"
+    )
+    readable = "\n".join(f"- `{path}`" for path in contract["readableFiles"])
+    known_facts = "\n".join(f"- {fact}" for fact in contract["knownFacts"])
+    preserved = "\n".join(f"- {item}" for item in contract["preservedBehavior"])
+    acceptance = "\n".join(f"- {item}" for item in contract["acceptanceStrings"])
+
+    sections = [f"## Task\n\n{contract['task']}", f"## Writable Files\n\n{writable}"]
+    if readable:
+        sections.append(f"## Readable Files\n\n{readable}")
+    if known_facts:
+        sections.append(f"## Known Facts\n\n{known_facts}")
+    if preserved:
+        sections.append(f"## Preserve\n\n{preserved}")
+    if acceptance:
+        sections.append(f"## Acceptance Strings\n\n{acceptance}")
+    sections.append(f"## Validation (run by the parent)\n\n{contract['validation']}")
+    return "\n\n".join(sections) + "\n"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -224,6 +267,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             "--contract-task supplies the writable scope from the task's manifest; "
             "do not also pass --writable"
         )
+    if args.contract is not None and args.validation:
+        # Same hazard --contract-task's own guard above documents: the
+        # rendered prompt tells the child which command the parent will
+        # run, and an override makes that statement false with no signal.
+        parser.error(
+            "--contract supplies the validation command from the contract "
+            "file; do not also pass --validation"
+        )
+    if args.contract is not None and args.writable:
+        parser.error(
+            "--contract supplies the writable scope from writableFiles; "
+            "do not also pass --writable"
+        )
     if args.contract_task is None and args.task_source != "locating-contract":
         parser.error("--task-source has no effect without --contract-task")
 
@@ -301,7 +357,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             return 2
 
-        prompt = _render_contract_prompt(file_contract)
+        prompt = _render_file_contract_prompt(file_contract)
         if args.validation is None:
             args.validation = file_contract["validation"]
         if args.writable is None:

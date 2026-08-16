@@ -24,8 +24,13 @@ from pathlib import Path
 
 # A backticked token that looks like a repository path: a slash and a file
 # extension, both required. Without the slash this matches bare words like
-# `aget`; without the extension it matches `app.router`.
-_PATH = re.compile(r"`([A-Za-z0-9_][A-Za-z0-9_./-]*/[A-Za-z0-9_.-]+\.[A-Za-z]{1,5})`")
+# `aget`; without the extension it matches `app.router`. The leading class
+# admits a dot so dotfile-rooted paths (`.github/workflows/x.yml`,
+# `.claude/skills/x/SKILL.md`) are not silently exempt from the lint, and
+# the extension class admits digits (`.py3`, `.mp3`, `.h5`).
+_PATH = re.compile(
+    r"`([A-Za-z0-9_.][A-Za-z0-9_./-]*/[A-Za-z0-9_.-]+\.[A-Za-z0-9]{1,6})`"
+)
 
 
 class ContractLintUnusable(Exception):

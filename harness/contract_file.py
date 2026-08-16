@@ -16,13 +16,22 @@ remaining keys are filled with empty lists because `isContract()` in
 author should not have to type fields to satisfy a schema.
 """
 
+import re
 from pathlib import Path
 
 import yaml
 
 from harness.typed_contract import HandoffContract
 
-_DELIMITER = "---"
+# The opening delimiter must be the very first line, and the closing one a
+# line by itself (only trailing spaces/tabs allowed) -- not merely a "---"
+# substring anywhere. A naive substring split matched the first "\n---" it
+# found even mid-line ("--- see below") and, worse, truncated the body
+# silently at any later standalone "---" (a markdown thematic break, for
+# instance): with maxsplit=2 everything after a second occurrence vanished
+# with no error, in a file whose entire premise is "the body is the task".
+_OPENING = re.compile(r"\A---[ \t]*\n")
+_CLOSING = re.compile(r"\n---[ \t]*(?:\n|\Z)")
 
 
 class ContractFileError(Exception):
@@ -42,19 +51,54 @@ def _string_list(raw: object, field: str) -> list[str]:
     return list(raw)
 
 
+def _reject_unusable_paths(paths: list[str], field: str, path: Path) -> None:
+    """Refuse anything `normalizeContractPath` (handoff-contract.ts) would drop.
+
+    That function silently ignores an absolute path, a `..`-escaping one, a
+    trailing slash, or -- the one an author reaches for by habit, since
+    `--contract-task` manifests use them -- a glob. `writableFiles: [src/**]`
+    passes this parser and the path lint (both work on exact strings), then
+    the engine's own normalizer empties it out and the implementer can write
+    nothing: a silent, wasted model call, not a refusal. Rejecting here means
+    the CLI's exit-2 path catches what the engine would otherwise absorb
+    quietly.
+    """
+    for candidate in paths:
+        posix = candidate.replace("\\", "/")
+        if not candidate or "\x00" in candidate:
+            reason = "is empty or contains a null byte"
+        elif candidate.startswith("/"):
+            reason = "is an absolute path; the implementer only accepts workspace-relative ones"
+        elif "*" in candidate:
+            reason = (
+                "is a glob; the implementer only accepts exact paths -- name "
+                "each file explicitly"
+            )
+        elif posix in (".", "..") or any(
+            segment == ".." for segment in posix.split("/")
+        ):
+            reason = "escapes the workspace with '..'"
+        elif candidate.endswith("/"):
+            reason = "names a directory, not a file"
+        else:
+            continue
+        raise ContractFileError(f"{path}: {field} entry {candidate!r} {reason}")
+
+
 def _split_front_matter(text: str, path: Path) -> tuple[str, str]:
-    if not text.startswith(_DELIMITER):
+    opening = _OPENING.match(text)
+    if opening is None:
         raise ContractFileError(
             f"{path}: no front-matter. A contract starts with a '---' line, "
             "then the bounds as YAML, then '---', then the task prose."
         )
-    parts = text.split(f"\n{_DELIMITER}", 2)
-    if len(parts) < 2:
+    closing = _CLOSING.search(text, opening.end())
+    if closing is None:
         raise ContractFileError(
-            f"{path}: the front-matter is never closed. Add a '---' line "
-            "between the bounds and the task prose."
+            f"{path}: the front-matter is never closed. Add a '---' line, "
+            "alone on its own line, between the bounds and the task prose."
         )
-    return parts[0][len(_DELIMITER) :], parts[1]
+    return text[opening.end() : closing.start()], text[closing.end() :]
 
 
 def parse_contract_file(path: Path) -> HandoffContract:
@@ -94,6 +138,10 @@ def parse_contract_file(path: Path) -> HandoffContract:
             "cannot tell a file the contract means to create from one it "
             "named by mistake without it."
         )
+    _reject_unusable_paths(writable, "writableFiles", path)
+
+    readable = _string_list(loaded.get("readableFiles"), "readableFiles")
+    _reject_unusable_paths(readable, "readableFiles", path)
 
     validation = loaded.get("validation")
     if not isinstance(validation, str) or not validation.strip():
@@ -105,7 +153,7 @@ def parse_contract_file(path: Path) -> HandoffContract:
     contract: HandoffContract = {
         "task": task,
         "writableFiles": [{"path": p} for p in writable],
-        "readableFiles": _string_list(loaded.get("readableFiles"), "readableFiles"),
+        "readableFiles": readable,
         "acceptanceStrings": _string_list(
             loaded.get("acceptanceStrings"), "acceptanceStrings"
         ),
