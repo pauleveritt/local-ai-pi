@@ -403,7 +403,7 @@ or a requirements-only contract intended to improve reasoning); where the
 manifest-to-handoff boundary sits; and whether contract authoring is
 reliable under the gate.
 
-**Phase 12 — The engine, packaged. Planned.** The engine installs by
+**Phase 12 — The engine, packaged. Complete.** The engine installs by
 copying two files into user scope; the npm package was deferred to "the
 packaging effort" in Phase 9 and again in Phase 10. This phase makes the
 engine a real pi package: a `pi` manifest in the root `package.json`
