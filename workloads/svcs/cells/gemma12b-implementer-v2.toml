@@ -1,0 +1,52 @@
+# v1 plus one engine change: the mutation engine now refuses a proposal
+# that leaves the file byte-for-byte unchanged, instead of reporting
+# "reconcile applied ... changed lines=0" as a success.
+#
+# Why this is a new cell and not an edit to gemma12b-implementer-v1.toml:
+# that cell's extensions_sha256 is the arm every number recorded before
+# 2026-08-15 was measured under -- the Cycle 7 confirmatory (64 attempts)
+# and the Phase 11 spike (44 attempts). Changing the engine changes what
+# the executor does, so it changes the arm. Editing v1 in place would
+# silently stop reproducing those results while the cell name kept
+# claiming it did, which is the exact defect the 2026-08-11 morning
+# summary caught in gemma12b-envelope.toml ("a named cell had been mutated
+# in place"). v1 stays frozen and untouched; comparisons across the change
+# must name both cells.
+#
+# The evidence that motivated it, in full, is on
+# docs/superpowers/research/2026-08-15-phase11-spike-analysis.md and its
+# addendum. In one line: on async-cm-enter's brief arm the model sent five
+# edits whose oldText and newText were byte-identical, the engine wrote
+# the same bytes back and answered "changed lines=0" each time, and the
+# run burned 11 turns and the whole 900s wall clock without writing
+# anything -- then was recorded as an infrastructure failure, which the
+# batch driver voids and retries.
+#
+# extensions_sha256 recomputed from tools/deliver_candidate.py's
+# IMPLEMENTER_EXTENSION_CLOSURE, in that order, after the change. Closure
+# membership is unchanged from v1; only mutation-engine.ts's bytes differ.
+# Everything else -- model, tools, budgets, context window, base URL -- is
+# copied from v1 deliberately, so the engine change is the only difference
+# between the two arms.
+name = "gemma12b-implementer-v2"
+description = """
+Gemma 4 12B under the implementer extension, with the no-op mutation
+refusal. Identical to gemma12b-implementer-v1 except that
+MutationEngine's shared reconcile path throws MutationRefusal when the
+proposed content equals the current content, for both the whole-file
+`write` path and the diff-shaped `edit` path.
+
+No live results are recorded under this cell yet. The first batch run
+against it is a new measurement, not a continuation of v1's -- see the
+header. Governing rule 8.
+"""
+
+[pinned]
+model = "omlx/gemma-4-12B-it-MLX-8bit"
+tools = "read,write,edit"
+extensions = "types.ts,loop-breaker.ts,preserve-symbols.ts,handoff-contract.ts,tool-target.ts,implementer-policy.ts,mutation-engine.ts,implementer.ts"
+extensions_sha256 = "809fcbc2ef256f2545409ec798a603b2b79a142c376487bff2164ea9cf97e232"
+wall_clock_seconds = "900.0"
+max_tokens = "32768"
+context_window = "80000"
+base_url = "http://127.0.0.1:8001/v1"

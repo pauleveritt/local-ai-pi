@@ -330,6 +330,52 @@ describe("proposeEdits: diff-shaped mutation", () => {
 		expect(fs.readFileSync(path.join(cwd, "missing.py"), "utf8")).toBe("a = 1\n");
 	});
 
+	// The failure this refusal was built from, reproduced in miniature.
+	// Live on async-cm-enter (brief arm, 2026-08-15): the model sent five
+	// edits whose oldText and newText were byte-identical, each matched
+	// uniquely, and the engine answered "reconcile applied ... changed
+	// lines=0" every time. Eleven turns, zero bytes written, killed by the
+	// 900s wall clock and then recorded as an infrastructure failure. A
+	// no-op must be a refusal the model can act on, not a success.
+	test("refuses an edit whose newText equals its oldText", () => {
+		fs.writeFileSync(path.join(cwd, "noop.py"), "a = 1\nb = 2\n");
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["noop.py"]));
+		const receipt = engine.readReceipt("noop.py");
+		expect(() => engine.proposeEdits("noop.py", receipt.sha256, [{ oldText: "a = 1", newText: "a = 1" }]))
+			.toThrow(MutationRefusal);
+		expect(() => engine.proposeEdits("noop.py", receipt.sha256, [{ oldText: "a = 1", newText: "a = 1" }]))
+			.toThrow(/no-op/);
+		expect(fs.readFileSync(path.join(cwd, "noop.py"), "utf8")).toBe("a = 1\nb = 2\n");
+	});
+
+	// Several edits in one call where the net effect cancels out is the
+	// same defect wearing a disguise: no individual edit is a no-op, but
+	// the file is unchanged, so the engine must still refuse.
+	test("refuses a multi-edit call whose net effect changes nothing", () => {
+		fs.writeFileSync(path.join(cwd, "netzero.py"), "a = 1\n");
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["netzero.py"]));
+		const receipt = engine.readReceipt("netzero.py");
+		expect(() =>
+			engine.proposeEdits("netzero.py", receipt.sha256, [
+				{ oldText: "a = 1", newText: "a = 2" },
+				{ oldText: "a = 2", newText: "a = 1" },
+			]),
+		).toThrow(/no-op/);
+		expect(fs.readFileSync(path.join(cwd, "netzero.py"), "utf8")).toBe("a = 1\n");
+	});
+
+	// Rule 7's false-rejection obligation: the refusal must not fire on a
+	// real one-character change, which is the smallest thing it could
+	// wrongly swallow.
+	test("admits a minimal real change", () => {
+		fs.writeFileSync(path.join(cwd, "minimal.py"), "a = 1\n");
+		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["minimal.py"]));
+		const receipt = engine.readReceipt("minimal.py");
+		const result = engine.proposeEdits("minimal.py", receipt.sha256, [{ oldText: "a = 1", newText: "a = 2" }]);
+		expect(result.changedLines).toBe(1);
+		expect(fs.readFileSync(path.join(cwd, "minimal.py"), "utf8")).toBe("a = 2\n");
+	});
+
 	test("refuses an ambiguous oldText that matches more than once", () => {
 		fs.writeFileSync(path.join(cwd, "dup.py"), "x = 1\nx = 1\n");
 		const engine = new MutationEngine(cwd, captureFileBaselines(cwd, ["dup.py"]));

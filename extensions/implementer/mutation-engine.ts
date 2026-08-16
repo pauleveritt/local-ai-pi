@@ -315,7 +315,7 @@ export class MutationEngine {
 		return this.#reconcileExisting(relative, absolute, baseline, stat, before, next);
 	}
 
-	/** Shared tail of `propose()` and `proposeEdits()` once `next` is known: refuse undeclared symbol loss, then write. */
+	/** Shared tail of `propose()` and `proposeEdits()` once `next` is known: refuse a no-op, refuse undeclared symbol loss, then write. */
 	#reconcileExisting(
 		relative: string,
 		absolute: string,
@@ -324,6 +324,37 @@ export class MutationEngine {
 		before: string,
 		next: string,
 	): MutationResult {
+		// A proposal that changes nothing is refused, not reported as
+		// "reconcile applied ... changed lines=0".
+		//
+		// Measured 2026-08-15 on the async-cm-enter brief arm: the model
+		// read a 29KB file, then sent edits whose oldText and newText were
+		// byte-identical (1085/1085 chars, then 390/390 three times). Each
+		// matched uniquely, so applyEdits' not-found and not-unique guards
+		// both passed, and the engine wrote the same bytes back and
+		// answered "changed lines=0" -- a success. The model re-read, saw
+		// its change missing, and proposed the same no-op again, until the
+		// 900s wall clock killed the run with zero files written. The loop
+		// breaker never fired, though not for the reason first written here:
+		// its WINDOW of 20 covers all ten calls, so alternating read/edit did
+		// not split the keys. It simply never reached THRESHOLD (5 identical)
+		// before the wall clock did -- the most any one key reached was 3.
+		//
+		// Reporting success for a write that did nothing is the defect.
+		// It gives the model no signal to act on, and it makes a genuine
+		// failure to converge indistinguishable from a dead server in the
+		// receipt. The refusal below is the signal, and it steers rather
+		// than merely refusing -- the same discipline loop-breaker.ts's
+		// reason text already follows.
+		if (next === before) {
+			throw new MutationRefusal(
+				`Proposal leaves ${relative} byte-for-byte unchanged, so nothing was written. ` +
+					"An edit whose newText equals its oldText is a no-op: send the modified text in " +
+					"newText, not a copy of oldText. Keep oldText as small as is still unique -- a " +
+					"short anchor you can retype exactly beats a large block you have to reproduce.",
+				{ path: relative },
+			);
+		}
 		const removed = lostSymbols(before, next).filter(
 			(symbol) => !this.#gained.has(symbolKey(symbol)) && !declared(this.#removable, symbol),
 		);
