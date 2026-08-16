@@ -105,6 +105,18 @@ porting the bounded-implementer lifecycle to TypeScript and re-establishing
 its cell/test machinery there — a large effort for little measured gain
 right now. Recorded as a decision, not an open question.
 
+> **Superseded, 2026-08-16.** A disposable spike (`ts-engine-core`, not
+> merged) put a number on "large effort": the product-shaped half of the
+> lifecycle ported in ~700 lines, one session, fully tested with no model
+> calls. "Little measured gain" also doesn't hold — the packaged install
+> (Phase 12) ships an `/implement` that only works from inside a checkout,
+> which this decision didn't have in view. This is now shaped as Phase 13:
+> [shape](2026-08-16-phase13-ts-orchestrator-shape.md). Left in
+> place rather than deleted, per this file's own convention of recording a
+> decision rather than erasing it. Phase 13's shape names a real
+> dependency back onto this phase (which child `/implement` ships with),
+> so the two are not independent — see that shape's open question 2.
+
 **The `svcs` suite is wanted as a first-class eval suite — and that is
 design work, not registration.** It discriminated where it should in the
 Phase 7 confirmatory (stringified-annotations: brief 3/8 → locating-
