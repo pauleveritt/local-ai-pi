@@ -13,8 +13,7 @@ a receipt saying why. There is no promotion, no merge, and no write to
 the working tree in either case.
 
     uv run python -m tools.deliver_candidate \\
-        --repo . --task add-iter --prompt-file brief.md \\
-        --validation "pytest -q" --writable "src/**"
+        --repo . --task add-iter --contract contract.md
 
 **Three things must be true before this works**, and the server check
 below exists because the first one fails silently: Pi answers `pi
@@ -34,6 +33,8 @@ from pathlib import Path
 import harness.cell as cell_module
 from harness.candidate import DeliveryRefused, deliver
 from harness.cell_resolution import PROBE_EXTENSION, resolve_cell
+from harness.contract_file import ContractFileError, parse_contract_file
+from harness.contract_lint import ContractLintUnusable, impossible_paths
 from harness.liveness import ModelServerDown, check_model_server_alive
 from harness.pi_invocation import pi_command, pi_env
 from harness.processes import ProcessResult, run_process
@@ -80,7 +81,11 @@ BASELINES_ENV = "SATYRN_FILE_BASELINES"
 
 
 def _render_contract_prompt(contract: HandoffContract) -> str:
-    """A minimal, faithful-enough echo of `handoff-contract.ts`'s `renderContract`.
+    """The `--contract-task` bridge's own prompt shape. Not touched by this
+    phase -- `--contract-task` is the harness-only smoke bridge and its
+    prompt shape (and the `prompt_sha256` receipts record) must not drift
+    out from under a measured batch. `--contract` uses
+    `_render_file_contract_prompt` below instead.
 
     The system prompt `implementer.ts` injects (`promptFor`) states the
     bounded-writer rules; it never repeats `contract.task`. That has to
@@ -97,14 +102,57 @@ def _render_contract_prompt(contract: HandoffContract) -> str:
     )
 
 
+def _render_file_contract_prompt(contract: HandoffContract) -> str:
+    """The `--contract` file-contract path's prompt.
+
+    `implementer.ts`'s system prompt (`promptFor`) tells the child to
+    "preserve the listed behavior and include every acceptance string
+    exactly" and to read only the declared readable/writable files -- but
+    it never shows the child those lists; they travel only in
+    `SATYRN_HANDOFF_CONTRACT`, which the engine reads for policy
+    (`writableFiles`/`readableFiles`) and mutation bookkeeping
+    (`removableSymbols`), not for prompt content. `_render_contract_prompt`
+    above renders only task/writableFiles/validation, so an author who
+    filled in `knownFacts`, `acceptanceStrings`, or `preservedBehavior` --
+    exactly the fields the skill tells them are worth writing -- got a
+    child that never saw them. This renderer is deliberately separate from
+    `_render_contract_prompt` rather than an edit to it: that function also
+    serves `--contract-task`, whose prompt shape (and the `prompt_sha256`
+    every receipt records) must not change out from under a measured arm.
+    """
+    writable = (
+        "\n".join(f"- `{f['path']}`" for f in contract["writableFiles"]) or "None"
+    )
+    readable = "\n".join(f"- `{path}`" for path in contract["readableFiles"])
+    known_facts = "\n".join(f"- {fact}" for fact in contract["knownFacts"])
+    preserved = "\n".join(f"- {item}" for item in contract["preservedBehavior"])
+    acceptance = "\n".join(f"- {item}" for item in contract["acceptanceStrings"])
+
+    sections = [f"## Task\n\n{contract['task']}", f"## Writable Files\n\n{writable}"]
+    if readable:
+        sections.append(f"## Readable Files\n\n{readable}")
+    if known_facts:
+        sections.append(f"## Known Facts\n\n{known_facts}")
+    if preserved:
+        sections.append(f"## Preserve\n\n{preserved}")
+    if acceptance:
+        sections.append(f"## Acceptance Strings\n\n{acceptance}")
+    sections.append(f"## Validation (run by the parent)\n\n{contract['validation']}")
+    return "\n\n".join(sections) + "\n"
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", required=True, type=Path)
     parser.add_argument("--task", required=True)
     parser.add_argument(
-        "--prompt-file",
+        "--contract",
         type=Path,
-        help="required unless --contract-task supplies the prompt",
+        default=None,
+        help="a handoff contract file: YAML front-matter carrying the bounds "
+        "(writableFiles, validation, and optionally readableFiles, knownFacts, "
+        "acceptanceStrings), then the task prose as the body. This is the "
+        "product path -- see the write-handoff-contract skill.",
     )
     parser.add_argument(
         "--validation",
@@ -189,11 +237,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
     if args.cell is None and not args.model:
         parser.error("--model is required unless --cell is given")
-    if args.contract_task is None and not args.prompt_file:
-        parser.error("--prompt-file is required unless --contract-task is given")
-    if args.contract_task is not None and args.prompt_file:
+    if args.contract_task is None and args.contract is None:
+        parser.error("--contract is required (or --contract-task, harness-only)")
+    if args.contract_task is not None and args.contract is not None:
         parser.error(
-            "--contract-task supplies the prompt; do not also pass --prompt-file"
+            "--contract-task builds its own contract; do not also pass --contract"
         )
     if args.contract_task is not None and args.validation:
         # The contract tells the child, in its own text, which command the
@@ -219,6 +267,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             "--contract-task supplies the writable scope from the task's manifest; "
             "do not also pass --writable"
         )
+    if args.contract is not None and args.validation:
+        # Same hazard --contract-task's own guard above documents: the
+        # rendered prompt tells the child which command the parent will
+        # run, and an override makes that statement false with no signal.
+        parser.error(
+            "--contract supplies the validation command from the contract "
+            "file; do not also pass --validation"
+        )
+    if args.contract is not None and args.writable:
+        parser.error(
+            "--contract supplies the writable scope from writableFiles; "
+            "do not also pass --writable"
+        )
     if args.contract_task is None and args.task_source != "locating-contract":
         parser.error("--task-source has no effect without --contract-task")
 
@@ -231,6 +292,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         args.timeout = float(pinned["wall_clock_seconds"])
 
     handoff: TypedHandoff | None = None
+    file_contract: HandoffContract | None = None
     if args.contract_task is not None:
         # Read from `args.repo` itself, not the candidate worktree the call
         # below will create -- `deliver()`'s own `preflight` refuses a dirty
@@ -265,22 +327,51 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.writable is None:
             args.writable = list(handoff.writable_glob)
     else:
-        prompt = args.prompt_file.read_text() if args.prompt_file else ""
+        # Refuse before the worktree and before the first call. A contract
+        # the implementer cannot satisfy is a bad packet, not a bad model,
+        # and spending a call to discover that is what this phase exists to
+        # stop: with no contract at all the child's whole system prompt is
+        # "Do not call tools; report this configuration failure", so the
+        # run burns its budget and reports "changed nothing".
+        try:
+            file_contract = parse_contract_file(args.contract)
+        except ContractFileError as error:
+            print(f"refused: {error}", file=sys.stderr)
+            return 2
+
+        declared = [f["path"] for f in file_contract["writableFiles"]]
+        try:
+            offending = impossible_paths(file_contract["task"], declared, args.repo)
+        except ContractLintUnusable as fault:
+            # Exit 4, not 2: "the tool cannot judge" must never read as
+            # "your packet is bad".
+            print(f"instrument fault: {fault}", file=sys.stderr)
+            return 4
+        if offending:
+            print(
+                "refused: the contract names "
+                + ", ".join(offending)
+                + " -- neither in the base tree nor in writableFiles, so it can "
+                "be neither read nor created",
+                file=sys.stderr,
+            )
+            return 2
+
+        prompt = _render_file_contract_prompt(file_contract)
+        if args.validation is None:
+            args.validation = file_contract["validation"]
+        if args.writable is None:
+            args.writable = declared
 
     # What Pi actually loads via --extension (a single entry point; Pi's own
     # bundler resolves its relative imports) versus what a cell's digest
     # must cover (that entry point's whole same-repo import closure, so an
     # edit to a dependency isn't invisible to verify()) are different sets
     # on purpose -- see IMPLEMENTER_EXTENSION_CLOSURE's comment.
-    extensions = (
-        (IMPLEMENTER_EXTENSION,)
-        if args.contract_task is not None
-        else (PROBE_EXTENSION,)
-    )
+    contract_run = args.contract_task is not None or file_contract is not None
+    extensions = (IMPLEMENTER_EXTENSION,) if contract_run else (PROBE_EXTENSION,)
     digest_extensions = (
-        IMPLEMENTER_EXTENSION_CLOSURE
-        if args.contract_task is not None
-        else (PROBE_EXTENSION,)
+        IMPLEMENTER_EXTENSION_CLOSURE if contract_run else (PROBE_EXTENSION,)
     )
 
     if declared_cell is not None:
@@ -321,6 +412,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             # revision-checked baseline and the model's tool-call policy.
             env[CONTRACT_ENV] = json.dumps(handoff.contract)
             env[BASELINES_ENV] = json.dumps(handoff.baselines)
+        elif file_contract is not None:
+            # No manifest, so no baselines: the engine treats an absent
+            # baseline as "this file is as found".
+            env[CONTRACT_ENV] = json.dumps(file_contract)
+            env[BASELINES_ENV] = json.dumps({})
         return run_process(
             argv_pi,
             cwd=worktree,

@@ -3,7 +3,7 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"test": "bun test extensions/"
+		"test": "bun test extensions/ packages/"
 	},
 	"dependencies": {
 		"typebox": "^1.3.12"

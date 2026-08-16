@@ -31,8 +31,8 @@ def test_the_argv_builder_maps_the_inputs():
             "-e",
             f"import {{ buildDeliverCandidateArgv }} from '{ORCHESTRATOR}';"
             "console.log(buildDeliverCandidateArgv({"
-            "repo: '/repo', task: 'add-health', promptFile: '/tmp/p.md',"
-            "validation: 'pytest -q', model: 'omlx/gemma-4-12B-it-MLX-8bit'"
+            "repo: '/repo', task: 'add-health', contractPath: '/tmp/c.md',"
+            "model: 'omlx/gemma-4-12B-it-MLX-8bit'"
             "}).join(' '))",
         ],
         capture_output=True,
@@ -43,6 +43,8 @@ def test_the_argv_builder_maps_the_inputs():
     assert "tools.deliver_candidate" in argv
     assert "--repo /repo" in argv
     assert "--task add-health" in argv
-    assert "--prompt-file /tmp/p.md" in argv
-    assert "--validation pytest -q" in argv
+    assert "--contract /tmp/c.md" in argv
+    # Validation now comes from the contract file, not the command line.
+    assert "--prompt-file" not in argv
+    assert "--validation" not in argv
     assert "--model omlx/gemma-4-12B-it-MLX-8bit" in argv
