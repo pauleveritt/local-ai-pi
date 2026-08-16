@@ -224,27 +224,37 @@ own CLI shipped a bug leaking internal errors out as exit code 1, its
 code for "bad packet." So the classes get distinct, documented exits, and
 three of them happen before any model call.
 
+`deliver_candidate.py` already defines 0/1/2/3, so the new class takes 4
+rather than renumbering anything:
+
 | Class | Example | Exit | Model called? |
 |---|---|---|---|
-| Bad packet | missing file, invalid schema, path neither in tree nor `writableFiles` | 2 | **no** |
-| Instrument fault | the lint cannot run (`writableFiles` absent) | 3 | **no** |
-| Candidate not created | child ran, wrote nothing, or validation failed | 1 | yes |
 | Success | candidate ref written | 0 | yes |
+| Candidate not created | child ran, wrote nothing, or validation failed | 1 | yes |
+| Refused — bad packet | missing file, invalid schema, path neither in tree nor `writableFiles` | 2 (existing refusal code) | **no** |
+| Infrastructure | dead server, unusable setup | 3 (existing) | no |
+| Instrument fault | the lint cannot judge | **4 (new)** | **no** |
 
-"The tool cannot judge" (3) must never read as "your packet is bad" (2).
-Infrastructure failures keep whatever behaviour they have today — giving
-them a new exit code is scope this phase does not need.
+"The tool cannot judge" (4) must never read as "your packet is bad" (2).
+
+In practice the schema makes `writableFiles` required, so the lint's
+own guard is unreachable from the CLI and exit 4 is defence in depth —
+about five lines. It is kept because the conflation it prevents is a bug
+the gate branch actually shipped.
 
 ## Testing
 
 Deterministic and model-free, with one marked exception.
 
-- **The labelled corpus already exists.** The gate branch carries 8
-  committed contracts and 8 authored drafts with known lint outcomes: 2
-  authored blocked (`src/svcs/container.py`, where the tree has
-  `_core.py`; `src/svcs/flask/app.py`, where it has `flask.py`), and 0/8
-  false positives on committed contracts. This becomes the lint's
-  regression corpus at no run cost.
+- **The corpus's lessons come across as fixtures, not as 16 files.** The
+  gate branch measured 2 authored drafts blocked
+  (`src/svcs/container.py`, where the tree has `_core.py`;
+  `src/svcs/flask/app.py`, where it has `flask.py`) and 0/8 false
+  positives on committed contracts — including `autowire`, whose contract
+  correctly names a module that does not exist yet because that task's
+  job is to add it. Those three cases become explicit unit tests. The
+  full corpus stays on `phase11-inspect-contract`; copying it over would
+  import a measurement apparatus to re-prove a fifteen-line function.
 - **AC-1 tests assert the model was never invoked.**
 - **One smoke test, marked as such.** `async-cm-enter`, contract authored
   through the new affordance, does a passing candidate come out. **n=1, a
@@ -284,10 +294,12 @@ it does not run."*
 
 ## Open questions
 
-1. **Skill, extension, or another mechanism for the authoring
-   affordance?** Deferred to implementation planning by decision. The
-   repository has no skills directory today, so either way this is new
-   surface.
+1. ~~Skill, extension, or another mechanism for the authoring
+   affordance?~~ **Decided in planning: a Claude Code skill** at
+   `.claude/skills/write-handoff-contract/SKILL.md`. Markdown
+   instructions, no code, no runtime — the smallest thing that puts the
+   guidance where the authoring already happens. An extension would add a
+   build artifact and a load path for content that is entirely prose.
 2. **Where do authored contract files live** — a conventional path in the
    repository, a temporary directory, or the user's choice? Affects
    whether contracts are reviewable artifacts in version control, which
