@@ -341,8 +341,10 @@ def test_task_source_defaults_to_locating_contract(monkeypatch, tmp_path):
 
 
 def test_task_source_without_contract_task_is_refused(tmp_path):
-    prompt_file = tmp_path / "brief.md"
-    prompt_file.write_text("do the thing")
+    contract_file = tmp_path / "contract.md"
+    contract_file.write_text(
+        "---\nwritableFiles: [a/b.py]\nvalidation: echo ok\n---\ndo the thing\n"
+    )
     with pytest.raises(SystemExit):
         deliver_candidate.main(
             [
@@ -350,10 +352,8 @@ def test_task_source_without_contract_task_is_refused(tmp_path):
                 str(tmp_path),
                 "--task",
                 "flask-extensions",
-                "--prompt-file",
-                str(prompt_file),
-                "--validation",
-                "echo ok",
+                "--contract",
+                str(contract_file),
                 "--model",
                 "omlx/gemma-4-12B-it-MLX-8bit",
                 "--skip-server-check",
