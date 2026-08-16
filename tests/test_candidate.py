@@ -168,6 +168,106 @@ def test_a_failed_model_call_that_wrote_nothing_is_not_blamed_on_the_model(
     assert "satyrn-worktrees" not in _git(repo, "worktree", "list")
 
 
+def test_a_timeout_with_a_live_server_is_a_model_failure_not_infrastructure(
+    repo: Path,
+) -> None:
+    """The split that cost a batch on 2026-08-15.
+
+    A model that spends its whole wall clock proposing no-op edits leaves
+    the same evidence as a dead server: timed out, nothing on disk. Called
+    an infrastructure failure, the batch driver voids and *retries* it --
+    three 900s attempts per slot, ending in `void_exhausted` with no data,
+    while the receipt blames a server that was up throughout. The Cycle 7
+    pre-registration says exhausting the budget is a plain failure, so the
+    misclassification silently corrupts denominators.
+    """
+
+    def stalled(worktree: Path) -> ProcessResult:
+        return ProcessResult(-15, "", "", timed_out=True)
+
+    receipt = deliver(
+        repo,
+        "stalled",
+        "p",
+        stalled,
+        VALIDATION,
+        writable=("src/**",),
+        server_probe=lambda: True,
+    )
+    assert receipt.outcome == "discarded", "must count, not void"
+    assert receipt.child_timed_out is True
+    assert "time budget" in receipt.refusal
+    # The misdirection that mattered was the *instruction*, not the word:
+    # the old text sent the reader off to check a server that was fine.
+    assert "check that the model server is running" not in receipt.refusal
+    assert receipt.validation_exit is None, "nothing was written, so nothing judged"
+
+
+def test_a_timeout_with_a_dead_server_is_still_infrastructure(repo: Path) -> None:
+    """The other side, so the reclassification cannot swallow a real outage.
+
+    This is the asymmetry that makes the probe safe to add: it may only
+    ever turn infrastructure into a recorded model failure, never blame a
+    model for an unreachable server.
+    """
+
+    def stalled(worktree: Path) -> ProcessResult:
+        return ProcessResult(-15, "", "", timed_out=True)
+
+    receipt = deliver(
+        repo,
+        "dead-and-slow",
+        "p",
+        stalled,
+        VALIDATION,
+        writable=("src/**",),
+        server_probe=lambda: False,
+    )
+    assert receipt.outcome == "infrastructure-failure"
+    assert "setup" in receipt.refusal
+
+
+def test_a_nonzero_exit_that_did_not_time_out_is_never_reclassified(
+    repo: Path,
+) -> None:
+    """A crash is not a stall, even with the server up.
+
+    The probe is consulted only on a timeout. A child that died fast --
+    unresolvable model name, missing Pi -- is a setup problem however
+    healthy the server looks.
+    """
+
+    def crashed(worktree: Path) -> ProcessResult:
+        return ProcessResult(1, "", "model 'nope' not found", timed_out=False)
+
+    receipt = deliver(
+        repo,
+        "crashed",
+        "p",
+        crashed,
+        VALIDATION,
+        writable=("src/**",),
+        server_probe=lambda: True,
+    )
+    assert receipt.outcome == "infrastructure-failure"
+
+
+def test_an_unknown_base_url_keeps_the_old_classification(repo: Path) -> None:
+    """No cell, no `base_url`, no probe -- and the old behaviour stands.
+
+    The default probe answers False for anything it cannot confirm, so a
+    caller that never supplied a server address is classified exactly as
+    it was before this split existed. Pins the conservative default rather
+    than trusting the docstring.
+    """
+
+    def stalled(worktree: Path) -> ProcessResult:
+        return ProcessResult(-15, "", "", timed_out=True)
+
+    receipt = deliver(repo, "no-url", "p", stalled, VALIDATION, writable=("src/**",))
+    assert receipt.outcome == "infrastructure-failure"
+
+
 def test_a_child_that_exited_zero_and_declined_is_still_the_model(repo: Path) -> None:
     """The other side of the same split, so the fix cannot swallow it.
 

@@ -13,7 +13,12 @@ import math
 
 import pytest
 
-from harness.intervals import Interval, newcombe_interval, wilson_interval
+from harness.intervals import (
+    Interval,
+    fisher_exact_two_sided,
+    newcombe_interval,
+    wilson_interval,
+)
 
 
 def _quadratic_wilson(successes: int, n: int, z: float = 1.96) -> tuple[float, float]:
@@ -104,3 +109,42 @@ def test_interval_helpers_classify_correctly():
     assert Interval(-0.2, 0.3).includes_zero()
     assert not Interval(-0.2, 0.3).excludes_zero_above()
     assert not Interval(-0.2, 0.3).excludes_zero_below()
+
+
+def test_fisher_matches_hand_checked_tables_from_this_project():
+    """Values this project has already quoted, now pinned.
+
+    Each of these appeared in a write-up before `fisher_exact_two_sided`
+    existed, computed by a throwaway inline function. They are pinned here
+    so the module can be trusted as their source rather than merely
+    claimed as it -- which one write-up did.
+    """
+    # 2026-08-15 three-arm: lc 4/4 vs brief 0/4, the separation claim.
+    assert round(fisher_exact_two_sided(4, 0, 0, 4), 4) == 0.0286
+    # 2026-08-15 F4 replication: stack 4/4 vs bare 0/4.
+    assert round(fisher_exact_two_sided(4, 0, 0, 4), 4) == 0.0286
+    # lc 4/4 vs content 2/4 -- the comparison that stayed inconclusive.
+    assert round(fisher_exact_two_sided(4, 0, 2, 2), 4) == 0.4286
+    # anchor 3/4 vs brief 0/3 regressions -- why "actively harmful" was
+    # downgraded to a mechanism observation.
+    assert round(fisher_exact_two_sided(3, 1, 0, 3), 4) == 0.1429
+    # 2026-08-11 confirmatory, stringified-annotations: 8/8 vs 3/8.
+    assert round(fisher_exact_two_sided(8, 0, 3, 5), 4) == 0.0256
+
+
+def test_fisher_is_symmetric_and_bounded():
+    assert fisher_exact_two_sided(0, 4, 0, 4) == 1.0, "no difference at all"
+    assert fisher_exact_two_sided(4, 0, 4, 0) == 1.0, "identical ceilings"
+    # Swapping rows describes the same table, so the p-value must not move.
+    assert fisher_exact_two_sided(4, 0, 1, 3) == fisher_exact_two_sided(1, 3, 4, 0)
+    # Swapping columns likewise.
+    assert fisher_exact_two_sided(4, 0, 1, 3) == fisher_exact_two_sided(0, 4, 3, 1)
+    for table in [(4, 0, 0, 4), (2, 2, 1, 3), (8, 0, 3, 5), (1, 0, 0, 1)]:
+        assert 0.0 < fisher_exact_two_sided(*table) <= 1.0
+
+
+def test_fisher_refuses_a_negative_cell_and_an_empty_table():
+    with pytest.raises(ValueError, match="c=-1"):
+        fisher_exact_two_sided(1, 1, -1, 1)
+    with pytest.raises(ValueError, match="empty"):
+        fisher_exact_two_sided(0, 0, 0, 0)
