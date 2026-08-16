@@ -53,6 +53,47 @@ real-oracle-passed; autowire 4/4 candidate-created (0/2 before its own
 writable-scope fix), 0/4 real-oracle-passed (a genuine capability
 ceiling, not a harness artifact). None of this is confirmatory --
 governing rule 8.
+
+SUPERSEDED, 2026-08-15. Read the paragraph above as a historical pilot
+record and nothing else. Every rate in it was measured before the Cycle 7
+confirmatory ran on the very same cell later that same day, and at least
+one is wrong by a factor of four in a way that has already misled a
+later phase:
+
+  local-pings  pilot 1/6 (~17%) real-oracle-passed
+               confirmatory 7/8 BOTH arms (2026-08-11-phase7-cycle7-
+               confirmatory-result.md), and 8/12 brief / 7/12
+               locating-contract in the 2026-08-15 spike.
+
+The 2026-08-15 Phase 11 spike picked local-pings as its "task with real
+headroom" from the 1/6 figure above, spent 24 live runs on it, and found
+no arm difference -- because the task had been near-ceiling since the
+afternoon of 2026-08-11. That is the concrete cost of leaving a
+superseded rate in a file people read to choose work. The confirmatory
+result document, not this description, is authoritative for every task
+in the four-task cohort.
+
+Also recorded here because it bears on how these numbers were produced:
+the executor this cell pins carried two defects that were only found on
+2026-08-15, both of which can depress a rate without leaving a trace.
+(1) The mutation engine reported an edit whose newText equalled its
+oldText as "reconcile applied ... changed lines=0" -- a success -- so a
+model could echo, be told it had succeeded, and exit 0 having written
+nothing. (2) A wall-clock timeout with an empty tree was classified
+infrastructure-failure and voided. The confirmatory's single void
+(stringified-annotations__brief__r5) has that exact signature -- 900.018s
+burned, nothing written -- and its neighbours on both sides completed
+normally, so the server was up and it was a model stall wrongly excluded
+from the denominator, not an infrastructure failure. Counting it as the
+failure it was moves that arm from 3/8 to 3/9, which widens the recorded
+superiority slightly rather than threatening it.
+
+Both defects are fixed as of 2026-08-15 -- but NOT in this cell. The
+fixes live in gemma12b-implementer-v2.toml (the no-op refusal, which
+changes extensions_sha256) and in harness/candidate.py (the timeout
+classifier, which does not). This cell is deliberately frozen at the
+arm every pre-2026-08-15 number was measured under, so those runs stay
+reproducible. Do not edit its [pinned] block; start a new cell instead.
 """
 
 [pinned]
